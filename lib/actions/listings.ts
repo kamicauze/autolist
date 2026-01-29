@@ -1,8 +1,10 @@
-
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+
+import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
+import { type SupabaseClient } from "@supabase/supabase-js";
 
 export type CreateListingInput = {
     make: string;
@@ -20,23 +22,39 @@ export type CreateListingInput = {
     color?: string;
 };
 
-export async function createListing(input: CreateListingInput) {
+export async function createListing(input: ListingFormData) {
     const supabase = await createClient();
-
-    // 1. Get User
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-        return { error: "Unauthorized" };
-    }
+    if (authError || !user) return { error: "Unauthorized" };
 
-    // 2. Insert Listing
-    const { data, error } = await supabase
+    return await insertListingInternal(supabase, user.id, input);
+}
+
+// Internal function to allow seeding/admin usage
+export async function insertListingInternal(
+    supabase: SupabaseClient,
+    userId: string,
+    input: ListingFormData
+) {
+    // 1. Validation
+    const result = listingSchema.safeParse(input);
+    if (!result.success) {
+        return { error: result.error.flatten() };
+    }
+    const data = result.data;
+
+    // 2. Determine Initial Status
+    // All listings start as 'draft' until images are uploaded and user publishes.
+    const initialStatus = 'draft';
+
+    // 3. Insert Listing
+    const { data: listing, error } = await supabase
         .from('listings')
         .insert({
-            seller_id: user.id,
-            status: 'active', // TODO: Change to 'draft' or 'pending' later based on logic
-            ...input,
-            features: input.features // Cast to JSONB implicit
+            seller_id: userId,
+            status: initialStatus,
+            ...data,
+            features: data.features // Zod array -> JSONB
         })
         .select()
         .single();
@@ -47,7 +65,7 @@ export async function createListing(input: CreateListingInput) {
     }
 
     revalidatePath('/dashboard/listings');
-    return { success: true, data };
+    return { success: true, data: listing };
 }
 
 export async function updateListing(id: string, input: Partial<CreateListingInput>) {

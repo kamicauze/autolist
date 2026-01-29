@@ -1,0 +1,630 @@
+05/01/2026, 15:46 - Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to, or share them. Learn more.
+05/01/2026, 15:46 - Yvonne Karimi created group "Autolist Dev Team"
+05/01/2026, 15:46 - Yvonne Karimi added you
+05/01/2026, 15:48 - Yvonne Karimi: Hello everyone,
+
+I have created this group as discussed earlier on the call.
+
+We will use this group for daily coordination, any questions, enquiries or blockers that we may face.
+05/01/2026, 15:55 - +254 769 041607: Thank you for the add
+05/01/2026, 16:32 - +254 735 392909: Good stuff
+05/01/2026, 16:54 - Yvonne Karimi added +254 727 438710
+05/01/2026, 17:34 - Yvonne Karimi: Good evening 
+
+Our next meeting will be on Thursday at noon in Hurlingham
+
+Agenda:
+
+1. Breakdown the requirements into modules and features 
+
+2. ⁠Tech stack discussions- BE, Cybersecurity, FE, cloud infrastructure 
+
+3. Tools that will be needed- Tech and design 
+
+4. Design requirements and deliverables - what modules to start with 
+
+5. AOB
+05/01/2026, 17:41 - Yvonne Karimi: @⁨~エヴァンス⁩ please share the pin location
+05/01/2026, 17:42 - Yvonne Karimi: IMG-20260105-WA0003.jpg (file attached)
+05/01/2026, 17:43 - Yvonne Karimi: @⁨+254 769 041607⁩ 
+
+What color is that ? Blue or purple?
+05/01/2026, 17:46 - +254 769 041607: The color is Blue >> which leans towards indigo (a royal blue)
+ HEX: #1800AD
+RGB: 24, 0, 173
+05/01/2026, 18:06 - Yvonne Karimi: Thank you
+07/01/2026, 20:48 - Yvonne Karimi: https://share.google/4HsoZoe30Nr1x6Hbi
+07/01/2026, 20:49 - Yvonne Karimi: Good evening, the Pin for tomorrow’s meeting
+08/01/2026, 13:49 - Yvonne Karimi: This message was deleted
+08/01/2026, 13:49 - Yvonne Karimi: This message was deleted
+08/01/2026, 13:50 - Yvonne Karimi: IMG-20260108-WA0003.jpg (file attached)
+08/01/2026, 13:50 - Yvonne Karimi: IMG-20260108-WA0004.jpg (file attached)
+08/01/2026, 14:11 - Martin: Vercel Pro (web app hosting & scaling)
+ ≈ $20
+
+Supabase Pro (Postgres, auth, backups)
+ ≈ $25
+
+Cloudflare (CDN, security)
+ ≈ $0–10 (usually free at MVP)
+
+
+Cloudflare R2 (image storage + delivery)
+ ≈ $5–15 (depends on images)
+
+
+Analytics & monitoring (PostHog, Sentry, uptime)
+ ≈ $0–20 (mostly free tiers early)
+
+
+Optional VPS (Hetzner) for background jobs
+ ≈ $10–20
+08/01/2026, 14:12 - +254 769 041607: https://artboard.studio/#pricing
+https://www.figma.com/pricing/ <This message was edited>
+12/01/2026, 17:45 - Yvonne Karimi: Hey @⁨~エヴァンス⁩ 
+
+We need the following 
+
+1. Dealer verification details
+2. ⁠listing fields
+12/01/2026, 17:49 - +254 735 392909: Okay I'll work on these
+12/01/2026, 18:01 - Yvonne Karimi: Thank you
+12/01/2026, 20:20 - Yvonne Karimi: Hey @⁨+254 769 041607⁩ 
+
+This subscriptions have been activated.
+
+Design away …
+
+You’ll let me know if you have any challenges
+12/01/2026, 20:20 - +254 769 041607: Cool
+12/01/2026, 21:38 - Yvonne Karimi: @⁨+254 769 041607⁩  the tickets are ready- please review them
+12/01/2026, 21:39 - +254 769 041607: Sawa noted
+12/01/2026, 23:06 - Yvonne Karimi: Howdy @⁨Martin⁩ 
+
+I have created the tickets on supabase - I will continue the rest tomorrow
+
+I may redo them -realized they best fit to be subtasks instead of Main task
+12/01/2026, 23:54 - Yvonne Karimi: I have changed the boards- from team based to Company managed @⁨Martin⁩ 
+
+This is the link to the new board: https://autolist-team.atlassian.net/jira/software/c/projects/AUT/boards/34/backlog?atlOrigin=eyJpIjoiYzVjMjg1MGRjOTQwNGVmZmE0NTM3NTMzNTBlZmYyYmYiLCJwIjoiaiJ9
+13/01/2026, 09:20 - Martin: Great, thanks.
+13/01/2026, 11:27 - +254 769 041607: Goodmorning @⁨Yvonne Karimi⁩ . I was requesting for images . Thanks <This message was edited>
+13/01/2026, 11:50 - Yvonne Karimi: Hey @⁨+254 769 041607⁩  
+
+Alright on it.
+
+Roughly to start with how many vehicle listings do you need?
+
+Also do you need for all categories now ? Or we can start with cars
+13/01/2026, 12:13 - +254 769 041607: We can like 10-20 listings of vehicles will be cool . 
+We can also start with cars
+13/01/2026, 12:26 - Yvonne Karimi: Alrighty 
+
+@⁨~エヴァンス⁩  FYI for our meeting
+13/01/2026, 12:43 - +254 735 392909: Ok noted
+13/01/2026, 13:48 - Yvonne Karimi: @⁨Martin⁩  all tickets are completed and under Sprint 0
+13/01/2026, 13:59 - Martin: @⁨Yvonne Karimi⁩  thanks.
+13/01/2026, 16:21 - Yvonne Karimi: @⁨Martin⁩ @⁨+254 769 041607⁩ 
+
+The dealer sign up doc: https://docs.google.com/document/d/1HEw8rk8SVo4XyWYjwNt7sN8cEuHj7j-kkNArpTIAwbY/edit?usp=sharing
+13/01/2026, 17:00 - +254 735 392909: Toyota Probox
+Year 2018
+Price 1.29M
+
+▪️1300cc Petrol Engine
+▪️Automatic Transmission
+▪️Fabric Interior
+▪️2WD
+▪️Mileage 104k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:00 - +254 735 392909: 
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0007.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0008.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0009.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0010.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0011.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0012.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0013.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0014.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0015.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0016.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0017.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0018.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0020.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0022.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0024.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0026.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0028.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0030.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0032.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0034.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0036.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0038.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0040.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0042.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: Toyota Premio
+Year 2015
+Price 1.85M
+
+▪️2000cc Petrol Engine
+▪️Automatic Transmission
+▪️Beige Fabric Interior
+▪️Steering Controls
+▪️Wood Trim FInish
+▪️Alloy rims
+▪️Mileage 54k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:00 - +254 735 392909: Toyota Harrier
+Year 2009
+Price 1.6M
+
+▪️2400cc Petrol Engine
+▪️Automatic Transmission
+▪️Fabric Interior
+▪️Powered Seats
+▪️Steering Controls
+▪️Fog Lights
+▪️Mileage 152k Kms
+
+✅ Call Sms or Whatsapp for More Details
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:00 - +254 735 392909: Volkswagen Jetta
+Year 2009
+Price 820K
+
+▪️1400cc Petrol Engine
+▪️Automatic Transmission
+▪️Leather Interior
+▪️Steering Controls
+▪️Android Radio
+▪️Accident Free
+
+✅ Call Sms or Whatsapp for More Details
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:00 - +254 735 392909: 
+13/01/2026, 17:00 - +254 735 392909: 
+13/01/2026, 17:00 - +254 735 392909: 
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0043.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0044.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0045.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0046.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0047.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0048.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0050.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0049.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0051.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0052.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0053.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0054.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0055.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0056.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0057.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0058.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0059.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0060.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0061.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0062.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0063.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0065.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0067.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0069.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0071.jpg (file attached)
+13/01/2026, 17:00 - +254 735 392909: IMG-20260113-WA0073.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0075.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0077.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0079.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0081.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0082.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0083.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0084.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0085.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0086.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0087.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0088.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0089.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0090.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0091.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0092.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0093.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0094.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0095.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0096.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0097.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0098.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0099.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0100.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0101.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0102.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0103.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: ...
+13/01/2026, 17:01 - +254 735 392909: BMW X1
+Year 2016
+Price 2.85M
+
+▪️1500cc Petrol Engine
+▪️Automatic Transmission
+▪️Half Leather Interior
+▪️S Drive 18i
+▪️Steering Controls
+▪️Parking Sensors
+▪️Lane Assist
+▪️Mileage 120k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:01 - +254 735 392909: 
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0104.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0105.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0106.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0107.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0108.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0109.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0110.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0111.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0112.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0113.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0114.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0115.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: ...
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0116.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0117.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0118.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0119.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: IMG-20260113-WA0120.jpg (file attached)
+13/01/2026, 17:01 - +254 735 392909: Volvo S60
+Year 2011
+Price 1.25M
+
+▪️1600cc Petrol T Engine
+▪️Automatic Transmission
+▪️Leather Interior
+▪️Steering Controls
+▪️Alloy Rims
+▪️Parking Sensors
+▪️Mileage 179k Kms
+
+✅ Financing From 70% up to 3 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:01 - +254 735 392909: 
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0121.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0122.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0123.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0124.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0125.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0126.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0127.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0128.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0129.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0130.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0131.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: ...
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0132.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0133.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0134.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0135.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0136.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: Subaru Forester
+Year 2014
+Price 1.99M
+
+▪️2000cc Petrol Engine
+▪️Automatic Transmission
+▪️Leather Interior
+▪️Heated Seats
+▪️X Mode
+▪️Eyesight Assist
+▪️Mileage 183k Kms
+
+✅ Financing From 70% up to 3 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:02 - +254 735 392909: 
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0137.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0138.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0139.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0140.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0141.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0142.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0143.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: ....
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0144.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0145.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0146.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0147.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0148.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0149.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0150.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0151.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0152.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0153.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0154.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: Volkswagen Polo
+Year 2018
+Price 1.68M
+
+▪️1000cc Petrol Engine
+▪️Automatic Transmission
+▪️Fabric Seats
+▪️Steering Controls
+▪️Alloy Rims
+▪️Apple CarPlay
+▪️Mileage 106k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:02 - +254 735 392909: 
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0155.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0156.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0157.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0158.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0159.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0160.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0161.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0162.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0163.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: ...
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0164.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0165.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0166.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0167.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0168.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0169.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0170.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0171.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0172.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0173.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0174.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0175.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0176.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0177.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: IMG-20260113-WA0178.jpg (file attached)
+13/01/2026, 17:02 - +254 735 392909: BMW X2
+Year 2018
+Price 3.85M
+
+▪️Panoramic Sunroof
+▪️2000cc Petrol Engine
+▪️Automatic Transmission
+▪️X Drive 
+▪️Fabric Interior
+▪️Steering Controls
+▪️BMW i Drive
+▪️Heated Seats
+▪️Mileage 19k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:02 - +254 735 392909: 
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0179.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0180.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0181.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0182.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0183.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0184.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0185.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0186.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0187.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0188.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0189.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0190.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: ....
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0191.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0192.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0193.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0194.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0195.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0196.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0197.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0198.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0199.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0200.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0201.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0202.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: Peugeot 3008 GT-Line
+Year 2018
+Price 3.3M
+
+▪️Panoramic Sunroof
+▪️2000cc Diesel Engine
+▪️Automatic Transmission
+▪️Half Leather Interior
+▪️Steering Controls
+▪️Apple Carplay
+▪️Self Leveling Intelligent Lights
+▪️Parking Sensors
+▪️Mileage 128k Kms
+
+✅Bank Financing From 70% up to 5 Years Repayment .
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:03 - +254 735 392909: 
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0203.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0204.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0205.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0206.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0207.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0208.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0209.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0210.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0211.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0212.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: ...
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0213.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0214.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0215.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0216.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0217.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0218.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0219.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0220.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: Mazda Demio 
+Year 2017
+Price 950K
+
+▪️1300cc Petrol Engine
+▪️Automatic Transmission 
+▪️Fabric Interior 
+▪️360° Degree Camera
+▪️Parking Assist Sensors 
+▪️Blind Spot Monitor 
+▪️Alloy Rims
+
+✅Bank Financing from 70% up to 5 Years of Repayments.
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:03 - +254 735 392909: 
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0221.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0222.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0223.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0224.jpg (file attached)
+13/01/2026, 17:03 - +254 735 392909: IMG-20260113-WA0225.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0226.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0227.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0228.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0229.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0230.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0231.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0232.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: ...
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0233.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0234.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0235.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0236.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0237.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: IMG-20260113-WA0238.jpg (file attached)
+13/01/2026, 17:04 - +254 735 392909: Honda Fit 
+Year 2018
+Price 1.58M
+
+▪️1300cc Petrol Engine
+▪️Non-Hybrid
+▪️Automatic Transmission
+▪️Fabric Interior
+▪️2WD
+▪️FM/AM Radio
+▪️Mileage 112K Kms
+
+✅Bank Financing from 70% and up to 5 Years Repayment.
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:04 - +254 735 392909: 
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0239.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0240.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0241.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0242.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0243.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0244.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0245.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0246.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0247.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0248.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0249.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0250.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0251.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: ...
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0252.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0253.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0254.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0255.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0256.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0257.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0258.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0259.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0260.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0261.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0262.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: Mazda CX-5
+Year 2015
+Price 1.8M
+
+▪️2200cc Diesel Engine
+▪️Automatic Transmission
+▪️Clean Leather Interior
+▪️Steering Controls
+▪️Heated Seats
+▪️Parking Sensors
+▪️Mileage 172k Kms
+
+✅Bank Finance 70% up to 5 Years Repayment Period 
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:05 - +254 735 392909: 
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0263.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0264.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0265.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0266.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0267.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0268.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0269.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0270.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0271.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0272.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0273.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0274.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0275.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: ...
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0276.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0277.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0278.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0279.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: IMG-20260113-WA0280.jpg (file attached)
+13/01/2026, 17:05 - +254 735 392909: Mercedez Benz E200
+Year 2018
+Price 4.55M
+
+▪️2000cc Petrol Engine
+▪️Leather Interior
+▪️Ambient Lighting
+▪️360º Camera
+▪️Parking Sensors
+▪️Steering Controls
+▪️Mileage 69k Kms
+
+✅Bank Finance 70% up to 5 Years Repayment Period 
+
+🌐https://lanchestermotors.co.ke
+13/01/2026, 17:05 - +254 735 392909: 
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0281.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0282.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0283.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0284.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0285.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0286.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0287.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0288.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0289.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0290.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: ....
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0291.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0292.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0293.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0294.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0295.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0296.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0297.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0298.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0299.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0300.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0301.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0302.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0303.jpg (file attached)
+13/01/2026, 17:06 - +254 735 392909: IMG-20260113-WA0304.jpg (file attached)
+19/01/2026, 10:29 - Yvonne Karimi: Good morning @⁨all⁩ 
+
+Wishing everyone a great week ahead.
+
+I’ll be reaching out to everyone for our individual calls within the week to plan for next week’s work.
+
+Thanks
