@@ -58,7 +58,7 @@ export function CarCard({
     : null;
 
   const imageCount = images.length;
-  const displayImages = images.length > 0 ? images : ["/placeholder-car.jpg"];
+  const displayImages = imageCount > 0 ? images : ["/placeholder-car.jpg"];
 
   const scrollPrev = React.useCallback(
     (e: React.MouseEvent) => {
@@ -140,7 +140,7 @@ export function CarCard({
         )}
 
         {/* Badges overlay */}
-        <div className="absolute left-2.5 top-2.5 flex items-center gap-2 z-10">
+        <div className="absolute left -2.5 top-2.5 flex items-center gap-2 z-10">
           {isFeatured && (
             <Badge variant="primary" size="sm">
               Featured

@@ -1,13 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 
-const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
 
-export function getImageUrl(r2Key: string): string {
-  if (!r2Key) return "/placeholder-car.jpg";
-  if (r2Key.startsWith("http")) return r2Key;
-  return `${R2_PUBLIC_URL}/${r2Key}`;
-}
 
 export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
   const supabase = await createClient();
@@ -21,6 +15,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
       dealer:dealers(id, name, logo_url, city)
     `)
     .eq("status", "active")
+    .eq("is_featured", true)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -122,17 +117,51 @@ export async function searchListings({
   if (filters?.maxYear) {
     query = query.lte("year", filters.maxYear);
   }
+
+  // Handle array or single value for bodyType
   if (filters?.bodyType) {
-    query = query.eq("body_type", filters.bodyType);
+    if (Array.isArray(filters.bodyType) && filters.bodyType.length > 0) {
+      query = query.in("body_type", filters.bodyType);
+    } else if (typeof filters.bodyType === "string") {
+      query = query.eq("body_type", filters.bodyType);
+    }
   }
+
+  // Handle array or single value for transmission
   if (filters?.transmission) {
-    query = query.eq("transmission", filters.transmission);
+    if (Array.isArray(filters.transmission) && filters.transmission.length > 0) {
+      query = query.in("transmission", filters.transmission);
+    } else if (typeof filters.transmission === "string") {
+      query = query.eq("transmission", filters.transmission);
+    }
   }
+
+  // Handle array or single value for fuelType
   if (filters?.fuelType) {
-    query = query.eq("fuel_type", filters.fuelType);
+    if (Array.isArray(filters.fuelType) && filters.fuelType.length > 0) {
+      query = query.in("fuel_type", filters.fuelType);
+    } else if (typeof filters.fuelType === "string") {
+      query = query.eq("fuel_type", filters.fuelType);
+    }
   }
+
   if (filters?.condition) {
     query = query.eq("condition", filters.condition);
+  }
+
+  // Mileage filters
+  if (filters?.minMileage) {
+    query = query.gte("mileage", filters.minMileage);
+  }
+  if (filters?.maxMileage) {
+    query = query.lte("mileage", filters.maxMileage);
+  }
+
+  // Seller type filter (dealer has dealer_id, private doesn't)
+  if (filters?.sellerType === "dealer") {
+    query = query.not("dealer_id", "is", null);
+  } else if (filters?.sellerType === "private") {
+    query = query.is("dealer_id", null);
   }
 
   // Apply sorting
@@ -154,6 +183,92 @@ export async function searchListings({
     listings: data as Listing[],
     total: count || 0,
   };
+}
+
+export async function countMatchingListings(
+  filters?: ListingFilters
+): Promise<number> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("listings")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  // Apply filters
+  if (filters?.make) {
+    query = query.ilike("make", `%${filters.make}%`);
+  }
+  if (filters?.model) {
+    query = query.ilike("model", `%${filters.model}%`);
+  }
+  if (filters?.minPrice) {
+    query = query.gte("price", filters.minPrice);
+  }
+  if (filters?.maxPrice) {
+    query = query.lte("price", filters.maxPrice);
+  }
+  if (filters?.minYear) {
+    query = query.gte("year", filters.minYear);
+  }
+  if (filters?.maxYear) {
+    query = query.lte("year", filters.maxYear);
+  }
+
+  // Handle array or single value for bodyType
+  if (filters?.bodyType) {
+    if (Array.isArray(filters.bodyType) && filters.bodyType.length > 0) {
+      query = query.in("body_type", filters.bodyType);
+    } else if (typeof filters.bodyType === "string") {
+      query = query.eq("body_type", filters.bodyType);
+    }
+  }
+
+  // Handle array or single value for transmission
+  if (filters?.transmission) {
+    if (Array.isArray(filters.transmission) && filters.transmission.length > 0) {
+      query = query.in("transmission", filters.transmission);
+    } else if (typeof filters.transmission === "string") {
+      query = query.eq("transmission", filters.transmission);
+    }
+  }
+
+  // Handle array or single value for fuelType
+  if (filters?.fuelType) {
+    if (Array.isArray(filters.fuelType) && filters.fuelType.length > 0) {
+      query = query.in("fuel_type", filters.fuelType);
+    } else if (typeof filters.fuelType === "string") {
+      query = query.eq("fuel_type", filters.fuelType);
+    }
+  }
+
+  if (filters?.condition) {
+    query = query.eq("condition", filters.condition);
+  }
+
+  // Mileage filters
+  if (filters?.minMileage) {
+    query = query.gte("mileage", filters.minMileage);
+  }
+  if (filters?.maxMileage) {
+    query = query.lte("mileage", filters.maxMileage);
+  }
+
+  // Seller type filter
+  if (filters?.sellerType === "dealer") {
+    query = query.not("dealer_id", "is", null);
+  } else if (filters?.sellerType === "private") {
+    query = query.is("dealer_id", null);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("Error counting listings:", error);
+    return 0;
+  }
+
+  return count || 0;
 }
 
 export async function getSimilarListings(

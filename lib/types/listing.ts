@@ -30,6 +30,7 @@ export interface Listing {
   fuel_type: string | null;
   color: string | null;
   condition: ListingCondition | null;
+  is_featured: boolean;
 
   description: string | null;
   features: string[] | null;
@@ -50,6 +51,11 @@ export interface Listing {
     name: string;
     logo_url: string | null;
     city: string | null;
+    mobile?: string;
+    whatsapp?: string;
+    email?: string;
+    address?: string;
+    about_text?: string;
   };
 }
 
@@ -60,12 +66,27 @@ export interface ListingFilters {
   maxPrice?: number;
   minYear?: number;
   maxYear?: number;
-  bodyType?: string;
-  transmission?: string;
-  fuelType?: string;
+  bodyType?: string | string[];
+  transmission?: string | string[];
+  fuelType?: string | string[];
   condition?: ListingCondition;
   city?: string;
+  location?: string;
+  sellerType?: 'dealer' | 'private';
+  verifiedOnly?: boolean;
+  minMileage?: number;
+  maxMileage?: number;
 }
+
+export type SortOption =
+  | 'newest'
+  | 'oldest'
+  | 'price_low'
+  | 'price_high'
+  | 'year_new'
+  | 'year_old'
+  | 'mileage_low'
+  | 'mileage_high';
 
 export interface ListingSort {
   field: 'price' | 'year' | 'mileage' | 'created_at';

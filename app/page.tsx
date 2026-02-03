@@ -4,10 +4,16 @@ import { Footer } from "@/components/layout/footer";
 import { HeroSearch } from "@/components/home/hero-search";
 import { ListingsSection, ListingsSectionSkeleton } from "@/components/home/listings-section";
 import { BrandLogos } from "@/components/home/brand-logos";
-import { FeaturesSection } from "@/components/home/features-section";
+import { HowItWorks } from "@/components/home/how-it-works";
+import { DiscoverMore } from "@/components/home/discover-more";
+import { SellVehicleSection } from "@/components/home/sell-vehicle-section";
+import { SpecialTools } from "@/components/home/special-tools";
+import { VideoSection } from "@/components/home/video-section";
+import { ServicesSection } from "@/components/home/services-section";
+import { NewsSection } from "@/components/home/news-section";
 import { getFeaturedListings, getNewestListings } from "@/lib/data/listings";
 
-async function ListingsData() {
+async function RecentActivitiesData() {
   const [featuredListings, newestListings] = await Promise.all([
     getFeaturedListings(8),
     getNewestListings(8),
@@ -31,16 +37,34 @@ export default function Home() {
         {/* Hero Section with Search */}
         <HeroSearch />
 
-        {/* Listings Section with Suspense for loading state */}
+        {/* Recent Activities Section */}
         <Suspense fallback={<ListingsSectionSkeleton />}>
-          <ListingsData />
+          <RecentActivitiesData />
         </Suspense>
 
-        {/* Brand Logos */}
+        {/* Brand Logos - What would you like to find? */}
         <BrandLogos />
 
-        {/* Features Section */}
-        <FeaturesSection />
+        {/* How Autolist Works */}
+        <HowItWorks />
+
+        {/* Discover More from Autolist */}
+        <DiscoverMore />
+
+        {/* Sell Your Vehicle Section */}
+        <SellVehicleSection />
+
+        {/* Special Tools */}
+        <SpecialTools />
+
+        {/* Video/Reviews Section */}
+        <VideoSection />
+
+        {/* Services Section */}
+        <ServicesSection />
+
+        {/* News Section */}
+        <NewsSection />
       </main>
 
       <Footer />

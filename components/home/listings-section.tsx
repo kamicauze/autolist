@@ -4,19 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
 import type { Listing } from "@/lib/types/listing";
-import { getImageUrl } from "@/lib/data/listings";
+import { getImageUrl } from "@/lib/utils/listings";
 
 interface ListingsSectionProps {
   title: string;
   featuredListings: Listing[];
   newestListings: Listing[];
+  showTabs?: boolean;
 }
 
 export function ListingsSection({
   title,
   featuredListings,
   newestListings,
+  showTabs = true,
 }: ListingsSectionProps) {
+  const displayListings = featuredListings.length > 0 ? featuredListings : newestListings;
+
   return (
     <section className="py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -31,26 +35,46 @@ export function ListingsSection({
           </Link>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="featured" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="featured">Featured</TabsTrigger>
-            <TabsTrigger value="recent">Recent Viewed</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-          </TabsList>
+        {showTabs ? (
+          /* Tabs */
+          <Tabs defaultValue="featured" className="w-full">
+            <TabsList className="mb-6 bg-transparent p-0 gap-2">
+              <TabsTrigger
+                value="featured"
+                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+              >
+                Featured
+              </TabsTrigger>
+              <TabsTrigger
+                value="recent"
+                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+              >
+                Recent Viewed
+              </TabsTrigger>
+              <TabsTrigger
+                value="favorites"
+                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+              >
+                Favorites
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="featured">
-            <ListingsGrid listings={featuredListings} />
-          </TabsContent>
+            <TabsContent value="featured">
+              <ListingsGrid listings={featuredListings} />
+            </TabsContent>
 
-          <TabsContent value="recent">
-            <ListingsGrid listings={newestListings} />
-          </TabsContent>
+            <TabsContent value="recent">
+              <ListingsGrid listings={newestListings} />
+            </TabsContent>
 
-          <TabsContent value="favorites">
-            <EmptyState message="No favorites yet. Start browsing to save your favorite vehicles." />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="recently">
+              <ListingsGrid listings={newestListings} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          /* Simple grid without tabs */
+          <ListingsGrid listings={displayListings} />
+        )}
       </div>
     </section>
   );

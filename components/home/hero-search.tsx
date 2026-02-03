@@ -10,30 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IconSearch } from "@/components/ui/icons";
+import { MapPin, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { FilterSheet } from "@/components/search/filter-sheet";
 
-const carMakes = [
-  { value: "any", label: "Any Make" },
-  { value: "toyota", label: "Toyota" },
-  { value: "bmw", label: "BMW" },
-  { value: "mercedes", label: "Mercedes-Benz" },
-  { value: "nissan", label: "Nissan" },
-  { value: "honda", label: "Honda" },
-  { value: "mazda", label: "Mazda" },
-  { value: "subaru", label: "Subaru" },
-  { value: "volkswagen", label: "Volkswagen" },
-  { value: "audi", label: "Audi" },
-  { value: "land-rover", label: "Land Rover" },
-  { value: "jeep", label: "Jeep" },
-  { value: "ford", label: "Ford" },
-  { value: "hyundai", label: "Hyundai" },
-  { value: "kia", label: "Kia" },
-  { value: "mitsubishi", label: "Mitsubishi" },
+const carModels = [
+  { value: "any", label: "Any models" },
+  { value: "camry", label: "Camry" },
+  { value: "corolla", label: "Corolla" },
+  { value: "x5", label: "X5" },
+  { value: "3-series", label: "3 Series" },
+  { value: "c-class", label: "C-Class" },
+  { value: "civic", label: "Civic" },
+  { value: "accord", label: "Accord" },
 ];
 
 const bodyTypes = [
-  { value: "any", label: "Any Body Type" },
+  { value: "any", label: "Body" },
   { value: "sedan", label: "Sedan" },
   { value: "suv", label: "SUV" },
   { value: "hatchback", label: "Hatchback" },
@@ -41,169 +33,196 @@ const bodyTypes = [
   { value: "coupe", label: "Coupe" },
   { value: "wagon", label: "Station Wagon" },
   { value: "van", label: "Van" },
-  { value: "convertible", label: "Convertible" },
 ];
 
 const priceRanges = [
-  { value: "any", label: "Min Price" },
-  { value: "500000", label: "Ksh 500,000" },
-  { value: "1000000", label: "Ksh 1,000,000" },
-  { value: "2000000", label: "Ksh 2,000,000" },
-  { value: "3000000", label: "Ksh 3,000,000" },
-  { value: "5000000", label: "Ksh 5,000,000" },
-];
-
-const maxPriceRanges = [
-  { value: "any", label: "Max Price" },
-  { value: "1000000", label: "Ksh 1,000,000" },
-  { value: "2000000", label: "Ksh 2,000,000" },
-  { value: "3000000", label: "Ksh 3,000,000" },
-  { value: "5000000", label: "Ksh 5,000,000" },
-  { value: "10000000", label: "Ksh 10,000,000" },
-  { value: "20000000", label: "Ksh 20,000,000+" },
+  { value: "any", label: "Price" },
+  { value: "500000", label: "Under Ksh 500K" },
+  { value: "1000000", label: "Under Ksh 1M" },
+  { value: "2000000", label: "Under Ksh 2M" },
+  { value: "5000000", label: "Under Ksh 5M" },
+  { value: "10000000", label: "Under Ksh 10M" },
 ];
 
 export function HeroSearch() {
   const router = useRouter();
-  const [category, setCategory] = React.useState("buy");
-  const [make, setMake] = React.useState("any");
-  const [model, setModel] = React.useState("");
+  const [location, setLocation] = React.useState("");
+  const [model, setModel] = React.useState("any");
   const [bodyType, setBodyType] = React.useState("any");
-  const [minPrice, setMinPrice] = React.useState("any");
-  const [maxPrice, setMaxPrice] = React.useState("any");
+  const [price, setPrice] = React.useState("any");
+  const [quickSearch, setQuickSearch] = React.useState("");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
     const params = new URLSearchParams();
-    if (make && make !== "any") params.set("make", make);
-    if (model) params.set("model", model);
+    if (location) params.set("location", location);
+    if (model && model !== "any") params.set("model", model);
     if (bodyType && bodyType !== "any") params.set("bodyType", bodyType);
-    if (minPrice && minPrice !== "any") params.set("minPrice", minPrice);
-    if (maxPrice && maxPrice !== "any") params.set("maxPrice", maxPrice);
-    if (category !== "buy") params.set("category", category);
+    if (price && price !== "any") params.set("maxPrice", price);
 
     router.push(`/search?${params.toString()}`);
   };
 
+  const handleQuickSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (quickSearch.trim()) {
+      router.push(`/search?q=${encodeURIComponent(quickSearch)}`);
+    }
+  };
+
   return (
-    <section className="relative bg-primary py-16 md:py-24">
-      {/* Background Image Overlay */}
+    <section className="relative h-[500px] md:h-[527px]">
+      {/* Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-30"
+        className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80')`,
+          backgroundImage: `url('/sample-car-4.jpg')`,
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/80 to-primary" />
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            Find Your Perfect Vehicle
+      {/* Content */}
+      <div className="relative h-full flex flex-col">
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-8">
+          {/* Heading */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-semibold text-white text-center leading-tight mb-4">
+            New mode BMW awaits you
           </h1>
-          <p className="text-lg text-white/80">
-            Browse thousands of cars, trucks, motorcycles, and more
+          {/* Subtitle */}
+          <p className="text-lg sm:text-xl font-semibold text-white/90 text-center">
+            Find the perfect vehicle match for you, and drive smiling
           </p>
         </div>
 
-        {/* Search Form */}
-        <div className="bg-white rounded-xl shadow-xl p-6 max-w-5xl mx-auto">
-          {/* Category Tabs */}
-          <Tabs value={category} onValueChange={setCategory} className="mb-6">
-            <TabsList className="grid w-full grid-cols-5 max-w-md">
-              <TabsTrigger value="buy">Buy</TabsTrigger>
-              <TabsTrigger value="pre-order">Pre-Order</TabsTrigger>
-              <TabsTrigger value="accessories">Accessories</TabsTrigger>
-              <TabsTrigger value="spare">Spare</TabsTrigger>
-              <TabsTrigger value="truck">Truck</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Search Fields */}
-          <form onSubmit={handleSearch}>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
-              <Select value={make} onValueChange={setMake}>
-                <SelectTrigger className="md:col-span-1">
-                  <SelectValue placeholder="Make" />
-                </SelectTrigger>
-                <SelectContent>
-                  {carMakes.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <input
-                type="text"
-                placeholder="Model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="flex h-12 w-full rounded-lg border border-input bg-background px-4 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:col-span-1"
-              />
-
-              <Select value={bodyType} onValueChange={setBodyType}>
-                <SelectTrigger className="md:col-span-1">
-                  <SelectValue placeholder="Body Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bodyTypes.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={minPrice} onValueChange={setMinPrice}>
-                <SelectTrigger className="md:col-span-1">
-                  <SelectValue placeholder="Min Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  {priceRanges.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={maxPrice} onValueChange={setMaxPrice}>
-                <SelectTrigger className="md:col-span-1">
-                  <SelectValue placeholder="Max Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  {maxPriceRanges.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button type="submit" className="h-12 md:col-span-1 gap-2">
-                <IconSearch className="h-5 w-5" />
-                Search
-              </Button>
+        {/* Search Section */}
+        <div className="px-4 sm:px-6 lg:px-8 pb-8 md:pb-0 md:-mb-[47px] relative z-10">
+          <div className="max-w-[1335px] mx-auto">
+            {/* Quick Search - positioned above main search on desktop */}
+            <div className="flex justify-end mb-4">
+              <form onSubmit={handleQuickSearch} className="relative">
+                <div className="flex items-center bg-white border border-[#d1d5dc] rounded-[10px] h-[44px] w-full sm:w-[318px]">
+                  <Sparkles className="w-4 h-4 text-[#364153] ml-4" />
+                  <input
+                    type="text"
+                    placeholder="Quick search"
+                    value={quickSearch}
+                    onChange={(e) => setQuickSearch(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm text-[#364153] placeholder:text-[#364153] bg-transparent outline-none"
+                  />
+                  <span className="bg-[#f3f4f6] border border-[#d1d5dc] rounded px-2 py-0.5 text-xs text-[#364153] mr-2">
+                    NEW
+                  </span>
+                  <button type="submit" className="mr-4">
+                    <Search className="w-4 h-4 text-[#364153]" />
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
 
-          {/* Quick Stats */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-4 border-t border-border text-sm text-muted-foreground">
-            <span>
-              <strong className="text-foreground">10,000+</strong> Vehicles
-            </span>
-            <span>
-              <strong className="text-foreground">500+</strong> Dealers
-            </span>
-            <span>
-              <strong className="text-foreground">50+</strong> Cities
-            </span>
+            {/* Main Search Bar */}
+            <form onSubmit={handleSearch}>
+              <div className="bg-white rounded-2xl shadow-[0px_4px_26px_0px_rgba(66,71,76,0.08)] p-5 md:p-6">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-3 items-stretch md:items-center">
+                  {/* Location Input */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center border border-[#ededed] rounded-[14px] h-[50px] px-4">
+                      <MapPin className="w-4 h-4 text-[#717182] mr-2 flex-shrink-0" />
+                      <input
+                        type="text"
+                        placeholder="Location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="flex-1 text-sm text-[#717182] placeholder:text-[#717182] bg-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Models Dropdown */}
+                  <div className="flex-1 min-w-0">
+                    <Select value={model} onValueChange={setModel}>
+                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
+                        <SelectValue placeholder="Any models" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {carModels.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Body Dropdown */}
+                  <div className="flex-1 min-w-0">
+                    <Select value={bodyType} onValueChange={setBodyType}>
+                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
+                        <SelectValue placeholder="Body" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bodyTypes.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Price Dropdown */}
+                  <div className="flex-1 min-w-0">
+                    <Select value={price} onValueChange={setPrice}>
+                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
+                        <SelectValue placeholder="Price" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {priceRanges.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Filters Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterSheetOpen(true)}
+                    className="flex items-center justify-center gap-2 h-[48px] px-4 text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <SlidersHorizontal className="w-5 h-5" />
+                    <span className="text-base">Filters</span>
+                  </button>
+
+                  {/* Search Button */}
+                  <Button
+                    type="submit"
+                    className="h-[50px] px-6 bg-primary hover:bg-primary/90 text-white rounded-[14px] text-base font-medium"
+                  >
+                    Search
+                    <Search className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
+
+      <FilterSheet
+        open={isFilterSheetOpen}
+        onOpenChange={setIsFilterSheetOpen}
+        totalCount={0}
+        initialFilters={{
+          model: model !== "any" ? model : "",
+          maxPrice: price !== "any" ? price : "",
+        }}
+      />
     </section>
   );
 }

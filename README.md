@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Autolist - Kenya's Trusted Vehicle Marketplace (MVP)
 
-## Getting Started
+Autolist is a Kenya-focused vehicle marketplace built to prioritize trust, structured listings, and operational clarity. It connects buyers with verified private sellers and dealerships, offering a secure and transparent platform for vehicle trade.
 
-First, run the development server:
+> **Note**: This is a private repository containing the MVP implementation.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 MVP Intent & Scope
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This MVP allows us to validate demand and trust in a structured marketplace while supporting dealers and sellers with clear workflows.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### ✅ In Scope
+-   **Vehicle Listings**: Cars, Motorbikes, Vans, Trucks, Plant & Farm Vehicles.
+-   **User Roles**: Buyer, Individual Seller, Dealer, Admin.
+-   **Listing Lifecycle**: Draft → Pending Approval → Active → Reserved → Sold.
+-   **Trust**: Mandatory dealer verification, progressive seller verification (phone), admin moderation.
+-   **Payments**: M-Pesa & Stripe for **platform services only** (Featured listings, Dealer subscriptions).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ❌ Out of Scope
+-   Vehicle purchase checkout or escrow.
+-   Payments for vehicles, deposits, or logistics.
+-   Parts and accessories.
+-   Fully automated moderation (AI is assistive only).
 
-## Learn More
+## 🛠 Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+-   **Frontend**: [Next.js 16](https://nextjs.org/) (App Router) on Vercel.
+-   **Backend**: [Supabase](https://supabase.com/) (Postgres, Auth, RLS).
+-   **Edge & Security**: Cloudflare (DNS, CDN, WAF, Rate Limiting).
+-   **Storage**: Cloudflare R2 (Private & Public buckets).
+-   **Payments**: M-Pesa (Daraja) & Stripe.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏁 Getting Started
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Prerequisites
+-   Node.js 20+
+-   npm or yarn
 
-## Deploy on Vercel
+### Installation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/yourusername/autolist.git
+    cd autolist
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Environment Setup:**
+    Create a `.env.local` file with Supabase and Cloudflare credentials.
+
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+
+## 📂 Project Structure
+
+-   `app/`: Next.js App Router pages and layouts.
+-   `components/`: Shared UI components.
+-   `lib/`: Client utilities and API wrappers.
+-   `db/`: Database schema and migrations.
+-   `docs/`: Architecture and delivery documentation.
+
+## 📚 Learn More
+
+Check out the [ARCHITECTURE.md](./ARCHITECTURE.md) file for system design details.

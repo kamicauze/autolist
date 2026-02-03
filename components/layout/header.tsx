@@ -155,12 +155,12 @@ export function Header() {
             ))}
             <div className="pt-4 border-t border-border space-y-2">
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full my-1">
                   Login / Register
                 </Button>
               </Link>
               <Link href="/dashboard/listings/new" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full">Add Listing</Button>
+                <Button className="w-full my-1">Add Listing</Button>
               </Link>
             </div>
           </div>
