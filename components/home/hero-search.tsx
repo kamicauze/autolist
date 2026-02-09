@@ -13,6 +13,30 @@ import {
 import { MapPin, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { FilterSheet } from "@/components/search/filter-sheet";
 
+const carMakes = [
+  { value: "any", label: "Any make" },
+  { value: "Toyota", label: "Toyota" },
+  { value: "Nissan", label: "Nissan" },
+  { value: "Mazda", label: "Mazda" },
+  { value: "Subaru", label: "Subaru" },
+  { value: "Mercedes-Benz", label: "Mercedes-Benz" },
+  { value: "BMW", label: "BMW" },
+  { value: "Audi", label: "Audi" },
+  { value: "Volkswagen", label: "Volkswagen" },
+  { value: "Land Rover", label: "Land Rover" },
+  { value: "Honda", label: "Honda" },
+  { value: "Mitsubishi", label: "Mitsubishi" },
+  { value: "Ford", label: "Ford" },
+  { value: "Suzuki", label: "Suzuki" },
+  { value: "Porsche", label: "Porsche" },
+  { value: "Lexus", label: "Lexus" },
+  { value: "Hyundai", label: "Hyundai" },
+  { value: "Kia", label: "Kia" },
+  { value: "Volvo", label: "Volvo" },
+  { value: "Jeep", label: "Jeep" },
+  { value: "Isuzu", label: "Isuzu" },
+];
+
 const carModels = [
   { value: "any", label: "Any models" },
   { value: "camry", label: "Camry" },
@@ -22,6 +46,15 @@ const carModels = [
   { value: "c-class", label: "C-Class" },
   { value: "civic", label: "Civic" },
   { value: "accord", label: "Accord" },
+];
+
+const currentYear = new Date().getFullYear();
+const years = [
+  { value: "any", label: "Any" },
+  ...Array.from({ length: 30 }, (_, i) => ({
+    value: String(currentYear - i),
+    label: String(currentYear - i),
+  })),
 ];
 
 const bodyTypes = [
@@ -47,9 +80,12 @@ const priceRanges = [
 export function HeroSearch() {
   const router = useRouter();
   const [location, setLocation] = React.useState("");
+  const [make, setMake] = React.useState("any");
   const [model, setModel] = React.useState("any");
   const [bodyType, setBodyType] = React.useState("any");
   const [price, setPrice] = React.useState("any");
+  const [yearFrom, setYearFrom] = React.useState("any");
+  const [yearTo, setYearTo] = React.useState("any");
   const [quickSearch, setQuickSearch] = React.useState("");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
 
@@ -58,9 +94,12 @@ export function HeroSearch() {
 
     const params = new URLSearchParams();
     if (location) params.set("location", location);
+    if (make && make !== "any") params.set("make", make);
     if (model && model !== "any") params.set("model", model);
     if (bodyType && bodyType !== "any") params.set("bodyType", bodyType);
     if (price && price !== "any") params.set("maxPrice", price);
+    if (yearFrom && yearFrom !== "any") params.set("minYear", yearFrom);
+    if (yearTo && yearTo !== "any") params.set("maxYear", yearTo);
 
     router.push(`/search?${params.toString()}`);
   };
@@ -73,7 +112,7 @@ export function HeroSearch() {
   };
 
   return (
-    <section className="relative h-[500px] md:h-[527px]">
+    <section className="relative md:h-[527px] pb-6 md:pb-0">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -85,9 +124,9 @@ export function HeroSearch() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
 
       {/* Content */}
-      <div className="relative h-full flex flex-col">
+      <div className="relative md:h-full flex flex-col">
         {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="md:flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-8">
           {/* Heading */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-semibold text-white text-center leading-tight mb-4">
             New mode BMW awaits you
@@ -99,7 +138,7 @@ export function HeroSearch() {
         </div>
 
         {/* Search Section */}
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 md:pb-0 md:-mb-[47px] relative z-10">
+        <div className="px-4 sm:px-6 lg:px-8 pb-4 md:pb-0 md:-mb-[47px] relative z-10">
           <div className="max-w-[1335px] mx-auto">
             {/* Quick Search - positioned above main search on desktop */}
             <div className="flex justify-end mb-4">
@@ -139,6 +178,22 @@ export function HeroSearch() {
                         className="flex-1 text-sm text-[#717182] placeholder:text-[#717182] bg-transparent outline-none"
                       />
                     </div>
+                  </div>
+
+                  {/* Make Dropdown */}
+                  <div className="flex-1 min-w-0">
+                    <Select value={make} onValueChange={setMake}>
+                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
+                        <SelectValue placeholder="Any make" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {carMakes.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Models Dropdown */}
@@ -189,6 +244,37 @@ export function HeroSearch() {
                     </Select>
                   </div>
 
+                  {/* Year Range */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center border border-[#ededed] rounded-[14px] h-[50px]">
+                      <Select value={yearFrom} onValueChange={setYearFrom}>
+                        <SelectTrigger className="h-full border-0 rounded-l-[14px] rounded-r-none text-[#696665] text-sm focus:ring-0 flex-1">
+                          <SelectValue placeholder="Year From" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((option) => (
+                            <SelectItem key={`from-${option.value}`} value={option.value}>
+                              {option.value === "any" ? "From" : option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="h-6 w-px bg-[#ededed]" />
+                      <Select value={yearTo} onValueChange={setYearTo}>
+                        <SelectTrigger className="h-full border-0 rounded-r-[14px] rounded-l-none text-[#696665] text-sm focus:ring-0 flex-1">
+                          <SelectValue placeholder="Year To" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((option) => (
+                            <SelectItem key={`to-${option.value}`} value={option.value}>
+                              {option.value === "any" ? "To" : option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   {/* Filters Button */}
                   <button
                     type="button"
@@ -219,8 +305,11 @@ export function HeroSearch() {
         onOpenChange={setIsFilterSheetOpen}
         totalCount={0}
         initialFilters={{
+          make: make !== "any" ? make : "",
           model: model !== "any" ? model : "",
           maxPrice: price !== "any" ? price : "",
+          minYear: yearFrom !== "any" ? yearFrom : "",
+          maxYear: yearTo !== "any" ? yearTo : "",
         }}
       />
     </section>

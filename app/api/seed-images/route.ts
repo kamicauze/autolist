@@ -4,6 +4,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import fs from "fs";
+import nodeCrypto from "crypto";
 import path from "path";
 import mime from "mime"; // You might need to install 'mime' or just guess from extension
 
@@ -65,6 +66,9 @@ export async function GET() {
             const ext = path.extname(filename).substring(1);
             const contentType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
 
+            // Calculate MD5 for seeding
+            const hash = nodeCrypto.createHash('md5').update(fileBuffer).digest('hex');
+
             // Upload Key: listings/{listingId}/{filename}
             const key = `listings/${dbListing.id}/${filename}`;
 
@@ -74,7 +78,8 @@ export async function GET() {
                     Bucket: BUCKET_NAME,
                     Key: key,
                     Body: fileBuffer,
-                    ContentType: contentType
+                    ContentType: contentType,
+                    Metadata: { hash }
                 }));
 
                 // Insert into DB (using same client)
@@ -84,7 +89,8 @@ export async function GET() {
                         listing_id: dbListing.id,
                         r2_key: key,
                         image_order: order++,
-                        alt_text: `${item.make} ${item.model} - ${order}`
+                        alt_text: `${item.make} ${item.model} - ${order}`,
+                        image_hash: hash
                     });
 
                 if (dbError) throw dbError;

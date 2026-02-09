@@ -43,7 +43,33 @@ export async function insertListingInternal(
     }
     const data = result.data;
 
-    // 2. Determine Initial Status
+    // 2. Duplicate Detection (MVP)
+    // Check if the user already has a listing for this exact vehicle (Make + Model + Year + Price within 1%)
+    // This prevents accidental double-clicks or spam.
+    const { data: potentialDuplicates } = await supabase
+        .from('listings')
+        .select('id, price')
+        .eq('seller_id', userId)
+        .eq('make', data.make)
+        .eq('model', data.model)
+        .eq('year', data.year)
+        .neq('status', 'removed') // Ignore deleted listings
+        .neq('status', 'sold');   // Ignore sold listings (they might be selling another one)
+
+    if (potentialDuplicates && potentialDuplicates.length > 0) {
+        // Check price similarity (within 1%)
+        const isDuplicate = potentialDuplicates.some(existing => {
+            const priceDiff = Math.abs(existing.price - data.price);
+            const percentDiff = priceDiff / existing.price;
+            return percentDiff < 0.01; // < 1% difference
+        });
+
+        if (isDuplicate) {
+            return { error: "You already have a listing for this vehicle. Please update the existing listing or check your drafts." };
+        }
+    }
+
+    // 3. Determine Initial Status
     // All listings start as 'draft' until images are uploaded and user publishes.
     const initialStatus = 'draft';
 

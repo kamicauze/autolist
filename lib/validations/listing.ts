@@ -9,7 +9,7 @@ export const listingSchema = z.object({
     currency: z.enum(["KES", "USD"]).default("KES"),
     mileage: z.coerce.number().min(0, "Mileage cannot be negative"),
     condition: z.enum(["new", "used", "foreign_used"]),
-    description: z.string().min(10, "Description must be at least 10 characters"),
+    description: z.string().min(50, "Description must be at least 50 characters to help buyers."),
     features: z.array(z.string()).min(1, "Select at least one feature"),
     body_type: z.string().optional(),
     transmission: z.string().optional(),

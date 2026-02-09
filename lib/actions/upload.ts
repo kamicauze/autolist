@@ -13,7 +13,8 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export async function getUploadUrl(
     listingId: string,
     fileType: string,
-    fileSize: number
+    fileSize: number,
+    fileHash?: string // MD5 hash from client
 ) {
     // 1. Auth Check
     const supabase = await createClient();
@@ -28,17 +29,34 @@ export async function getUploadUrl(
         return { error: "File too large. Max size is 5MB." };
     }
 
-    // 3. Generate Unique Key
+    // 3. Duplicate Image Check (MVP)
+    // Prevent same seller from uploading the exact same image twice across any of their listings
+    if (fileHash) {
+        const { data: existingImage } = await supabase
+            .from('listing_images')
+            .select('id, listings!inner(seller_id)')
+            .eq('image_hash', fileHash)
+            .eq('listings.seller_id', user.id) // Check against all listings by this seller
+            .limit(1)
+            .single();
+
+        if (existingImage) {
+            return { error: "Duplicate image detected. You have already uploaded this photo." };
+        }
+    }
+
+    // 4. Generate Unique Key
     // Structure: listings/{listingId}/{randomId}.{ext}
     const ext = fileType.split("/")[1];
     const key = `listings/${listingId}/${nanoid()}.${ext}`;
 
-    // 4. Generate URL
+    // 5. Generate URL
     try {
         const command = new PutObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME,
             Key: key,
             ContentType: fileType,
+            Metadata: fileHash ? { 'hash': fileHash } : undefined // Store hash in R2 metadata too
         });
 
         const url = await getSignedUrl(r2, command, { expiresIn: 3600 });

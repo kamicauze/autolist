@@ -127,6 +127,7 @@ create table public.listing_images (
   alt_text text,
   image_order integer default 0,
   is_watermarked boolean default false,
+  image_hash text, -- MD5 hash for duplicate detection
   
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
