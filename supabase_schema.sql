@@ -76,6 +76,8 @@ alter table public.dealers enable row level security;
 create policy "Approved dealers are public." on public.dealers for select using (status = 'APPROVED');
 -- Owners see their own (even if pending)
 create policy "Owners view own dealer profile." on public.dealers for select using (auth.uid() = profile_id);
+-- Owners can create their own dealer profile
+create policy "Owners insert own dealer profile." on public.dealers for insert with check (auth.uid() = profile_id);
 -- Owners can update own (except status)
 create policy "Owners update own dealer profile." on public.dealers for update using (auth.uid() = profile_id); -- Note: Needs generic update, specific column security is separate or handled by API logic
 -- Admins (TODO: Add admin specific policy later, for now relying on Service Role for verification)
@@ -87,7 +89,7 @@ create table public.listings (
   seller_id uuid references public.profiles(id) not null,
   dealer_id uuid references public.dealers(id), -- Nullable if private seller
   
-  status text default 'draft' check (status in ('draft', 'pending', 'active', 'rejected', 'sold', 'expired')),
+  status text default 'draft' check (status in ('draft', 'pending', 'active', 'reserved', 'rejected', 'sold', 'expired')),
   
   -- Vehicle Data
   make text not null,
@@ -229,4 +231,3 @@ create policy "Admins view audit logs." on public.audit_logs for select using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
 );
 -- No public insert (handled by triggers or backend functions)
-

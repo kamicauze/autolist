@@ -62,7 +62,7 @@ export const FUEL_TYPES = [
 // Conditions
 export const CONDITIONS = [
   { value: "foreign_used", label: "Foreign Used" },
-  { value: "used", label: "Locally Used" },
+  { value: "locally_used", label: "Locally Used" },
   { value: "new", label: "Brand New" },
 ] as const;
 

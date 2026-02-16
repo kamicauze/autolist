@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -27,7 +28,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
       <Header />
 
       <main className="flex-1 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
           <Breadcrumb
             items={[
@@ -41,12 +42,14 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
           />
 
           {/* Page Content */}
-          <VehiclePageClient
-            listing={listing}
-            similarListings={similarListings}
-            title={title}
-            location={location}
-          />
+          <Suspense fallback={<div className="h-[1200px] animate-pulse rounded-2xl bg-white" aria-hidden />}>
+            <VehiclePageClient
+              listing={listing}
+              similarListings={similarListings}
+              title={title}
+              location={location}
+            />
+          </Suspense>
         </div>
       </main>
 

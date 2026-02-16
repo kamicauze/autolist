@@ -1,6 +1,8 @@
-export type ListingStatus = 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'expired';
+import type { ListingStatus } from "@/lib/constants/marketplace";
 
-export type ListingCondition = 'new' | 'used' | 'foreign_used';
+export type { ListingStatus };
+
+export type ListingCondition = 'new' | 'locally_used' | 'foreign_used' | 'used';
 
 export interface ListingImage {
   id: string;

@@ -39,7 +39,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-gray-100">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100">
         <Image
           src={displayImages[selectedIndex]}
           alt={`${title} - Image ${selectedIndex + 1}`}
@@ -70,11 +70,11 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         )}
 
         {/* Action buttons overlay */}
-        <div className="absolute bottom-4 left-4 flex gap-2 z-10">
+        <div className="absolute bottom-4 left-4 z-10 flex gap-2">
           <Button
             variant="secondary"
             size="sm"
-            className="bg-white/90 hover:bg-white text-black gap-1.5"
+            className="h-9 bg-white/90 text-black hover:bg-white"
           >
             <Play className="h-4 w-4" />
             Video
@@ -82,23 +82,23 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           <Button
             variant="secondary"
             size="sm"
-            className="bg-white/90 hover:bg-white text-black gap-1.5"
+            className="h-9 bg-white/90 text-black hover:bg-white"
             onClick={() => setShowAllImages(true)}
           >
             <Images className="h-4 w-4" />
-            All Images
+            All image
           </Button>
         </div>
       </div>
 
       {/* Thumbnail Strip */}
-      <div className="flex gap-2 overflow-x-auto py-2 px-2">
+      <div className="flex gap-2 overflow-x-auto py-2">
         {displayImages.slice(0, 8).map((image, index) => (
           <button
             key={index}
             onClick={() => setSelectedIndex(index)}
             className={cn(
-              "relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg transition-all",
+              "relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg transition-all",
               selectedIndex === index
                 ? "ring-2 ring-primary ring-offset-2"
                 : "opacity-70 hover:opacity-100"
@@ -116,7 +116,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         {imageCount > 8 && (
           <button
             onClick={() => setShowAllImages(true)}
-            className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 hover:bg-gray-300 transition-colors"
+            className="relative flex h-20 w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-200 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-300"
           >
             +{imageCount - 8}
           </button>

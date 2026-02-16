@@ -7,10 +7,10 @@ import { BrandLogos } from "@/components/home/brand-logos";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { DiscoverMore } from "@/components/home/discover-more";
 import { SellVehicleSection } from "@/components/home/sell-vehicle-section";
-import { SpecialTools } from "@/components/home/special-tools";
 import { VideoSection } from "@/components/home/video-section";
 import { ServicesSection } from "@/components/home/services-section";
 import { NewsSection } from "@/components/home/news-section";
+import { SocialMediaSection } from "@/components/home/social-media-section";
 import { getFeaturedListings, getNewestListings } from "@/lib/data/listings";
 
 async function RecentActivitiesData() {
@@ -35,15 +35,14 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section with Search */}
-        <HeroSearch />
+        <Suspense fallback={<div className="md:h-[527px]" aria-hidden />}>
+          <HeroSearch />
+        </Suspense>
 
         {/* Recent Activities Section */}
         <Suspense fallback={<ListingsSectionSkeleton />}>
           <RecentActivitiesData />
         </Suspense>
-
-        {/* Brand Logos - What would you like to find? */}
-        <BrandLogos />
 
         {/* How Autolist Works */}
         <HowItWorks />
@@ -54,9 +53,6 @@ export default function Home() {
         {/* Sell Your Vehicle Section */}
         <SellVehicleSection />
 
-        {/* Special Tools */}
-        <SpecialTools />
-
         {/* Video/Reviews Section */}
         <VideoSection />
 
@@ -65,6 +61,12 @@ export default function Home() {
 
         {/* News Section */}
         <NewsSection />
+
+        {/* What would you like to find? */}
+        <BrandLogos />
+
+        {/* Follow us on social media */}
+        <SocialMediaSection />
       </main>
 
       <Footer />

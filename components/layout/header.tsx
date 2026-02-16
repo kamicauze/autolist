@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { GitCompare, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,9 @@ import {
   IconUser,
   IconSearch,
 } from "@/components/ui/icons";
+import { useCompare } from "@/lib/hooks/use-compare";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -36,7 +40,17 @@ const vehicleTypes = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const { ids } = useCompare();
+  const { user, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-border">
@@ -102,13 +116,48 @@ export function Header() {
               </Button>
             </Link>
 
-            {/* Login/Register */}
-            <Link href="/login" className="hidden sm:block">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <IconUser className="h-4 w-4" />
-                <span>Login / Register</span>
+            {/* Compare */}
+            <Link href="/compare" className="relative">
+              <Button variant="ghost" size="icon" className="hidden sm:flex">
+                <GitCompare className="h-5 w-5" />
               </Button>
+              {ids.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white">
+                  {ids.length}
+                </span>
+              )}
             </Link>
+
+            {/* Login/Register or User Menu */}
+            {loading ? (
+              <div className="hidden sm:block w-24 h-9 bg-muted animate-pulse rounded-lg" />
+            ) : user ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <IconUser className="h-4 w-4" />
+                    <span className="max-w-[120px] truncate">
+                      {user.email?.split("@")[0] || "Account"}
+                    </span>
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link href="/login" className="hidden sm:block">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <IconUser className="h-4 w-4" />
+                  <span>Login / Register</span>
+                </Button>
+              </Link>
+            )}
 
             {/* Add Listing Button */}
             <Link href="/dashboard/listings/new">
@@ -154,11 +203,39 @@ export function Header() {
               </Link>
             ))}
             <div className="pt-4 border-t border-border space-y-2">
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full my-1">
-                  Login / Register
+              <Link href="/compare" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full my-1 gap-2">
+                  <GitCompare className="h-4 w-4" />
+                  Compare{ids.length > 0 ? ` (${ids.length})` : ""}
                 </Button>
               </Link>
+              {user ? (
+                <>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full my-1 gap-2">
+                      <IconUser className="h-4 w-4" />
+                      {user.email?.split("@")[0] || "Account"}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full my-1 gap-2"
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full my-1">
+                    Login / Register
+                  </Button>
+                </Link>
+              )}
               <Link href="/dashboard/listings/new" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full my-1">Add Listing</Button>
               </Link>

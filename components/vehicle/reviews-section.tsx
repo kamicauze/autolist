@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, ThumbsUp } from "lucide-react";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const REVIEWS = [
@@ -32,15 +32,15 @@ const REVIEWS = [
 
 export function ReviewsSection() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
+        <h2 className="mb-2 text-xl font-bold text-gray-900">
           Car User Reviews & Rating
         </h2>
         
-        <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 flex items-center gap-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
           <div className="flex items-center gap-2">
-            <div className="flex bg-blue-50 p-2 rounded-lg">
+            <div className="flex rounded-lg bg-white p-2">
                 <Star className="w-6 h-6 text-primary fill-current" />
             </div>
             <span className="text-4xl font-bold text-primary">4.8</span>
@@ -52,10 +52,10 @@ export function ReviewsSection() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {REVIEWS.map((review) => (
-          <div key={review.id} className="border-b border-gray-100 last:border-0 pb-6 last:pb-0">
-            <div className="flex items-start justify-between mb-3">
+          <div key={review.id} className="rounded-lg border border-gray-100 p-4">
+            <div className="mb-3 flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium">
                   {review.name.charAt(0)}
@@ -74,10 +74,10 @@ export function ReviewsSection() {
                   </div>
                 </div>
               </div>
-              <span className="text-xs text-gray-500">{review.date}</span>
+              <span className="text-[11px] text-gray-500">{review.date}</span>
             </div>
 
-            <p className="text-gray-600 text-sm leading-relaxed mb-4">
+            <p className="mb-3 text-sm leading-relaxed text-gray-600">
               {review.text}
             </p>
 
@@ -90,7 +90,7 @@ export function ReviewsSection() {
         ))}
       </div>
 
-      <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-white">
+      <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
         View more reviews
       </Button>
     </div>
