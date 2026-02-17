@@ -1,132 +1,107 @@
 "use client";
 
-import { Listing } from "@/lib/types/listing";
 import {
-  Gauge,
-  Fuel,
-  Settings,
   Calendar,
+  Car,
+  Fuel,
+  Gauge,
+  Settings,
+  MapPin,
+  Cog,
+  DoorOpen,
   Palette,
   Users,
-  Car,
-  Hash,
-  FileText,
-  DoorOpen,
-  Cog,
 } from "lucide-react";
+import { Listing } from "@/lib/types/listing";
 
 interface CarOverviewProps {
   listing: Listing;
+  location?: string;
 }
 
-interface SpecItemProps {
-  icon: React.ReactNode;
+interface Item {
   label: string;
-  value: string | number | null | undefined;
+  value: string;
+  icon: React.ReactNode;
 }
 
-function SpecItem({ icon, label, value }: SpecItemProps) {
+function readMetadataValue(metadata: Listing["metadata"], key: string) {
+  const value = metadata && key in metadata ? metadata[key] : null;
+  return value == null ? "N/A" : String(value);
+}
+
+function OverviewItem({ item }: { item: Item }) {
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="text-gray-400">{icon}</div>
-      <div className="flex-1">
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="font-medium text-gray-900">{value || "N/A"}</p>
+    <div className="flex gap-2 rounded-lg border border-gray-100 bg-white p-3">
+      <div className="mt-0.5 text-gray-400">{item.icon}</div>
+      <div className="min-w-0">
+        <p className="text-xs text-gray-500">{item.label}</p>
+        <p className="truncate text-sm font-semibold text-gray-900">{item.value}</p>
       </div>
     </div>
   );
 }
 
-export function CarOverview({ listing }: CarOverviewProps) {
-  const formatCondition = (condition: string | null) => {
-    if (!condition) return "N/A";
-    return condition.charAt(0).toUpperCase() + condition.slice(1).replace(/_/g, " ");
-  };
-
-  const specs = [
+export function CarOverview({ listing, location }: CarOverviewProps) {
+  const items: Item[] = [
     {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Condition",
-      value: formatCondition(listing.condition),
+      label: "Mileage",
+      value: listing.mileage ? `${listing.mileage.toLocaleString()} km` : "N/A",
+      icon: <Gauge className="h-4 w-4" />,
     },
     {
-      icon: <Hash className="h-5 w-5" />,
-      label: "Cylinders",
-      value: listing.metadata?.cylinders || "N/A",
-    },
-    {
-      icon: <FileText className="h-5 w-5" />,
-      label: "Stock number",
-      value: listing.metadata?.stock_number || listing.id.slice(0, 8).toUpperCase(),
-    },
-    {
-      icon: <Fuel className="h-5 w-5" />,
-      label: "Fuel Type",
-      value: listing.fuel_type,
-    },
-    {
-      icon: <Hash className="h-5 w-5" />,
-      label: "VIN number",
-      value: listing.metadata?.vin || "N/A",
-    },
-    {
-      icon: <DoorOpen className="h-5 w-5" />,
-      label: "Doors",
-      value: listing.metadata?.doors || "4",
-    },
-    {
-      icon: <Calendar className="h-5 w-5" />,
       label: "Year",
-      value: listing.year,
+      value: String(listing.year),
+      icon: <Calendar className="h-4 w-4" />,
     },
     {
-      icon: <Palette className="h-5 w-5" />,
-      label: "Color",
-      value: listing.color,
+      label: "Fuel Type",
+      value: listing.fuel_type || "N/A",
+      icon: <Fuel className="h-4 w-4" />,
     },
     {
-      icon: <Users className="h-5 w-5" />,
-      label: "Seats",
-      value: listing.metadata?.seats || "5",
-    },
-    {
-      icon: <Settings className="h-5 w-5" />,
-      label: "Transmission",
-      value: listing.transmission,
-    },
-    {
-      icon: <Gauge className="h-5 w-5" />,
-      label: "City MPG",
-      value: listing.metadata?.city_mpg || "N/A",
-    },
-    {
-      icon: <Cog className="h-5 w-5" />,
       label: "Engine Size",
-      value: listing.metadata?.engine_size || "N/A",
+      value: readMetadataValue(listing.metadata, "engine_size"),
+      icon: <Cog className="h-4 w-4" />,
     },
     {
-      icon: <Gauge className="h-5 w-5" />,
-      label: "Highway MPG",
-      value: listing.metadata?.highway_mpg || "N/A",
+      label: "Transmission",
+      value: listing.transmission || "N/A",
+      icon: <Settings className="h-4 w-4" />,
     },
     {
-      icon: <Car className="h-5 w-5" />,
-      label: "Drive Type",
-      value: listing.metadata?.drive_type || "N/A",
+      label: "Body Type",
+      value: listing.body_type || "N/A",
+      icon: <Car className="h-4 w-4" />,
+    },
+    {
+      label: "Color",
+      value: listing.color || "N/A",
+      icon: <Palette className="h-4 w-4" />,
+    },
+    {
+      label: "Doors",
+      value: readMetadataValue(listing.metadata, "doors"),
+      icon: <DoorOpen className="h-4 w-4" />,
+    },
+    {
+      label: "Seats",
+      value: readMetadataValue(listing.metadata, "seats"),
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      label: "Location",
+      value: location || listing.dealer?.city || "Kenya",
+      icon: <MapPin className="h-4 w-4" />,
     },
   ];
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Car overview</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1">
-        {specs.map((spec, index) => (
-          <SpecItem
-            key={index}
-            icon={spec.icon}
-            label={spec.label}
-            value={spec.value as string}
-          />
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <h2 className="mb-4 text-lg font-semibold text-gray-900">Overview</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {items.map((item) => (
+          <OverviewItem key={item.label} item={item} />
         ))}
       </div>
     </div>

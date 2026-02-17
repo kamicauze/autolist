@@ -12,10 +12,10 @@ export type CreateListingInput = {
     year: number;
     price: number;
     currency?: string;
-    mileage: number;
+    mileage?: number;
     description: string;
     features: string[]; // JSONB in DB
-    condition: 'new' | 'used' | 'foreign_used';
+    condition: 'new' | 'locally_used' | 'foreign_used';
     body_type?: string;
     transmission?: string;
     fuel_type?: string;

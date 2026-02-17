@@ -95,13 +95,28 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           />
 
           {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              New & Used cars
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Explore our selection of high-quality, pre-owned vehicles.
-            </p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                Smart matches from your search
+              </h1>
+              <p className="mt-2 text-gray-600">
+                Explore our selection of good and high-quality vehicles.
+              </p>
+            </div>
+
+            {/* Quick Search */}
+            <div className="hidden md:flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
+              <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 2L9 7H3l5 4-2 7 6-4 6 4-2-7 5-4h-6L12 2z" />
+              </svg>
+              <span className="text-sm text-gray-400">Quick search</span>
+              <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded">NEW</span>
+              <svg className="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
           </div>
 
           {/* Client-side filters and results */}

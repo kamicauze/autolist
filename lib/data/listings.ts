@@ -72,6 +72,37 @@ export async function getListingById(id: string): Promise<Listing | null> {
   return data as Listing;
 }
 
+export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
+  const sanitizedIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean))).slice(0, 3);
+
+  if (sanitizedIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(`
+      *,
+      images:listing_images(id, r2_key, alt_text, image_order),
+      seller:profiles!seller_id(id, full_name, avatar_url),
+      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+    `)
+    .eq("status", "active")
+    .in("id", sanitizedIds);
+
+  if (error) {
+    console.error("Error fetching listings by ids:", error);
+    return [];
+  }
+
+  const listings = (data as Listing[]) || [];
+  return listings.sort(
+    (a, b) => sanitizedIds.indexOf(a.id) - sanitizedIds.indexOf(b.id)
+  );
+}
+
 export async function searchListings({
   filters,
   sort = { field: "created_at", direction: "desc" },
@@ -146,7 +177,11 @@ export async function searchListings({
   }
 
   if (filters?.condition) {
-    query = query.eq("condition", filters.condition);
+    if (filters.condition === "locally_used" || filters.condition === "used") {
+      query = query.in("condition", ["locally_used", "used"]);
+    } else {
+      query = query.eq("condition", filters.condition);
+    }
   }
 
   // Mileage filters
@@ -215,6 +250,14 @@ export async function countMatchingListings(
     query = query.lte("year", filters.maxYear);
   }
 
+  if (filters?.condition) {
+    if (filters.condition === "locally_used" || filters.condition === "used") {
+      query = query.in("condition", ["locally_used", "used"]);
+    } else {
+      query = query.eq("condition", filters.condition);
+    }
+  }
+
   // Handle array or single value for bodyType
   if (filters?.bodyType) {
     if (Array.isArray(filters.bodyType) && filters.bodyType.length > 0) {
@@ -240,10 +283,6 @@ export async function countMatchingListings(
     } else if (typeof filters.fuelType === "string") {
       query = query.eq("fuel_type", filters.fuelType);
     }
-  }
-
-  if (filters?.condition) {
-    query = query.eq("condition", filters.condition);
   }
 
   // Mileage filters

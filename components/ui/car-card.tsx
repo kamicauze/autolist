@@ -9,7 +9,8 @@ import { Badge } from "./badge";
 import { Avatar } from "./avatar";
 import { Button } from "./button";
 import { IconSpeedometer, IconFuel, IconGear, IconCamera } from "./icons";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
+import { useCompare } from "@/lib/hooks/use-compare";
 
 export interface CarCardProps {
   id: string;
@@ -49,8 +50,8 @@ export function CarCard({
 }: CarCardProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const [canScrollPrev, setCanScrollPrev] = React.useState(false);
-  const [canScrollNext, setCanScrollNext] = React.useState(false);
+  const [isLiked, setIsLiked] = React.useState(false);
+  const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
 
   const formattedPrice = new Intl.NumberFormat("en-KE").format(price);
   const formattedOriginalPrice = originalPrice
@@ -59,6 +60,8 @@ export function CarCard({
 
   const imageCount = images.length;
   const displayImages = imageCount > 0 ? images : ["/placeholder-car.jpg"];
+  const inCompare = isInCompare(id);
+  const compareLimitReached = !inCompare && ids.length >= maxItems;
 
   const scrollPrev = React.useCallback(
     (e: React.MouseEvent) => {
@@ -81,8 +84,6 @@ export function CarCard({
   const onSelect = React.useCallback(() => {
     if (!emblaApi) return;
     setSelectedIndex(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
   }, [emblaApi]);
 
   React.useEffect(() => {
@@ -95,6 +96,24 @@ export function CarCard({
       emblaApi.off("reInit", onSelect);
     };
   }, [emblaApi, onSelect]);
+
+  const onCompareClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isLoaded || compareLimitReached) {
+        return;
+      }
+      toggleCompare(id);
+    },
+    [compareLimitReached, id, isLoaded, toggleCompare]
+  );
+
+  const onLikeClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsLiked((prev) => !prev);
+  }, []);
 
   const cardContent = (
     <div className="group overflow-hidden rounded-xl bg-white shadow-sm border border-gray-4 hover:shadow-md transition-shadow">
@@ -124,14 +143,14 @@ export function CarCard({
           <>
             <button
               onClick={scrollPrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5 text-gray-1" />
             </button>
             <button
               onClick={scrollNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
               aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5 text-gray-1" />
@@ -140,7 +159,7 @@ export function CarCard({
         )}
 
         {/* Badges overlay */}
-        <div className="absolute left -2.5 top-2.5 flex items-center gap-2 z-10">
+        <div className="absolute left -2.5 top-2.5 flex items-center gap-2 z-30">
           {isFeatured && (
             <Badge variant="primary" size="sm">
               Featured
@@ -153,15 +172,52 @@ export function CarCard({
         </div>
 
         {/* Year badge */}
-        <div className="absolute right-2.5 top-2.5 z-10">
+        <div className="absolute right-2.5 top-2.5 z-30">
           <Badge variant="default" size="sm">
             {year}
           </Badge>
         </div>
 
+        {/* Hover overlay actions (compare first, then favorite) */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onCompareClick}
+              disabled={!isLoaded || compareLimitReached}
+              aria-label={inCompare ? "Remove from compare" : "Add to compare"}
+              title={
+                compareLimitReached
+                  ? `You can compare up to ${maxItems} vehicles`
+                  : inCompare
+                    ? "Remove from compare"
+                    : "Add to compare"
+              }
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-md transition-colors",
+                (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
+              )}
+            >
+              {inCompare ? <Check className="h-5 w-5" /> : <GitCompare className="h-5 w-5" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={onLikeClick}
+              aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-md transition-colors hover:text-red-500",
+                isLiked && "text-red-500"
+              )}
+            >
+              <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+            </button>
+          </div>
+        </div>
+
         {/* Image dots indicator */}
         {imageCount > 1 && (
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 z-10">
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 z-30">
             {Array.from({ length: Math.min(imageCount, 5) }).map((_, i) => (
               <button
                 key={i}

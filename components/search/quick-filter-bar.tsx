@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,8 +11,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAKES, BODY_TYPES, PRICE_RANGES } from "@/lib/constants/filters";
+import { MAKES, LOCATIONS, PRICE_RANGES } from "@/lib/constants/filters";
 import { IconSearch } from "@/components/ui/icons";
+
+// Model options per make (simplified)
+const MODELS: Record<string, string[]> = {
+  Toyota: ["Camry", "Corolla", "RAV4", "Land Cruiser", "Hilux", "Prado", "Harrier", "Vitz", "Axio"],
+  Nissan: ["Note", "X-Trail", "Juke", "Serena", "Navara", "Tiida", "Sylphy", "Patrol"],
+  BMW: ["X1", "X3", "X5", "3 Series", "5 Series", "7 Series", "1 Series"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "GLE", "GLC", "A-Class", "S-Class"],
+  Mazda: ["Demio", "CX-5", "CX-3", "Axela", "Atenza"],
+  Subaru: ["Forester", "Outback", "Impreza", "Legacy", "XV"],
+  Honda: ["Fit", "Vezel", "CR-V", "Civic", "Accord"],
+  Volkswagen: ["Golf", "Tiguan", "Polo", "Touareg", "Passat"],
+  Audi: ["A3", "A4", "A6", "Q3", "Q5", "Q7"],
+  "Land Rover": ["Range Rover", "Discovery", "Defender", "Evoque", "Sport"],
+};
 
 interface QuickFilterBarProps {
   onOpenFilters: () => void;
@@ -25,7 +39,8 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
 
   // Get current filter values
   const currentMake = searchParams.get("make") || "";
-  const currentBodyType = searchParams.get("bodyType") || "";
+  const currentModel = searchParams.get("model") || "";
+  const currentLocation = searchParams.get("location") || "";
   const currentMinPrice = searchParams.get("minPrice") || "";
   const currentMaxPrice = searchParams.get("maxPrice") || "";
 
@@ -40,6 +55,8 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
     return range ? `${range.min}-${range.max || ""}` : "all";
   };
 
+  const availableModels = currentMake ? (MODELS[currentMake] || []) : [];
+
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
@@ -48,6 +65,11 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
       params.set(key, value);
     } else {
       params.delete(key);
+    }
+
+    // Clear model when make changes
+    if (key === "make") {
+      params.delete("model");
     }
 
     startTransition(() => {
@@ -75,19 +97,40 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
     });
   };
 
-  const clearAllFilters = () => {
+  const handleSearch = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
     startTransition(() => {
-      router.push("/search");
+      router.push(`/search?${params.toString()}`);
     });
   };
 
-  const hasActiveFilters = searchParams.toString().replace(/page=\d+&?/g, "").length > 0;
-
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
         {/* Filter Dropdowns */}
         <div className="flex flex-wrap gap-3 flex-1">
+          {/* County / Location */}
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+            <Select
+              value={currentLocation || "all"}
+              onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}
+            >
+              <SelectTrigger className="w-[160px] pl-9">
+                <SelectValue placeholder="County" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Counties</SelectItem>
+                {LOCATIONS.filter((l) => l !== "All Locations").map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Make */}
           <Select
             value={currentMake || "all"}
@@ -106,19 +149,19 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
             </SelectContent>
           </Select>
 
-          {/* Body Type */}
+          {/* Model */}
           <Select
-            value={currentBodyType || "all"}
-            onValueChange={(val) => updateFilter("bodyType", val === "all" ? null : val)}
+            value={currentModel || "all"}
+            onValueChange={(val) => updateFilter("model", val === "all" ? null : val)}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Body Type" />
+              <SelectValue placeholder="Model" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Body Types</SelectItem>
-              {BODY_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
+              <SelectItem value="all">All Models</SelectItem>
+              {availableModels.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -126,8 +169,8 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
 
           {/* Price Range */}
           <Select value={getPriceRangeValue()} onValueChange={updatePriceRange}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Price Range" />
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Price" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Any Price</SelectItem>
@@ -151,24 +194,12 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
             className="gap-2"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            More Filters
+            Filters
           </Button>
 
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="gap-1 text-gray-500 hover:text-gray-700"
-            >
-              <X className="h-4 w-4" />
-              Clear
-            </Button>
-          )}
-
-          <Button className="gap-2 bg-primary hover:bg-primary/90">
-            <IconSearch className="h-4 w-4" />
+          <Button onClick={handleSearch} className="gap-2 bg-primary hover:bg-primary/90">
             Search
+            <IconSearch className="h-4 w-4" />
           </Button>
         </div>
       </div>

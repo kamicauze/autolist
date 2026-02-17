@@ -7,10 +7,10 @@ import { NextResponse } from "next/server";
 // Raw Data from listings.json
 const RAW_DATA = [
     {
-        "make": "Toyota", "model": "Probox", "year": 2018, "price": "1.29M", "description": "1300cc Petrol, Auto", "features": ["Mileage 104k"], "condition": "used"
+        "make": "Toyota", "model": "Probox", "year": 2018, "price": "1.29M", "description": "1300cc Petrol, Auto", "features": ["Mileage 104k"], "condition": "locally_used"
     },
     {
-        "make": "Toyota", "model": "Premio", "year": 2015, "price": "1.85M", "description": "2000cc Petrol", "features": ["Mileage 54k"], "condition": "used"
+        "make": "Toyota", "model": "Premio", "year": 2015, "price": "1.85M", "description": "2000cc Petrol", "features": ["Mileage 54k"], "condition": "locally_used"
     },
     {
         "make": "Volkswagen", "model": "Jetta", "year": 2009, "price": "820K", "description": "1400cc Petrol", "features": ["Mileage 152k"], "condition": "foreign_used"

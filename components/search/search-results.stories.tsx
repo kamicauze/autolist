@@ -70,7 +70,7 @@ const mockListings: Listing[] = [
     transmission: "Automatic",
     fuel_type: "Diesel",
     color: "Black",
-    condition: "used",
+    condition: "locally_used",
     description: null,
     features: [],
     metadata: {},

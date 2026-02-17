@@ -1,20 +1,22 @@
 import Link from "next/link";
-import { ArrowUpDown, Calculator } from "lucide-react";
+import { ArrowUpDown, ArrowRight, Calculator } from "lucide-react";
 
 const services = [
   {
     icon: ArrowUpDown,
-    title: "Compare vehicles",
+    title: "Compare vehicle",
     description:
-      "Compare specifications, features, and prices of different vehicles side by side to make an informed decision.",
+      "Save time as you no longer need to visit multiple store to find the right vehicle.",
     href: "/compare",
+    buttonText: "Compare",
   },
   {
     icon: Calculator,
-    title: "Vehicle Affordability Calculator",
+    title: "Autoloan calculator",
     description:
-      "Calculate how much car you can afford based on your monthly budget, down payment, and preferred loan terms.",
+      "Estimate monthly vehicle loan repayments quickly",
     href: "/tools/affordability",
+    buttonText: "Calculate loan",
   },
 ];
 
@@ -32,26 +34,24 @@ export function ServicesSection() {
           {services.map((service) => {
             const Icon = service.icon;
             return (
-              <Link
+              <div
                 key={service.title}
-                href={service.href}
-                className="group flex items-start gap-4 bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-colors border border-gray-100"
+                className="bg-gray-50 rounded-xl p-8 border border-gray-100"
               >
-                {/* Icon */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Icon className="w-6 h-6 text-primary" />
-                </div>
-
-                {/* Content */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-1 group-hover:text-primary transition-colors">
-                    {service.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {service.description}
-                  </p>
-                </div>
-              </Link>
+                <h3 className="font-semibold text-gray-900 text-xl mb-4">
+                  {service.title}
+                </h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                  {service.description}
+                </p>
+                <Link
+                  href={service.href}
+                  className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                >
+                  {service.buttonText}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             );
           })}
         </div>

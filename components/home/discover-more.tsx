@@ -3,15 +3,34 @@ import { Button } from "@/components/ui/button";
 import { Search, Car, Calculator, DollarSign } from "lucide-react";
 
 const features = [
-  {
-    icon: Search,
-    title: "Browse inventory",
+    {
+    icon: Calculator,
+    title: "Financing",
     description:
-      "Discover your perfect car from our extensive listing collection. Filter by make, model, price and more.",
-    buttonText: "Explore cars",
-    href: "/search",
+      "Explore flexible financing options. Calculate your monthly payments and find the best rates.",
+    buttonText: "Learn more",
+    href: "/financing",
+    buttonVariant: "outline" as const,
+  },
+ {
+    icon: DollarSign,
+    title: "Value your vehicle",
+    description:
+      "Get an instant estimate of your car's worth using our valuation tool powered by market data.",
+    buttonText: "Learn more",
+    href: "/value",
+    buttonVariant: "outline" as const,
+  },
+  {
+    icon: Calculator,
+    title: "Insure your vehicle",
+    description:
+      "Protect your investment with comprehensive coverage. Get instant insurance quotes from Kenya's leading providers.",
+    buttonText: "Get a quote",
+    href: "/insurance",
     buttonVariant: "default" as const,
   },
+ 
   {
     icon: Car,
     title: "Sell a vehicle",
@@ -21,24 +40,7 @@ const features = [
     href: "/sell",
     buttonVariant: "outline" as const,
   },
-  {
-    icon: Calculator,
-    title: "Financing",
-    description:
-      "Explore flexible financing options. Calculate your monthly payments and find the best rates.",
-    buttonText: "Learn more",
-    href: "/financing",
-    buttonVariant: "outline" as const,
-  },
-  {
-    icon: DollarSign,
-    title: "Value your vehicle",
-    description:
-      "Get an instant estimate of your car's worth using our valuation tool powered by market data.",
-    buttonText: "Learn more",
-    href: "/value",
-    buttonVariant: "outline" as const,
-  },
+
 ];
 
 export function DiscoverMore() {

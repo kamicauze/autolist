@@ -83,7 +83,7 @@ export function HowItWorks() {
             <div className="absolute left-0 top-0 w-[280px] sm:w-[320px] lg:w-[410px] h-[400px] sm:h-[480px] lg:h-[593px] rounded-3xl overflow-hidden shadow-xl">
               <Image
                 src="/sample-car-1.jpg"
-                alt="Car seller with keys"
+                alt="Mercedes sedan for sale"
                 fill
                 className="object-cover"
               />
@@ -93,7 +93,7 @@ export function HowItWorks() {
             <div className="absolute right-0 sm:right-[-20px] lg:right-[-60px] top-[180px] sm:top-[200px] lg:top-[255px] w-[240px] sm:w-[300px] lg:w-[410px] h-[320px] sm:h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-[0px_30px_60px_0px_rgba(0,0,0,0.1)]">
               <Image
                 src="/sample-car-2.jpg"
-                alt="White BMW car"
+                alt="White Mercedes E-Class"
                 fill
                 className="object-cover"
               />

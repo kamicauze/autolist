@@ -56,7 +56,7 @@ const TRANSMISSIONS = ["Automatic", "Manual", "CVT", "AMT", "Dual Clutch"];
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric"];
 const CONDITIONS = [
   { value: "foreign_used", label: "Foreign Used" },
-  { value: "used", label: "Locally Used" },
+  { value: "locally_used", label: "Locally Used" },
   { value: "new", label: "Brand New" },
 ];
 

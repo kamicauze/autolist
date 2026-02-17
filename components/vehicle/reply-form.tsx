@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function ReplyForm() {
   return (
-    <div className="bg-gray-50 rounded-xl p-6 sm:p-8 space-y-6">
+    <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 sm:p-8">
       <div>
         <h3 className="text-lg font-bold text-gray-900 mb-1">Leave a Reply</h3>
         <p className="text-sm text-gray-500">
@@ -58,7 +58,7 @@ export function ReplyForm() {
         </label>
       </div>
 
-      <Button className="w-full sm:w-auto px-8 bg-[#2C52D8] hover:bg-[#2546b8]">
+      <Button className="w-full bg-[#2C52D8] px-8 hover:bg-[#2546b8] sm:w-auto">
         Post Comment
       </Button>
     </div>
