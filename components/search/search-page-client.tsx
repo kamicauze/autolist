@@ -11,6 +11,7 @@ interface SearchPageClientProps {
   total: number;
   totalPages: number;
   totalCount: number;
+  makes: string[];
 }
 
 export function SearchPageClient({
@@ -18,13 +19,17 @@ export function SearchPageClient({
   total,
   totalPages,
   totalCount,
+  makes,
 }: SearchPageClientProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   return (
     <>
       {/* Quick Filter Bar */}
-      <QuickFilterBar onOpenFilters={() => setIsFilterSheetOpen(true)} />
+      <QuickFilterBar
+        makes={makes}
+        onOpenFilters={() => setIsFilterSheetOpen(true)}
+      />
 
       {/* Results Count */}
       <div className="mt-4 mb-6 text-sm text-gray-600">
@@ -43,6 +48,7 @@ export function SearchPageClient({
         open={isFilterSheetOpen}
         onOpenChange={setIsFilterSheetOpen}
         totalCount={totalCount}
+        makes={makes}
       />
     </>
   );

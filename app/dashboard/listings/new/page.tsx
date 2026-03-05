@@ -1,5 +1,5 @@
-import { ListingWizard } from "@/components/seller/listing-wizard";
+import { ListingWizardV2 } from "@/components/dashboard/wizard/listing-wizard-v2";
 
 export default function NewListingPage() {
-  return <ListingWizard />;
+  return <ListingWizardV2 />;
 }

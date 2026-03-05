@@ -7,7 +7,7 @@
 
 :root {
   /* Brand Colors */
-  --primary: #1a5ae4;
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
   --secondary: #F2994A;
   --secondary-foreground: #FFFFFF;
@@ -44,6 +44,10 @@
   --border: var(--gray-4);
   --input: var(--gray-4);
   --ring: var(--primary);
+
+  /* Dashboard Sidebar */
+  --sidebar-bg: #24272C;
+  --sidebar-width: 280px;
 
   /* Border Radius */
   --radius: 0.5rem;
@@ -110,6 +114,10 @@
   /* Line Heights */
   --line-height-heading: 1.1;
   --line-height-body: 1.4;
+
+  /* Dashboard Sidebar */
+  --color-sidebar-bg: var(--sidebar-bg);
+  --sidebar-width: var(--sidebar-width);
 
   /* Border Radius */
   --radius-sm: calc(var(--radius) - 4px);

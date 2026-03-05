@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
+import { getAllMakeNames } from "@/lib/data/car-data";
 import { ListingFilters, ListingSort } from "@/lib/types/listing";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 
@@ -35,6 +36,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     fuelType: parseArrayParam(params.fuelType),
     condition: params.condition as ListingFilters["condition"],
     location: params.location as string,
+    color: params.color as string,
+    seats: params.seats ? Number(params.seats) : undefined,
+    doors: params.doors ? Number(params.doors) : undefined,
+    driveType: params.driveType as string,
     sellerType: params.sellerType as ListingFilters["sellerType"],
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
@@ -72,9 +77,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }
   }
 
-  const [{ listings, total }, totalCount] = await Promise.all([
+  const [{ listings, total }, totalCount, makes] = await Promise.all([
     searchListings({ filters, page, limit, sort }),
     countMatchingListings(filters),
+    getAllMakeNames(),
   ]);
 
   const totalPages = Math.ceil(total / limit);
@@ -126,6 +132,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               total={total}
               totalPages={totalPages}
               totalCount={totalCount}
+              makes={makes}
             />
           </Suspense>
         </div>

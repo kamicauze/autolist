@@ -163,7 +163,7 @@ export function ListingsSectionSkeleton() {
         <div className="h-10 w-64 bg-muted rounded mb-6 animate-pulse" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-xl bg-muted animate-pulse">
               <div className="h-56 bg-muted-foreground/10 rounded-t-xl" />
               <div className="p-4 space-y-3">

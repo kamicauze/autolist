@@ -12,11 +12,12 @@ import { ServicesSection } from "@/components/home/services-section";
 import { NewsSection } from "@/components/home/news-section";
 import { SocialMediaSection } from "@/components/home/social-media-section";
 import { getFeaturedListings, getNewestListings } from "@/lib/data/listings";
+import { getAllMakeNames } from "@/lib/data/car-data";
 
 async function RecentActivitiesData() {
   const [featuredListings, newestListings] = await Promise.all([
-    getFeaturedListings(8),
-    getNewestListings(8),
+    getFeaturedListings(4),
+    getNewestListings(4),
   ]);
 
   return (
@@ -28,6 +29,11 @@ async function RecentActivitiesData() {
   );
 }
 
+async function HeroSearchWithData() {
+  const makes = await getAllMakeNames();
+  return <HeroSearch makes={makes} />;
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -35,8 +41,8 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section with Search */}
-        <Suspense fallback={<div className="md:h-[527px]" aria-hidden />}>
-          <HeroSearch />
+        <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
+          <HeroSearchWithData />
         </Suspense>
 
         {/* Recent Activities Section */}
