@@ -524,7 +524,9 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setShowValidationErrors(false);
 
     if (isLastStep) {
-      const { createListing } = await import("@/lib/actions/listings");
+      const { createListing, saveListingImage, submitListingForReview } = await import("@/lib/actions/listings");
+      const { getUploadUrl } = await import("@/lib/actions/upload");
+
       const listingData = {
         make: draft.details.make || "",
         model: draft.details.model || "",
@@ -544,17 +546,80 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setIsSubmitting(true);
       setSubmitError(null);
       try {
+        // Step 1: Create listing record (status: draft)
         const result = await createListing(listingData);
         if (result.error) {
           setSubmitError(typeof result.error === "string" ? result.error : "Validation failed.");
           setIsSubmitting(false);
           return;
         }
-        if ("success" in result && result.success && "data" in result && result.data) {
-          setCreatedListingId(result.data.id);
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-          setSubmitted(true);
+        if (!("data" in result) || !result.data) {
+          setSubmitError("Failed to create listing.");
+          setIsSubmitting(false);
+          return;
         }
+
+        const listingId = result.data.id;
+        setCreatedListingId(listingId);
+
+        // Step 2: Upload images to R2
+        const filesToUpload: { file: File; order: number }[] = [];
+        const hasSeparateCover = !!coverFile;
+
+        if (hasSeparateCover) {
+          filesToUpload.push({ file: coverFile!, order: 0 });
+        }
+
+        galleryFiles.forEach((file, index) => {
+          const isCoverFromGallery = !hasSeparateCover && draft.coverFromGalleryIndex === index;
+          filesToUpload.push({
+            file,
+            order: isCoverFromGallery ? 0 : (hasSeparateCover ? index + 1 : index),
+          });
+        });
+
+        let uploadedCount = 0;
+        for (const { file, order } of filesToUpload) {
+          try {
+            const hashBuffer = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const fileHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+            const uploadResult = await getUploadUrl(listingId, file.type, file.size, fileHash);
+            if (uploadResult.error) {
+              console.warn(`Upload URL error for ${file.name}: ${uploadResult.error}`);
+              continue;
+            }
+
+            const putResponse = await fetch(uploadResult.url!, {
+              method: "PUT",
+              headers: { "Content-Type": file.type },
+              body: file,
+            });
+
+            if (!putResponse.ok) {
+              console.warn(`Upload failed for ${file.name}: ${putResponse.status}`);
+              continue;
+            }
+
+            const altText = `${draft.details.make} ${draft.details.model} - Photo ${order + 1}`;
+            await saveListingImage(listingId, uploadResult.key!, altText, order, fileHash);
+            uploadedCount++;
+          } catch (err) {
+            console.warn(`Image upload error for ${file.name}:`, err);
+          }
+        }
+
+        // Step 3: Submit for review (draft → pending)
+        if (uploadedCount > 0) {
+          const submitResult = await submitListingForReview(listingId);
+          if (submitResult.error) {
+            console.warn("Submit for review failed:", submitResult.error);
+          }
+        }
+
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        setSubmitted(true);
       } catch {
         setSubmitError("An unexpected error occurred. Please try again.");
       } finally {

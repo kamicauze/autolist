@@ -128,3 +128,202 @@ export async function deleteListing(id: string) {
     revalidatePath('/dashboard/listings');
     return { success: true };
 }
+
+// ─── Image Upload ────────────────────────────────────────────────────────────
+
+/**
+ * Save an image record after uploading to R2.
+ * RLS ensures only the listing owner can insert images.
+ */
+export async function saveListingImage(
+    listingId: string,
+    r2Key: string,
+    altText: string | null,
+    imageOrder: number,
+    imageHash: string | null
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { error } = await supabase
+        .from('listing_images')
+        .insert({
+            listing_id: listingId,
+            r2_key: r2Key,
+            alt_text: altText,
+            image_order: imageOrder,
+            image_hash: imageHash,
+        });
+
+    if (error) {
+        console.error("Save Image Error:", error);
+        return { error: error.message };
+    }
+
+    return { success: true };
+}
+
+// ─── Status Transitions ──────────────────────────────────────────────────────
+
+/**
+ * Owner submits their draft listing for review.
+ * Transitions status: draft → pending.
+ */
+export async function submitListingForReview(listingId: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data, error } = await supabase
+        .from('listings')
+        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .eq('id', listingId)
+        .eq('seller_id', user.id)
+        .eq('status', 'draft')
+        .select('id')
+        .single();
+
+    if (error || !data) {
+        console.error("Submit for Review Error:", error);
+        return { error: error?.message || "Listing not found or not in draft status." };
+    }
+
+    revalidatePath('/dashboard/listings');
+    return { success: true };
+}
+
+/**
+ * Admin approves a pending listing → active.
+ */
+export async function approveListing(listingId: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profile?.role !== 'admin') return { error: "Forbidden: Admin only." };
+
+    const { error } = await supabase
+        .from('listings')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', listingId)
+        .eq('status', 'pending');
+
+    if (error) {
+        console.error("Approve Listing Error:", error);
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/listings');
+    revalidatePath('/dashboard/listings');
+    revalidatePath('/search');
+    return { success: true };
+}
+
+/**
+ * Admin rejects a pending listing.
+ * Optional reason stored in metadata JSONB.
+ */
+export async function rejectListing(listingId: string, reason?: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profile?.role !== 'admin') return { error: "Forbidden: Admin only." };
+
+    const updateData: Record<string, unknown> = {
+        status: 'rejected',
+        updated_at: new Date().toISOString(),
+    };
+    if (reason) {
+        updateData.metadata = { rejection_reason: reason };
+    }
+
+    const { error } = await supabase
+        .from('listings')
+        .update(updateData)
+        .eq('id', listingId)
+        .eq('status', 'pending');
+
+    if (error) {
+        console.error("Reject Listing Error:", error);
+        return { error: error.message };
+    }
+
+    revalidatePath('/admin/listings');
+    revalidatePath('/dashboard/listings');
+    return { success: true };
+}
+
+// ─── Fetchers ────────────────────────────────────────────────────────────────
+
+/**
+ * Admin: fetch all pending listings with images and seller info.
+ */
+export async function getPendingListings() {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized", data: [] };
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profile?.role !== 'admin') return { error: "Forbidden", data: [] };
+
+    const { data, error } = await supabase
+        .from('listings')
+        .select(`
+            *,
+            images:listing_images(id, r2_key, alt_text, image_order),
+            seller:profiles!seller_id(id, full_name, avatar_url, email)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("Get Pending Listings Error:", error);
+        return { error: error.message, data: [] };
+    }
+
+    return { data: data || [] };
+}
+
+/**
+ * Seller: fetch all their own listings with images.
+ */
+export async function getMyListings() {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized", data: [] };
+
+    const { data, error } = await supabase
+        .from('listings')
+        .select(`
+            *,
+            images:listing_images(id, r2_key, alt_text, image_order)
+        `)
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Get My Listings Error:", error);
+        return { error: error.message, data: [] };
+    }
+
+    return { data: data || [] };
+}
