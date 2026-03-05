@@ -1,26 +1,10 @@
-// Car Makes
-export const MAKES = [
-  "Toyota",
-  "Nissan",
-  "Mazda",
-  "Subaru",
-  "Mercedes-Benz",
-  "BMW",
-  "Audi",
-  "Volkswagen",
-  "Land Rover",
-  "Honda",
-  "Mitsubishi",
-  "Ford",
-  "Suzuki",
-  "Porsche",
-  "Lexus",
-  "Hyundai",
-  "Kia",
-  "Volvo",
-  "Jeep",
-  "Isuzu",
-] as const;
+import { ALL_MAKES } from "./car-data";
+
+/**
+ * @deprecated — Components now receive makes from Supabase via server props.
+ * This is kept only as a static fallback. Use `getAllMakeNames()` from `lib/data/car-data.ts` instead.
+ */
+export const MAKES = ALL_MAKES;
 
 // Body Types
 export const BODY_TYPES = [
@@ -61,9 +45,53 @@ export const FUEL_TYPES = [
 
 // Conditions
 export const CONDITIONS = [
-  { value: "foreign_used", label: "Foreign Used" },
-  { value: "locally_used", label: "Locally Used" },
   { value: "new", label: "Brand New" },
+  { value: "foreign_used", label: "Foreign Used" },
+  { value: "locally_used", label: "Kenyan Used" },
+] as const;
+
+// Colors
+export const COLORS = [
+  "White",
+  "Black",
+  "Silver",
+  "Grey",
+  "Blue",
+  "Red",
+  "Green",
+  "Brown",
+  "Beige",
+  "Orange",
+  "Yellow",
+  "Gold",
+  "Maroon",
+  "Navy",
+  "Bronze",
+] as const;
+
+// Seats
+export const SEATS_OPTIONS = [
+  { value: 2, label: "2 Seats" },
+  { value: 4, label: "4 Seats" },
+  { value: 5, label: "5 Seats" },
+  { value: 7, label: "7 Seats" },
+  { value: 8, label: "8+ Seats" },
+] as const;
+
+// Doors
+export const DOORS_OPTIONS = [
+  { value: 2, label: "2 Doors" },
+  { value: 3, label: "3 Doors" },
+  { value: 4, label: "4 Doors" },
+  { value: 5, label: "5 Doors" },
+] as const;
+
+// Drive Types
+export const DRIVE_TYPES = [
+  { value: "FWD", label: "Front-Wheel Drive" },
+  { value: "RWD", label: "Rear-Wheel Drive" },
+  { value: "AWD", label: "All-Wheel Drive" },
+  { value: "4WD", label: "Four-Wheel Drive" },
 ] as const;
 
 // Seller Types

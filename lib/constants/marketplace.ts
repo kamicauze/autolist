@@ -97,7 +97,7 @@ export type ListingCategory = (typeof LISTING_CATEGORY_OPTIONS)[number]["value"]
 
 export const LISTING_CONDITION_OPTIONS = [
   { value: "new", label: "New" },
-  { value: "locally_used", label: "Locally Used" },
+  { value: "locally_used", label: "Kenyan Used" },
   { value: "foreign_used", label: "Foreign Used" },
 ] as const;
 

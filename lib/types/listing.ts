@@ -32,6 +32,9 @@ export interface Listing {
   fuel_type: string | null;
   color: string | null;
   condition: ListingCondition | null;
+  seats: number | null;
+  doors: number | null;
+  drive_type: string | null;
   is_featured: boolean;
 
   description: string | null;
@@ -74,6 +77,10 @@ export interface ListingFilters {
   condition?: ListingCondition;
   city?: string;
   location?: string;
+  color?: string;
+  seats?: number;
+  doors?: number;
+  driveType?: string;
   sellerType?: 'dealer' | 'private';
   verifiedOnly?: boolean;
   minMileage?: number;

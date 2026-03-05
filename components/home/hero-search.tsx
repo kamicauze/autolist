@@ -10,308 +10,286 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Search, SlidersHorizontal, Sparkles } from "lucide-react";
-import { FilterSheet } from "@/components/search/filter-sheet";
+import { Search } from "lucide-react";
+import {
+  LOCATIONS,
+  YEARS,
+  CONDITIONS,
+  MILEAGE_RANGES,
+  PRICE_RANGES,
+} from "@/lib/constants/filters";
+import { useCarModels } from "@/hooks/use-car-models";
 
-const carMakes = [
-  { value: "any", label: "Any make" },
-  { value: "Toyota", label: "Toyota" },
-  { value: "Nissan", label: "Nissan" },
-  { value: "Mazda", label: "Mazda" },
-  { value: "Subaru", label: "Subaru" },
-  { value: "Mercedes-Benz", label: "Mercedes-Benz" },
-  { value: "BMW", label: "BMW" },
-  { value: "Audi", label: "Audi" },
-  { value: "Volkswagen", label: "Volkswagen" },
-  { value: "Land Rover", label: "Land Rover" },
-  { value: "Honda", label: "Honda" },
-  { value: "Mitsubishi", label: "Mitsubishi" },
-  { value: "Ford", label: "Ford" },
-  { value: "Suzuki", label: "Suzuki" },
-  { value: "Porsche", label: "Porsche" },
-  { value: "Lexus", label: "Lexus" },
-  { value: "Hyundai", label: "Hyundai" },
-  { value: "Kia", label: "Kia" },
-  { value: "Volvo", label: "Volvo" },
-  { value: "Jeep", label: "Jeep" },
-  { value: "Isuzu", label: "Isuzu" },
-];
+interface HeroSearchProps {
+  makes: string[];
+}
 
-const carModels = [
-  { value: "any", label: "Any models" },
-  { value: "camry", label: "Camry" },
-  { value: "corolla", label: "Corolla" },
-  { value: "x5", label: "X5" },
-  { value: "3-series", label: "3 Series" },
-  { value: "c-class", label: "C-Class" },
-  { value: "civic", label: "Civic" },
-  { value: "accord", label: "Accord" },
-];
-
-const currentYear = new Date().getFullYear();
-const years = [
-  { value: "any", label: "Any" },
-  ...Array.from({ length: 30 }, (_, i) => ({
-    value: String(currentYear - i),
-    label: String(currentYear - i),
-  })),
-];
-
-const bodyTypes = [
-  { value: "any", label: "Body" },
-  { value: "sedan", label: "Sedan" },
-  { value: "suv", label: "SUV" },
-  { value: "hatchback", label: "Hatchback" },
-  { value: "pickup", label: "Pickup" },
-  { value: "coupe", label: "Coupe" },
-  { value: "wagon", label: "Station Wagon" },
-  { value: "van", label: "Van" },
-];
-
-const priceRanges = [
-  { value: "any", label: "Price" },
-  { value: "500000", label: "Under Ksh 500K" },
-  { value: "1000000", label: "Under Ksh 1M" },
-  { value: "2000000", label: "Under Ksh 2M" },
-  { value: "5000000", label: "Under Ksh 5M" },
-  { value: "10000000", label: "Under Ksh 10M" },
-];
-
-export function HeroSearch() {
+export function HeroSearch({ makes }: HeroSearchProps) {
   const router = useRouter();
-  const [location, setLocation] = React.useState("");
+  const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
   const [model, setModel] = React.useState("any");
-  const [bodyType, setBodyType] = React.useState("any");
-  const [price, setPrice] = React.useState("any");
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
-  const [quickSearch, setQuickSearch] = React.useState("");
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
+  const [mileage, setMileage] = React.useState("any");
+  const [priceRange, setPriceRange] = React.useState("any");
+  const [usage, setUsage] = React.useState("any");
+
+  const { models: availableModels, isLoading: modelsLoading } = useCarModels(
+    make !== "any" ? make : null
+  );
+
+  // Reset model when make changes
+  React.useEffect(() => {
+    setModel("any");
+  }, [make]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
     const params = new URLSearchParams();
-    if (location) params.set("location", location);
-    if (make && make !== "any") params.set("make", make);
-    if (model && model !== "any") params.set("model", model);
-    if (bodyType && bodyType !== "any") params.set("bodyType", bodyType);
-    if (price && price !== "any") params.set("maxPrice", price);
-    if (yearFrom && yearFrom !== "any") params.set("minYear", yearFrom);
-    if (yearTo && yearTo !== "any") params.set("maxYear", yearTo);
+    if (location !== "any") params.set("location", location);
+    if (make !== "any") params.set("make", make);
+    if (model !== "any") params.set("model", model);
+    if (yearFrom !== "any") params.set("minYear", yearFrom);
+    if (yearTo !== "any") params.set("maxYear", yearTo);
+    if (usage !== "any") params.set("condition", usage);
+
+    // Handle mileage
+    if (mileage !== "any") {
+      const mileageOption = MILEAGE_RANGES.find(
+        (r) => r.label === mileage
+      );
+      if (mileageOption && "max" in mileageOption) {
+        params.set("maxMileage", String(mileageOption.max));
+      }
+      if (mileageOption && "min" in mileageOption) {
+        params.set("minMileage", String(mileageOption.min));
+      }
+    }
+
+    // Handle price range
+    if (priceRange !== "any") {
+      const priceOption = PRICE_RANGES.find((r) => r.label === priceRange);
+      if (priceOption) {
+        if (priceOption.min) params.set("minPrice", String(priceOption.min));
+        if (priceOption.max) params.set("maxPrice", String(priceOption.max));
+      }
+    }
 
     router.push(`/search?${params.toString()}`);
   };
 
-  const handleQuickSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (quickSearch.trim()) {
-      router.push(`/search?q=${encodeURIComponent(quickSearch)}`);
-    }
-  };
-
   return (
-    <section className="relative md:h-[527px] pb-6 md:pb-0">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `url('/sample-car-4.jpg')`,
-        }}
-      />
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
-
-      {/* Content */}
-      <div className="relative md:h-full flex flex-col">
-        {/* Main Content */}
-        <div className="md:flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-8">
-          {/* Heading */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-semibold text-white text-center leading-tight mb-4">
-            New mode BMW awaits you
-          </h1>
-          {/* Subtitle */}
-          <p className="text-lg sm:text-xl font-semibold text-white/90 text-center">
-            Find the perfect vehicle match for you, and drive smiling
-          </p>
+    <section className="relative">
+      {/* Hero Image */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="relative h-[320px] sm:h-[400px] md:h-[460px] overflow-hidden rounded-2xl sm:rounded-3xl">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url('/hero-car.jpg')` }}
+          />
+          {/* Subtle bottom gradient so the search card is legible */}
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent rounded-b-2xl sm:rounded-b-3xl" />
         </div>
 
-        {/* Search Section */}
-        <div className="px-4 sm:px-6 lg:px-8 pb-4 md:pb-0 md:-mb-[47px] relative z-10">
-          <div className="max-w-[1335px] mx-auto">
-            {/* Quick Search - positioned above main search on desktop */}
-            <div className="flex justify-end mb-4">
-              <form onSubmit={handleQuickSearch} className="relative">
-                <div className="flex items-center bg-white border border-[#d1d5dc] rounded-[10px] h-[44px] w-full sm:w-[318px]">
-                  <Sparkles className="w-4 h-4 text-[#364153] ml-4" />
-                  <input
-                    type="text"
-                    placeholder="Quick search"
-                    value={quickSearch}
-                    onChange={(e) => setQuickSearch(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm text-[#364153] placeholder:text-[#364153] bg-transparent outline-none"
-                  />
-                  <span className="bg-[#f3f4f6] border border-[#d1d5dc] rounded px-2 py-0.5 text-xs text-[#364153] mr-2">
-                    NEW
-                  </span>
-                  <button type="submit" className="mr-4">
-                    <Search className="w-4 h-4 text-[#364153]" />
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Search Card — overlaps the bottom edge of the hero */}
+        <div className="relative z-10 -mt-24 sm:-mt-28 md:-mt-32">
+          <form
+            onSubmit={handleSearch}
+            className="mx-auto max-w-5xl rounded-2xl border border-border bg-white p-5 sm:p-6 shadow-xl"
+          >
+            <h2 className="text-lg font-bold text-foreground sm:text-xl">
+              Let&apos;s Find Your Perfect Car
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Search from thousands of cars available on Autolist
+            </p>
 
-            {/* Main Search Bar */}
-            <form onSubmit={handleSearch}>
-              <div className="bg-white rounded-2xl shadow-[0px_4px_26px_0px_rgba(66,71,76,0.08)] p-5 md:p-6">
-                <div className="flex flex-col md:flex-row gap-4 md:gap-3 items-stretch md:items-center">
-                  {/* Location Input */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center border border-[#ededed] rounded-[14px] h-[50px] px-4">
-                      <MapPin className="w-4 h-4 text-[#717182] mr-2 flex-shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="Location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        className="flex-1 text-sm text-[#717182] placeholder:text-[#717182] bg-transparent outline-none"
-                      />
-                    </div>
-                  </div>
+            {/* Row 1: Location, Brand, Model, Year */}
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Location */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Location
+                </label>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">All Locations</SelectItem>
+                    {LOCATIONS.filter((l) => l !== "All Locations").map(
+                      (loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* Make Dropdown */}
-                  <div className="flex-1 min-w-0">
-                    <Select value={make} onValueChange={setMake}>
-                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
-                        <SelectValue placeholder="Any make" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {carMakes.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Brand Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Brand Name
+                </label>
+                <Select value={make} onValueChange={setMake}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Any Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Brand</SelectItem>
+                    {makes.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* Models Dropdown */}
-                  <div className="flex-1 min-w-0">
-                    <Select value={model} onValueChange={setModel}>
-                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
-                        <SelectValue placeholder="Any models" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {carModels.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Car Model */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Car Model
+                </label>
+                <Select
+                  value={model}
+                  onValueChange={setModel}
+                  disabled={make === "any" || modelsLoading}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue
+                      placeholder={modelsLoading ? "Loading…" : "Any Model"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Model</SelectItem>
+                    {availableModels.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* Body Dropdown */}
-                  <div className="flex-1 min-w-0">
-                    <Select value={bodyType} onValueChange={setBodyType}>
-                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
-                        <SelectValue placeholder="Body" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bodyTypes.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Price Dropdown */}
-                  <div className="flex-1 min-w-0">
-                    <Select value={price} onValueChange={setPrice}>
-                      <SelectTrigger className="h-[50px] border-[#ededed] rounded-[14px] text-[#696665] text-sm">
-                        <SelectValue placeholder="Price" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {priceRanges.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Year Range */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center border border-[#ededed] rounded-[14px] h-[50px]">
-                      <Select value={yearFrom} onValueChange={setYearFrom}>
-                        <SelectTrigger className="h-full border-0 rounded-l-[14px] rounded-r-none text-[#696665] text-sm focus:ring-0 flex-1">
-                          <SelectValue placeholder="Year From" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {years.map((option) => (
-                            <SelectItem key={`from-${option.value}`} value={option.value}>
-                              {option.value === "any" ? "From" : option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="h-6 w-px bg-[#ededed]" />
-                      <Select value={yearTo} onValueChange={setYearTo}>
-                        <SelectTrigger className="h-full border-0 rounded-r-[14px] rounded-l-none text-[#696665] text-sm focus:ring-0 flex-1">
-                          <SelectValue placeholder="Year To" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {years.map((option) => (
-                            <SelectItem key={`to-${option.value}`} value={option.value}>
-                              {option.value === "any" ? "To" : option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Filters Button */}
-                  <button
-                    type="button"
-                    onClick={() => setIsFilterSheetOpen(true)}
-                    className="flex items-center justify-center gap-2 h-[48px] px-4 text-primary hover:text-primary/80 transition-colors"
-                  >
-                    <SlidersHorizontal className="w-5 h-5" />
-                    <span className="text-base">Filters</span>
-                  </button>
-
-                  {/* Search Button */}
-                  <Button
-                    type="submit"
-                    className="h-[50px] px-6 bg-primary hover:bg-primary/90 text-white rounded-[14px] text-base font-medium"
-                  >
-                    Search
-                    <Search className="w-5 h-5 ml-2" />
-                  </Button>
+              {/* Year Range */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Choose Year
+                </label>
+                <div className="flex gap-2">
+                  <Select value={yearFrom} onValueChange={setYearFrom}>
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="From" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">From</SelectItem>
+                      {YEARS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={yearTo} onValueChange={setYearTo}>
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="To" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">To</SelectItem>
+                      {YEARS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </form>
-          </div>
+            </div>
+
+            {/* Row 2: Mileage, Price Range, Usage, Search Button */}
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Mileage */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Choose Mileage
+                </label>
+                <Select value={mileage} onValueChange={setMileage}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Any Mileage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Mileage</SelectItem>
+                    {MILEAGE_RANGES.filter(
+                      (r) => r.label !== "Any Km"
+                    ).map((r) => (
+                      <SelectItem key={r.label} value={r.label}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Price Range */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Price Range
+                </label>
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Any Price" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Price</SelectItem>
+                    {PRICE_RANGES.map((r) => (
+                      <SelectItem key={r.label} value={r.label}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Usage / Condition */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Usage
+                </label>
+                <Select value={usage} onValueChange={setUsage}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Any Condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Condition</SelectItem>
+                    {CONDITIONS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Search Button */}
+              <div className="flex items-end">
+                <Button
+                  type="submit"
+                  className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+                >
+                  <Search className="h-4 w-4" />
+                  Find Your Car
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
-
-      <FilterSheet
-        open={isFilterSheetOpen}
-        onOpenChange={setIsFilterSheetOpen}
-        totalCount={0}
-        initialFilters={{
-          make: make !== "any" ? make : "",
-          model: model !== "any" ? model : "",
-          maxPrice: price !== "any" ? price : "",
-          minYear: yearFrom !== "any" ? yearFrom : "",
-          maxYear: yearTo !== "any" ? yearTo : "",
-        }}
-      />
     </section>
   );
 }

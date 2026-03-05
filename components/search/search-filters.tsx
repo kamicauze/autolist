@@ -14,30 +14,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
-// Constants for filter options
-const MAKES = [
-  "Toyota",
-  "Nissan",
-  "Mazda",
-  "Subaru",
-  "Mercedes-Benz",
-  "BMW",
-  "Audi",
-  "Volkswagen",
-  "Land Rover",
-  "Honda",
-  "Mitsubishi",
-  "Ford",
-  "Suzuki",
-  "Porsche",
-  "Lexus",
-  "Hyundai",
-  "Kia",
-  "Volvo",
-  "Jeep",
-  "Isuzu",
-];
-
 const BODY_TYPES = [
   "SUV",
   "Sedan",
@@ -56,13 +32,17 @@ const TRANSMISSIONS = ["Automatic", "Manual", "CVT", "AMT", "Dual Clutch"];
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric"];
 const CONDITIONS = [
   { value: "foreign_used", label: "Foreign Used" },
-  { value: "locally_used", label: "Locally Used" },
+  { value: "locally_used", label: "Kenyan Used" },
   { value: "new", label: "Brand New" },
 ];
 
 const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
 
-export function SearchFilters() {
+interface SearchFiltersProps {
+  makes: string[];
+}
+
+export function SearchFilters({ makes }: SearchFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -135,7 +115,7 @@ export function SearchFilters() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Makes</SelectItem>
-            {MAKES.map((make) => (
+            {makes.map((make) => (
               <SelectItem key={make} value={make}>
                 {make}
               </SelectItem>

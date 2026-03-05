@@ -267,6 +267,13 @@ export function VehiclePageClient({
             )}
 
             <div className="mt-5">
+              <PriceAdviserPanel
+        open={isPriceAdviserOpen}
+        onOpenChange={setIsPriceAdviserOpen}
+        title={title}
+        price={Number(listing.price)}
+        currency={listing.currency}
+      />
               <ImageGallery images={sortedImages} title={title} />
             </div>
 
@@ -503,13 +510,6 @@ export function VehiclePageClient({
         </div>
       </div>
 
-      <PriceAdviserPanel
-        open={isPriceAdviserOpen}
-        onOpenChange={setIsPriceAdviserOpen}
-        title={title}
-        price={Number(listing.price)}
-        currency={listing.currency}
-      />
 
       <FinancingRequestDialog
         open={isFinancingDialogOpen}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -133,11 +134,14 @@ export function Footer() {
       <div className="border-t border-gray-1">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold">
-                <span className="text-white">Auto</span>
-                <span className="text-secondary">list</span>
-              </span>
+            <Link href="/" className="flex items-center rounded bg-white px-2 py-1">
+              <Image
+                src="/autolist-logo.svg"
+                alt="Autolist"
+                width={154}
+                height={44}
+                className="h-7 w-auto"
+              />
             </Link>
             <p className="text-sm text-gray-3">
               © 2026 Autolist. All rights reserved

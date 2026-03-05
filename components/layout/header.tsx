@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { GitCompare, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,14 +56,19 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-border">
       {/* Top Bar - Vehicle Types */}
-      <div className="hidden lg:block bg-primary text-white">
+      <div className="hidden lg:block border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-6 py-2 text-sm">
-            {vehicleTypes.map((type) => (
+          <nav className="flex items-center gap-6 text-sm">
+            {vehicleTypes.map((type, i) => (
               <Link
                 key={type}
                 href={`/search?type=${type.toLowerCase()}`}
-                className="hover:text-secondary transition-colors"
+                className={cn(
+                  "py-2 border-b-2 transition-colors hover:text-foreground",
+                  i === 0
+                    ? "border-foreground text-foreground font-medium"
+                    : "border-transparent text-muted-foreground"
+                )}
               >
                 {type}
               </Link>
@@ -77,10 +83,14 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl font-bold">
-                <span className="text-primary">Auto</span>
-                <span className="text-secondary">list</span>
-              </span>
+              <Image
+                src="/autolist-logo.svg"
+                alt="Autolist"
+                width={154}
+                height={44}
+                priority
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 

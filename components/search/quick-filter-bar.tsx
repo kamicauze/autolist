@@ -11,28 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAKES, LOCATIONS, PRICE_RANGES } from "@/lib/constants/filters";
+import { LOCATIONS, PRICE_RANGES } from "@/lib/constants/filters";
 import { IconSearch } from "@/components/ui/icons";
-
-// Model options per make (simplified)
-const MODELS: Record<string, string[]> = {
-  Toyota: ["Camry", "Corolla", "RAV4", "Land Cruiser", "Hilux", "Prado", "Harrier", "Vitz", "Axio"],
-  Nissan: ["Note", "X-Trail", "Juke", "Serena", "Navara", "Tiida", "Sylphy", "Patrol"],
-  BMW: ["X1", "X3", "X5", "3 Series", "5 Series", "7 Series", "1 Series"],
-  "Mercedes-Benz": ["C-Class", "E-Class", "GLE", "GLC", "A-Class", "S-Class"],
-  Mazda: ["Demio", "CX-5", "CX-3", "Axela", "Atenza"],
-  Subaru: ["Forester", "Outback", "Impreza", "Legacy", "XV"],
-  Honda: ["Fit", "Vezel", "CR-V", "Civic", "Accord"],
-  Volkswagen: ["Golf", "Tiguan", "Polo", "Touareg", "Passat"],
-  Audi: ["A3", "A4", "A6", "Q3", "Q5", "Q7"],
-  "Land Rover": ["Range Rover", "Discovery", "Defender", "Evoque", "Sport"],
-};
+import { useCarModels } from "@/hooks/use-car-models";
 
 interface QuickFilterBarProps {
+  makes: string[];
   onOpenFilters: () => void;
 }
 
-export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
+export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -55,7 +43,7 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
     return range ? `${range.min}-${range.max || ""}` : "all";
   };
 
-  const availableModels = currentMake ? (MODELS[currentMake] || []) : [];
+  const { models: availableModels, isLoading: modelsLoading } = useCarModels(currentMake || null);
 
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -141,7 +129,7 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Makes</SelectItem>
-              {MAKES.map((make) => (
+              {makes.map((make) => (
                 <SelectItem key={make} value={make}>
                   {make}
                 </SelectItem>
@@ -153,9 +141,10 @@ export function QuickFilterBar({ onOpenFilters }: QuickFilterBarProps) {
           <Select
             value={currentModel || "all"}
             onValueChange={(val) => updateFilter("model", val === "all" ? null : val)}
+            disabled={!currentMake || modelsLoading}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Model" />
+              <SelectValue placeholder={modelsLoading ? "Loading…" : "Model"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Models</SelectItem>

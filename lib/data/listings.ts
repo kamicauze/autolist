@@ -199,6 +199,30 @@ export async function searchListings({
     query = query.is("dealer_id", null);
   }
 
+  // Color filter
+  if (filters?.color) {
+    query = query.ilike("color", `%${filters.color}%`);
+  }
+
+  // Seats filter
+  if (filters?.seats) {
+    if (filters.seats >= 8) {
+      query = query.gte("seats", 8);
+    } else {
+      query = query.eq("seats", filters.seats);
+    }
+  }
+
+  // Doors filter
+  if (filters?.doors) {
+    query = query.eq("doors", filters.doors);
+  }
+
+  // Drive type filter
+  if (filters?.driveType) {
+    query = query.eq("drive_type", filters.driveType);
+  }
+
   // Apply sorting
   query = query.order(sort.field, { ascending: sort.direction === "asc" });
 
@@ -298,6 +322,30 @@ export async function countMatchingListings(
     query = query.not("dealer_id", "is", null);
   } else if (filters?.sellerType === "private") {
     query = query.is("dealer_id", null);
+  }
+
+  // Color filter
+  if (filters?.color) {
+    query = query.ilike("color", `%${filters.color}%`);
+  }
+
+  // Seats filter
+  if (filters?.seats) {
+    if (filters.seats >= 8) {
+      query = query.gte("seats", 8);
+    } else {
+      query = query.eq("seats", filters.seats);
+    }
+  }
+
+  // Doors filter
+  if (filters?.doors) {
+    query = query.eq("doors", filters.doors);
+  }
+
+  // Drive type filter
+  if (filters?.driveType) {
+    query = query.eq("drive_type", filters.driveType);
   }
 
   const { count, error } = await query;
