@@ -8,7 +8,7 @@ import { nanoid } from "nanoid";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB — matches wizard MAX_FILE_SIZE_BYTES
 
 export async function getUploadUrl(
     listingId: string,
@@ -26,7 +26,7 @@ export async function getUploadUrl(
         return { error: "Invalid file type. Only JPG, PNG, and WebP are allowed." };
     }
     if (fileSize > MAX_SIZE) {
-        return { error: "File too large. Max size is 5MB." };
+        return { error: "File too large. Max size is 10MB." };
     }
 
     // 3. Duplicate Image Check (MVP)

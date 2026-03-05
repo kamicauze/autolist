@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, MoreHorizontal, Eye, Edit, Trash2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,42 +11,34 @@ import {
   LISTING_STATUS_META,
   type ListingStatus,
 } from "@/lib/constants/marketplace";
+import { getImageUrl } from "@/lib/utils/listings";
+import type { Listing } from "@/lib/types/listing";
 
-interface MyListing {
-  id: string;
-  title: string;
-  price: number;
-  status: ListingStatus;
-  date: string;
-  views: number;
+interface MyListingsProps {
+  listings: Listing[];
 }
-
-const SAMPLE: MyListing[] = [
-  { id: "1", title: "2022 Toyota Prado TX", price: 7800000, status: "active", date: "Dec 12, 2025", views: 2320 },
-  { id: "2", title: "2020 Mazda CX-5", price: 3650000, status: "active", date: "Dec 10, 2025", views: 1810 },
-  { id: "3", title: "2019 Nissan X-Trail", price: 2890000, status: "pending", date: "Dec 8, 2025", views: 640 },
-  { id: "4", title: "2018 Subaru Forester", price: 2520000, status: "draft", date: "Dec 5, 2025", views: 422 },
-  { id: "5", title: "2016 Mercedes-Benz C200", price: 3180000, status: "sold", date: "Dec 1, 2025", views: 930 },
-  { id: "6", title: "2021 Honda CR-V", price: 4200000, status: "active", date: "Nov 28, 2025", views: 1520 },
-  { id: "7", title: "2017 BMW X3", price: 3900000, status: "expired", date: "Nov 15, 2025", views: 780 },
-];
 
 function formatKES(price: number) {
   return new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(price);
 }
 
-export function MyListings() {
+function formatDate(isoDate: string) {
+  return new Date(isoDate).toLocaleDateString("en-KE", { year: "numeric", month: "short", day: "numeric" });
+}
+
+export function MyListings({ listings }: MyListingsProps) {
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | ListingStatus>("all");
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
 
   const filtered = React.useMemo(() => {
-    return SAMPLE.filter((l) => {
-      const matchSearch = l.title.toLowerCase().includes(search.toLowerCase());
+    return listings.filter((l) => {
+      const title = `${l.year} ${l.make} ${l.model}`.toLowerCase();
+      const matchSearch = title.includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || l.status === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, listings]);
 
   return (
     <div className="space-y-6">
@@ -92,7 +85,6 @@ export function MyListings() {
                 <th className="px-4 py-3">Listing</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Views</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -100,18 +92,32 @@ export function MyListings() {
             <tbody className="divide-y divide-border">
               {filtered.map((listing) => {
                 const meta = LISTING_STATUS_META[listing.status];
+                const title = `${listing.year} ${listing.make} ${listing.model}`;
+                const coverImage = listing.images
+                  ?.sort((a, b) => a.image_order - b.image_order)[0];
+                const imageUrl = coverImage ? getImageUrl(coverImage.r2_key) : null;
+
                 return (
                   <tr key={listing.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-14 shrink-0 rounded-md bg-gray-100" />
-                        <span className="text-sm font-medium text-foreground">{listing.title}</span>
+                        <div className="h-10 w-14 shrink-0 rounded-md bg-gray-100 overflow-hidden relative">
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={title}
+                              fill
+                              className="object-cover"
+                              sizes="56px"
+                            />
+                          ) : null}
+                        </div>
+                        <span className="text-sm font-medium text-foreground">{title}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3"><Badge variant={meta.tone}>{meta.label}</Badge></td>
                     <td className="px-4 py-3 text-sm text-foreground">{formatKES(listing.price)}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{listing.views.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{listing.date}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(listing.created_at)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="relative inline-block">
                         <button
@@ -122,7 +128,9 @@ export function MyListings() {
                         </button>
                         {openMenu === listing.id && (
                           <div className="absolute right-0 top-full z-10 mt-1 w-36 rounded-lg border border-border bg-white py-1 shadow-lg">
-                            <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50"><Eye className="h-3.5 w-3.5" /> View</button>
+                            <Link href={`/vehicle/${listing.id}`} className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50">
+                              <Eye className="h-3.5 w-3.5" /> View
+                            </Link>
                             <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50"><Edit className="h-3.5 w-3.5" /> Edit</button>
                             <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /> Delete</button>
                           </div>
@@ -134,7 +142,9 @@ export function MyListings() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No listings found.</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    {listings.length === 0 ? "No listings yet. Create your first listing!" : "No listings match your search."}
+                  </td>
                 </tr>
               )}
             </tbody>
