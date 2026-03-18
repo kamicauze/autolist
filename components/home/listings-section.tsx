@@ -47,8 +47,8 @@ export function ListingsSection({
   const displayListings =
     featuredListings.length > 0 ? featuredListings : newestListings;
 
-  // Pick 4 featured listings for the current 8-hour window
-  const rotatedFeatured = getRotatedFeatured(featuredListings, 4);
+  // Show all 8 featured listings, shuffled for the current 8-hour window
+  const rotatedFeatured = getRotatedFeatured(featuredListings, 8);
 
   return (
     <section className="py-12 md:py-16">
