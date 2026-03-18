@@ -13,13 +13,42 @@ interface ListingsSectionProps {
   showTabs?: boolean;
 }
 
+/**
+ * Picks which 4 featured listings to display based on the current time.
+ * Rotates to a different set of 4 every 8 hours (3 rotations per day).
+ * Uses a deterministic shuffle so every visitor sees the same set during
+ * the same 8-hour window.
+ */
+function getRotatedFeatured(listings: Listing[], count: number): Listing[] {
+  if (listings.length <= count) return listings;
+
+  // 8-hour rotation window: 0-7, 8-15, 16-23
+  const hoursPerWindow = 8;
+  const currentWindow = Math.floor(Date.now() / (hoursPerWindow * 60 * 60 * 1000));
+
+  // Deterministic shuffle using the window as seed
+  const shuffled = [...listings];
+  let seed = currentWindow;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+    const j = seed % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled.slice(0, count);
+}
+
 export function ListingsSection({
   title,
   featuredListings,
   newestListings,
   showTabs = true,
 }: ListingsSectionProps) {
-  const displayListings = featuredListings.length > 0 ? featuredListings : newestListings;
+  const displayListings =
+    featuredListings.length > 0 ? featuredListings : newestListings;
+
+  // Pick 4 featured listings for the current 8-hour window
+  const rotatedFeatured = getRotatedFeatured(featuredListings, 4);
 
   return (
     <section className="py-12 md:py-16">
@@ -36,7 +65,6 @@ export function ListingsSection({
         </div>
 
         {showTabs ? (
-          /* Tabs */
           <Tabs defaultValue="featured" className="w-full">
             <TabsList className="mb-6 bg-transparent p-0 gap-2">
               <TabsTrigger
@@ -59,20 +87,22 @@ export function ListingsSection({
               </TabsTrigger>
             </TabsList>
 
+            {/* Featured — shows 4, rotates every 8 hours server-side */}
             <TabsContent value="featured">
-              <ListingsGrid listings={featuredListings} />
+              <ListingsGrid listings={rotatedFeatured} />
             </TabsContent>
 
+            {/* Recent — shows 4 */}
             <TabsContent value="recent">
-              <ListingsGrid listings={newestListings} />
+              <ListingsGrid listings={newestListings.slice(0, 4)} />
             </TabsContent>
 
-            <TabsContent value="recently">
-              <ListingsGrid listings={newestListings} />
+            {/* Favorites — shows 4 */}
+            <TabsContent value="favorites">
+              <ListingsGrid listings={newestListings.slice(0, 4)} />
             </TabsContent>
           </Tabs>
         ) : (
-          /* Simple grid without tabs */
           <ListingsGrid listings={displayListings} />
         )}
       </div>
@@ -88,7 +118,6 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {listings.map((listing) => {
-        // Sort images by order and convert to URLs
         const sortedImages = (listing.images || [])
           .sort((a, b) => a.image_order - b.image_order)
           .map((img) => getImageUrl(img.r2_key));
@@ -105,16 +134,25 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
             title={`${listing.year} ${listing.make} ${listing.model}`}
             bodyType={listing.body_type || "Vehicle"}
             year={listing.year}
-            mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}
+            mileage={
+              listing.mileage
+                ? `${listing.mileage.toLocaleString()} kms`
+                : "N/A"
+            }
             fuelType={listing.fuel_type || "N/A"}
             transmission={listing.transmission || "N/A"}
             price={listing.price}
             currency={listing.currency}
-            images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}
+            images={
+              sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]
+            }
             isFeatured={true}
             seller={{
               name: sellerName,
-              avatarUrl: listing.dealer?.logo_url || listing.seller?.avatar_url || undefined,
+              avatarUrl:
+                listing.dealer?.logo_url ||
+                listing.seller?.avatar_url ||
+                undefined,
             }}
             href={`/vehicle/${listing.id}`}
           />

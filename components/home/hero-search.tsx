@@ -11,12 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   LOCATIONS,
   YEARS,
   CONDITIONS,
   MILEAGE_RANGES,
-  PRICE_RANGES,
 } from "@/lib/constants/filters";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
@@ -34,7 +34,8 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
   const [mileage, setMileage] = React.useState("any");
-  const [priceRange, setPriceRange] = React.useState("any");
+  const [priceFrom, setPriceFrom] = React.useState("");
+  const [priceTo, setPriceTo] = React.useState("");
   const [usage, setUsage] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
 
@@ -67,13 +68,8 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
       }
     }
 
-    if (priceRange !== "any") {
-      const priceOption = PRICE_RANGES.find((r) => r.label === priceRange);
-      if (priceOption) {
-        if (priceOption.min) params.set("minPrice", String(priceOption.min));
-        if (priceOption.max) params.set("maxPrice", String(priceOption.max));
-      }
-    }
+    if (priceFrom) params.set("minPrice", priceFrom);
+    if (priceTo) params.set("maxPrice", priceTo);
 
     router.push(`/search?${params.toString()}`);
   };
@@ -116,7 +112,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Location
                 </label>
                 <Select value={location} onValueChange={setLocation}>
@@ -135,7 +131,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Make
                 </label>
                 <Select value={make} onValueChange={setMake}>
@@ -154,7 +150,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Car Model
                 </label>
                 <Select
@@ -177,7 +173,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Choose Year
                 </label>
                 <div className="flex gap-2">
@@ -213,7 +209,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
 
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Choose Mileage
                 </label>
                 <Select value={mileage} onValueChange={setMileage}>
@@ -232,26 +228,31 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Price Range
                 </label>
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Any Price" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any Price</SelectItem>
-                    {PRICE_RANGES.map((range) => (
-                      <SelectItem key={range.label} value={range.label}>
-                        {range.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="From"
+                    value={priceFrom}
+                    onChange={(e) => setPriceFrom(e.target.value)}
+                    className="h-11 flex-1"
+                    min={0}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="To"
+                    value={priceTo}
+                    onChange={(e) => setPriceTo(e.target.value)}
+                    className="h-11 flex-1"
+                    min={0}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label className="text-[13px] font-medium text-muted-foreground">
                   Usage
                 </label>
                 <Select value={usage} onValueChange={setUsage}>
@@ -272,7 +273,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               <div className="space-y-1.5">
                 <div
                   aria-hidden="true"
-                  className="select-none text-xs font-medium uppercase tracking-wider text-transparent"
+                  className="select-none text-[13px] font-medium text-transparent"
                 >
                   Actions
                 </div>

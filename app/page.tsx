@@ -20,7 +20,7 @@ import { getAllMakeNames } from "@/lib/data/car-data";
 
 async function RecentActivitiesData() {
   const [featuredListings, newestListings] = await Promise.all([
-    getFeaturedListings(4),
+    getFeaturedListings(8),
     getNewestListings(4),
   ]);
 

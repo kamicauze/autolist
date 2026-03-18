@@ -55,7 +55,7 @@
 
 @theme inline {
   /* Font Family */
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-outfit), system-ui, sans-serif;
 
   /* Brand Colors */
   --color-primary: var(--primary);
@@ -147,7 +147,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-outfit), system-ui, sans-serif;
 }
 
 /* Typography Utility Classes */
