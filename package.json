@@ -28,6 +28,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.98.0",
+    "@swc/helpers": "^0.5.15",
     "@types/mime": "^3.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

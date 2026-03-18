@@ -1,7 +1,12 @@
 'use server'
 
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { createHash } from "crypto";
+import { nanoid } from "nanoid";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
+import { r2 } from "@/lib/r2";
 
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -22,19 +27,85 @@ export type CreateListingInput = {
     color?: string;
 };
 
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function sanitizeFileName(fileName: string) {
+    return fileName.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
+}
+
+function extensionForFile(file: File) {
+    if (file.name.includes(".")) {
+        return file.name.slice(file.name.lastIndexOf("."));
+    }
+    const subtype = file.type.split("/")[1];
+    return subtype ? `.${subtype}` : "";
+}
+
+async function uploadListingFile(
+    listingId: string,
+    file: File,
+) {
+    if (!R2_BUCKET_NAME) {
+        throw new Error("R2 bucket configuration is missing.");
+    }
+
+    if (!IMAGE_ACCEPTED_TYPES.has(file.type)) {
+        throw new Error(`"${file.name}" must be a JPG, PNG, or WebP image.`);
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+        throw new Error(`"${file.name}" exceeds the 10MB upload limit.`);
+    }
+
+    const extension = extensionForFile(file);
+    const baseName = extension ? file.name.slice(0, -extension.length) : file.name;
+    const key = `listings/${listingId}/${Date.now()}-${nanoid(10)}-${sanitizeFileName(
+        `${baseName}${extension}`
+    )}`;
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const hash = createHash("sha256").update(bytes).digest("hex");
+
+    await r2.send(
+        new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: key,
+            Body: bytes,
+            ContentType: file.type || "application/octet-stream",
+        })
+    );
+
+    return { key, hash };
+}
+
 export async function createListing(input: ListingFormData) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    return await insertListingInternal(supabase, user.id, input);
+    // Check if the user is a dealer and fetch their dealer record
+    const { data: dealer } = await supabase
+        .from('dealers')
+        .select('id, status')
+        .eq('profile_id', user.id)
+        .maybeSingle();
+
+    const dealerId = dealer?.id ?? null;
+    const isVerifiedDealer = dealer?.status === 'APPROVED';
+
+    const result = await insertListingInternal(supabase, user.id, input, dealerId);
+    if ('error' in result) return result;
+    return { ...result, isVerifiedDealer };
 }
 
 // Internal function to allow seeding/admin usage
 export async function insertListingInternal(
     supabase: SupabaseClient,
     userId: string,
-    input: ListingFormData
+    input: ListingFormData,
+    dealerId?: string | null,
 ) {
     // 1. Validation
     const result = listingSchema.safeParse(input);
@@ -73,11 +144,12 @@ export async function insertListingInternal(
     // All listings start as 'draft' until images are uploaded and user publishes.
     const initialStatus = 'draft';
 
-    // 3. Insert Listing
+    // 4. Insert Listing
     const { data: listing, error } = await supabase
         .from('listings')
         .insert({
             seller_id: userId,
+            dealer_id: dealerId ?? null,
             status: initialStatus,
             ...data,
             features: data.features // Zod array -> JSONB
@@ -164,50 +236,180 @@ export async function saveListingImage(
     return { success: true };
 }
 
+export async function uploadListingImages(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const listingId = formData.get("listingId");
+    if (typeof listingId !== "string" || !listingId.trim()) {
+        return { error: "Listing id is required." };
+    }
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id")
+        .eq("id", listingId)
+        .eq("seller_id", user.id)
+        .eq("status", "draft")
+        .single();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found or not editable." };
+    }
+
+    const coverImage = formData.get("coverImage");
+    const galleryImages = formData
+        .getAll("galleryImages")
+        .filter((value): value is File => value instanceof File && value.size > 0);
+
+    if (!(coverImage instanceof File) || coverImage.size === 0) {
+        return { error: "A cover image is required." };
+    }
+
+    if (galleryImages.length < 2) {
+        return { error: "At least two gallery images are required." };
+    }
+
+    const filesToUpload = [coverImage, ...galleryImages];
+
+    const { error: deleteError } = await supabase
+        .from("listing_images")
+        .delete()
+        .eq("listing_id", listingId);
+
+    if (deleteError) {
+        return { error: deleteError.message };
+    }
+
+    let uploadedCount = 0;
+
+    for (const [index, file] of filesToUpload.entries()) {
+        try {
+            const { key, hash } = await uploadListingFile(listingId, file);
+            const duplicateCheck = await supabase
+                .from('listing_images')
+                .select('id, listings!inner(seller_id)')
+                .eq('image_hash', hash)
+                .eq('listings.seller_id', user.id)
+                .limit(1)
+                .maybeSingle();
+
+            if (duplicateCheck.error) {
+                return { error: duplicateCheck.error.message };
+            }
+
+            if (duplicateCheck.data) {
+                return { error: `Duplicate image detected for "${file.name}".` };
+            }
+
+            const altText = formData.get("altTextBase");
+            const imageResult = await saveListingImage(
+                listingId,
+                key,
+                typeof altText === "string" && altText.trim()
+                    ? `${altText} - Photo ${index + 1}`
+                    : null,
+                index,
+                hash,
+            );
+
+            if (imageResult.error) {
+                return imageResult;
+            }
+
+            uploadedCount += 1;
+        } catch (error) {
+            return {
+                error: error instanceof Error ? error.message : `Unable to upload "${file.name}".`,
+            };
+        }
+    }
+
+    return { success: true, uploadedCount };
+}
+
 // ─── Status Transitions ──────────────────────────────────────────────────────
 
 /**
  * Owner submits their draft listing for review.
- * Transitions status: draft → pending.
+ * Verified dealers (dealers.status = 'APPROVED') are auto-approved → active.
+ * Everyone else goes to → pending for admin review.
  */
 export async function submitListingForReview(listingId: string) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    const { data, error } = await supabase
+    // Fetch the draft listing to check for a linked dealer
+    const { data: listing, error: fetchError } = await supabase
         .from('listings')
-        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .select('id, dealer_id')
         .eq('id', listingId)
         .eq('seller_id', user.id)
         .eq('status', 'draft')
-        .select('id')
         .single();
 
-    if (error || !data) {
+    if (fetchError || !listing) {
+        console.error("Submit for Review Error:", fetchError);
+        return { error: fetchError?.message || "Listing not found or not in draft status." };
+    }
+
+    const { count: imageCount, error: imageCountError } = await supabase
+        .from('listing_images')
+        .select('id', { count: 'exact', head: true })
+        .eq('listing_id', listingId);
+
+    if (imageCountError) {
+        return { error: imageCountError.message };
+    }
+
+    if ((imageCount ?? 0) < 3) {
+        return { error: "Minimum 3 listing images are required before submission." };
+    }
+
+    // Check if linked dealer is verified → auto-approve
+    let autoApproved = false;
+    if (listing.dealer_id) {
+        const { data: dealer } = await supabase
+            .from('dealers')
+            .select('status')
+            .eq('id', listing.dealer_id)
+            .single();
+
+        if (dealer?.status === 'APPROVED') {
+            autoApproved = true;
+        }
+    }
+
+    const newStatus = autoApproved ? 'active' : 'pending';
+
+    const { error } = await supabase
+        .from('listings')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', listingId)
+        .eq('status', 'draft');
+
+    if (error) {
         console.error("Submit for Review Error:", error);
-        return { error: error?.message || "Listing not found or not in draft status." };
+        return { error: error.message };
     }
 
     revalidatePath('/dashboard/listings');
-    return { success: true };
+    if (autoApproved) {
+        revalidatePath('/search');
+    }
+    return { success: true, autoApproved };
 }
 
 /**
  * Admin approves a pending listing → active.
  */
 export async function approveListing(listingId: string) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return adminContext;
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role !== 'admin') return { error: "Forbidden: Admin only." };
+    const { supabase } = adminContext;
 
     const { error } = await supabase
         .from('listings')
@@ -231,17 +433,10 @@ export async function approveListing(listingId: string) {
  * Optional reason stored in metadata JSONB.
  */
 export async function rejectListing(listingId: string, reason?: string) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return adminContext;
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role !== 'admin') return { error: "Forbidden: Admin only." };
+    const { supabase } = adminContext;
 
     const updateData: Record<string, unknown> = {
         status: 'rejected',
@@ -273,17 +468,12 @@ export async function rejectListing(listingId: string, reason?: string) {
  * Admin: fetch all pending listings with images and seller info.
  */
 export async function getPendingListings() {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized", data: [] };
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) {
+        return { error: adminContext.error, data: [] };
+    }
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role !== 'admin') return { error: "Forbidden", data: [] };
+    const { supabase } = adminContext;
 
     const { data, error } = await supabase
         .from('listings')

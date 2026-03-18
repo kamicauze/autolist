@@ -50,6 +50,7 @@ type SectionKey =
   | "location"
   | "buySafely"
   | "loan"
+  | "insurance"
   | "reviews";
 
 type PageStatePreset =
@@ -67,6 +68,7 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     location: false,
     buySafely: false,
     loan: false,
+    insurance: false,
     reviews: false,
   },
   "about-open": {
@@ -76,6 +78,7 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     location: false,
     buySafely: false,
     loan: false,
+    insurance: false,
     reviews: false,
   },
   expanded: {
@@ -85,6 +88,7 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     location: true,
     buySafely: true,
     loan: true,
+    insurance: true,
     reviews: true,
   },
   "most-open": {
@@ -94,6 +98,7 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     location: true,
     buySafely: true,
     loan: true,
+    insurance: true,
     reviews: true,
   },
   "price-adviser": {
@@ -103,6 +108,7 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     location: true,
     buySafely: true,
     loan: true,
+    insurance: true,
     reviews: true,
   },
 };
@@ -220,10 +226,17 @@ export function VehiclePageClient({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
-                <p className="mt-1 text-xl font-bold text-primary">
-                  {listing.currency}
-                  {formattedPrice}
-                </p>
+                <div className="mt-1 flex items-center gap-3">
+                  <p className="text-xl font-bold text-primary">
+                    {listing.currency}
+                    {formattedPrice}
+                  </p>
+                  {listing.status === "reserved" && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                      Reserved
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -423,6 +436,24 @@ export function VehiclePageClient({
                       Avoid cash-only settlement
                     </li>
                   </ul>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection
+                title="Insurance"
+                open={accordionState.insurance}
+                onOpenChange={(open) => setSectionOpen("insurance", open)}
+              >
+                <div className="space-y-3 text-sm text-gray-600">
+                  <p>
+                    Protect your vehicle with comprehensive insurance coverage.
+                    Compare quotes from leading insurers and find the best deal.
+                  </p>
+                  <Link href="/insurance">
+                    <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
+                      Get Insurance Quote
+                    </Button>
+                  </Link>
                 </div>
               </AccordionSection>
 

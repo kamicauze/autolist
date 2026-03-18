@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
-import { createClient } from "@/lib/supabase/client";
+import { submitDealerVerification } from "@/lib/actions/dealers";
 
 type ConfirmationChannel = "email" | "whatsapp" | "sms";
 
@@ -128,11 +128,6 @@ function isValidUrl(value: string) {
   }
 }
 
-function cleanString(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 interface DealerSignupFlowProps {
   previewMode?: boolean;
 }
@@ -145,6 +140,10 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setFormData] = React.useState<DealerSignupData>(DEFAULT_DATA);
+  const [companyLogoFile, setCompanyLogoFile] = React.useState<File | null>(null);
+  const [contactPhotoFile, setContactPhotoFile] = React.useState<File | null>(null);
+  const [incorporationCertificateFile, setIncorporationCertificateFile] = React.useState<File | null>(null);
+  const [contactPersonIdFile, setContactPersonIdFile] = React.useState<File | null>(null);
 
   const isLastStep = activeStep === DEALER_SIGNUP_STEPS.length - 1;
 
@@ -164,10 +163,12 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       | "contactPhotoName"
       | "incorporationCertificateName"
       | "contactPersonIdName"
-    >
+    >,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>
   ) => {
     const file = event.target.files?.[0];
     if (!file) {
+      setFile(null);
       updateField(key, "");
       return;
     }
@@ -178,6 +179,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
     }
 
     setUploadError(null);
+    setFile(file);
     updateField(key, file.name);
   };
 
@@ -259,73 +261,47 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
 
       setSubmitError(null);
       setIsSubmitting(true);
+      const submission = new FormData();
 
-      const supabase = createClient();
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+      submission.set("dealershipName", formData.dealershipName);
+      submission.set("registeredBusinessName", formData.registeredBusinessName);
+      submission.set("dealershipAddress", formData.dealershipAddress);
+      submission.set("cityTown", formData.cityTown);
+      submission.set("locationArea", formData.locationArea);
+      submission.set("mobileNumber", formData.mobileNumber);
+      submission.set("officialEmail", formData.officialEmail);
+      submission.set("whatsappNumber", formData.whatsappNumber);
+      submission.set("websiteUrl", formData.websiteUrl);
+      submission.set("aboutDealership", formData.aboutDealership);
+      submission.set("contactFullName", formData.contactFullName);
+      submission.set("contactRole", formData.contactRole);
+      submission.set("contactMobile", formData.contactMobile);
+      submission.set("contactEmail", formData.contactEmail);
+      submission.set("contactWhatsapp", formData.contactWhatsapp);
+      submission.set("facebookUrl", formData.facebookUrl);
+      submission.set("instagramUrl", formData.instagramUrl);
+      submission.set("xUrl", formData.xUrl);
+      submission.set("tiktokUrl", formData.tiktokUrl);
+      submission.set("otherSocialUrl", formData.otherSocialUrl);
+      submission.set("acceptDealerTerms", String(formData.acceptDealerTerms));
+      submission.set("acceptPrivacyPolicy", String(formData.acceptPrivacyPolicy));
+      submission.set("verificationNotes", formData.verificationNotes);
+      submission.set("preferredConfirmationChannel", formData.preferredConfirmationChannel);
 
-      if (authError || !user) {
-        router.replace("/login?next=/register/dealer");
-        setIsSubmitting(false);
-        return;
+      if (companyLogoFile) submission.set("companyLogo", companyLogoFile);
+      if (contactPhotoFile) submission.set("contactPhoto", contactPhotoFile);
+      if (incorporationCertificateFile) {
+        submission.set("incorporationCertificate", incorporationCertificateFile);
       }
+      if (contactPersonIdFile) submission.set("contactPersonId", contactPersonIdFile);
 
-      const socialLinks = {
-        facebook: cleanString(formData.facebookUrl),
-        instagram: cleanString(formData.instagramUrl),
-        x: cleanString(formData.xUrl),
-        tiktok: cleanString(formData.tiktokUrl),
-        other: cleanString(formData.otherSocialUrl),
-      };
+      const result = await submitDealerVerification(submission);
 
-      const compactSocialLinks = Object.fromEntries(
-        Object.entries(socialLinks).filter(([, value]) => Boolean(value))
-      );
-
-      const { error: dealerError } = await supabase.from("dealers").upsert(
-        {
-          profile_id: user.id,
-          name: formData.dealershipName.trim(),
-          business_name: cleanString(formData.registeredBusinessName),
-          address: cleanString(formData.dealershipAddress),
-          city: cleanString(formData.cityTown),
-          location: cleanString(formData.locationArea),
-          mobile: formData.mobileNumber.replace(/\s+/g, ""),
-          email: formData.officialEmail.trim(),
-          whatsapp: formData.whatsappNumber.replace(/\s+/g, ""),
-          website: cleanString(formData.websiteUrl),
-          logo_url: cleanString(formData.companyLogoName),
-          about_text: cleanString(formData.aboutDealership),
-          social_links:
-            Object.keys(compactSocialLinks).length > 0 ? compactSocialLinks : null,
-          contact_person: {
-            name: formData.contactFullName.trim(),
-            role: formData.contactRole.trim(),
-            mobile: formData.contactMobile.replace(/\s+/g, ""),
-            email: formData.contactEmail.trim(),
-            whatsapp: cleanString(formData.contactWhatsapp),
-          },
-          doc_incorporation_key: cleanString(formData.incorporationCertificateName),
-          doc_id_key: cleanString(formData.contactPersonIdName),
-        },
-        { onConflict: "profile_id" }
-      );
-
-      if (dealerError) {
-        setSubmitError(dealerError.message);
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { error: roleError } = await supabase
-        .from("profiles")
-        .update({ role: "dealer" })
-        .eq("id", user.id);
-
-      if (roleError) {
-        setSubmitError(roleError.message);
+      if (result.error) {
+        if (result.error === "Unauthorized") {
+          router.replace("/login?next=/register/dealer");
+        }
+        setSubmitError(result.error);
         setIsSubmitting(false);
         return;
       }
@@ -543,13 +519,13 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
           <h2 className="text-lg font-semibold text-foreground">Branding & Public Profile</h2>
           <div>
             <Label htmlFor="dealer-logo">Company Logo (Optional)</Label>
-            <Input
-              id="dealer-logo"
-              data-testid="dealer-company-logo"
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={(event) => handleUpload(event, "companyLogoName")}
-            />
+              <Input
+                id="dealer-logo"
+                data-testid="dealer-company-logo"
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(event) => handleUpload(event, "companyLogoName", setCompanyLogoFile)}
+              />
           </div>
           <div>
             <Label htmlFor="dealer-about">About the Dealership (300–500 chars)</Label>
@@ -667,7 +643,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 data-testid="dealer-contact-photo"
                 type="file"
                 accept="image/png,image/jpeg"
-                onChange={(event) => handleUpload(event, "contactPhotoName")}
+                onChange={(event) => handleUpload(event, "contactPhotoName", setContactPhotoFile)}
               />
             </div>
           </div>
@@ -685,7 +661,13 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 data-testid="dealer-incorporation-certificate"
                 type="file"
                 accept=".pdf,image/png,image/jpeg"
-                onChange={(event) => handleUpload(event, "incorporationCertificateName")}
+                onChange={(event) =>
+                  handleUpload(
+                    event,
+                    "incorporationCertificateName",
+                    setIncorporationCertificateFile
+                  )
+                }
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Required. Accepted formats: PDF, JPG, PNG.
@@ -698,7 +680,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 data-testid="dealer-contact-id"
                 type="file"
                 accept="image/png,image/jpeg,.pdf"
-                onChange={(event) => handleUpload(event, "contactPersonIdName")}
+                onChange={(event) => handleUpload(event, "contactPersonIdName", setContactPersonIdFile)}
               />
             </div>
           </div>

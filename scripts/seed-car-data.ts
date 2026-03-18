@@ -6,7 +6,7 @@
  *   npx tsx scripts/seed-car-data.ts
  *
  * Requires env vars:
- *   NEXT_PUBLIC_SUPABASE_URL
+ *   NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)
  *   SUPABASE_SERVICE_ROLE_KEY   (bypasses RLS)
  */
 
@@ -48,12 +48,12 @@ const POPULAR_MAKES = new Set([
 // ── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     console.error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
+      "Missing NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY"
     );
     process.exit(1);
   }

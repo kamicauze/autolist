@@ -1,63 +1,85 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Building2, User } from "lucide-react";
+import { Check } from "lucide-react";
+
+const sellOptions = [
+  {
+    title: "Create an advert",
+    description:
+      "Create your own advert and reach thousands of buyers directly. You set the price and stay in control of the entire process.",
+    benefits: [
+      "Set your own asking price",
+      "Reach thousands of car buyers",
+      "Manage enquiries your way",
+    ],
+    buttonText: "Create your advert",
+    href: "/sell",
+    variant: "outline" as const,
+  },
+  {
+    title: "Sell to a dealer",
+    description:
+      "Get a quick, guaranteed offer from a trusted dealer. No haggling, no hassle — just a fair price and a fast deal.",
+    benefits: [
+      "Get an instant valuation",
+      "No haggling or tyre-kickers",
+      "Fast, hassle-free collection",
+    ],
+    buttonText: "Get your offer",
+    href: "/sell/dealer",
+    variant: "outline" as const,
+  },
+];
 
 export function SellVehicleSection() {
   return (
-    <section className="py-16 bg-white">
+    <section className="bg-gray-50 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Sell your vehicle privately or to a dealer
+        <div className="mb-10 text-center">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
+            Sell your car
+          </p>
+          <h2 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">
+            Choose how you want to sell
           </h2>
-          <p className="text-gray-600 mt-2">only on Autolist</p>
+          <p className="mx-auto max-w-xl text-sm text-gray-500">
+            Whether you want full control or a quick, hassle-free sale &mdash; we&apos;ve got the right option for you.
+          </p>
         </div>
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-          {/* Left - Sell to Dealer */}
-          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Building2 className="w-7 h-7 text-primary" />
-            </div>
-            <h3 className="font-semibold text-gray-900 text-lg mb-2">
-              Sell vehicle to a dealer
-            </h3>
-            <p className="text-gray-600 text-sm mb-4 max-w-xs">
-              Get competitive offers from verified dealers. Fast, secure, and hassle-free.
-            </p>
-            <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-              <Link href="/sell/dealer">Get dealer offers</Link>
-            </Button>
-          </div>
+        {/* Cards */}
+        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
+          {sellOptions.map((option) => (
+            <div
+              key={option.title}
+              className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8"
+            >
+              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                {option.title}
+              </h3>
+              <p className="mb-6 text-sm leading-relaxed text-gray-500">
+                {option.description}
+              </p>
 
-          {/* Center - Car Image */}
-          <div className="relative h-[250px] sm:h-[300px] order-first lg:order-none">
-            <Image
-              src="/sample-car-1.jpg"
-              alt="Car for sale"
-              fill
-              className="object-contain"
-            />
-          </div>
+              <ul className="mb-8 flex-1 space-y-3">
+                {option.benefits.map((benefit) => (
+                  <li key={benefit} className="flex items-center gap-2.5 text-sm text-gray-700">
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
 
-          {/* Right - Sell Privately */}
-          <div className="flex flex-col items-center text-center lg:items-end lg:text-right">
-            <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mb-4">
-              <User className="w-7 h-7 text-secondary" />
+              <Button
+                asChild
+                variant={option.variant}
+                className="w-full rounded-full border-primary text-primary hover:bg-primary hover:text-white"
+              >
+                <Link href={option.href}>{option.buttonText}</Link>
+              </Button>
             </div>
-            <h3 className="font-semibold text-gray-900 text-lg mb-2">
-              Sell vehicle privately
-            </h3>
-            <p className="text-gray-600 text-sm mb-4 max-w-xs">
-              List your car for free and reach thousands of buyers directly.
-            </p>
-            <Button asChild className="bg-secondary hover:bg-secondary/90 text-white">
-              <Link href="/sell">List your car</Link>
-            </Button>
-          </div>
+          ))}
         </div>
       </div>
     </section>

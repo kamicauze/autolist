@@ -209,6 +209,7 @@ interface WizardContextValue {
   isSubmitting: boolean;
   submitError: string | null;
   submitted: boolean;
+  autoApproved: boolean;
   createdListingId: string | null;
 
   // Media file refs
@@ -270,6 +271,7 @@ export function useWizard() {
 export function WizardProvider({ children }: { children: React.ReactNode }) {
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
+  const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [createdListingId, setCreatedListingId] = React.useState<string | null>(null);
@@ -524,8 +526,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setShowValidationErrors(false);
 
     if (isLastStep) {
-      const { createListing, saveListingImage, submitListingForReview } = await import("@/lib/actions/listings");
-      const { getUploadUrl } = await import("@/lib/actions/upload");
+      const { createListing, submitListingForReview, uploadListingImages } = await import("@/lib/actions/listings");
 
       const listingData = {
         make: draft.details.make || "",
@@ -562,60 +563,44 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         const listingId = result.data.id;
         setCreatedListingId(listingId);
 
-        // Step 2: Upload images to R2
-        const filesToUpload: { file: File; order: number }[] = [];
-        const hasSeparateCover = !!coverFile;
+        // Step 2: Upload images server-side to avoid client-side R2 CORS failures.
+        const uploadFormData = new FormData();
+        uploadFormData.set("listingId", listingId);
+        uploadFormData.set("altTextBase", `${draft.details.make} ${draft.details.model}`.trim());
 
-        if (hasSeparateCover) {
-          filesToUpload.push({ file: coverFile!, order: 0 });
+        if (coverFile) {
+          uploadFormData.set("coverImage", coverFile);
+        } else if (
+          draft.coverFromGalleryIndex !== null &&
+          galleryFiles[draft.coverFromGalleryIndex]
+        ) {
+          uploadFormData.set("coverImage", galleryFiles[draft.coverFromGalleryIndex]);
         }
 
         galleryFiles.forEach((file, index) => {
-          const isCoverFromGallery = !hasSeparateCover && draft.coverFromGalleryIndex === index;
-          filesToUpload.push({
-            file,
-            order: isCoverFromGallery ? 0 : (hasSeparateCover ? index + 1 : index),
-          });
+          if (!coverFile && draft.coverFromGalleryIndex === index) {
+            return;
+          }
+          uploadFormData.append("galleryImages", file);
         });
 
-        let uploadedCount = 0;
-        for (const { file, order } of filesToUpload) {
-          try {
-            const hashBuffer = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const fileHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-
-            const uploadResult = await getUploadUrl(listingId, file.type, file.size, fileHash);
-            if (uploadResult.error) {
-              console.warn(`Upload URL error for ${file.name}: ${uploadResult.error}`);
-              continue;
-            }
-
-            const putResponse = await fetch(uploadResult.url!, {
-              method: "PUT",
-              headers: { "Content-Type": file.type },
-              body: file,
-            });
-
-            if (!putResponse.ok) {
-              console.warn(`Upload failed for ${file.name}: ${putResponse.status}`);
-              continue;
-            }
-
-            const altText = `${draft.details.make} ${draft.details.model} - Photo ${order + 1}`;
-            await saveListingImage(listingId, uploadResult.key!, altText, order, fileHash);
-            uploadedCount++;
-          } catch (err) {
-            console.warn(`Image upload error for ${file.name}:`, err);
-          }
+        const uploadResult = await uploadListingImages(uploadFormData);
+        if ("error" in uploadResult) {
+          setSubmitError(uploadResult.error || "Unable to upload listing images.");
+          setIsSubmitting(false);
+          return;
         }
 
-        // Step 3: Submit for review (draft → pending)
-        if (uploadedCount > 0) {
-          const submitResult = await submitListingForReview(listingId);
-          if (submitResult.error) {
-            console.warn("Submit for review failed:", submitResult.error);
-          }
+        // Step 3: Submit for review (draft → pending, or auto-approved → active for verified dealers)
+        const submitResult = await submitListingForReview(listingId);
+        if ("error" in submitResult) {
+          setSubmitError(submitResult.error || "Unable to submit listing for review.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        if ('autoApproved' in submitResult && submitResult.autoApproved) {
+          setAutoApproved(true);
         }
 
         localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -636,7 +621,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: WizardContextValue = {
-    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitted, createdListingId,
+    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitted, autoApproved, createdListingId,
     coverFile, galleryFiles, documentFiles,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,

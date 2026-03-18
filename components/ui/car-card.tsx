@@ -6,8 +6,6 @@ import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "./badge";
-import { Avatar } from "./avatar";
-import { Button } from "./button";
 import { IconSpeedometer, IconFuel, IconGear, IconCamera } from "./icons";
 import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
 import { useCompare } from "@/lib/hooks/use-compare";
@@ -159,7 +157,7 @@ export function CarCard({
         )}
 
         {/* Badges overlay */}
-        <div className="absolute left -2.5 top-2.5 flex items-center gap-2 z-30">
+        <div className="absolute left-2.5 top-2.5 flex items-center gap-2 z-30">
           {isFeatured && (
             <Badge variant="primary" size="sm">
               Featured
@@ -247,15 +245,17 @@ export function CarCard({
       {/* Content Section */}
       <div className="p-4">
         {/* Body type */}
-        <span className="text-body-sm text-gray-2">{bodyType}</span>
+        <span className="text-[14px] font-normal leading-[19.6px] text-[#333333]">
+          {bodyType}
+        </span>
 
         {/* Title */}
-        <h3 className="mt-1 text-body-lg font-semibold text-black-1 line-clamp-1">
+        <h3 className="mt-1 text-[18px] font-medium leading-[25.2px] text-[#242720] line-clamp-1">
           {title}
         </h3>
 
         {/* Specs */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-body-sm text-gray-2">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-[#696665]">
           <div className="flex items-center gap-1.5">
             <IconSpeedometer className="h-4 w-4" />
             <span>{mileage}</span>
@@ -272,37 +272,16 @@ export function CarCard({
 
         {/* Price */}
         <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-body-lg font-bold text-primary">
+          <span className="text-[20px] font-bold leading-[28px] text-[#333333]">
             {currency}
             {formattedPrice}
           </span>
           {formattedOriginalPrice && (
-            <span className="text-body-sm text-gray-2 line-through">
+            <span className="text-[13px] font-medium leading-[19.6px] text-[#B6B6B6] line-through">
               {currency}
               {formattedOriginalPrice}
             </span>
           )}
-        </div>
-
-        {/* Divider */}
-        <div className="my-4 h-px bg-gray-4" />
-
-        {/* Seller info & CTA */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar
-              src={seller.avatarUrl}
-              alt={seller.name}
-              size="sm"
-              fallback={seller.name}
-            />
-            <span className="text-body-sm font-medium text-gray-1">
-              {seller.name}
-            </span>
-          </div>
-          <Button variant="outline" size="sm">
-            View Unit
-          </Button>
         </div>
       </div>
     </div>

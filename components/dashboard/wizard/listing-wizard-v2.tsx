@@ -30,6 +30,7 @@ function WizardContent() {
   const {
     activeStep,
     submitted,
+    autoApproved,
     isSubmitting,
     submitError,
     draft,
@@ -48,13 +49,20 @@ function WizardContent() {
 
   if (submitted) {
     return (
-      <section className="rounded-2xl border border-info/20 bg-gradient-to-br from-info/10 via-white to-primary/10 p-8">
+      <section className={`rounded-2xl border p-8 ${autoApproved ? "border-success/20 bg-gradient-to-br from-success/10 via-white to-primary/10" : "border-info/20 bg-gradient-to-br from-info/10 via-white to-primary/10"}`}>
         <div className="mx-auto max-w-2xl space-y-5 text-center">
-          <Badge variant="info" className="mx-auto w-fit">Submitted Successfully</Badge>
-          <h2 className="text-3xl font-bold text-foreground">Listing sent for moderation</h2>
+          <Badge variant={autoApproved ? "success" : "info"} className="mx-auto w-fit">
+            {autoApproved ? "Published" : "Submitted Successfully"}
+          </Badge>
+          <h2 className="text-3xl font-bold text-foreground">
+            {autoApproved ? "Your listing is now live!" : "Listing sent for moderation"}
+          </h2>
           <p className="text-muted-foreground">
-            Current status: <span className="font-semibold text-foreground">Pending Approval</span>.
-            Listing becomes public after admin approval.
+            {autoApproved ? (
+              <>Your listing is <span className="font-semibold text-foreground">Active</span> and visible to buyers.</>
+            ) : (
+              <>Current status: <span className="font-semibold text-foreground">Pending Approval</span>. Listing becomes public after admin approval.</>
+            )}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button asChild>

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import {
   LOCATIONS,
   YEARS,
@@ -19,12 +19,14 @@ import {
   PRICE_RANGES,
 } from "@/lib/constants/filters";
 import { useCarModels } from "@/hooks/use-car-models";
+import { FilterSheet } from "@/components/search/filter-sheet";
 
 interface HeroSearchProps {
   makes: string[];
+  totalCount: number;
 }
 
-export function HeroSearch({ makes }: HeroSearchProps) {
+export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
   const router = useRouter();
   const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
@@ -34,12 +36,12 @@ export function HeroSearch({ makes }: HeroSearchProps) {
   const [mileage, setMileage] = React.useState("any");
   const [priceRange, setPriceRange] = React.useState("any");
   const [usage, setUsage] = React.useState("any");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
     make !== "any" ? make : null
   );
 
-  // Reset model when make changes
   React.useEffect(() => {
     setModel("any");
   }, [make]);
@@ -55,11 +57,8 @@ export function HeroSearch({ makes }: HeroSearchProps) {
     if (yearTo !== "any") params.set("maxYear", yearTo);
     if (usage !== "any") params.set("condition", usage);
 
-    // Handle mileage
     if (mileage !== "any") {
-      const mileageOption = MILEAGE_RANGES.find(
-        (r) => r.label === mileage
-      );
+      const mileageOption = MILEAGE_RANGES.find((r) => r.label === mileage);
       if (mileageOption && "max" in mileageOption) {
         params.set("maxMileage", String(mileageOption.max));
       }
@@ -68,7 +67,6 @@ export function HeroSearch({ makes }: HeroSearchProps) {
       }
     }
 
-    // Handle price range
     if (priceRange !== "any") {
       const priceOption = PRICE_RANGES.find((r) => r.label === priceRange);
       if (priceOption) {
@@ -82,35 +80,43 @@ export function HeroSearch({ makes }: HeroSearchProps) {
 
   return (
     <section className="relative">
-      {/* Hero Image */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4">
-        <div className="relative h-[320px] sm:h-[400px] md:h-[460px] overflow-hidden rounded-2xl sm:rounded-3xl">
+      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="relative h-[320px] overflow-hidden rounded-2xl sm:h-[400px] sm:rounded-3xl md:h-[460px]">
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('/hero-car.jpg')` }}
+            style={{ backgroundImage: "url('/hero-car.jpg')" }}
           />
-          {/* Subtle bottom gradient so the search card is legible */}
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/40 to-transparent rounded-b-2xl sm:rounded-b-3xl" />
+          <div className="absolute inset-0 bg-black/20" />
         </div>
 
-        {/* Search Card — overlaps the bottom edge of the hero */}
         <div className="relative z-10 -mt-24 sm:-mt-28 md:-mt-32">
           <form
             onSubmit={handleSearch}
-            className="mx-auto max-w-5xl rounded-2xl border border-border bg-white p-5 sm:p-6 shadow-xl"
+            className="mx-auto max-w-5xl rounded-2xl border border-border bg-white p-5 shadow-xl sm:p-6"
           >
-            <h2 className="text-lg font-bold text-foreground sm:text-xl">
-              Let&apos;s Find Your Perfect Car
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Search from thousands of cars available on Autolist
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-foreground sm:text-xl">
+                  Let&apos;s Find Your Perfect Car
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Search from thousands of cars available on Autolist.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="hidden gap-2 rounded-lg md:inline-flex"
+                onClick={() => setIsFilterSheetOpen(true)}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                All filters
+              </Button>
+            </div>
 
-            {/* Row 1: Location, Brand, Model, Year */}
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Location */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Location
                 </label>
                 <Select value={location} onValueChange={setLocation}>
@@ -119,40 +125,36 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">All Locations</SelectItem>
-                    {LOCATIONS.filter((l) => l !== "All Locations").map(
-                      (loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Brand Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Brand Name
-                </label>
-                <Select value={make} onValueChange={setMake}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Any Brand" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any Brand</SelectItem>
-                    {makes.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
+                    {LOCATIONS.filter((l) => l !== "All Locations").map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Car Model */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Make
+                </label>
+                <Select value={make} onValueChange={setMake}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Any Make" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Make</SelectItem>
+                    {makes.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Car Model
                 </label>
                 <Select
@@ -161,24 +163,21 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                   disabled={make === "any" || modelsLoading}
                 >
                   <SelectTrigger className="h-11">
-                    <SelectValue
-                      placeholder={modelsLoading ? "Loading…" : "Any Model"}
-                    />
+                    <SelectValue placeholder={modelsLoading ? "Loading..." : "Any Model"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Model</SelectItem>
-                    {availableModels.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
+                    {availableModels.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Year Range */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Choose Year
                 </label>
                 <div className="flex gap-2">
@@ -188,9 +187,9 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">From</SelectItem>
-                      {YEARS.map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
+                      {YEARS.map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -201,9 +200,9 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">To</SelectItem>
-                      {YEARS.map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
+                      {YEARS.map((year) => (
+                        <SelectItem key={`to-${year}`} value={String(year)}>
+                          {year}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -212,11 +211,9 @@ export function HeroSearch({ makes }: HeroSearchProps) {
               </div>
             </div>
 
-            {/* Row 2: Mileage, Price Range, Usage, Search Button */}
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Mileage */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Choose Mileage
                 </label>
                 <Select value={mileage} onValueChange={setMileage}>
@@ -225,20 +222,17 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Mileage</SelectItem>
-                    {MILEAGE_RANGES.filter(
-                      (r) => r.label !== "Any Km"
-                    ).map((r) => (
-                      <SelectItem key={r.label} value={r.label}>
-                        {r.label}
+                    {MILEAGE_RANGES.filter((r) => r.label !== "Any Km").map((range) => (
+                      <SelectItem key={range.label} value={range.label}>
+                        {range.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Price Range */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Price Range
                 </label>
                 <Select value={priceRange} onValueChange={setPriceRange}>
@@ -247,18 +241,17 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Price</SelectItem>
-                    {PRICE_RANGES.map((r) => (
-                      <SelectItem key={r.label} value={r.label}>
-                        {r.label}
+                    {PRICE_RANGES.map((range) => (
+                      <SelectItem key={range.label} value={range.label}>
+                        {range.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Usage / Condition */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Usage
                 </label>
                 <Select value={usage} onValueChange={setUsage}>
@@ -267,29 +260,52 @@ export function HeroSearch({ makes }: HeroSearchProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Condition</SelectItem>
-                    {CONDITIONS.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        {c.label}
+                    {CONDITIONS.map((condition) => (
+                      <SelectItem key={condition.value} value={condition.value}>
+                        {condition.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Search Button */}
-              <div className="flex items-end">
-                <Button
-                  type="submit"
-                  className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+              <div className="space-y-1.5">
+                <div
+                  aria-hidden="true"
+                  className="select-none text-xs font-medium uppercase tracking-wider text-transparent"
                 >
-                  <Search className="h-4 w-4" />
-                  Find Your Car
-                </Button>
+                  Actions
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 gap-2 rounded-xl text-sm font-semibold md:hidden"
+                    onClick={() => setIsFilterSheetOpen(true)}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="col-span-1 h-11 w-full gap-2 rounded-xl text-sm font-semibold md:col-span-2"
+                  >
+                    <Search className="h-4 w-4" />
+                    Find Your Car
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
         </div>
       </div>
+
+      <FilterSheet
+        open={isFilterSheetOpen}
+        onOpenChange={setIsFilterSheetOpen}
+        totalCount={totalCount}
+        makes={makes}
+      />
     </section>
   );
 }

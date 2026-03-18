@@ -5,7 +5,6 @@ import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
 import { ListingFilters, ListingSort } from "@/lib/types/listing";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -89,29 +88,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-          {/* Breadcrumb */}
-          <Breadcrumb
-            items={[
-              { label: "Home", href: "/" },
-              { label: "New & Used cars for sale" },
-            ]}
-            className="mb-4"
-          />
-
-          {/* Page Header */}
-          <div className="mb-6 flex items-start justify-between">
+      <main className="flex-1 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                Smart matches from your search
-              </h1>
-              <p className="mt-2 text-gray-600">
-                Explore our selection of good and high-quality vehicles.
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">All cars for sale</h1>
+              <p className="mt-1 text-sm text-gray-600 sm:text-base">
+                Browse new and used listings from dealers and private sellers.
               </p>
             </div>
 
-            {/* Quick Search */}
             <div className="hidden md:flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
               <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M12 2L9 7H3l5 4-2 7 6-4 6 4-2-7 5-4h-6L12 2z" />
@@ -125,7 +111,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </div>
           </div>
 
-          {/* Client-side filters and results */}
           <Suspense fallback={<div className="animate-pulse h-16 bg-gray-200 rounded-lg" />}>
             <SearchPageClient
               listings={listings}

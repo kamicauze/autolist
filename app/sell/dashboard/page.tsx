@@ -10,7 +10,7 @@ export default function SellerDashboardPreviewPage() {
 
       <main className="flex-1 bg-gray-50 py-8 md:py-12">
         <Container size="xl">
-          <DashboardShell addListingHref="/sell/listing" />
+          <DashboardShell addListingHref="/dashboard/listings/new" />
         </Container>
       </main>
 

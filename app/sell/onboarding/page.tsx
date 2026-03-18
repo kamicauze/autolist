@@ -15,7 +15,7 @@ export default function SellerOnboardingPage() {
             <OnboardingFlow
               previewMode
               dashboardHref="/sell/dashboard"
-              createListingHref="/sell/listing"
+              createListingHref="/dashboard/listings/new"
             />
           </Suspense>
         </Container>

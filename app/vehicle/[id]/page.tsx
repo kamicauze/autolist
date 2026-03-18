@@ -33,10 +33,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
-              { label: "Used cars for sale", href: "/search" },
-              { label: listing.body_type || "Vehicle", href: `/search?bodyType=${listing.body_type}` },
-              { label: listing.make, href: `/search?make=${listing.make}` },
-              { label: title },
+              { label: "All car listings", href: "/search" },
             ]}
             className="mb-4"
           />

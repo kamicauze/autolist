@@ -121,10 +121,10 @@ export default function ValuationPage() {
           {/* Valuation Form Card */}
           <div className="mx-auto max-w-xl rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-xl">
             <h3 className="text-lg font-bold text-foreground">
-              Value Your Car
+              Get Your Free Car Valuation
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter your details below for an instant estimate
+              Enter your registration and mileage to receive an instant estimate.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -162,8 +162,8 @@ export default function ValuationPage() {
             Why value your car?
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
-            Understanding your car's value helps you make better decisions
-            whether you're selling, trading in, or insuring.
+            Understanding your car&apos;s value helps you make better decisions
+            whether you&apos;re selling, trading in, or insuring.
           </p>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

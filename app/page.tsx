@@ -11,7 +11,11 @@ import { VideoSection } from "@/components/home/video-section";
 import { ServicesSection } from "@/components/home/services-section";
 import { NewsSection } from "@/components/home/news-section";
 import { SocialMediaSection } from "@/components/home/social-media-section";
-import { getFeaturedListings, getNewestListings } from "@/lib/data/listings";
+import {
+  countMatchingListings,
+  getFeaturedListings,
+  getNewestListings,
+} from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
 
 async function RecentActivitiesData() {
@@ -30,8 +34,11 @@ async function RecentActivitiesData() {
 }
 
 async function HeroSearchWithData() {
-  const makes = await getAllMakeNames();
-  return <HeroSearch makes={makes} />;
+  const [makes, totalCount] = await Promise.all([
+    getAllMakeNames(),
+    countMatchingListings(),
+  ]);
+  return <HeroSearch makes={makes} totalCount={totalCount} />;
 }
 
 export default function Home() {

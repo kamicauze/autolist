@@ -38,7 +38,7 @@ export function NewsSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            News to help choose your car
+            The latest from Autolist
           </h2>
           <Link
             href="/news"

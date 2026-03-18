@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, DollarSign, CheckCircle2 } from "lucide-react";
+import { Shield, Clock, DollarSign, CheckCircle2, Star } from "lucide-react";
 
 const sellingOptions = [
   {
@@ -18,7 +18,7 @@ const sellingOptions = [
       "Full control over the sale",
     ],
     cta: "Start Advertisement",
-    href: "/sell/listing",
+    href: "/dashboard/listings/new",
   },
   {
     title: "Sell to a Dealer",
@@ -30,7 +30,7 @@ const sellingOptions = [
       "No advertising needed",
       "Safe & secure transaction",
     ],
-    cta: "Get Dealer Offers",
+    cta: "Make an offer",
     href: "/sell/dealer",
   },
 ];
@@ -56,6 +56,27 @@ const benefits = [
   },
 ];
 
+const testimonials = [
+  {
+    name: "Jacob Mwangi",
+    role: "Private Seller",
+    quote:
+      "I listed my car in minutes and got serious buyers the same week. The process felt straightforward and safe.",
+  },
+  {
+    name: "Lynn Achieng",
+    role: "Dealer",
+    quote:
+      "Autolist brings consistent leads and serious buyers. It has become a key channel for our dealership stock.",
+  },
+  {
+    name: "Brian Mutiso",
+    role: "Seller",
+    quote:
+      "The valuation and listing tips helped me price correctly. I sold faster than I expected and with zero hassle.",
+  },
+];
+
 export default function SellPage() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -70,6 +91,12 @@ export default function SellPage() {
 
         {/* Selling Options Cards */}
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Choose How to Sell Your Car</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Select the option that works best for you. Sell privately or get an instant dealer offer.
+            </p>
+          </div>
           <div className="grid gap-6 md:gap-8 md:grid-cols-2">
             {sellingOptions.map((option) => (
               <div
@@ -151,6 +178,26 @@ export default function SellPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+          <h2 className="text-center text-2xl font-bold text-foreground sm:text-3xl">What Our Customers Say</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <article key={testimonial.name} className="rounded-xl border border-border bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center gap-1 text-primary">
+                  <Star className="h-4 w-4 fill-current" />
+                  <Star className="h-4 w-4 fill-current" />
+                  <Star className="h-4 w-4 fill-current" />
+                  <Star className="h-4 w-4 fill-current" />
+                  <Star className="h-4 w-4 fill-current" />
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">{testimonial.quote}</p>
+                <p className="mt-4 text-sm font-semibold text-foreground">{testimonial.name}</p>
+                <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+              </article>
+            ))}
           </div>
         </section>
       </main>
