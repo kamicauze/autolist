@@ -10,16 +10,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Search, SlidersHorizontal, MapPin } from "lucide-react";
 import {
   LOCATIONS,
   YEARS,
-  CONDITIONS,
   MILEAGE_RANGES,
 } from "@/lib/constants/filters";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
+
+const PRICE_OPTIONS = [
+  { label: "500,000", value: "500000" },
+  { label: "1,000,000", value: "1000000" },
+  { label: "2,000,000", value: "2000000" },
+  { label: "3,000,000", value: "3000000" },
+  { label: "5,000,000", value: "5000000" },
+  { label: "7,000,000", value: "7000000" },
+  { label: "10,000,000", value: "10000000" },
+  { label: "15,000,000", value: "15000000" },
+  { label: "20,000,000", value: "20000000" },
+  { label: "30,000,000", value: "30000000" },
+  { label: "50,000,000", value: "50000000" },
+];
 
 interface HeroSearchProps {
   makes: string[];
@@ -34,9 +46,8 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
   const [mileage, setMileage] = React.useState("any");
-  const [priceFrom, setPriceFrom] = React.useState("");
-  const [priceTo, setPriceTo] = React.useState("");
-  const [usage, setUsage] = React.useState("any");
+  const [priceFrom, setPriceFrom] = React.useState("any");
+  const [priceTo, setPriceTo] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
@@ -56,7 +67,6 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
     if (model !== "any") params.set("model", model);
     if (yearFrom !== "any") params.set("minYear", yearFrom);
     if (yearTo !== "any") params.set("maxYear", yearTo);
-    if (usage !== "any") params.set("condition", usage);
 
     if (mileage !== "any") {
       const mileageOption = MILEAGE_RANGES.find((r) => r.label === mileage);
@@ -68,8 +78,8 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
       }
     }
 
-    if (priceFrom) params.set("minPrice", priceFrom);
-    if (priceTo) params.set("maxPrice", priceTo);
+    if (priceFrom !== "any") params.set("minPrice", priceFrom);
+    if (priceTo !== "any") params.set("maxPrice", priceTo);
 
     router.push(`/search?${params.toString()}`);
   };
@@ -83,6 +93,29 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
             style={{ backgroundImage: "url('/hero-car.jpg')" }}
           />
           <div className="absolute inset-0 bg-black/20" />
+
+          {/* Quick search pill */}
+          <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-lg hover:bg-gray-50 transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path d="M12 3l1.5 4.5H18l-3.5 2.5L16 14.5 12 12l-4 2.5 1.5-4.5L6 7.5h4.5z" />
+              </svg>
+              Quick search
+              <span className="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                NEW
+              </span>
+              <Search className="h-4 w-4 text-gray-400" />
+            </button>
+          </div>
         </div>
 
         <div className="relative z-10 -mt-24 sm:-mt-28 md:-mt-32">
@@ -90,26 +123,12 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
             onSubmit={handleSearch}
             className="mx-auto max-w-5xl rounded-2xl border border-border bg-white p-5 shadow-xl sm:p-6"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-foreground sm:text-xl">
-                  Let&apos;s Find Your Perfect Car
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Search from thousands of cars available on Autolist.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="hidden gap-2 rounded-lg md:inline-flex"
-                onClick={() => setIsFilterSheetOpen(true)}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                All filters
-              </Button>
-            </div>
+            {/* Title */}
+            <h2 className="text-lg font-bold italic text-foreground sm:text-xl">
+              Let&apos;s Find Your Perfect Car
+            </h2>
 
+            {/* Row 1: Location, Make, Model, Choose Year */}
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-muted-foreground">
@@ -117,10 +136,13 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
                 </label>
                 <Select value={location} onValueChange={setLocation}>
                   <SelectTrigger className="h-11">
-                    <SelectValue placeholder="All Locations" />
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="Any Location" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">All Locations</SelectItem>
+                    <SelectItem value="any">Any Location</SelectItem>
                     {LOCATIONS.filter((l) => l !== "All Locations").map((loc) => (
                       <SelectItem key={loc} value={loc}>
                         {loc}
@@ -151,7 +173,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
 
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-muted-foreground">
-                  Car Model
+                  Model
                 </label>
                 <Select
                   value={model}
@@ -207,6 +229,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
               </div>
             </div>
 
+            {/* Row 2: Choose Mileage, Price Range, More Filters, Find Your Car */}
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-muted-foreground">
@@ -232,69 +255,69 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
                   Price Range
                 </label>
                 <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="From"
-                    value={priceFrom}
-                    onChange={(e) => setPriceFrom(e.target.value)}
-                    className="h-11 flex-1"
-                    min={0}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="To"
-                    value={priceTo}
-                    onChange={(e) => setPriceTo(e.target.value)}
-                    className="h-11 flex-1"
-                    min={0}
-                  />
+                  <Select value={priceFrom} onValueChange={setPriceFrom}>
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="From" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">From</SelectItem>
+                      {PRICE_OPTIONS.map((opt) => (
+                        <SelectItem key={`from-${opt.value}`} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={priceTo} onValueChange={setPriceTo}>
+                    <SelectTrigger className="h-11 flex-1">
+                      <SelectValue placeholder="To" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">To</SelectItem>
+                      {PRICE_OPTIONS.map((opt) => (
+                        <SelectItem key={`to-${opt.value}`} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-muted-foreground">
-                  Usage
-                </label>
-                <Select value={usage} onValueChange={setUsage}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Any Condition" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any Condition</SelectItem>
-                    {CONDITIONS.map((condition) => (
-                      <SelectItem key={condition.value} value={condition.value}>
-                        {condition.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              {/* More Filters button */}
               <div className="space-y-1.5">
                 <div
                   aria-hidden="true"
-                  className="select-none text-[13px] font-medium text-transparent"
+                  className="hidden select-none text-[13px] font-medium text-transparent lg:block"
                 >
-                  Actions
+                  &nbsp;
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 gap-2 rounded-xl text-sm font-semibold md:hidden"
-                    onClick={() => setIsFilterSheetOpen(true)}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filters
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="col-span-1 h-11 w-full gap-2 rounded-xl text-sm font-semibold md:col-span-2"
-                  >
-                    <Search className="h-4 w-4" />
-                    Find Your Car
-                  </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+                  onClick={() => setIsFilterSheetOpen(true)}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  More Filters
+                </Button>
+              </div>
+
+              {/* Find Your Car button */}
+              <div className="space-y-1.5">
+                <div
+                  aria-hidden="true"
+                  className="hidden select-none text-[13px] font-medium text-transparent lg:block"
+                >
+                  &nbsp;
                 </div>
+                <Button
+                  type="submit"
+                  className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+                >
+                  <Search className="h-4 w-4" />
+                  Find Your Car
+                </Button>
               </div>
             </div>
           </form>
