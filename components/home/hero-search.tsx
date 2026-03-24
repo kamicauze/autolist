@@ -92,10 +92,20 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: "url('/hero-car.jpg')" }}
           />
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/30" />
+
+          {/* Hero text overlay */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4">
+            <h1 className="text-3xl font-bold italic text-white sm:text-4xl md:text-5xl lg:text-6xl">
+              Find your perfect car.
+            </h1>
+            <p className="mt-3 text-base text-white/90 sm:text-lg">
+              Get the best price for new, used, and verified cars.
+            </p>
+          </div>
 
           {/* Quick search pill */}
-          <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+          <div className="absolute bottom-28 right-4 z-10 sm:bottom-32 sm:right-6 md:bottom-36">
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-lg hover:bg-gray-50 transition-colors"
