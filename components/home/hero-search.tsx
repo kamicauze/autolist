@@ -18,6 +18,7 @@ import {
 } from "@/lib/constants/filters";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
+import { QuickSearchDialog } from "./quick-search-dialog";
 
 const PRICE_OPTIONS = [
   { label: "500,000", value: "500000" },
@@ -49,6 +50,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
   const [priceFrom, setPriceFrom] = React.useState("any");
   const [priceTo, setPriceTo] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
+  const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
     make !== "any" ? make : null
@@ -108,6 +110,7 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
           <div className="absolute bottom-28 right-4 z-10 sm:bottom-32 sm:right-6 md:bottom-36">
             <button
               type="button"
+              onClick={() => setIsQuickSearchOpen(true)}
               className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-lg hover:bg-gray-50 transition-colors"
             >
               <svg
@@ -339,6 +342,11 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
         onOpenChange={setIsFilterSheetOpen}
         totalCount={totalCount}
         makes={makes}
+      />
+
+      <QuickSearchDialog
+        open={isQuickSearchOpen}
+        onOpenChange={setIsQuickSearchOpen}
       />
     </section>
   );
