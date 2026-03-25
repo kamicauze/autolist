@@ -11,8 +11,7 @@ import {
   MessageSquare,
   Star,
   User,
-  FileText,
-  ShieldCheck,
+  KeyRound,
   LogOut,
   X,
 } from "lucide-react";
@@ -22,17 +21,12 @@ import { createClient } from "@/lib/supabase/client";
 
 const sidebarNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "All Listings", href: "/dashboard/listings", icon: ListOrdered },
-  { name: "My Favorite", href: "/dashboard/favorites", icon: Heart },
+  { name: "All listings", href: "/dashboard/listings", icon: ListOrdered },
+  { name: "My favorite", href: "/dashboard/favorites", icon: Heart },
   { name: "Message", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Review", href: "/dashboard/reviews", icon: Star },
   { name: "Profile", href: "/dashboard/profile", icon: User },
-  { name: "Membership", href: "/dashboard/membership", icon: FileText },
-  {
-    name: "Account Verification",
-    href: "/dashboard/verification",
-    icon: ShieldCheck,
-  },
+  { name: "Change passwords", href: "/dashboard/change-password", icon: KeyRound },
 ];
 
 interface SidebarProps {
