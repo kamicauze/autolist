@@ -52,6 +52,18 @@ const BODY_TYPE_ALIASES = [
   ["crossover", "Crossover"],
 ] as const;
 
+const INTENT_BODY_TYPE_ALIASES = [
+  ["small car", ["Hatchback"]],
+  ["compact car", ["Hatchback"]],
+  ["city car", ["Hatchback"]],
+  ["town car", ["Hatchback"]],
+  ["family car", ["Sedan", "SUV", "Wagon"]],
+  ["family suv", ["SUV"]],
+  ["work car", ["Pickup", "Van"]],
+  ["work vehicle", ["Pickup", "Van"]],
+  ["daily car", ["Hatchback", "Sedan"]],
+] as const satisfies ReadonlyArray<readonly [string, readonly string[]]>;
+
 const FUEL_TYPE_ALIASES = [
   ["petrol", "Petrol"],
   ["gasoline", "Petrol"],
@@ -163,6 +175,23 @@ function parsePrice(lower: string, direction: "min" | "max") {
   return String(Math.round(amount));
 }
 
+function findIntentBodyTypes(value: string) {
+  const padded = ` ${value} `;
+  const matches: string[] = [];
+
+  for (const [phrase, bodyTypes] of INTENT_BODY_TYPE_ALIASES) {
+    if (padded.includes(` ${phrase} `)) {
+      bodyTypes.forEach((bodyType) => {
+        if (!matches.includes(bodyType)) {
+          matches.push(bodyType);
+        }
+      });
+    }
+  }
+
+  return matches;
+}
+
 function parseYearRange(query: string) {
   const yearMatches = Array.from(query.matchAll(/\b(19\d{2}|20[0-3]\d)\b/g)).map((match) => match[1]);
   if (yearMatches.length === 0) {
@@ -234,7 +263,14 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
 
   const make = findAliasMatch(lower, MAKE_ALIASES) || undefined;
   const bodyTypeMatches = findAliasMatches(lower, BODY_TYPE_ALIASES);
+  const intentBodyTypeMatches = findIntentBodyTypes(lower);
   const expandedBodyTypes = [...bodyTypeMatches];
+
+  intentBodyTypeMatches.forEach((bodyType) => {
+    if (!expandedBodyTypes.includes(bodyType)) {
+      expandedBodyTypes.push(bodyType);
+    }
+  });
 
   if (bodyTypeMatches.includes("Crossover") && !expandedBodyTypes.includes("SUV")) {
     expandedBodyTypes.push("SUV");
@@ -273,6 +309,10 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     sellerType,
   };
 
+  if (!make && !model && !fuelType && !transmission && !location && bodyType && maxPrice) {
+    delete params.q;
+  }
+
   if (Object.values(params).every((value) => !value)) {
     params.q = normalizedQuery;
   }
@@ -295,7 +335,19 @@ export function shouldUseSmartSearchFallback(query: string, result: SmartSearchR
   if (result.confidence === "high") return false;
 
   const lower = query.toLowerCase();
-  const intentWords = ["reliable", "family", "best", "cheap", "comfortable", "daily", "road trip"];
+  const intentWords = [
+    "reliable",
+    "family",
+    "best",
+    "cheap",
+    "comfortable",
+    "daily",
+    "road trip",
+    "small car",
+    "compact car",
+    "town car",
+    "work car",
+  ];
   if (intentWords.some((word) => lower.includes(word))) {
     return true;
   }

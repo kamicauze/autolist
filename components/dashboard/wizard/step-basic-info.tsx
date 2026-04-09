@@ -4,10 +4,9 @@ import { LISTING_AVAILABILITY_OPTIONS, LISTING_CATEGORY_OPTIONS, LISTING_CONDITI
 import { cn } from "@/lib/utils";
 import { formatKES, formatPriceInput, MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass, sellerTextareaClass } from "../seller-dashboard-ui";
-import { ListingCopyAssistant } from "./listing-copy-assistant";
 
 export function StepBasicInfo() {
-  const { draft, updateField, showValidationErrors, selectedFeatureIdSet } = useWizard();
+  const { draft, updateField, showValidationErrors } = useWizard();
 
   return (
     <div className="space-y-6">
@@ -185,8 +184,6 @@ export function StepBasicInfo() {
           </p>
         </div>
       </section>
-
-      <ListingCopyAssistant features={Array.from(selectedFeatureIdSet)} />
     </div>
   );
 }

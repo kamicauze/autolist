@@ -67,8 +67,8 @@ export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
             Improve title and description
           </h3>
           <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#61708a]">
-            Generate cleaner marketplace copy from the details you have already entered, then
-            apply the title or description separately.
+            Generate cleaner marketplace copy from the full draft you have entered so far, then
+            apply the title or description separately before submission.
           </p>
         </div>
 

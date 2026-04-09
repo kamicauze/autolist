@@ -8,6 +8,7 @@ import {
   LISTING_FEATURES_BY_CATEGORY,
 } from "@/lib/constants/marketplace";
 import { formatKES, useWizard } from "./wizard-context";
+import { ListingCopyAssistant } from "./listing-copy-assistant";
 import { ListingQualityPanel } from "./listing-quality-panel";
 
 function formatOptionLabel(
@@ -222,6 +223,7 @@ export function StepReview() {
         />
       </SummarySection>
 
+      <ListingCopyAssistant features={selectedFeatureLabels} />
       <ListingQualityPanel />
     </div>
   );
