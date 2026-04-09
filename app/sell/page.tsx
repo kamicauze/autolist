@@ -8,29 +8,29 @@ import { Shield, Clock, DollarSign, CheckCircle2, Star } from "lucide-react";
 
 const sellingOptions = [
   {
-    title: "Sell Privately",
+    title: "Private Seller Account",
     description:
-      "List your car on Autolist and reach millions of potential buyers. You set the price and handle the sale.",
+      "List your own vehicle on Autolist, control the asking price, and manage enquiries directly as an individual seller.",
     image: "/sample-car-1.jpg",
     features: [
       "Get the best price",
       "Reach millions of buyers",
       "Full control over the sale",
     ],
-    cta: "Start Advertisement",
+    cta: "List as an individual",
     href: "/dashboard/listings/new",
   },
   {
-    title: "Sell to a Dealer",
+    title: "Dealer Account",
     description:
-      "Get instant offers from verified dealers. Fast, convenient, and hassle-free selling experience.",
+      "Register a dealership account for verified inventory publishing, team workflows, and managed dealer enquiries across multiple listings.",
     image: "/sample-car-2.jpg",
     features: [
       "Fast & convenient",
       "No advertising needed",
       "Safe & secure transaction",
     ],
-    cta: "Make an offer",
+    cta: "Register dealership",
     href: "/sell/dealer",
   },
 ];
@@ -94,7 +94,7 @@ export default function SellPage() {
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Choose How to Sell Your Car</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Select the option that works best for you. Sell privately or get an instant dealer offer.
+              Select the account path that matches your role. Individual sellers and dealer teams follow different workflows after sign-up.
             </p>
           </div>
           <div className="grid gap-6 md:gap-8 md:grid-cols-2">

@@ -23,6 +23,26 @@ function defaultHeadline(grade: ListingQualityResult["grade"]) {
   return "Listing quality is too weak";
 }
 
+function buildDeterministicSellerTip(
+  grade: ListingQualityResult["grade"],
+  issues: ListingQualityIssue[]
+) {
+  if (issues.length === 0) {
+    return "This listing is ready to submit. Keep the photos, price and contact details accurate when you publish.";
+  }
+
+  const highSeverityCount = issues.filter((issue) => issue.severity === "high").length;
+  if (highSeverityCount > 0) {
+    return "Fix the high-severity gaps first, then review the photos and description before you submit the listing.";
+  }
+
+  if (grade === "good") {
+    return "The listing is close to ready. Tighten the remaining details so buyers have fewer unanswered questions.";
+  }
+
+  return "Complete the missing details and strengthen the description before publishing this listing.";
+}
+
 function normalizeText(value: string | null | undefined) {
   return (value || "").replace(/\s+/g, " ").trim();
 }
@@ -208,10 +228,7 @@ function buildRuleEvaluation(input: ListingQualityInput) {
   });
 
   const topImprovements = orderedIssues.slice(0, 3).map((issue) => issue.detail);
-  const sellerTip =
-    grade === "excellent"
-      ? "This listing is strong enough to submit. Focus on keeping the photos and facts fully accurate."
-      : "Fix the high-severity gaps first, then improve the description and photo coverage before submission.";
+  const sellerTip = buildDeterministicSellerTip(grade, orderedIssues);
 
   return {
     score: finalScore,
@@ -234,6 +251,15 @@ export async function evaluateListingQuality(
   const base = buildRuleEvaluation(input);
   const aiConfig = getAiProviderConfig();
 
+  if (base.issues.length === 0) {
+    return {
+      ...base,
+      topImprovements: [],
+      provider: "rules",
+      model: null,
+    };
+  }
+
   if (!aiConfig.enabled) {
     return {
       ...base,
@@ -245,22 +271,21 @@ export async function evaluateListingQuality(
   try {
     const prompt = [
       "You are an assistant helping a seller improve a vehicle marketplace listing.",
-      "Return strict JSON only with keys: headline, summary, topImprovements, sellerTip.",
-      "Keep headline under 6 words.",
+      "Return strict JSON only with keys: summary, sellerTip.",
       "Keep summary under 35 words.",
-      "Return exactly 3 topImprovements strings, each one sentence and actionable.",
-      "Use direct, practical language.",
+      "Keep sellerTip under 24 words.",
+      "Use direct, practical language and stay grounded in the stated listing issues only.",
+      "Do not suggest price changes, videos, maintenance, or new features unless the issues explicitly justify them.",
       "",
       `Score: ${base.score}/100`,
       `Grade: ${base.grade}`,
       `Strengths: ${base.strengths.join(" | ") || "None"}`,
       `Issues: ${base.issues.map((issue) => `${issue.severity}: ${issue.title} - ${issue.detail}`).join(" | ") || "None"}`,
+      `Priority improvements: ${base.topImprovements.join(" | ") || "None"}`,
     ].join("\n");
 
     const response = await generateAiJson<{
-      headline?: string;
       summary?: string;
-      topImprovements?: string[];
       sellerTip?: string;
     }>({ prompt });
 
@@ -278,8 +303,7 @@ export async function evaluateListingQuality(
       summary: referencesUnexpectedVehicle(response.data.summary, input)
         ? base.summary
         : response.data.summary?.trim() || base.summary,
-      topImprovements:
-        response.data.topImprovements?.filter(Boolean).slice(0, 3) || base.topImprovements,
+      topImprovements: base.topImprovements,
       sellerTip: response.data.sellerTip?.trim() || base.sellerTip,
       provider: response.provider === "openai" ? "openai" : "local_llm",
       model: response.model,

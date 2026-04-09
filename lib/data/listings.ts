@@ -18,6 +18,173 @@ function getListingSelect(includeDealerLocationFilter = false) {
     `;
 }
 
+const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
+  Sedan: ["sedan", "saloon", "premio", "allion", "axio", "corolla", "civic", "mark x"],
+  SUV: [
+    "suv",
+    "4x4",
+    "prado",
+    "land cruiser",
+    "forester",
+    "cx-5",
+    "cx5",
+    "x-trail",
+    "xtrail",
+    "sportage",
+    "harrier",
+    "x5",
+    "q8",
+    "fortuner",
+    "sorento",
+  ],
+  Crossover: ["crossover", "forester", "cx-5", "cx5", "qashqai", "x-trail", "xtrail", "vezel", "sportage"],
+  Hatchback: ["hatchback", "demio", "fit", "march", "vitz", "note", "a1"],
+  Pickup: ["pickup", "pick up", "pick-up", "hilux", "d-max", "dmax", "ranger", "navara", "amarok"],
+  Wagon: ["wagon", "estate", "fielder", "outback"],
+  Van: ["van", "hiace", "serena", "voxy", "noah"],
+  Truck: ["truck", "canter", "actros", "scania"],
+  Coupe: ["coupe", "86", "mustang"],
+  Convertible: ["convertible", "cabriolet", "roadster"],
+};
+
+function normalizeBodyTypeValue(value: string) {
+  const lower = value.trim().toLowerCase();
+  if (!lower) return null;
+  if (lower === "saloon") return "Sedan";
+  if (lower === "estate") return "Wagon";
+  if (lower === "pick up" || lower === "pick-up") return "Pickup";
+  if (lower === "4x4") return "SUV";
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function parseRequestedBodyTypes(value?: string | string[]) {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values
+    .flatMap((item) => item.split(","))
+    .map((item) => normalizeBodyTypeValue(item))
+    .filter((item): item is string => Boolean(item));
+}
+
+function inferBodyTypesFromText(text: string) {
+  const normalized = ` ${text.toLowerCase()} `;
+  const matches = new Set<string>();
+
+  Object.entries(BODY_TYPE_SYNONYMS).forEach(([bodyType, terms]) => {
+    if (terms.some((term) => normalized.includes(` ${term} `))) {
+      matches.add(bodyType);
+    }
+  });
+
+  if (matches.has("Crossover")) matches.add("SUV");
+  if (matches.has("SUV") && normalized.includes(" crossover ")) matches.add("Crossover");
+
+  return Array.from(matches);
+}
+
+function inferListingBodyTypes(listing: Listing) {
+  const explicit = listing.body_type ? [normalizeBodyTypeValue(listing.body_type)].filter(Boolean) : [];
+  const inferred = inferBodyTypesFromText(
+    [
+      listing.make,
+      listing.model,
+      listing.body_type,
+      listing.description,
+      listing.features?.join(" "),
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  return Array.from(new Set([...explicit, ...inferred].filter(Boolean))) as string[];
+}
+
+function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: string[]) {
+  if (requestedBodyTypes.length === 0) return true;
+  const inferred = inferListingBodyTypes(listing);
+  return requestedBodyTypes.some((type) => inferred.includes(type));
+}
+
+function applyListingFilters(
+  query: any,
+  filters?: ListingFilters,
+  options?: { skipBodyType?: boolean }
+) {
+  let nextQuery = query;
+
+  if (filters?.q) {
+    const broad = escapeLike(filters.q);
+    nextQuery = nextQuery.or(
+      `make.ilike.%${broad}%,model.ilike.%${broad}%,description.ilike.%${broad}%,body_type.ilike.%${broad}%`
+    );
+  }
+  if (filters?.make) {
+    nextQuery = nextQuery.ilike("make", `%${filters.make}%`);
+  }
+  if (filters?.model) {
+    nextQuery = nextQuery.ilike("model", `%${filters.model}%`);
+  }
+  if (filters?.minPrice) {
+    nextQuery = nextQuery.gte("price", filters.minPrice);
+  }
+  if (filters?.maxPrice) {
+    nextQuery = nextQuery.lte("price", filters.maxPrice);
+  }
+  if (filters?.minYear) {
+    nextQuery = nextQuery.gte("year", filters.minYear);
+  }
+  if (filters?.maxYear) {
+    nextQuery = nextQuery.lte("year", filters.maxYear);
+  }
+  if (!options?.skipBodyType && filters?.bodyType) {
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "body_type", filters.bodyType);
+  }
+  if (filters?.transmission) {
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "transmission", filters.transmission);
+  }
+  if (filters?.fuelType) {
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "fuel_type", filters.fuelType);
+  }
+  if (filters?.condition) {
+    if (filters.condition === "locally_used" || filters.condition === "used") {
+      nextQuery = nextQuery.in("condition", ["locally_used", "used"]);
+    } else {
+      nextQuery = nextQuery.eq("condition", filters.condition);
+    }
+  }
+  if (filters?.minMileage) {
+    nextQuery = nextQuery.gte("mileage", filters.minMileage);
+  }
+  if (filters?.maxMileage) {
+    nextQuery = nextQuery.lte("mileage", filters.maxMileage);
+  }
+  if (filters?.sellerType === "dealer") {
+    nextQuery = nextQuery.not("dealer_id", "is", null);
+  } else if (filters?.sellerType === "private") {
+    nextQuery = nextQuery.is("dealer_id", null);
+  }
+  if (filters?.location) {
+    nextQuery = nextQuery.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
+  }
+  if (filters?.color) {
+    nextQuery = nextQuery.ilike("color", `%${filters.color}%`);
+  }
+  if (filters?.seats) {
+    if (filters.seats >= 8) {
+      nextQuery = nextQuery.gte("seats", 8);
+    } else {
+      nextQuery = nextQuery.eq("seats", filters.seats);
+    }
+  }
+  if (filters?.doors) {
+    nextQuery = nextQuery.eq("doors", filters.doors);
+  }
+  if (filters?.driveType) {
+    nextQuery = nextQuery.eq("drive_type", filters.driveType);
+  }
+
+  return nextQuery;
+}
+
 function applyCaseInsensitiveMultiValueFilter<TQuery extends { or: (filters: string) => TQuery }>(
   query: TQuery,
   column: string,
@@ -149,102 +316,14 @@ export async function searchListings({
   limit?: number;
 }): Promise<{ listings: Listing[]; total: number }> {
   const supabase = await createClient();
+  const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
 
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact" })
     .eq("status", "active");
 
-  // Apply filters
-  if (filters?.q) {
-    query = query.or(
-      `make.ilike.%${filters.q}%,model.ilike.%${filters.q}%,description.ilike.%${filters.q}%`
-    );
-  }
-  if (filters?.make) {
-    query = query.ilike("make", `%${filters.make}%`);
-  }
-  if (filters?.model) {
-    query = query.ilike("model", `%${filters.model}%`);
-  }
-  if (filters?.minPrice) {
-    query = query.gte("price", filters.minPrice);
-  }
-  if (filters?.maxPrice) {
-    query = query.lte("price", filters.maxPrice);
-  }
-  if (filters?.minYear) {
-    query = query.gte("year", filters.minYear);
-  }
-  if (filters?.maxYear) {
-    query = query.lte("year", filters.maxYear);
-  }
-
-  // Handle array or single value for bodyType
-  if (filters?.bodyType) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "body_type", filters.bodyType);
-  }
-
-  // Handle array or single value for transmission
-  if (filters?.transmission) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "transmission", filters.transmission);
-  }
-
-  // Handle array or single value for fuelType
-  if (filters?.fuelType) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "fuel_type", filters.fuelType);
-  }
-
-  if (filters?.condition) {
-    if (filters.condition === "locally_used" || filters.condition === "used") {
-      query = query.in("condition", ["locally_used", "used"]);
-    } else {
-      query = query.eq("condition", filters.condition);
-    }
-  }
-
-  // Mileage filters
-  if (filters?.minMileage) {
-    query = query.gte("mileage", filters.minMileage);
-  }
-  if (filters?.maxMileage) {
-    query = query.lte("mileage", filters.maxMileage);
-  }
-
-  // Seller type filter (dealer has dealer_id, private doesn't)
-  if (filters?.sellerType === "dealer") {
-    query = query.not("dealer_id", "is", null);
-  } else if (filters?.sellerType === "private") {
-    query = query.is("dealer_id", null);
-  }
-
-  if (filters?.location) {
-    query = query.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
-  }
-
-  // Color filter
-  if (filters?.color) {
-    query = query.ilike("color", `%${filters.color}%`);
-  }
-
-  // Seats filter
-  if (filters?.seats) {
-    if (filters.seats >= 8) {
-      query = query.gte("seats", 8);
-    } else {
-      query = query.eq("seats", filters.seats);
-    }
-  }
-
-  // Doors filter
-  if (filters?.doors) {
-    query = query.eq("doors", filters.doors);
-  }
-
-  // Drive type filter
-  if (filters?.driveType) {
-    query = query.eq("drive_type", filters.driveType);
-  }
+  query = applyListingFilters(query, filters);
 
   // Apply sorting
   query = query.order(sort.field, { ascending: sort.direction === "asc" });
@@ -261,9 +340,36 @@ export async function searchListings({
     return { listings: [], total: 0 };
   }
 
+  const initialListings = (data || []) as unknown as Listing[];
+  if ((count || 0) > 0 || requestedBodyTypes.length === 0) {
+    return {
+      listings: initialListings,
+      total: count || 0,
+    };
+  }
+
+  let fallbackQuery = supabase
+    .from("listings")
+    .select(getListingSelect(Boolean(filters?.location)))
+    .eq("status", "active");
+
+  fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
+  fallbackQuery = fallbackQuery.order(sort.field, { ascending: sort.direction === "asc" });
+  fallbackQuery = fallbackQuery.range(0, Math.max(limit * 4, 60) - 1);
+
+  const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+  if (fallbackError) {
+    console.error("Error searching listings with body type fallback:", fallbackError);
+    return { listings: [], total: 0 };
+  }
+
+  const fallbackMatches = ((fallbackData || []) as unknown as Listing[]).filter((listing) =>
+    listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+  );
+
   return {
-    listings: (data || []) as unknown as Listing[],
-    total: count || 0,
+    listings: fallbackMatches.slice(from, to + 1),
+    total: fallbackMatches.length,
   };
 }
 
@@ -271,102 +377,13 @@ export async function countMatchingListings(
   filters?: ListingFilters
 ): Promise<number> {
   const supabase = await createClient();
+  const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
 
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact", head: true })
     .eq("status", "active");
-
-  // Apply filters
-  if (filters?.q) {
-    query = query.or(
-      `make.ilike.%${filters.q}%,model.ilike.%${filters.q}%,description.ilike.%${filters.q}%`
-    );
-  }
-  if (filters?.make) {
-    query = query.ilike("make", `%${filters.make}%`);
-  }
-  if (filters?.model) {
-    query = query.ilike("model", `%${filters.model}%`);
-  }
-  if (filters?.minPrice) {
-    query = query.gte("price", filters.minPrice);
-  }
-  if (filters?.maxPrice) {
-    query = query.lte("price", filters.maxPrice);
-  }
-  if (filters?.minYear) {
-    query = query.gte("year", filters.minYear);
-  }
-  if (filters?.maxYear) {
-    query = query.lte("year", filters.maxYear);
-  }
-
-  if (filters?.condition) {
-    if (filters.condition === "locally_used" || filters.condition === "used") {
-      query = query.in("condition", ["locally_used", "used"]);
-    } else {
-      query = query.eq("condition", filters.condition);
-    }
-  }
-
-  // Handle array or single value for bodyType
-  if (filters?.bodyType) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "body_type", filters.bodyType);
-  }
-
-  // Handle array or single value for transmission
-  if (filters?.transmission) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "transmission", filters.transmission);
-  }
-
-  // Handle array or single value for fuelType
-  if (filters?.fuelType) {
-    query = applyCaseInsensitiveMultiValueFilter(query, "fuel_type", filters.fuelType);
-  }
-
-  // Mileage filters
-  if (filters?.minMileage) {
-    query = query.gte("mileage", filters.minMileage);
-  }
-  if (filters?.maxMileage) {
-    query = query.lte("mileage", filters.maxMileage);
-  }
-
-  // Seller type filter
-  if (filters?.sellerType === "dealer") {
-    query = query.not("dealer_id", "is", null);
-  } else if (filters?.sellerType === "private") {
-    query = query.is("dealer_id", null);
-  }
-
-  if (filters?.location) {
-    query = query.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
-  }
-
-  // Color filter
-  if (filters?.color) {
-    query = query.ilike("color", `%${filters.color}%`);
-  }
-
-  // Seats filter
-  if (filters?.seats) {
-    if (filters.seats >= 8) {
-      query = query.gte("seats", 8);
-    } else {
-      query = query.eq("seats", filters.seats);
-    }
-  }
-
-  // Doors filter
-  if (filters?.doors) {
-    query = query.eq("doors", filters.doors);
-  }
-
-  // Drive type filter
-  if (filters?.driveType) {
-    query = query.eq("drive_type", filters.driveType);
-  }
+  query = applyListingFilters(query, filters);
 
   const { count, error } = await query;
 
@@ -375,7 +392,27 @@ export async function countMatchingListings(
     return 0;
   }
 
-  return count || 0;
+  if ((count || 0) > 0 || requestedBodyTypes.length === 0) {
+    return count || 0;
+  }
+
+  let fallbackQuery = supabase
+    .from("listings")
+    .select(getListingSelect(Boolean(filters?.location)))
+    .eq("status", "active");
+
+  fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
+  fallbackQuery = fallbackQuery.range(0, 199);
+
+  const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+  if (fallbackError) {
+    console.error("Error counting listings with body type fallback:", fallbackError);
+    return 0;
+  }
+
+  return ((fallbackData || []) as unknown as Listing[]).filter((listing) =>
+    listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+  ).length;
 }
 
 export async function getSimilarListings(

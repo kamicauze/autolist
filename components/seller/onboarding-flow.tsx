@@ -103,6 +103,12 @@ export function OnboardingFlow({
 
   const isDealer = formData.role === "dealer";
   const isLastStep = activeStep === ONBOARDING_STEPS.length - 1;
+  const roleLabel =
+    formData.role === "seller"
+      ? "private seller"
+      : formData.role === "dealer"
+        ? "dealer account"
+        : formData.role;
 
   const updateField = <Key extends keyof OnboardingData>(
     key: Key,
@@ -207,7 +213,7 @@ export function OnboardingFlow({
           <p className="text-muted-foreground">
             Your account is now configured as a{" "}
             <span className="font-semibold text-foreground">
-              {formData.role.toUpperCase()}
+              {roleLabel.toUpperCase()}
             </span>
             . Verification checks are queued and you can proceed to your dashboard.
           </p>
