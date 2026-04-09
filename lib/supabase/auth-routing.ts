@@ -55,6 +55,10 @@ export async function resolvePostAuthPath(
     return "/dashboard";
   }
 
+  if (profile.role === "admin") {
+    return "/admin/dashboard";
+  }
+
   if (profile.role === "buyer") {
     return "/";
   }

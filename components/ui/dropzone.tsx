@@ -16,6 +16,20 @@ interface DropzoneProps {
   multiple?: boolean;
 }
 
+function isPreviewableImage(file: File) {
+  return typeof file.type === "string" && file.type.startsWith("image/");
+}
+
+function getFileName(file: File, fallbackIndex: number) {
+  return file?.name || `File ${fallbackIndex + 1}`;
+}
+
+function getFileSizeLabel(file: File) {
+  return typeof file?.size === "number" && Number.isFinite(file.size)
+    ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
+    : "Saved file";
+}
+
 export function Dropzone({
   className,
   files,
@@ -158,14 +172,14 @@ export function Dropzone({
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {files.map((file, index) => (
             <li
-              key={`${file.name}-${index}`}
+              key={`${getFileName(file, index)}-${index}`}
               className="relative flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gray-100">
-                {file.type.startsWith("image/") ? (
+                {isPreviewableImage(file) ? (
                   <img
                     src={URL.createObjectURL(file)}
-                    alt={file.name}
+                    alt={getFileName(file, index)}
                     className="h-full w-full rounded-md object-cover"
                     onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
                   />
@@ -175,10 +189,10 @@ export function Dropzone({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-gray-700">
-                  {file.name}
+                  {getFileName(file, index)}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                  {getFileSizeLabel(file)}
                 </p>
               </div>
               {onRemove && (

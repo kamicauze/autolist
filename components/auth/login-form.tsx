@@ -26,8 +26,12 @@ export function LoginForm() {
   const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
 
   const requestedNextPath = searchParams.get("next");
-  const safeNextPathForOAuth = sanitizeNextPath(requestedNextPath, "/dashboard");
-  const registerHref = `/register?next=${encodeURIComponent(safeNextPathForOAuth)}`;
+  const safeNextPathForOAuth = requestedNextPath
+    ? sanitizeNextPath(requestedNextPath, "")
+    : "";
+  const registerHref = safeNextPathForOAuth
+    ? `/register?next=${encodeURIComponent(safeNextPathForOAuth)}`
+    : "/register";
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,9 +67,9 @@ export function LoginForm() {
     setSocialLoading(provider);
 
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-      safeNextPathForOAuth
-    )}`;
+    const redirectTo = safeNextPathForOAuth
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNextPathForOAuth)}`
+      : `${window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
