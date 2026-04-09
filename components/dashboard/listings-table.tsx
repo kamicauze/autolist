@@ -1,193 +1,174 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
-import { Search, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CalendarDays, Eye, MoreHorizontal, Pencil, Search, Trash2 } from "lucide-react";
 import {
-  LISTING_STATUS_META,
-  type ListingStatus,
-} from "@/lib/constants/marketplace";
-import { cn } from "@/lib/utils";
+  SellerPagination,
+  SellerStatusPill,
+  SellerSurface,
+  formatDashboardCurrency,
+} from "./seller-dashboard-ui";
 
-interface TableListing {
+type DashboardListing = {
   id: string;
   title: string;
-  price: number;
-  status: ListingStatus;
   date: string;
-  image?: string;
-}
+  status: "active" | "pending" | "draft" | "sold";
+  price: number;
+};
 
-const SAMPLE_LISTINGS: TableListing[] = [
+const tableListings: DashboardListing[] = [
   {
     id: "1",
-    title: "2022 Toyota Prado TX",
-    price: 7800000,
+    title: "Mercedes Benz GLC 2021",
+    date: "2025-01-22",
     status: "active",
-    date: "Dec 12, 2025",
+    price: 7250000,
   },
   {
     id: "2",
-    title: "2020 Mazda CX-5",
-    price: 3650000,
-    status: "active",
-    date: "Dec 10, 2025",
+    title: "Toyota Land Cruiser Prado TXL",
+    date: "2025-01-17",
+    status: "pending",
+    price: 6850000,
   },
   {
     id: "3",
-    title: "2019 Nissan X-Trail",
-    price: 2890000,
-    status: "pending",
-    date: "Dec 8, 2025",
+    title: "Audi Q8 S Line",
+    date: "2025-01-10",
+    status: "draft",
+    price: 12400000,
   },
   {
     id: "4",
-    title: "2018 Subaru Forester",
-    price: 2520000,
-    status: "draft",
-    date: "Dec 5, 2025",
+    title: "Mazda CX-5 Touring",
+    date: "2025-01-08",
+    status: "active",
+    price: 3250000,
   },
   {
     id: "5",
-    title: "2016 Mercedes-Benz C200",
-    price: 3180000,
+    title: "Subaru Forester XT",
+    date: "2024-12-28",
     status: "sold",
-    date: "Dec 1, 2025",
+    price: 2980000,
   },
 ];
 
-function formatKES(price: number) {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 0,
-  }).format(price);
-}
+const tones = {
+  active: "green" as const,
+  pending: "amber" as const,
+  draft: "blue" as const,
+  sold: "neutral" as const,
+};
 
 export function ListingsTable() {
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<"all" | ListingStatus>(
-    "all"
-  );
-  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState("All status");
 
-  const filtered = React.useMemo(() => {
-    return SAMPLE_LISTINGS.filter((l) => {
-      const matchSearch = l.title.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "all" || l.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [search, statusFilter]);
+  const listings = tableListings.filter((listing) => {
+    const matchesQuery = listing.title.toLowerCase().includes(query.toLowerCase());
+    const matchesStatus = status === "All status" || listing.status === status.toLowerCase();
+    return matchesQuery && matchesStatus;
+  });
 
   return (
-    <div className="rounded-xl border border-border bg-white shadow-sm">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-        <h3 className="text-base font-semibold text-foreground">
-          Listing List
-        </h3>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search listing..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-48 pl-9 text-sm"
+    <SellerSurface className="overflow-hidden">
+      <div className="flex flex-col gap-4 border-b border-[#ededed] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">New Listing</h2>
+          <p className="mt-1 text-[13px] text-[#7a7a7a]">
+            Monitor the latest inventory states, draft packages, and publishing activity.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 md:flex-row">
+          <div className="flex h-12 min-w-[240px] items-center gap-3 rounded-[14px] border border-[#ededed] bg-white px-4">
+            <Search className="h-4 w-4 text-[#939393]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search here..."
+              className="h-full flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-[#9a9a9a]"
             />
           </div>
+          <button className="inline-flex h-12 items-center gap-2 rounded-[14px] border border-[#ededed] bg-white px-4 text-[14px] text-[#6e6e6e]">
+            <CalendarDays className="h-4 w-4" />
+            Jan 01 - Jan 30
+          </button>
           <select
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as "all" | ListingStatus)
-            }
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            className="h-12 min-w-[154px] rounded-[14px] border border-[#ededed] bg-white px-4 text-[14px] text-[#202224] outline-none"
           >
-            <option value="all">All Status</option>
-            {Object.entries(LISTING_STATUS_META).map(([status, meta]) => (
-              <option key={status} value={status}>
-                {meta.label}
-              </option>
-            ))}
+            <option>All status</option>
+            <option>active</option>
+            <option>pending</option>
+            <option>draft</option>
+            <option>sold</option>
           </select>
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="min-w-full">
           <thead>
-            <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-3">Listing</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+            <tr className="border-b border-[#ededed] text-left text-[12px] uppercase tracking-[0.18em] text-[#8a8a8a]">
+              <th className="px-5 py-4 font-medium">Listing</th>
+              <th className="px-5 py-4 font-medium">Date</th>
+              <th className="px-5 py-4 font-medium">Status</th>
+              <th className="px-5 py-4 font-medium">Price</th>
+              <th className="px-5 py-4 text-right font-medium">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.map((listing) => {
-              const meta = LISTING_STATUS_META[listing.status];
-              return (
-                <tr key={listing.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-14 shrink-0 rounded-md bg-gray-100" />
-                      <span className="text-sm font-medium text-foreground">
-                        {listing.title}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={meta.tone}>{meta.label}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-foreground">
-                    {formatKES(listing.price)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {listing.date}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="relative inline-block">
-                      <button
-                        onClick={() =>
-                          setOpenMenu(openMenu === listing.id ? null : listing.id)
-                        }
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                      {openMenu === listing.id && (
-                        <div className="absolute right-0 top-full z-10 mt-1 w-36 rounded-lg border border-border bg-white py-1 shadow-lg">
-                          <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-gray-50">
-                            <Eye className="h-3.5 w-3.5" /> View
-                          </button>
-                          <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-gray-50">
-                            <Edit className="h-3.5 w-3.5" /> Edit
-                          </button>
-                          <button className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                  No listings found.
+          <tbody>
+            {listings.map((listing) => (
+              <tr key={listing.id} className="border-b border-[#f1f1f1] last:border-b-0">
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-[72px] rounded-[16px] bg-[linear-gradient(135deg,#f0f4ff,#e7e1d8)]" />
+                    <p className="text-[14px] font-semibold text-[#202224]">{listing.title}</p>
+                  </div>
+                </td>
+                <td className="px-5 py-4 text-[14px] text-[#707070]">
+                  {new Date(listing.date).toLocaleDateString("en-KE", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </td>
+                <td className="px-5 py-4">
+                  <SellerStatusPill
+                    label={listing.status[0].toUpperCase() + listing.status.slice(1)}
+                    tone={tones[listing.status]}
+                  />
+                </td>
+                <td className="px-5 py-4 text-[14px] font-semibold text-[#202224]">
+                  {formatDashboardCurrency(listing.price)}
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center justify-end gap-2">
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#f04438] hover:text-[#f04438]">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </div>
-    </div>
+
+      <SellerPagination />
+    </SellerSurface>
   );
 }

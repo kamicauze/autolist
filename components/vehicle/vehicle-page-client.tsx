@@ -13,6 +13,7 @@ import {
   Share2,
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
+import type { PricePositioningResult } from "@/lib/types/market-insights";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -39,6 +40,7 @@ import { FinancingRequestDialog } from "./financing-request-dialog";
 interface VehiclePageClientProps {
   listing: Listing;
   similarListings: Listing[];
+  pricePositioning: PricePositioningResult;
   title: string;
   location: string;
 }
@@ -172,6 +174,7 @@ function metadataValue(metadata: Listing["metadata"], key: string) {
 export function VehiclePageClient({
   listing,
   similarListings,
+  pricePositioning,
   title,
   location,
 }: VehiclePageClientProps) {
@@ -286,6 +289,7 @@ export function VehiclePageClient({
         title={title}
         price={Number(listing.price)}
         currency={listing.currency}
+        pricePositioning={pricePositioning}
       />
               <ImageGallery images={sortedImages} title={title} />
             </div>
@@ -339,6 +343,7 @@ export function VehiclePageClient({
             <PriceAdviserSummary
               price={Number(listing.price)}
               currency={listing.currency}
+              pricePositioning={pricePositioning}
               onOpenDetails={() => setIsPriceAdviserOpen(true)}
             />
 

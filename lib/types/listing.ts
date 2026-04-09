@@ -65,6 +65,7 @@ export interface Listing {
 }
 
 export interface ListingFilters {
+  q?: string;
   make?: string;
   model?: string;
   minPrice?: number;

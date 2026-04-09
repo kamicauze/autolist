@@ -1,98 +1,114 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useWizard } from "./wizard-context";
+import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
 
 export function StepSeller() {
-  const { draft, updateField, applyDealerAutofill, showValidationErrors, sellerValidationError } = useWizard();
+  const { draft, updateField, applyDealerAutofill, sellerValidationError } = useWizard();
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground">Seller Information</h2>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={draft.useDealerAutoFill}
-          onChange={(e) => applyDealerAutofill(e.target.checked)}
-        />
-        Use dealer defaults (auto-fill for logged-in dealers)
-      </label>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <Label htmlFor="listing-seller-type">Seller Type</Label>
-          <select
-            id="listing-seller-type"
-            className="flex h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base"
-            value={draft.sellerType}
-            onChange={(e) => updateField("sellerType", e.target.value as "dealer" | "individual")}
-          >
-            <option value="dealer">Dealer</option>
-            <option value="individual">Individual</option>
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="listing-contact-name">Contact Name *</Label>
-          <Input
-            id="listing-contact-name"
-            placeholder="John Doe"
-            value={draft.contactName}
-            onChange={(e) => updateField("contactName", e.target.value)}
-            className={cn(showValidationErrors && !draft.contactName.trim() && "border-destructive")}
-          />
-        </div>
-        <div>
-          <Label htmlFor="listing-phone">Phone Number *</Label>
-          <Input
-            id="listing-phone"
-            placeholder="+254 7XX XXX XXX"
-            value={draft.phoneNumber}
-            onChange={(e) => updateField("phoneNumber", e.target.value)}
-            className={cn(showValidationErrors && !draft.phoneNumber.trim() && "border-destructive")}
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="listing-whatsapp-number">WhatsApp Number</Label>
-            {draft.whatsappEnabled && draft.phoneNumber && draft.phoneNumber !== draft.whatsappNumber && (
-              <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => updateField("whatsappNumber", draft.phoneNumber)}>
-                Copy from phone
-              </Button>
-            )}
-          </div>
-          <Input
-            id="listing-whatsapp-number"
-            value={draft.whatsappNumber}
-            onChange={(e) => updateField("whatsappNumber", e.target.value)}
-            disabled={!draft.whatsappEnabled}
-            className={cn(showValidationErrors && draft.whatsappEnabled && !draft.whatsappNumber.trim() && "border-destructive")}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={draft.whatsappEnabled} onChange={(e) => updateField("whatsappEnabled", e.target.checked)} />
-          WhatsApp Enabled
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={draft.allowPhoneCalls} onChange={(e) => updateField("allowPhoneCalls", e.target.checked)} />
-          Allow Phone Calls
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={draft.hidePhoneNumber} onChange={(e) => updateField("hidePhoneNumber", e.target.checked)} />
-          Hide Phone Number
-        </label>
-      </div>
-
-      {sellerValidationError && (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {sellerValidationError}
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">Seller Information</h2>
+        <p className="mt-2 text-[14px] leading-6 text-[#767676]">
+          Confirm the contact details buyers should use once this listing package is published.
         </p>
-      )}
+      </div>
+
+      <div className="rounded-[24px] border border-[#ededed] bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.04)]">
+        <label className="mb-5 flex items-center gap-3 text-[15px] text-[#202224]">
+          <input
+            type="checkbox"
+            checked={draft.useDealerAutoFill}
+            onChange={(event) => applyDealerAutofill(event.target.checked)}
+            className="h-4 w-4 rounded border-[#c8c8c8]"
+          />
+          Use my saved account details (auto-fill for logged-in dealers or individuals)
+        </label>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label className={sellerLabelClass}>Seller Type</label>
+            <select
+              value={draft.sellerType}
+              onChange={(event) => {
+                if (draft.useDealerAutoFill) {
+                  applyDealerAutofill(false);
+                }
+                updateField("sellerType", event.target.value as "dealer" | "individual");
+              }}
+              className={sellerSelectClass}
+            >
+              <option value="dealer">Dealer</option>
+              <option value="individual">Individual</option>
+            </select>
+          </div>
+          <div>
+            <label className={sellerLabelClass}>Contact Name</label>
+            <input
+              value={draft.contactName}
+              onChange={(event) => updateField("contactName", event.target.value)}
+              className={sellerInputClass}
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          <div>
+            <label className={sellerLabelClass}>Phone Number</label>
+            <input
+              value={draft.phoneNumber}
+              onChange={(event) => updateField("phoneNumber", event.target.value)}
+              className={sellerInputClass}
+              placeholder="e.g., +254 712 345 678"
+            />
+          </div>
+          <div>
+            <label className={sellerLabelClass}>WhatsApp Number</label>
+            <input
+              value={draft.whatsappNumber}
+              disabled={!draft.whatsappEnabled}
+              onChange={(event) => updateField("whatsappNumber", event.target.value)}
+              className={`${sellerInputClass} ${!draft.whatsappEnabled ? "bg-[#f6f6f6]" : ""}`}
+              placeholder="e.g., +254 712 345 678"
+            />
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-t border-[#efefef] pt-5">
+          <label className="flex items-center gap-2 text-[14px] text-[#202224]">
+            <input
+              type="checkbox"
+              checked={draft.whatsappEnabled}
+              onChange={(event) => updateField("whatsappEnabled", event.target.checked)}
+              className="h-4 w-4 rounded border-[#c8c8c8]"
+            />
+            WhatsApp Enabled
+          </label>
+          <label className="flex items-center gap-2 text-[14px] text-[#202224]">
+            <input
+              type="checkbox"
+              checked={draft.allowPhoneCalls}
+              onChange={(event) => updateField("allowPhoneCalls", event.target.checked)}
+              className="h-4 w-4 rounded border-[#c8c8c8]"
+            />
+            Allow Phone Calls
+          </label>
+          <label className="flex items-center gap-2 text-[14px] text-[#202224]">
+            <input
+              type="checkbox"
+              checked={draft.hidePhoneNumber}
+              onChange={(event) => updateField("hidePhoneNumber", event.target.checked)}
+              className="h-4 w-4 rounded border-[#c8c8c8]"
+            />
+            Hide Phone Number
+          </label>
+        </div>
+      </div>
+
+      {sellerValidationError ? (
+        <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
+          {sellerValidationError}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,157 +1,149 @@
 "use client";
 
 import * as React from "react";
-import { Search, Send } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Paperclip, Search, SendHorizontal, SmilePlus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-
-interface Contact {
-  id: string;
-  name: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-  avatar?: string;
-}
-
-interface Message {
-  id: string;
-  text: string;
-  sender: "me" | "them";
-  time: string;
-}
-
-const CONTACTS: Contact[] = [
-  { id: "1", name: "John Mwangi", lastMessage: "Is the Toyota Prado still available?", time: "2m ago", unread: 2 },
-  { id: "2", name: "Sarah Kamau", lastMessage: "What's the lowest price you can do?", time: "1h ago", unread: 0 },
-  { id: "3", name: "David Ochieng", lastMessage: "Can I come for a test drive tomorrow?", time: "3h ago", unread: 1 },
-  { id: "4", name: "Mary Wanjiku", lastMessage: "Thanks for the quick response!", time: "1d ago", unread: 0 },
-  { id: "5", name: "Peter Otieno", lastMessage: "I'm interested in the BMW X3", time: "2d ago", unread: 0 },
-];
-
-const MESSAGES: Record<string, Message[]> = {
-  "1": [
-    { id: "1", text: "Hi, I saw your listing for the 2022 Toyota Prado TX", sender: "them", time: "10:30 AM" },
-    { id: "2", text: "Is it still available?", sender: "them", time: "10:30 AM" },
-    { id: "3", text: "Yes, it's still available! Would you like to schedule a viewing?", sender: "me", time: "10:35 AM" },
-    { id: "4", text: "That would be great. When are you free this week?", sender: "them", time: "10:38 AM" },
-  ],
-};
+import {
+  SellerPageHeader,
+  SellerSurface,
+  getInitials,
+  sellerConversations,
+  sellerMessages,
+} from "../seller-dashboard-ui";
 
 export function ChatLayout() {
-  const [selectedContact, setSelectedContact] = React.useState<string>("1");
+  const [activeConversationId, setActiveConversationId] = React.useState("1");
+  const [query, setQuery] = React.useState("");
   const [message, setMessage] = React.useState("");
-  const [search, setSearch] = React.useState("");
 
-  const messages = MESSAGES[selectedContact] || [];
-  const contact = CONTACTS.find((c) => c.id === selectedContact);
-
-  const filteredContacts = search
-    ? CONTACTS.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-    : CONTACTS;
+  const conversations = sellerConversations.filter((item) =>
+    item.name.toLowerCase().includes(query.toLowerCase())
+  );
+  const activeConversation =
+    sellerConversations.find((item) => item.id === activeConversationId) || sellerConversations[0];
+  const activeMessages = sellerMessages[activeConversation.id] || [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-        <p className="text-sm text-muted-foreground">Chat with buyers and sellers</p>
-      </div>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="Messages"
+        description="Reply to buyer questions, send viewing details, and keep active deal conversations in one place."
+      />
 
-      <div className="flex h-[600px] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-        {/* Contact List */}
-        <div className="w-80 shrink-0 border-r border-border">
-          <div className="border-b border-border p-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search contacts..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 pl-9 text-sm"
-              />
-            </div>
-          </div>
-          <div className="overflow-y-auto">
-            {filteredContacts.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedContact(c.id)}
-                className={cn(
-                  "flex w-full items-center gap-3 border-b border-border px-3 py-3 text-left transition-colors hover:bg-gray-50",
-                  selectedContact === c.id && "bg-primary/5"
-                )}
-              >
-                <Avatar alt={c.name} size="sm" fallback={c.name.split(" ").map((n) => n[0]).join("")} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{c.time}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{c.lastMessage}</p>
-                </div>
-                {c.unread > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                    {c.unread}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex flex-1 flex-col">
-          {/* Chat Header */}
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Avatar alt={contact?.name || ""} size="sm" fallback={contact?.name?.split(" ").map((n) => n[0]).join("") || "?"} />
-            <div>
-              <p className="text-sm font-semibold text-foreground">{contact?.name}</p>
-              <p className="text-xs text-green-500">Online</p>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.map((msg) => (
-              <div key={msg.id} className={cn("flex", msg.sender === "me" ? "justify-end" : "justify-start")}>
-                <div className={cn(
-                  "max-w-[70%] rounded-2xl px-4 py-2",
-                  msg.sender === "me"
-                    ? "bg-primary text-white rounded-br-sm"
-                    : "bg-gray-100 text-foreground rounded-bl-sm"
-                )}>
-                  <p className="text-sm">{msg.text}</p>
-                  <p className={cn("mt-1 text-[10px]", msg.sender === "me" ? "text-white/70" : "text-muted-foreground")}>
-                    {msg.time}
-                  </p>
-                </div>
+      <SellerSurface className="overflow-hidden">
+        <div className="grid min-h-[740px] xl:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="border-b border-[#ededed] xl:border-b-0 xl:border-r">
+            <div className="border-b border-[#ededed] p-5">
+              <div className="flex h-12 items-center gap-3 rounded-[14px] border border-[#ededed] bg-white px-4">
+                <Search className="h-4 w-4 text-[#939393]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search here..."
+                  className="h-full flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-[#9a9a9a]"
+                />
               </div>
-            ))}
+            </div>
+
+            <div className="max-h-[640px] overflow-y-auto">
+              {conversations.map((conversation) => {
+                const active = conversation.id === activeConversationId;
+                return (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() => setActiveConversationId(conversation.id)}
+                    className={`flex w-full items-start gap-3 border-b border-[#efefef] px-5 py-4 text-left transition ${
+                      active ? "bg-[#f7fbff]" : "bg-white hover:bg-[#fafafa]"
+                    }`}
+                  >
+                    <Avatar
+                      alt={conversation.name}
+                      fallback={getInitials(conversation.name)}
+                      size="md"
+                      className="shrink-0 bg-[#eef4ff] text-[#2563eb]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[14px] font-semibold text-[#202224]">
+                            {conversation.name}
+                          </p>
+                          <p className="mt-1 text-[12px] text-[#8a8a8a]">{conversation.listing}</p>
+                        </div>
+                        <p className="text-[11px] text-[#999]">{conversation.time}</p>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[#6f6f6f]">
+                        {conversation.preview}
+                      </p>
+                    </div>
+                    {conversation.unread > 0 ? (
+                      <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#2563eb] px-2 text-[11px] font-semibold text-white">
+                        {conversation.unread}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Input */}
-          <div className="border-t border-border p-3">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && message.trim()) {
-                    setMessage("");
-                  }
-                }}
+          <div className="flex min-h-[640px] flex-col">
+            <div className="flex items-center gap-3 border-b border-[#ededed] px-5 py-5">
+              <Avatar
+                alt={activeConversation.name}
+                fallback={getInitials(activeConversation.name)}
+                size="md"
+                className="bg-[#eef4ff] text-[#2563eb]"
               />
-              <Button size="icon" disabled={!message.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
+              <div>
+                <p className="text-[15px] font-semibold text-[#202224]">{activeConversation.name}</p>
+                <p className="mt-1 text-[12px] text-[#7d7d7d]">{activeConversation.listing}</p>
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-4 bg-[#faf9f7] p-5">
+              {activeMessages.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex ${item.sender === "me" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[78%] rounded-[22px] px-4 py-3 text-[14px] leading-6 ${
+                      item.sender === "me"
+                        ? "rounded-br-[8px] bg-[#edf3ff] text-[#202224]"
+                        : "rounded-bl-[8px] bg-[#fff2e7] text-[#202224]"
+                    }`}
+                  >
+                    <p>{item.text}</p>
+                    <p className="mt-2 text-[11px] text-[#8d8d8d]">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-[#ededed] px-5 py-4">
+              <div className="flex items-center gap-3 rounded-[20px] border border-[#ededed] bg-white px-4 py-3">
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#faf9f7] text-[#7f7f7f]">
+                  <Paperclip className="h-4 w-4" />
+                </button>
+                <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#faf9f7] text-[#7f7f7f]">
+                  <SmilePlus className="h-4 w-4" />
+                </button>
+                <input
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Write your message..."
+                  className="h-10 flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-[#9a9a9a]"
+                />
+                <button className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2563eb] text-white transition hover:bg-[#1d4ed8]">
+                  <SendHorizontal className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </SellerSurface>
     </div>
   );
 }

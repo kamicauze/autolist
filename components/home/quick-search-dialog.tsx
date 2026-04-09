@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -9,121 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Search, Sparkles, Loader2 } from "lucide-react";
+import type { SmartSearchResult } from "@/lib/types/smart-search";
+import type { Listing } from "@/lib/types/listing";
+import { getImageUrl } from "@/lib/utils/listings";
 
 interface QuickSearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-/**
- * Parses a natural language car search query into URL search params.
- * Examples:
- *   "BMW X5 under 5 million" → make=BMW&model=X5&maxPrice=5000000
- *   "Toyota 2020 diesel" → make=Toyota&minYear=2020&fuel=Diesel
- *   "SUV below 3m in Nairobi" → bodyType=SUV&maxPrice=3000000&location=Nairobi
- */
-function parseQuickSearch(query: string): URLSearchParams {
-  const params = new URLSearchParams();
-  const q = query.trim();
-  if (!q) return params;
-
-  const lower = q.toLowerCase();
-
-  // Known car makes
-  const MAKES = [
-    "Toyota", "BMW", "Mercedes", "Mercedes-Benz", "Audi", "Honda", "Nissan",
-    "Mazda", "Subaru", "Volkswagen", "VW", "Land Rover", "Range Rover",
-    "Porsche", "Lexus", "Mitsubishi", "Suzuki", "Hyundai", "Kia", "Ford",
-    "Chevrolet", "Jeep", "Peugeot", "Isuzu", "Volvo", "Jaguar", "Mini",
-  ];
-
-  // Known body types
-  const BODY_TYPES = ["sedan", "suv", "hatchback", "pickup", "truck", "van", "coupe", "convertible", "wagon", "crossover"];
-
-  // Known fuel types
-  const FUEL_TYPES = ["petrol", "diesel", "hybrid", "electric"];
-
-  // Known locations
-  const LOCATIONS = ["nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "thika", "nyeri", "malindi"];
-
-  // Extract make
-  for (const make of MAKES) {
-    if (lower.includes(make.toLowerCase())) {
-      params.set("make", make === "VW" ? "Volkswagen" : make === "Mercedes" ? "Mercedes-Benz" : make);
-      break;
-    }
-  }
-
-  // Extract year (4-digit number between 1990-2030)
-  const yearMatch = q.match(/\b(19[9]\d|20[0-3]\d)\b/);
-  if (yearMatch) {
-    params.set("minYear", yearMatch[1]);
-  }
-
-  // Extract price — "under X million", "below Xm", "max Xk", "budget X"
-  const pricePatterns = [
-    /(?:under|below|max|budget|less than|cheaper than)\s*(?:ksh?|kes)?\s*([\d.]+)\s*(?:million|m\b)/i,
-    /(?:under|below|max|budget|less than|cheaper than)\s*(?:ksh?|kes)?\s*([\d,]+)\s*(?:k\b)?/i,
-    /(?:ksh?|kes)\s*([\d,]+)/i,
-  ];
-
-  for (const pattern of pricePatterns) {
-    const match = lower.match(pattern);
-    if (match) {
-      let price = parseFloat(match[1].replace(/,/g, ""));
-      // If matched with "million" or "m", multiply
-      if (/million|m\b/i.test(match[0])) {
-        price = price * 1_000_000;
-      } else if (/k\b/i.test(match[0])) {
-        price = price * 1_000;
-      } else if (price < 1000) {
-        // Likely millions if small number with "under"
-        price = price * 1_000_000;
-      }
-      if (price > 0) {
-        params.set("maxPrice", String(Math.round(price)));
-        break;
-      }
-    }
-  }
-
-  // "above X million", "from Xm", "min Xm"
-  const minPriceMatch = lower.match(/(?:above|from|min|over|more than|starting)\s*(?:ksh?|kes)?\s*([\d.]+)\s*(?:million|m\b)/i);
-  if (minPriceMatch) {
-    const price = parseFloat(minPriceMatch[1]) * 1_000_000;
-    params.set("minPrice", String(Math.round(price)));
-  }
-
-  // Extract body type
-  for (const bt of BODY_TYPES) {
-    if (lower.includes(bt)) {
-      params.set("bodyType", bt.charAt(0).toUpperCase() + bt.slice(1));
-      break;
-    }
-  }
-
-  // Extract fuel type
-  for (const ft of FUEL_TYPES) {
-    if (lower.includes(ft)) {
-      params.set("fuel", ft.charAt(0).toUpperCase() + ft.slice(1));
-      break;
-    }
-  }
-
-  // Extract location
-  for (const loc of LOCATIONS) {
-    if (lower.includes(loc)) {
-      params.set("location", loc.charAt(0).toUpperCase() + loc.slice(1));
-      break;
-    }
-  }
-
-  // If nothing was parsed, use as general search text
-  if (params.toString() === "") {
-    params.set("q", q);
-  }
-
-  return params;
 }
 
 const SUGGESTIONS = [
@@ -135,38 +29,63 @@ const SUGGESTIONS = [
   "SUV below 10 million",
 ];
 
+type SmartSearchResponse = SmartSearchResult & {
+  searchUrl: string;
+  preview: {
+    listings: Listing[];
+    total: number;
+  };
+};
+
 export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [isSearching, setIsSearching] = React.useState(false);
+  const [searchResult, setSearchResult] = React.useState<SmartSearchResponse | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (open) {
       setQuery("");
+      setSearchResult(null);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
 
-  const handleSearch = (searchQuery: string) => {
+  const handleSearch = async (searchQuery: string) => {
     const q = searchQuery.trim();
     if (!q) return;
 
     setIsSearching(true);
-    const params = parseQuickSearch(q);
-    onOpenChange(false);
-    setIsSearching(false);
-    router.push(`/search?${params.toString()}`);
+    try {
+      const response = await fetch("/api/ai/smart-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Smart search failed.");
+      }
+
+      const result = (await response.json()) as SmartSearchResponse;
+      setSearchResult(result);
+    } catch {
+      setSearchResult(null);
+      router.push(`/search?q=${encodeURIComponent(q)}`);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSearch(query);
+    void handleSearch(query);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] p-0 gap-0">
+      <DialogContent className="gap-0 p-0 sm:max-w-[960px]">
         <DialogHeader className="px-5 pt-5 pb-3">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -213,7 +132,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => handleSearch(suggestion)}
+                onClick={() => void handleSearch(suggestion)}
                 className="rounded-full border border-border bg-gray-50 px-3 py-1.5 text-xs text-foreground hover:bg-gray-100 hover:border-primary/30 transition-colors"
               >
                 {suggestion}
@@ -221,6 +140,118 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
             ))}
           </div>
         </div>
+
+        {(searchResult || isSearching) && (
+          <div className="border-t border-border px-5 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                  Smart Results
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {isSearching
+                    ? "Searching listings..."
+                    : `${searchResult?.preview.total || 0} match${searchResult?.preview.total === 1 ? "" : "es"} found`}
+                </p>
+                {!isSearching && searchResult && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {searchResult.provider === "openai"
+                      ? `OpenAI-assisted via ${searchResult.model}`
+                      : searchResult.provider === "local_llm"
+                        ? `AI-assisted via ${searchResult.model}`
+                        : "Rule-based match"}
+                    {" • "}
+                    {searchResult.note}
+                  </p>
+                )}
+              </div>
+
+              {searchResult && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenChange(false);
+                    router.push(searchResult.searchUrl);
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                >
+                  Open Full Results
+                </button>
+              )}
+            </div>
+
+            {isSearching ? (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="overflow-hidden rounded-xl border border-border bg-white">
+                    <div className="h-32 animate-pulse bg-muted" />
+                    <div className="space-y-2 p-3">
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : searchResult && searchResult.preview.listings.length > 0 ? (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {searchResult.preview.listings.map((listing) => {
+                  const sortedImages = (listing.images || [])
+                    .slice()
+                    .sort((a, b) => a.image_order - b.image_order);
+                  const firstImage = sortedImages[0] ? getImageUrl(sortedImages[0].r2_key) : "/placeholder-car.jpg";
+                  const sellerName =
+                    listing.dealer?.name ||
+                    listing.seller?.full_name ||
+                    "Private Seller";
+
+                  return (
+                    <Link
+                      key={listing.id}
+                      href={`/vehicle/${listing.id}`}
+                      onClick={() => onOpenChange(false)}
+                      className="overflow-hidden rounded-xl border border-border bg-white transition-colors hover:border-primary/30"
+                    >
+                      <div className="relative h-36 w-full bg-muted">
+                        <Image
+                          src={firstImage}
+                          alt={`${listing.year} ${listing.make} ${listing.model}`}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      </div>
+                      <div className="space-y-2 p-3">
+                        <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                          {listing.year} {listing.make} {listing.model}
+                        </p>
+                        <p className="text-sm font-medium text-primary">
+                          {new Intl.NumberFormat("en-KE", {
+                            style: "currency",
+                            currency: "KES",
+                            maximumFractionDigits: 0,
+                          }).format(listing.price)}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          <span>{listing.body_type || "Vehicle"}</span>
+                          {listing.dealer?.city && <span>{listing.dealer.city}</span>}
+                          {listing.transmission && <span>{listing.transmission}</span>}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{sellerName}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+                <p className="text-sm font-medium text-foreground">No listings matched this smart search.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try a broader budget, a different location, or open the full results page to refine filters.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

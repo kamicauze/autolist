@@ -1,16 +1,17 @@
+import { SellerPageHeader, SellerSurface } from "@/components/dashboard/seller-dashboard-ui";
 import { ChangePasswordForm } from "@/components/dashboard/change-password/change-password-form";
 
 export default function ChangePasswordPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">Change Password</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Update your password to keep your account secure.
-      </p>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="Change Password"
+        description="Update your account credentials separately from the public seller profile information."
+      />
 
-      <div className="mt-8 max-w-lg">
+      <SellerSurface className="max-w-3xl p-5 lg:p-6">
         <ChangePasswordForm />
-      </div>
+      </SellerSurface>
     </div>
   );
 }

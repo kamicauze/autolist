@@ -1,89 +1,112 @@
 import Link from "next/link";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 import { getMyDealerVerification } from "@/lib/data/dealers";
-import { Button } from "@/components/ui/button";
+import { SellerSurface } from "./seller-dashboard-ui";
 
 export async function VerificationBanner() {
   const dealer = await getMyDealerVerification();
 
   if (!dealer) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Become a verified dealer</p>
-              <p className="mt-1 text-sm text-slate-600">
-                Submit your dealership documents to unlock dealer visibility and review workflows.
+      <SellerSurface className="overflow-hidden border-[#ffd3d0] bg-[#fff1f0]">
+        <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffdbd8] text-[#f04438]">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+                Verify your account!
+              </h2>
+              <p className="max-w-2xl text-[14px] leading-6 text-[#6d6d6d]">
+                Complete dealership verification to unlock premium visibility, trust signals, and
+                faster listing approvals on the seller dashboard.
               </p>
             </div>
           </div>
-          <Button asChild size="sm">
-            <Link href="/register/dealer">
-              Start verification
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+
+          <Link
+            href="/register/dealer"
+            className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#f04438] px-5 text-[14px] font-semibold text-white transition hover:bg-[#d92d20]"
+          >
+            Verify
+          </Link>
         </div>
-      </div>
+      </SellerSurface>
     );
   }
 
   if (dealer.status === "APPROVED") {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white p-5 shadow-sm">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Dealer verification approved</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Your dealership is verified. Listings can now be published with dealer identity.
+      <SellerSurface className="border-[#ccebd7] bg-[#eefaf2]">
+        <div className="flex items-start gap-4 p-5 lg:p-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d7f4e2] text-[#2f9e63]">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+              Your dealer account is verified
+            </h2>
+            <p className="text-[14px] leading-6 text-[#5c7467]">
+              Your seller profile now displays the verified badge and listings can be published
+              without additional trust prompts.
             </p>
           </div>
         </div>
-      </div>
+      </SellerSurface>
     );
   }
 
   if (dealer.status === "REJECTED") {
     return (
-      <div className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Dealer verification rejected</p>
-              <p className="mt-1 text-sm text-slate-600">
-                {dealer.rejection_reason || "Update your documents and resubmit for review."}
+      <SellerSurface className="border-[#ffd3d0] bg-[#fff4f3]">
+        <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffdfdc] text-[#f04438]">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+                Verification needs updates
+              </h2>
+              <p className="max-w-2xl text-[14px] leading-6 text-[#6d6d6d]">
+                {dealer.rejection_reason || "Update your documents and submit the application again."}
               </p>
             </div>
           </div>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/register/dealer">Resubmit application</Link>
-          </Button>
+          <Link
+            href="/register/dealer"
+            className="inline-flex h-12 items-center gap-2 rounded-[14px] border border-[#f04438]/20 bg-white px-5 text-[14px] font-semibold text-[#f04438] transition hover:bg-[#fff7f6]"
+          >
+            Resubmit
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
-      </div>
+      </SellerSurface>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-white p-5 shadow-sm">
-      <div className="flex items-start gap-3">
-        <Clock3 className="mt-0.5 h-5 w-5 text-blue-600" />
-        <div>
-          <p className="text-sm font-semibold text-slate-900">Dealer verification in review</p>
-          <p className="mt-1 text-sm text-slate-600">
+    <SellerSurface className="border-[#d4e4ff] bg-[#f4f8ff]">
+      <div className="flex items-start gap-4 p-5 lg:p-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e2edff] text-[#2563eb]">
+          <Clock3 className="h-5 w-5" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+            Verification in review
+          </h2>
+          <p className="text-[14px] leading-6 text-[#5c6980]">
             Submitted on{" "}
             {new Date(dealer.submitted_at || dealer.created_at).toLocaleDateString("en-KE", {
               year: "numeric",
-              month: "short",
+              month: "long",
               day: "numeric",
             })}
-            . We&apos;ll update your dashboard once the admin team completes review.
+            . The admin team will notify you once the seller account review is complete.
           </p>
         </div>
       </div>
-    </div>
+    </SellerSurface>
   );
 }

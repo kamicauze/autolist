@@ -1,7 +1,5 @@
-import { getPendingListings } from "@/lib/actions/listings";
-import { AdminListingsClient } from "@/components/admin/admin-listings-client";
+import { AdminListingsOverviewPage } from "@/components/admin/admin-static-pages";
 
-export default async function AdminListingsPage() {
-  const { data: listings } = await getPendingListings();
-  return <AdminListingsClient listings={listings || []} />;
+export default function AdminListingsPage() {
+  return <AdminListingsOverviewPage />;
 }

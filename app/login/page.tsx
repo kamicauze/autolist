@@ -6,20 +6,21 @@ import { resolvePostAuthPath } from "@/lib/supabase/auth-routing";
 import { createClient } from "@/lib/supabase/server";
 
 interface LoginPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     next?: string | string[];
-  };
+  }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const supabase = await createClient();
+  const params = searchParams ? await searchParams : undefined;
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
     const requestedNextPath =
-      typeof searchParams?.next === "string" ? searchParams.next : undefined;
+      typeof params?.next === "string" ? params.next : undefined;
     const destination = await resolvePostAuthPath(supabase, user.id, requestedNextPath);
     redirect(destination);
   }

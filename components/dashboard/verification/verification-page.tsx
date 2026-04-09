@@ -2,8 +2,11 @@ import Link from "next/link";
 import { CheckCircle2, Clock3, FileText, ShieldAlert, ShieldCheck } from "lucide-react";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import { getImageUrl } from "@/lib/utils/listings";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  SellerPageHeader,
+  SellerStatusPill,
+  SellerSurface,
+} from "../seller-dashboard-ui";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not available";
@@ -16,50 +19,34 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
-function StatusSummary({
-  status,
-  rejectionReason,
+function SummaryCard({
+  icon,
+  title,
+  description,
+  tone,
 }: {
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  rejectionReason?: string | null;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  tone: "green" | "red" | "blue" | "amber";
 }) {
-  if (status === "APPROVED") {
-    return (
-      <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-4">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
-        <div>
-          <p className="text-sm font-semibold text-emerald-800">Dealer verification approved</p>
-          <p className="mt-1 text-sm text-emerald-700">
-            Your dealership is verified and can publish listings with dealer visibility.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "REJECTED") {
-    return (
-      <div className="flex items-start gap-3 rounded-xl bg-red-50 p-4">
-        <ShieldAlert className="mt-0.5 h-5 w-5 text-red-600" />
-        <div>
-          <p className="text-sm font-semibold text-red-800">Verification needs changes</p>
-          <p className="mt-1 text-sm text-red-700">
-            {rejectionReason || "Your submission was rejected. Update the details and resubmit."}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const classes = {
+    green: "border-[#ccebd7] bg-[#eefaf2]",
+    red: "border-[#ffd6d3] bg-[#fff4f3]",
+    blue: "border-[#d4e4ff] bg-[#f4f8ff]",
+    amber: "border-[#ffe4bf] bg-[#fff8eb]",
+  };
 
   return (
-    <div className="flex items-start gap-3 rounded-xl bg-blue-50 p-4">
-      <Clock3 className="mt-0.5 h-5 w-5 text-blue-600" />
-      <div>
-        <p className="text-sm font-semibold text-blue-800">Verification under review</p>
-        <p className="mt-1 text-sm text-blue-700">
-          Your dealer application is pending review. Admin will inspect the submitted documents
-          before activating the profile.
-        </p>
+    <div className={`rounded-[24px] border p-5 ${classes[tone]}`}>
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-[#202224]">
+          {icon}
+        </div>
+        <div>
+          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">{title}</h2>
+          <p className="mt-2 text-[14px] leading-6 text-[#6d6d6d]">{description}</p>
+        </div>
       </div>
     </div>
   );
@@ -70,131 +57,148 @@ export async function VerificationPage() {
 
   if (!dealer) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dealer Verification</h1>
-          <p className="text-sm text-muted-foreground">
-            Submit your dealership details and supporting documents for manual review.
-          </p>
-        </div>
+      <div className="space-y-6 lg:space-y-7">
+        <SellerPageHeader
+          title="Account Verification"
+          description="Submit business and compliance documents so buyers can trust your seller profile and the dashboard can unlock dealer features."
+        />
 
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-amber-600" />
-            <div>
-              <p className="text-sm font-semibold text-amber-800">No dealer application yet</p>
-              <p className="mt-1 text-sm text-amber-700">
-                Complete the dealership onboarding flow before the admin team can verify your
-                profile.
-              </p>
-            </div>
-          </div>
+        <SummaryCard
+          icon={<ShieldCheck className="h-5 w-5 text-[#f79009]" />}
+          title="No verification request yet"
+          description="Create your first dealer verification request to unlock trusted seller status and premium listing tools."
+          tone="amber"
+        />
 
-          <div className="mt-6">
-            <Button asChild>
-              <Link href="/register/dealer">Start dealer application</Link>
-            </Button>
-          </div>
-        </div>
+        <SellerSurface className="p-6">
+          <Link
+            href="/register/dealer"
+            className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+          >
+            Start verification
+          </Link>
+        </SellerSurface>
       </div>
     );
   }
 
+  const statusTone =
+    dealer.status === "APPROVED"
+      ? ("green" as const)
+      : dealer.status === "REJECTED"
+        ? ("red" as const)
+        : ("blue" as const);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dealer Verification</h1>
-          <p className="text-sm text-muted-foreground">
-            Track your dealer verification status and submitted documents.
-          </p>
-        </div>
-        <Badge
-          variant={
-            dealer.status === "APPROVED"
-              ? "success"
-              : dealer.status === "REJECTED"
-                ? "destructive"
-                : "warning"
-          }
-        >
-          {dealer.status}
-        </Badge>
-      </div>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="Account Verification"
+        description="Track the status of your submitted business documents and review notes from the Autolist admin team."
+      />
 
-      <StatusSummary status={dealer.status} rejectionReason={dealer.rejection_reason} />
+      {dealer.status === "APPROVED" ? (
+        <SummaryCard
+          icon={<CheckCircle2 className="h-5 w-5 text-[#2f9e63]" />}
+          title="Verification approved"
+          description="Your business profile is verified and public trust signals are now active across your seller dashboard."
+          tone="green"
+        />
+      ) : dealer.status === "REJECTED" ? (
+        <SummaryCard
+          icon={<ShieldAlert className="h-5 w-5 text-[#f04438]" />}
+          title="Verification needs attention"
+          description={dealer.rejection_reason || "Update your submitted documents and send them again for review."}
+          tone="red"
+        />
+      ) : (
+        <SummaryCard
+          icon={<Clock3 className="h-5 w-5 text-[#2563eb]" />}
+          title="Verification in progress"
+          description="Your seller documents are with the review team. We’ll notify you as soon as the verification process is complete."
+          tone="blue"
+        />
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">Submission details</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Dealer
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_380px]">
+        <SellerSurface className="p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+                Submission details
+              </h2>
+              <p className="mt-1 text-[13px] text-[#7a7a7a]">
+                Overview of the business information tied to this verification request.
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{dealer.name}</p>
-              <p className="mt-1 text-sm text-slate-600">{dealer.email}</p>
-              <p className="mt-1 text-sm text-slate-600">{dealer.mobile}</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Timeline
-              </p>
-              <p className="mt-2 text-sm text-slate-700">
+            <SellerStatusPill label={dealer.status} tone={statusTone} />
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Dealer</p>
+              <p className="mt-3 text-[15px] font-semibold text-[#202224]">{dealer.name}</p>
+              <p className="mt-1 text-[14px] text-[#707070]">{dealer.email}</p>
+              <p className="mt-1 text-[14px] text-[#707070]">{dealer.mobile}</p>
+            </div>
+            <div className="rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Timeline</p>
+              <p className="mt-3 text-[14px] text-[#707070]">
                 Submitted: {formatDate(dealer.submitted_at || dealer.created_at)}
               </p>
-              <p className="mt-1 text-sm text-slate-700">
-                Reviewed: {formatDate(dealer.reviewed_at)}
-              </p>
+              <p className="mt-2 text-[14px] text-[#707070]">Reviewed: {formatDate(dealer.reviewed_at)}</p>
             </div>
           </div>
 
           {dealer.review_notes ? (
-            <div className="mt-4 rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Review notes
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{dealer.review_notes}</p>
+            <div className="mt-4 rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Review notes</p>
+              <p className="mt-3 text-[14px] leading-6 text-[#6d6d6d]">{dealer.review_notes}</p>
             </div>
           ) : null}
 
           {dealer.status === "REJECTED" ? (
             <div className="mt-6">
-              <Button asChild>
-                <Link href="/register/dealer">Update and resubmit</Link>
-              </Button>
+              <Link
+                href="/register/dealer"
+                className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+              >
+                Update and resubmit
+              </Link>
             </div>
           ) : null}
-        </div>
+        </SellerSurface>
 
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-foreground">Submitted documents</h2>
-          <div className="mt-4 space-y-3">
-            {dealer.documents.map((document) => {
-              const url = getImageUrl(document.r2_key);
-              return (
-                <a
-                  key={document.id}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition-colors hover:border-primary/30 hover:bg-primary/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-slate-500" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{document.display_name}</p>
-                      <p className="text-xs text-slate-500">
-                        {document.document_type.replace(/_/g, " ")}
-                      </p>
-                    </div>
+        <SellerSurface className="p-6">
+          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">Submitted documents</h2>
+          <p className="mt-1 text-[13px] text-[#7a7a7a]">
+            Files used to validate the seller business account.
+          </p>
+
+          <div className="mt-6 space-y-3">
+            {dealer.documents.map((document) => (
+              <a
+                key={document.id}
+                href={getImageUrl(document.r2_key)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between gap-3 rounded-[18px] border border-[#ededed] bg-[#faf9f7] px-4 py-4 transition hover:border-[#2563eb]/20 hover:bg-[#f7fbff]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2563eb]">
+                    <FileText className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-medium text-primary">Open</span>
-                </a>
-              );
-            })}
+                  <div>
+                    <p className="text-[14px] font-semibold text-[#202224]">{document.display_name}</p>
+                    <p className="mt-1 text-[12px] text-[#7d7d7d]">
+                      {document.document_type.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[13px] font-semibold text-[#2563eb]">Open</span>
+              </a>
+            ))}
           </div>
-        </div>
+        </SellerSurface>
       </div>
     </div>
   );

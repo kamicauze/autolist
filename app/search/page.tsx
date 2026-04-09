@@ -24,6 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   // Extract filters from params
   const filters: ListingFilters = {
+    q: params.q as string,
     make: params.make as string,
     model: params.model as string,
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,

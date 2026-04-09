@@ -1,154 +1,163 @@
 "use client";
 
 import * as React from "react";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { BadgeCheck, CalendarRange, ListChecks, WalletCards } from "lucide-react";
+import {
+  SellerPageHeader,
+  SellerStatCard,
+  SellerTabs,
+  membershipPlans,
+} from "../seller-dashboard-ui";
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  period: string;
-  features: string[];
-  popular?: boolean;
-}
-
-const PLANS: Plan[] = [
+const membershipStats = [
   {
-    id: "basic",
-    name: "Basic",
-    price: 999,
-    period: "/month",
-    features: ["5 Active Listings", "Basic Analytics", "Email Support", "Standard Visibility"],
+    label: "Available listing",
+    value: "12",
+    icon: <BadgeCheck className="h-5 w-5 text-[#2563eb]" />,
+    accentClass: "bg-[#eef4ff]",
   },
   {
-    id: "professional",
-    name: "Professional",
-    price: 2999,
-    period: "/month",
-    popular: true,
-    features: ["25 Active Listings", "Advanced Analytics", "Priority Support", "Featured Listings", "Social Media Promotion"],
+    label: "Used listing",
+    value: "08",
+    icon: <ListChecks className="h-5 w-5 text-[#2f9e63]" />,
+    accentClass: "bg-[#eaf7ef]",
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 7999,
-    period: "/month",
-    features: ["Unlimited Listings", "Full Analytics Suite", "Dedicated Manager", "Top Placement", "API Access", "Custom Branding"],
+    label: "Payment due",
+    value: "03",
+    icon: <CalendarRange className="h-5 w-5 text-[#f79009]" />,
+    accentClass: "bg-[#fff3e4]",
+  },
+  {
+    label: "Billing cycle",
+    value: "Monthly",
+    icon: <WalletCards className="h-5 w-5 text-[#f04438]" />,
+    accentClass: "bg-[#fff0ef]",
   },
 ];
 
-interface Subscription {
-  id: string;
-  plan: string;
-  listing: string;
-  startDate: string;
-  endDate: string;
-  status: "active" | "expired" | "cancelled";
-}
-
-const SUBSCRIPTIONS: Subscription[] = [
-  { id: "1", plan: "Professional", listing: "2022 Toyota Prado TX", startDate: "Dec 1, 2025", endDate: "Jan 1, 2026", status: "active" },
-  { id: "2", plan: "Basic", listing: "2020 Mazda CX-5", startDate: "Nov 15, 2025", endDate: "Dec 15, 2025", status: "active" },
-  { id: "3", plan: "Basic", listing: "2019 Nissan X-Trail", startDate: "Oct 1, 2025", endDate: "Nov 1, 2025", status: "expired" },
+const paymentHistory = [
+  {
+    id: "1",
+    title: "Professional Plan",
+    amount: "KES 45,000",
+    detail: "Paid on 01 Jan, 2025 via card",
+  },
+  {
+    id: "2",
+    title: "Featured Boost",
+    amount: "KES 15,000",
+    detail: "Paid on 12 Dec, 2024 via M-Pesa",
+  },
+  {
+    id: "3",
+    title: "Basic Plan",
+    amount: "KES 15,000",
+    detail: "Paid on 01 Nov, 2024 via bank transfer",
+  },
 ];
 
 export function MembershipPage() {
+  const [tab, setTab] = React.useState("packages");
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Membership</h1>
-        <p className="text-sm text-muted-foreground">Manage your plans and subscriptions</p>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="Membership"
+        description="Choose the package that fits your listing volume, compare coverage, and review recent billing activity."
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        {membershipStats.map((item) => (
+          <SellerStatCard key={item.label} {...item} />
+        ))}
       </div>
 
-      <Tabs defaultValue="plans">
-        <TabsList>
-          <TabsTrigger value="plans">Plans</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-        </TabsList>
+      <section className="rounded-[28px] border border-[#ededed] bg-white shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
+        <div className="flex flex-col gap-4 border-b border-[#ededed] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">Membership Package</h2>
+            <p className="mt-1 text-[13px] text-[#7a7a7a]">
+              Select a plan for your seller account or review prior package payments.
+            </p>
+          </div>
+          <SellerTabs
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: "packages", label: "Membership package" },
+              { value: "history", label: "Payment history" },
+            ]}
+          />
+        </div>
 
-        <TabsContent value="plans" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-3">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.id}
-                className={cn(
-                  "relative rounded-xl border bg-white p-6 shadow-sm",
-                  plan.popular ? "border-primary" : "border-border"
-                )}
-              >
-                {plan.popular && (
-                  <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">Most Popular</Badge>
-                )}
-                <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold text-foreground">KES {plan.price.toLocaleString()}</span>
-                  <span className="text-sm text-muted-foreground">{plan.period}</span>
-                </div>
-                <ul className="mt-4 space-y-2">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-green-500 shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-6 w-full"
-                  variant={plan.popular ? "default" : "outline"}
+        {tab === "packages" ? (
+          <div className="grid gap-5 p-6 xl:grid-cols-3">
+            {membershipPlans.map((plan, index) => {
+              const featured = index === 1;
+
+              return (
+                <article
+                  key={plan.id}
+                  className={[
+                    "rounded-[26px] border p-6 transition",
+                    featured
+                      ? "border-[#2563eb] bg-[#eef4ff] shadow-[0_18px_36px_rgba(37,99,235,0.12)]"
+                      : "border-[#ededed] bg-white",
+                  ].join(" ")}
                 >
-                  {plan.popular ? "Get Started" : "Choose Plan"}
-                </Button>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+                    {featured ? "Recommended" : "Seller package"}
+                  </p>
+                  <h3 className="mt-4 font-heading text-[28px] font-semibold text-[#202224]">
+                    {plan.name}
+                  </h3>
+                  <p className="mt-4 font-heading text-[34px] font-semibold text-[#202224]">
+                    {plan.price}
+                    <span className="ml-1 text-[15px] font-medium text-[#7d7d7d]">{plan.period}</span>
+                  </p>
+
+                  <ul className="mt-6 space-y-3 text-[14px] leading-6 text-[#666]">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex gap-3">
+                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#2563eb]" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    type="button"
+                    className={[
+                      "mt-8 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold transition",
+                      featured
+                        ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                        : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-[#2563eb] hover:text-[#2563eb]",
+                    ].join(" ")}
+                  >
+                    Choose Plan
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-4 p-6">
+            {paymentHistory.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col gap-3 rounded-[22px] border border-[#ededed] bg-[#faf9f7] p-5 lg:flex-row lg:items-center lg:justify-between"
+              >
+                <div>
+                  <p className="text-[16px] font-semibold text-[#202224]">{item.title}</p>
+                  <p className="mt-1 text-[13px] text-[#7a7a7a]">{item.detail}</p>
+                </div>
+                <p className="font-heading text-[24px] font-semibold text-[#202224]">{item.amount}</p>
               </div>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="subscriptions" className="mt-6">
-          <div className="rounded-xl border border-border bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-3">Listing</th>
-                    <th className="px-4 py-3">Plan</th>
-                    <th className="px-4 py-3">Start Date</th>
-                    <th className="px-4 py-3">End Date</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {SUBSCRIPTIONS.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-foreground">{sub.listing}</td>
-                      <td className="px-4 py-3 text-sm text-foreground">{sub.plan}</td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{sub.startDate}</td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{sub.endDate}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={sub.status === "active" ? "success" : sub.status === "expired" ? "default" : "destructive"}>
-                          {sub.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {sub.status === "active" && (
-                          <Button size="sm" variant="outline">Manage</Button>
-                        )}
-                        {sub.status === "expired" && (
-                          <Button size="sm">Renew</Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,72 +1,86 @@
 "use client";
 
 import { Heart, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-interface FavoriteVehicle {
-  id: string;
-  title: string;
-  price: number;
-  year: number;
-  mileage: string;
-  fuel: string;
-  transmission: string;
-  location: string;
-}
-
-const SAMPLE_FAVORITES: FavoriteVehicle[] = [
-  { id: "1", title: "2022 Toyota Land Cruiser", price: 12500000, year: 2022, mileage: "25,000 km", fuel: "Diesel", transmission: "Automatic", location: "Nairobi" },
-  { id: "2", title: "2021 Mercedes-Benz GLE", price: 9800000, year: 2021, mileage: "18,000 km", fuel: "Petrol", transmission: "Automatic", location: "Mombasa" },
-  { id: "3", title: "2020 BMW X5", price: 8500000, year: 2020, mileage: "32,000 km", fuel: "Diesel", transmission: "Automatic", location: "Nairobi" },
-  { id: "4", title: "2019 Range Rover Sport", price: 7800000, year: 2019, mileage: "45,000 km", fuel: "Diesel", transmission: "Automatic", location: "Kisumu" },
-  { id: "5", title: "2022 Audi Q7", price: 11000000, year: 2022, mileage: "12,000 km", fuel: "Petrol", transmission: "Automatic", location: "Nairobi" },
-  { id: "6", title: "2021 Porsche Cayenne", price: 14500000, year: 2021, mileage: "8,000 km", fuel: "Petrol", transmission: "Automatic", location: "Nairobi" },
-];
-
-function formatKES(price: number) {
-  return new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(price);
-}
+import {
+  SellerPageHeader,
+  SellerPagination,
+  SellerSurface,
+  formatDashboardCurrency,
+  sellerFavorites,
+} from "../seller-dashboard-ui";
 
 export function FavoritesGrid() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">My Favorites</h1>
-        <p className="text-sm text-muted-foreground">Vehicles you&apos;ve saved for later</p>
-      </div>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="My Favorite"
+        description="Saved vehicles from around the marketplace that you want to revisit, compare, or message about later."
+      />
 
-      {SAMPLE_FAVORITES.length === 0 ? (
-        <div className="rounded-xl border border-border bg-white p-12 text-center">
-          <Heart className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-sm text-muted-foreground">No favorites yet. Browse listings and save the ones you like.</p>
+      <SellerSurface className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-[#ededed] px-5 py-5 md:flex-row md:items-center md:justify-between">
+          <p className="text-[14px] text-[#7a7a7a]">{sellerFavorites.length} cars in wishlist</p>
+          <select className="h-12 rounded-[14px] border border-[#ededed] bg-white px-4 text-[14px] text-[#202224] outline-none">
+            <option>Newest first</option>
+            <option>Price low to high</option>
+            <option>Price high to low</option>
+          </select>
         </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {SAMPLE_FAVORITES.map((vehicle) => (
-            <div key={vehicle.id} className="group overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md">
-              <div className="relative aspect-[16/10] bg-gray-100">
-                <button className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-rose-500 shadow-sm">
-                  <Heart className="h-4 w-4 fill-current" />
+
+        <div className="grid gap-5 p-5 md:grid-cols-2 2xl:grid-cols-4">
+          {sellerFavorites.map((vehicle) => (
+            <article
+              key={vehicle.id}
+              className="overflow-hidden rounded-[24px] border border-[#ededed] bg-white"
+            >
+              <div className="relative aspect-[1.2/1] bg-[linear-gradient(135deg,#f0f4ff,#efe7dd)]">
+                <button className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-[#f04438] shadow-sm">
+                  <Heart className="h-5 w-5 fill-current" />
                 </button>
               </div>
-              <div className="p-4">
-                <h3 className="text-sm font-semibold text-foreground line-clamp-1">{vehicle.title}</h3>
-                <p className="mt-1 text-lg font-bold text-primary">{formatKES(vehicle.price)}</p>
-                <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                  <span>{vehicle.mileage}</span>
-                  <span>{vehicle.fuel}</span>
-                  <span>{vehicle.transmission}</span>
-                  <span>{vehicle.location}</span>
+
+              <div className="space-y-4 p-5">
+                <div>
+                  <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+                    {vehicle.title}
+                  </h2>
+                  <p className="mt-2 text-[14px] font-semibold text-[#2563eb]">
+                    {formatDashboardCurrency(vehicle.price)}
+                  </p>
                 </div>
-                <Button size="sm" variant="outline" className="mt-3 w-full gap-2">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Chat
-                </Button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-3 text-[13px] text-[#6f6f6f]">
+                    {vehicle.location}
+                  </div>
+                  <div className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-3 text-[13px] text-[#6f6f6f]">
+                    {vehicle.transmission}
+                  </div>
+                  <div className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-3 text-[13px] text-[#6f6f6f]">
+                    {vehicle.fuel}
+                  </div>
+                  <div className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-3 text-[13px] text-[#6f6f6f]">
+                    {vehicle.mileage}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-[#efefef] pt-4">
+                  <div>
+                    <p className="text-[12px] text-[#9a9a9a]">Seller</p>
+                    <p className="text-[13px] font-semibold text-[#202224]">{vehicle.seller}</p>
+                  </div>
+                  <button className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]">
+                    <MessageSquare className="h-4 w-4" />
+                    Chat
+                  </button>
+                </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
-      )}
+
+        <SellerPagination />
+      </SellerSurface>
     </div>
   );
 }

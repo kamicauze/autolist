@@ -7,10 +7,12 @@ import { CheckCircle2, XCircle, Clock, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getImageUrl } from "@/lib/utils/listings";
+import type { DuplicateReviewSuggestion } from "@/lib/types/duplicate-review";
 import type { Listing } from "@/lib/types/listing";
 
 interface AdminListingsClientProps {
   listings: Listing[];
+  duplicateSuggestions: Record<string, DuplicateReviewSuggestion>;
 }
 
 function formatKES(price: number) {
@@ -31,7 +33,13 @@ function formatDate(isoDate: string) {
   });
 }
 
-export function AdminListingsClient({ listings }: AdminListingsClientProps) {
+function getDuplicateTone(severity: DuplicateReviewSuggestion["severity"]) {
+  if (severity === "high") return "border-red-200 bg-red-50 text-red-700";
+  if (severity === "medium") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+export function AdminListingsClient({ listings, duplicateSuggestions }: AdminListingsClientProps) {
   const router = useRouter();
   const [processing, setProcessing] = React.useState<string | null>(null);
 
@@ -74,7 +82,7 @@ export function AdminListingsClient({ listings }: AdminListingsClientProps) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pending Listings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Listing Review</h1>
           <p className="text-sm text-muted-foreground">Review and approve or reject new listing submissions</p>
         </div>
         <div className="rounded-xl border border-border bg-white p-12 text-center">
@@ -90,7 +98,7 @@ export function AdminListingsClient({ listings }: AdminListingsClientProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pending Listings</h1>
+          <h1 className="text-2xl font-bold text-foreground">Listing Review</h1>
           <p className="text-sm text-muted-foreground">
             {listings.length} listing{listings.length !== 1 ? "s" : ""} awaiting review
           </p>
@@ -109,75 +117,148 @@ export function AdminListingsClient({ listings }: AdminListingsClientProps) {
           const imageUrl = coverImage ? getImageUrl(coverImage.r2_key) : null;
           const isProcessing = processing === listing.id;
           const seller = listing.seller as { id: string; full_name: string | null; email?: string } | undefined;
+          const duplicateSuggestion = duplicateSuggestions[listing.id];
 
           return (
             <div
               key={listing.id}
-              className="flex flex-col sm:flex-row items-start gap-4 rounded-xl border border-border bg-white p-4 shadow-sm"
+              className="rounded-xl border border-border bg-white p-4 shadow-sm"
             >
-              {/* Thumbnail */}
-              <div className="h-24 w-32 shrink-0 rounded-lg bg-gray-100 overflow-hidden relative">
-                {imageUrl ? (
-                  <Image
-                    src={imageUrl}
-                    alt={title}
-                    fill
-                    className="object-cover"
-                    sizes="128px"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <ImageIcon className="h-8 w-8 text-gray-300" />
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
+                <div className="h-24 w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100 relative">
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      sizes="128px"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-300" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{title}</h3>
+                      <p className="mt-1 text-sm font-medium text-primary">{formatKES(listing.price)}</p>
+                    </div>
+                    {duplicateSuggestion && (
+                      <div
+                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getDuplicateTone(
+                          duplicateSuggestion.severity
+                        )}`}
+                      >
+                        {duplicateSuggestion.status === "review"
+                          ? duplicateSuggestion.headline
+                          : "Duplicate check clear"}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground">{title}</h3>
-                <p className="mt-1 text-sm text-primary font-medium">{formatKES(listing.price)}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  {listing.condition && (
-                    <span className="capitalize">{listing.condition.replace(/_/g, " ")}</span>
-                  )}
-                  {listing.mileage && <span>{listing.mileage.toLocaleString()} km</span>}
-                  {listing.transmission && <span>{listing.transmission}</span>}
-                  {listing.images && (
-                    <span>{listing.images.length} photo{listing.images.length !== 1 ? "s" : ""}</span>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {listing.condition && (
+                      <span className="capitalize">{listing.condition.replace(/_/g, " ")}</span>
+                    )}
+                    {listing.mileage && <span>{listing.mileage.toLocaleString()} km</span>}
+                    {listing.transmission && <span>{listing.transmission}</span>}
+                    {listing.images && (
+                      <span>{listing.images.length} photo{listing.images.length !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <span>Seller: {seller?.full_name || seller?.email || "Unknown"}</span>
+                    <span className="mx-2">|</span>
+                    <span>Submitted: {formatDate(listing.created_at)}</span>
+                  </div>
+                  {listing.description && (
+                    <p className="mt-2 line-clamp-2 text-xs text-gray-500">{listing.description}</p>
                   )}
                 </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <span>Seller: {seller?.full_name || seller?.email || "Unknown"}</span>
-                  <span className="mx-2">|</span>
-                  <span>Submitted: {formatDate(listing.created_at)}</span>
+
+                <div className="flex shrink-0 gap-2 self-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleReject(listing.id)}
+                    disabled={isProcessing}
+                    className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApprove(listing.id)}
+                    disabled={isProcessing}
+                    className="gap-1.5"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {isProcessing ? "Processing..." : "Approve"}
+                  </Button>
                 </div>
-                {listing.description && (
-                  <p className="mt-2 text-xs text-gray-500 line-clamp-2">{listing.description}</p>
-                )}
               </div>
 
-              {/* Actions */}
-              <div className="flex shrink-0 gap-2 self-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleReject(listing.id)}
-                  disabled={isProcessing}
-                  className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Reject
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleApprove(listing.id)}
-                  disabled={isProcessing}
-                  className="gap-1.5"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {isProcessing ? "Processing..." : "Approve"}
-                </Button>
-              </div>
+              {duplicateSuggestion && (
+                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        Duplicate Review Assistant
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{duplicateSuggestion.headline}</p>
+                      <p className="mt-1 text-sm text-slate-600">{duplicateSuggestion.summary}</p>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      {duplicateSuggestion.provider === "openai"
+                        ? `OpenAI summary via ${duplicateSuggestion.model}`
+                        : duplicateSuggestion.provider === "local_llm"
+                          ? `Local AI summary via ${duplicateSuggestion.model}`
+                          : "Rule-based scoring"}
+                    </p>
+                  </div>
+
+                  {duplicateSuggestion.candidates.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      {duplicateSuggestion.candidates.map((candidate) => (
+                        <div key={candidate.candidate.id} className="rounded-lg border border-slate-200 bg-white p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {candidate.candidate.year} {candidate.candidate.make} {candidate.candidate.model}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {candidate.confidenceLabel} • {candidate.reason}
+                              </p>
+                            </div>
+                            <Badge variant={candidate.severity === "high" ? "destructive" : "secondary"}>
+                              Score {candidate.score}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-600">
+                            <span>{formatKES(candidate.candidate.price)}</span>
+                            <span className="capitalize">{candidate.candidate.status}</span>
+                            {candidate.distance.pricePercent != null && (
+                              <span>{candidate.distance.pricePercent}% price difference</span>
+                            )}
+                            {candidate.distance.mileageDelta != null && (
+                              <span>{candidate.distance.mileageDelta.toLocaleString()} km gap</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-3 text-sm text-slate-700">
+                    {duplicateSuggestion.reviewerNote}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

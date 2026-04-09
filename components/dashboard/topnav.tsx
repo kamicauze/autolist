@@ -1,12 +1,11 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Plus, Search } from "lucide-react";
+import { Bell, ChevronDown, Menu, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
+import { SellerUserChip } from "./seller-dashboard-ui";
 
 const topNavLinks = [
   { name: "Home", href: "/" },
@@ -26,68 +25,67 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
   const displayName =
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
-    "User";
-  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+    "Seller";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-white px-4 md:px-6">
-      {/* Mobile menu button */}
-      <button
-        onClick={onMenuClick}
-        className="shrink-0 text-gray-500 hover:text-gray-900 lg:hidden"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
-
-      {/* Nav links */}
-      <nav className="hidden md:flex items-center gap-6">
-        {topNavLinks.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              pathname === item.href
-                ? "text-primary"
-                : "text-muted-foreground"
-            )}
+    <header className="sticky top-0 z-30 border-b border-[#ebebeb] bg-[#f6f4ef]/85 backdrop-blur">
+      <div className="flex h-[88px] items-center gap-4 px-4 md:px-6 lg:px-8 xl:px-10">
+        <div className="flex min-w-0 items-center gap-4">
+          <button
+            onClick={onMenuClick}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e8e8e8] bg-white text-[#6f6f6f] transition hover:text-[#202224] lg:hidden"
           >
-            {item.name}
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <nav className="hidden items-center gap-7 lg:flex">
+            {topNavLinks.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "text-[14px] font-medium transition-colors hover:text-[#2563eb]",
+                  pathname === item.href ? "text-[#202224]" : "text-[#7d7d7d]"
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="ml-auto flex items-center gap-3">
+          <div className="hidden h-12 w-[260px] items-center gap-3 rounded-full border border-[#ededed] bg-white px-4 xl:flex">
+            <Search className="h-4 w-4 text-[#8c8c8c]" />
+            <input
+              className="h-full flex-1 border-0 bg-transparent text-[14px] text-[#202224] outline-none placeholder:text-[#9a9a9a]"
+              placeholder="Search here..."
+            />
+          </div>
+
+          <button className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#6c6c6c] transition hover:text-[#202224]">
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-[#f04438]" />
+          </button>
+
+          <Link href="/dashboard/listings/new">
+            <Button
+              size="sm"
+              className="h-12 rounded-full bg-[#2563eb] px-4 text-[14px] font-semibold text-white hover:bg-[#1d4ed8]"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Listing</span>
+            </Button>
           </Link>
-        ))}
-      </nav>
 
-      {/* Right side */}
-      <div className="ml-auto flex items-center gap-3">
-        {/* Search */}
-        <button className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-          <Search className="h-5 w-5" />
-        </button>
+          <div className="hidden lg:flex">
+            <SellerUserChip name={displayName} email={user.email} />
+          </div>
 
-        {/* Notifications */}
-        <button className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-        </button>
-
-        {/* Add Listing */}
-        <Link href="/dashboard/listings/new">
-          <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Listing</span>
-          </Button>
-        </Link>
-
-        {/* User avatar */}
-        <Link href="/dashboard/profile">
-          <Avatar
-            src={avatarUrl}
-            alt={displayName}
-            size="sm"
-            fallback={displayName.slice(0, 2)}
-            className="cursor-pointer ring-2 ring-transparent hover:ring-primary/20 transition-all"
-          />
-        </Link>
+          <button className="hidden h-11 w-11 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#818181] transition hover:text-[#202224] lg:flex">
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </header>
   );

@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getListingById, getSimilarListings } from "@/lib/data/listings";
+import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
 
 interface VehiclePageProps {
@@ -19,6 +20,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
   }
 
   const similarListings = await getSimilarListings(listing, 4);
+  const pricePositioning = await getListingPricePositioning(listing);
 
   const title = `${listing.year} ${listing.make} ${listing.model}`;
   const location = listing.dealer?.city || "Kenya";
@@ -43,6 +45,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
             <VehiclePageClient
               listing={listing}
               similarListings={similarListings}
+              pricePositioning={pricePositioning}
               title={title}
               location={location}
             />

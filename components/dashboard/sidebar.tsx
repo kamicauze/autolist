@@ -1,32 +1,39 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BadgeCheck,
+  Heart,
+  KeyRound,
   LayoutDashboard,
   ListOrdered,
-  Heart,
+  LogOut,
   MessageSquare,
+  ShieldCheck,
   Star,
   User,
-  KeyRound,
-  LogOut,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 
-const sidebarNav = [
+const sellerNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "All listings", href: "/dashboard/listings", icon: ListOrdered },
-  { name: "My favorite", href: "/dashboard/favorites", icon: Heart },
-  { name: "Message", href: "/dashboard/messages", icon: MessageSquare },
-  { name: "Review", href: "/dashboard/reviews", icon: Star },
+  { name: "Listings", href: "/dashboard/listings", icon: ListOrdered },
+  { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
+  { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { name: "Verification", href: "/dashboard/verification", icon: ShieldCheck },
+  { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+  { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
   { name: "Profile", href: "/dashboard/profile", icon: User },
-  { name: "Change passwords", href: "/dashboard/change-password", icon: KeyRound },
+];
+
+const accountNav = [
+  { name: "Change password", href: "/dashboard/change-password", icon: KeyRound },
 ];
 
 interface SidebarProps {
@@ -42,7 +49,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
   const displayName =
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
-    "User";
+    "Seller";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
 
   const handleSignOut = async () => {
@@ -59,86 +66,117 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
-      {open && (
+      {open ? (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-[#101828]/55 backdrop-blur-[2px] lg:hidden"
           onClick={onClose}
         />
-      )}
+      ) : null}
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col bg-[var(--sidebar-bg)] transition-transform duration-300 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-[#24272c] transition-transform duration-300 lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Mobile close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white lg:hidden"
+          className="absolute right-4 top-4 text-white/70 transition hover:text-white lg:hidden"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-6 pt-6 pb-4">
+        <div className="flex items-center gap-2 px-7 pb-6 pt-7">
           <Image
             src="/autolist-logo.svg"
             alt="Autolist"
             width={154}
             height={44}
             priority
-            className="h-8 w-auto brightness-0 invert"
+            className="h-9 w-auto brightness-0 invert"
           />
         </div>
 
-        {/* User Profile */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10">
+        <div className="mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
           <Avatar
             src={avatarUrl}
             alt={displayName}
             size="lg"
-            fallback={displayName.slice(0, 2)}
+            fallback={getInitials(displayName)}
+            className="bg-white/10 text-white"
           />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white truncate">
-              {displayName}
-            </p>
-            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          <div className="mt-3 min-w-0">
+            <p className="truncate text-[15px] font-semibold text-white">{displayName}</p>
+            <p className="mt-1 truncate text-[12px] text-white/55">{user.email}</p>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {sidebarNav.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary text-white"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
-                )}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-5 py-7">
+          <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+            Seller Menu
+          </p>
+          <div className="mt-4 space-y-1.5">
+            {sellerNav.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    sellerSidebarLinkClass,
+                    active
+                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      : "text-white/65 hover:bg-white/6 hover:text-white"
+                  )}
+                >
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+
+          <p className="mt-8 px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+            Account
+          </p>
+          <div className="mt-4 space-y-1.5">
+            {accountNav.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    sellerSidebarLinkClass,
+                    active
+                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      : "text-white/65 hover:bg-white/6 hover:text-white"
+                  )}
+                >
+                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
-        {/* Logout */}
-        <div className="px-3 pb-6">
+        <div className="border-t border-white/10 px-5 py-5">
+          <div className="mb-4 rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Current plan</p>
+            <p className="mt-2 text-[16px] font-semibold text-white">Professional</p>
+            <p className="mt-1 text-[12px] leading-5 text-white/55">
+              12 active packages left this month.
+            </p>
+          </div>
+
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+            className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white"
           >
-            <LogOut className="h-5 w-5 shrink-0" />
+            <LogOut className="h-[18px] w-[18px] shrink-0" />
             Logout
           </button>
         </div>

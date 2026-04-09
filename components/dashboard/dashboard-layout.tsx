@@ -13,7 +13,7 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="font-body min-h-screen bg-[#f6f4ef] text-[#202224]">
       <Sidebar
         user={user}
         open={sidebarOpen}
@@ -23,7 +23,9 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
       <div className="lg:pl-[var(--sidebar-width)]">
         <TopNav user={user} onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="min-h-[calc(100vh-88px)] px-4 pb-8 pt-6 md:px-6 lg:px-8 lg:pt-8 xl:px-10">
+          {children}
+        </main>
       </div>
     </div>
   );

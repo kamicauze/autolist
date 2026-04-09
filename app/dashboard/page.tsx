@@ -1,66 +1,62 @@
-import { ListOrdered, Clock, Heart, Star } from "lucide-react";
-import { StatsCard } from "@/components/dashboard/stats-card";
-import { VerificationBanner } from "@/components/dashboard/verification-banner";
+import { Bell, Heart, ListOrdered, MessageCircle } from "lucide-react";
 import { ListingsTable } from "@/components/dashboard/listings-table";
 import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
+import { VerificationBanner } from "@/components/dashboard/verification-banner";
+import {
+  SellerPageHeader,
+  SellerStatCard,
+} from "@/components/dashboard/seller-dashboard-ui";
+
+const dashboardStats = [
+  {
+    label: "Your Listing",
+    value: "54",
+    icon: <ListOrdered className="h-5 w-5 text-[#2563eb]" />,
+    accentClass: "bg-[#eef4ff]",
+  },
+  {
+    label: "Message",
+    value: "21",
+    icon: <MessageCircle className="h-5 w-5 text-[#2f9e63]" />,
+    accentClass: "bg-[#eaf7ef]",
+  },
+  {
+    label: "My Favorites",
+    value: "39",
+    icon: <Heart className="h-5 w-5 text-[#f04438]" />,
+    accentClass: "bg-[#fff0ef]",
+  },
+  {
+    label: "Review",
+    value: "18",
+    icon: <Bell className="h-5 w-5 text-[#f79009]" />,
+    accentClass: "bg-[#fff3e4]",
+  },
+];
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Welcome back! Here&apos;s an overview of your activity.
-        </p>
-      </div>
+    <div className="space-y-6 lg:space-y-7">
+      <SellerPageHeader
+        title="Dashboard"
+        description="Track listing activity, monitor buyer engagement, and keep your seller account in good standing."
+      />
 
-      {/* Verification Banner */}
       <VerificationBanner />
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          label="Your Listing"
-          value="19"
-          icon={ListOrdered}
-          iconBg="bg-primary/10"
-          iconColor="text-primary"
-        />
-        <StatsCard
-          label="Pending"
-          value="3"
-          icon={Clock}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-500"
-        />
-        <StatsCard
-          label="Favorites"
-          value="42"
-          icon={Heart}
-          iconBg="bg-rose-50"
-          iconColor="text-rose-500"
-        />
-        <StatsCard
-          label="Reviews"
-          value="18"
-          icon={Star}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-500"
-        />
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+        {dashboardStats.map((item) => (
+          <SellerStatCard key={item.label} {...item} />
+        ))}
       </div>
 
-      {/* Chart + Reviews Row */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PageInsightsChart />
-        </div>
+      <ListingsTable />
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
+        <PageInsightsChart />
         <RecentReviews />
       </div>
-
-      {/* Listings Table */}
-      <ListingsTable />
     </div>
   );
 }

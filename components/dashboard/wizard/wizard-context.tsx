@@ -3,15 +3,13 @@
 import * as React from "react";
 import {
   LISTING_AVAILABILITY_OPTIONS,
-  LISTING_CATEGORY_OPTIONS,
   LISTING_CONDITION_OPTIONS,
   LISTING_FEATURE_GROUPS_BY_CATEGORY,
   LISTING_FEATURES_BY_CATEGORY,
   LISTING_WIZARD_STEPS,
-  KENYA_CITIES,
   type ListingCategory,
-  type ListingFeatureOption,
 } from "@/lib/constants/marketplace";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -170,6 +168,17 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
 
+type AuthenticatedProfileRole = "buyer" | "seller" | "dealer" | "admin";
+
+type SellerAccountDefaults = {
+  sellerType: ListingDraft["sellerType"];
+  useDealerAutoFill: boolean;
+  contactName: string;
+  phoneNumber: string;
+  whatsappEnabled: boolean;
+  whatsappNumber: string;
+};
+
 // ─── Utility functions ───
 export function formatKES(value: string) {
   const amount = Number(value);
@@ -208,6 +217,7 @@ interface WizardContextValue {
   showValidationErrors: boolean;
   isSubmitting: boolean;
   submitError: string | null;
+  submitErrorDetails: string[];
   submitted: boolean;
   autoApproved: boolean;
   createdListingId: string | null;
@@ -261,6 +271,62 @@ interface WizardContextValue {
 
 const WizardContext = React.createContext<WizardContextValue | null>(null);
 
+const SUBMISSION_FIELD_METADATA: Record<
+  string,
+  { label: string; step: string }
+> = {
+  make: { label: "Make", step: "Vehicle / Equipment Details" },
+  model: { label: "Model", step: "Vehicle / Equipment Details" },
+  year: { label: "Year", step: "Vehicle / Equipment Details" },
+  mileage: { label: "Mileage", step: "Vehicle / Equipment Details" },
+  body_type: { label: "Body Type", step: "Vehicle / Equipment Details" },
+  transmission: { label: "Transmission", step: "Vehicle / Equipment Details" },
+  fuel_type: { label: "Fuel Type", step: "Vehicle / Equipment Details" },
+  color: { label: "Color", step: "Vehicle / Equipment Details" },
+  price: { label: "Price", step: "Listing Basics" },
+  condition: { label: "Condition", step: "Listing Basics" },
+  description: { label: "Description", step: "Listing Basics" },
+  features: { label: "Features", step: "Features & Specifications" },
+  currency: { label: "Currency", step: "Listing Basics" },
+};
+
+function formatSubmissionErrorDetails(error: unknown): string[] {
+  if (!error || typeof error !== "object") {
+    return [];
+  }
+
+  const candidate = error as {
+    formErrors?: unknown;
+    fieldErrors?: Record<string, unknown>;
+  };
+
+  const details: string[] = [];
+
+  if (Array.isArray(candidate.formErrors)) {
+    for (const formError of candidate.formErrors) {
+      if (typeof formError === "string" && formError.trim()) {
+        details.push(formError.trim());
+      }
+    }
+  }
+
+  if (candidate.fieldErrors && typeof candidate.fieldErrors === "object") {
+    for (const [field, messages] of Object.entries(candidate.fieldErrors)) {
+      if (!Array.isArray(messages)) continue;
+      const metadata = SUBMISSION_FIELD_METADATA[field];
+      for (const message of messages) {
+        if (typeof message !== "string" || !message.trim()) continue;
+        const prefix = metadata
+          ? `${metadata.step}: ${metadata.label}`
+          : field.replace(/_/g, " ");
+        details.push(`${prefix} - ${message.trim()}`);
+      }
+    }
+  }
+
+  return Array.from(new Set(details));
+}
+
 export function useWizard() {
   const ctx = React.useContext(WizardContext);
   if (!ctx) throw new Error("useWizard must be used within WizardProvider");
@@ -274,6 +340,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [submitErrorDetails, setSubmitErrorDetails] = React.useState<string[]>([]);
   const [createdListingId, setCreatedListingId] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState<ListingDraft>(DEFAULT_DRAFT);
   const [mediaError, setMediaError] = React.useState<string | null>(null);
@@ -282,6 +349,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   const [expandedFeatureGroups, setExpandedFeatureGroups] = React.useState<Record<string, boolean>>({});
   const [presetUndoSelection, setPresetUndoSelection] = React.useState<string[] | null>(null);
   const [showValidationErrors, setShowValidationErrors] = React.useState(false);
+  const [sellerAccountDefaults, setSellerAccountDefaults] = React.useState<SellerAccountDefaults | null>(null);
 
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = React.useState<File[]>([]);
@@ -312,6 +380,108 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadSellerDefaults = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user || !isMounted) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single<{
+          full_name: string | null;
+          role: AuthenticatedProfileRole | null;
+        }>();
+
+      const profileRole = profile?.role ?? null;
+      const fallbackName =
+        profile?.full_name?.trim() ||
+        (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") ||
+        "";
+      const fallbackPhone =
+        (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone.trim() : "") ||
+        "";
+
+      let defaults: SellerAccountDefaults = {
+        sellerType: profileRole === "dealer" ? "dealer" : "individual",
+        useDealerAutoFill: profileRole === "dealer",
+        contactName: fallbackName,
+        phoneNumber: fallbackPhone,
+        whatsappEnabled: Boolean(fallbackPhone),
+        whatsappNumber: fallbackPhone,
+      };
+
+      if (profileRole === "dealer") {
+        const { data: dealer } = await supabase
+          .from("dealers")
+          .select("status, mobile, whatsapp, contact_person")
+          .eq("profile_id", user.id)
+          .maybeSingle<{
+            status: "PENDING" | "APPROVED" | "REJECTED" | null;
+            mobile: string | null;
+            whatsapp: string | null;
+            contact_person: {
+              name?: string;
+              mobile?: string;
+              whatsapp?: string;
+            } | null;
+          }>();
+
+        const dealerPhone =
+          dealer?.contact_person?.mobile?.trim() ||
+          dealer?.mobile?.trim() ||
+          fallbackPhone;
+        const dealerWhatsapp =
+          dealer?.contact_person?.whatsapp?.trim() ||
+          dealer?.whatsapp?.trim() ||
+          dealerPhone;
+
+        defaults = {
+          sellerType: "dealer",
+          useDealerAutoFill: true,
+          contactName:
+            dealer?.contact_person?.name?.trim() ||
+            fallbackName,
+          phoneNumber: dealerPhone,
+          whatsappEnabled: Boolean(dealerWhatsapp),
+          whatsappNumber: dealerWhatsapp,
+        };
+      }
+
+      if (!isMounted) return;
+      setSellerAccountDefaults(defaults);
+      setDraft((prev) => ({
+        ...prev,
+        sellerType: prev.sellerType === DEFAULT_DRAFT.sellerType ? defaults.sellerType : prev.sellerType,
+        useDealerAutoFill:
+          prev.useDealerAutoFill === DEFAULT_DRAFT.useDealerAutoFill
+            ? defaults.useDealerAutoFill
+            : prev.useDealerAutoFill,
+        contactName: prev.contactName.trim() ? prev.contactName : defaults.contactName,
+        phoneNumber: prev.phoneNumber.trim() ? prev.phoneNumber : defaults.phoneNumber,
+        whatsappEnabled:
+          prev.whatsappEnabled === DEFAULT_DRAFT.whatsappEnabled
+            ? defaults.whatsappEnabled
+            : prev.whatsappEnabled,
+        whatsappNumber: prev.whatsappNumber.trim() ? prev.whatsappNumber : defaults.whatsappNumber,
+      }));
+    };
+
+    void loadSellerDefaults();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
   const selectedCategoryFields = draft.category ? DETAIL_FIELDS_BY_CATEGORY[draft.category] : [];
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
@@ -340,10 +510,18 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   }, [draft.category]);
 
   const updateField = <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) => {
+    if (submitError) {
+      setSubmitError(null);
+      setSubmitErrorDetails([]);
+    }
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
 
   const updateDetailField = (key: DetailFieldKey, value: string) => {
+    if (submitError) {
+      setSubmitError(null);
+      setSubmitErrorDetails([]);
+    }
     setDraft((prev) => ({ ...prev, details: { ...prev.details, [key]: value } }));
   };
 
@@ -478,14 +656,18 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
 
   const applyDealerAutofill = (enabled: boolean) => {
     if (!enabled) { setDraft((prev) => ({ ...prev, useDealerAutoFill: false })); return; }
+    if (!sellerAccountDefaults) {
+      setDraft((prev) => ({ ...prev, useDealerAutoFill: true }));
+      return;
+    }
     setDraft((prev) => ({
       ...prev,
-      useDealerAutoFill: true,
-      sellerType: "dealer",
-      contactName: "Dealer Primary Contact",
-      phoneNumber: "+254700123456",
-      whatsappNumber: "+254700123456",
-      whatsappEnabled: true,
+      sellerType: sellerAccountDefaults.sellerType,
+      useDealerAutoFill: sellerAccountDefaults.useDealerAutoFill,
+      contactName: sellerAccountDefaults.contactName || prev.contactName,
+      phoneNumber: sellerAccountDefaults.phoneNumber || prev.phoneNumber,
+      whatsappEnabled: sellerAccountDefaults.whatsappEnabled,
+      whatsappNumber: sellerAccountDefaults.whatsappNumber || prev.whatsappNumber,
     }));
   };
 
@@ -546,11 +728,19 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
 
       setIsSubmitting(true);
       setSubmitError(null);
+      setSubmitErrorDetails([]);
       try {
         // Step 1: Create listing record (status: draft)
         const result = await createListing(listingData);
         if (result.error) {
-          setSubmitError(typeof result.error === "string" ? result.error : "Validation failed.");
+          if (typeof result.error === "string") {
+            setSubmitError(result.error);
+            setSubmitErrorDetails([result.error]);
+          } else {
+            const details = formatSubmissionErrorDetails(result.error);
+            setSubmitError("Please fix the validation issues below before submitting.");
+            setSubmitErrorDetails(details);
+          }
           setIsSubmitting(false);
           return;
         }
@@ -587,6 +777,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         const uploadResult = await uploadListingImages(uploadFormData);
         if ("error" in uploadResult) {
           setSubmitError(uploadResult.error || "Unable to upload listing images.");
+          setSubmitErrorDetails(uploadResult.error ? [uploadResult.error] : []);
           setIsSubmitting(false);
           return;
         }
@@ -595,6 +786,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         const submitResult = await submitListingForReview(listingId);
         if ("error" in submitResult) {
           setSubmitError(submitResult.error || "Unable to submit listing for review.");
+          setSubmitErrorDetails(submitResult.error ? [submitResult.error] : []);
           setIsSubmitting(false);
           return;
         }
@@ -607,6 +799,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         setSubmitted(true);
       } catch {
         setSubmitError("An unexpected error occurred. Please try again.");
+        setSubmitErrorDetails([]);
       } finally {
         setIsSubmitting(false);
       }
@@ -621,7 +814,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: WizardContextValue = {
-    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitted, autoApproved, createdListingId,
+    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitErrorDetails, submitted, autoApproved, createdListingId,
     coverFile, galleryFiles, documentFiles,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,

@@ -4,28 +4,23 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BarChart3,
   ChevronLeft,
-  ClipboardList,
-  LayoutDashboard,
   LogOut,
   Menu,
-  ScrollText,
-  ShieldCheck,
-  Users,
   X,
+  Plus,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
-
-const adminNav = [
-  { name: "Listings", href: "/admin/listings", icon: ClipboardList },
-  { name: "Dealers", href: "/admin/dealers", icon: ShieldCheck },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { name: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
-];
+import {
+  ADMIN_NAV_SECTIONS,
+  AdminNavLink,
+  AdminSidebarSectionTitle,
+  AdminTopNavigation,
+  adminPrimaryButtonClass,
+} from "./admin-ui";
 
 interface AdminShellProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
@@ -44,7 +39,16 @@ export function AdminShell({ user, children }: AdminShellProps) {
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
 
   const currentSection =
-    adminNav.find((item) => pathname.startsWith(item.href))?.name || "Admin";
+    ADMIN_NAV_SECTIONS.flatMap((section) => section.items).find((item) =>
+      pathname === item.href || pathname.startsWith(`${item.href}/`)
+    )?.name || "Dashboard";
+
+  const primaryAction =
+    pathname.startsWith("/admin/review")
+      ? { href: "/admin/dashboard", label: "View dashboard" }
+      : pathname.startsWith("/admin/verification")
+        ? { href: "/admin/review", label: "Open review queue" }
+        : { href: "/admin/review", label: "Open review queue" };
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -56,7 +60,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-white">
       {sidebarOpen ? (
         <button
           type="button"
@@ -68,69 +72,66 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/5 bg-[#24272c] text-white transition-transform duration-300 lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-              Autolist
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5 text-emerald-400" />
-              <p className="text-sm font-semibold">Admin Console</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between border-b border-white/5 px-[18px] py-6">
+          <Link href="/admin/dashboard" className="font-heading text-[28px] font-semibold text-white">
+            Auto<span className="text-[#ef4444]">list</span>
+          </Link>
           <button
             type="button"
             aria-label="Close admin navigation"
-            className="rounded-md p-2 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+            className="rounded-md p-2 text-white/60 hover:bg-white/5 hover:text-white lg:hidden"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="border-b border-white/10 px-5 py-4">
+        <div className="border-b border-white/5 px-[18px] py-6">
+          <p className="mb-3 text-[12px] font-medium text-white/35">Profile</p>
           <div className="flex items-center gap-3">
             <Avatar
               src={avatarUrl}
               alt={displayName}
               fallback={displayName.slice(0, 2)}
               size="md"
-              className="bg-slate-800"
+              className="bg-white/10"
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{displayName}</p>
-              <p className="truncate text-xs text-slate-400">{user.email}</p>
+              <p className="truncate text-[12px] text-white/45">Account</p>
+              <p className="truncate text-[14px] text-white">{user.email}</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {adminNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive(item.href)
-                  ? "bg-emerald-500 text-slate-950"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.name}
-            </Link>
+        <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+          {ADMIN_NAV_SECTIONS.map((section) => (
+            <div key={section.title} className="space-y-2">
+              <AdminSidebarSectionTitle>{section.title}</AdminSidebarSectionTitle>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <AdminNavLink
+                    key={item.href}
+                    href={item.href}
+                    label={item.name}
+                    icon={item.icon}
+                    badge={item.badge}
+                    active={isActive(item.href)}
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
-        <div className="space-y-2 border-t border-white/10 px-3 py-4">
+        <div className="space-y-2 border-t border-white/5 px-4 py-4">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            className="flex items-center gap-3 rounded-[10px] px-4 py-3 text-[14px] font-medium text-white/90 transition-colors hover:bg-white/5 hover:text-white"
           >
             <ChevronLeft className="h-4 w-4 shrink-0" />
             Seller Dashboard
@@ -138,7 +139,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-[10px] px-4 py-3 text-left text-[14px] font-medium text-white/90 transition-colors hover:bg-white/5 hover:text-white"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Sign Out
@@ -146,9 +147,9 @@ export function AdminShell({ user, children }: AdminShellProps) {
         </div>
       </aside>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="flex h-16 items-center gap-4 px-4 md:px-6">
+      <div className="lg:pl-[280px]">
+        <header className="sticky top-0 z-30 border-b border-[#f1f5f9] bg-white/95 backdrop-blur">
+          <div className="flex min-h-[78px] items-center gap-4 px-6">
             <button
               type="button"
               aria-label="Open admin navigation"
@@ -157,16 +158,34 @@ export function AdminShell({ user, children }: AdminShellProps) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                Admin
-              </p>
-              <h1 className="text-base font-semibold text-slate-900">{currentSection}</h1>
+            <AdminTopNavigation />
+            <div className="ml-auto flex items-center gap-4">
+              <div className="hidden items-center gap-3 lg:flex">
+                <div className="h-9 w-9 rounded-full bg-[#e5e7eb]" />
+                <div className="flex items-center gap-1 text-[13px] font-medium text-[#374151]">
+                  <span>{displayName}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+              <Link href={primaryAction.href} className={cn(adminPrimaryButtonClass, "h-10 gap-2 px-4")}>
+                <Plus className="h-4 w-4" />
+                {primaryAction.label}
+              </Link>
             </div>
           </div>
         </header>
 
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="px-[30px] py-10">
+          <div className="mb-6">
+            <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#94a3b8]">
+              Admin
+            </p>
+            <h1 className="mt-1 font-heading text-[18px] font-semibold text-[#111827]">
+              {currentSection}
+            </h1>
+          </div>
+          {children}
+        </main>
       </div>
     </div>
   );

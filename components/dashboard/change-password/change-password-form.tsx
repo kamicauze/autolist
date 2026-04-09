@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { sellerInputClass, sellerLabelClass } from "../seller-dashboard-ui";
 
 export function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = React.useState("");
@@ -18,8 +16,8 @@ export function ChangePasswordForm() {
   const [success, setSuccess] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
     setSuccess(false);
 
@@ -42,9 +40,7 @@ export function ChangePasswordForm() {
 
     try {
       const supabase = createClient();
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
 
       if (updateError) {
         setError(updateError.message);
@@ -61,95 +57,109 @@ export function ChangePasswordForm() {
     }
   };
 
+  const PasswordField = ({
+    id,
+    label,
+    value,
+    setValue,
+    open,
+    setOpen,
+    placeholder,
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    setValue: (value: string) => void;
+    open: boolean;
+    setOpen: (value: boolean) => void;
+    placeholder: string;
+  }) => (
+    <div>
+      <label htmlFor={id} className={sellerLabelClass}>
+        {label}
+      </label>
+      <div className="relative">
+        <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]" />
+        <input
+          id={id}
+          type={open ? "text" : "password"}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={placeholder}
+          className={`${sellerInputClass} pl-11 pr-11`}
+          required
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8a8a8a] transition hover:text-[#202224]"
+        >
+          {open ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error ? (
+        <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {success && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      {success ? (
+        <div className="rounded-[18px] border border-[#d1fadf] bg-[#eefaf2] px-4 py-3 text-[14px] text-[#2f9e63]">
           Password updated successfully.
         </div>
-      )}
+      ) : null}
 
-      <div className="space-y-2">
-        <Label htmlFor="current-password">Current Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="current-password"
-            type={showCurrent ? "text" : "password"}
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
-            className="pl-10 pr-10"
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowCurrent(!showCurrent)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+      <PasswordField
+        id="current-password"
+        label="Current Password"
+        value={currentPassword}
+        setValue={setCurrentPassword}
+        open={showCurrent}
+        setOpen={setShowCurrent}
+        placeholder="Enter current password"
+      />
+
+      <PasswordField
+        id="new-password"
+        label="New Password"
+        value={newPassword}
+        setValue={setNewPassword}
+        open={showNew}
+        setOpen={setShowNew}
+        placeholder="Enter new password"
+      />
+
+      <PasswordField
+        id="confirm-password"
+        label="Confirm Password"
+        value={confirmPassword}
+        setValue={setConfirmPassword}
+        open={showConfirm}
+        setOpen={setShowConfirm}
+        placeholder="Confirm new password"
+      />
+
+      <div className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-4">
+        <p className="text-[13px] font-semibold text-[#202224]">Password requirements</p>
+        <ul className="mt-3 space-y-2 text-[13px] text-[#777]">
+          <li>At least 8 characters</li>
+          <li>Use a unique password for this seller account</li>
+          <li>Keep it different from the previous password</li>
+        </ul>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="new-password">New Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="new-password"
-            type={showNew ? "text" : "password"}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
-            className="pl-10 pr-10"
-            required
-            minLength={8}
-          />
-          <button
-            type="button"
-            onClick={() => setShowNew(!showNew)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm New Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="confirm-password"
-            type={showConfirm ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm new password"
-            className="pl-10 pr-10"
-            required
-            minLength={8}
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirm(!showConfirm)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <Button type="submit" className="w-full" disabled={loading}>
+      <button
+        type="submit"
+        disabled={loading}
+        className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+      >
         {loading ? "Updating..." : "Update Password"}
-      </Button>
+      </button>
     </form>
   );
 }

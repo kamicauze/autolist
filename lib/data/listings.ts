@@ -1,7 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 
+function escapeLike(value: string) {
+  return value.replace(/[,%]/g, "");
+}
 
+function getListingSelect(includeDealerLocationFilter = false) {
+  const dealerJoin = includeDealerLocationFilter
+    ? "dealer:dealers!inner(id, name, logo_url, city)"
+    : "dealer:dealers(id, name, logo_url, city)";
+
+  return `
+      *,
+      images:listing_images(id, r2_key, alt_text, image_order),
+      seller:profiles!seller_id(id, full_name, avatar_url),
+      ${dealerJoin}
+    `;
+}
+
+function applyCaseInsensitiveMultiValueFilter<TQuery extends { or: (filters: string) => TQuery }>(
+  query: TQuery,
+  column: string,
+  value: string | string[]
+) {
+  const values = Array.isArray(value) ? value : [value];
+  const normalized = values.map((item) => item.trim()).filter(Boolean);
+
+  if (normalized.length === 0) {
+    return query;
+  }
+
+  const filter = normalized
+    .map((item) => `${column}.ilike.${escapeLike(item)}`)
+    .join(",");
+
+  return query.or(filter);
+}
 
 export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
   const supabase = await createClient();
@@ -118,18 +152,15 @@ export async function searchListings({
 
   let query = supabase
     .from("listings")
-    .select(
-      `
-      *,
-      images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city)
-    `,
-      { count: "exact" }
-    )
+    .select(getListingSelect(Boolean(filters?.location)), { count: "exact" })
     .eq("status", "active");
 
   // Apply filters
+  if (filters?.q) {
+    query = query.or(
+      `make.ilike.%${filters.q}%,model.ilike.%${filters.q}%,description.ilike.%${filters.q}%`
+    );
+  }
   if (filters?.make) {
     query = query.ilike("make", `%${filters.make}%`);
   }
@@ -151,29 +182,17 @@ export async function searchListings({
 
   // Handle array or single value for bodyType
   if (filters?.bodyType) {
-    if (Array.isArray(filters.bodyType) && filters.bodyType.length > 0) {
-      query = query.in("body_type", filters.bodyType);
-    } else if (typeof filters.bodyType === "string") {
-      query = query.eq("body_type", filters.bodyType);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "body_type", filters.bodyType);
   }
 
   // Handle array or single value for transmission
   if (filters?.transmission) {
-    if (Array.isArray(filters.transmission) && filters.transmission.length > 0) {
-      query = query.in("transmission", filters.transmission);
-    } else if (typeof filters.transmission === "string") {
-      query = query.eq("transmission", filters.transmission);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "transmission", filters.transmission);
   }
 
   // Handle array or single value for fuelType
   if (filters?.fuelType) {
-    if (Array.isArray(filters.fuelType) && filters.fuelType.length > 0) {
-      query = query.in("fuel_type", filters.fuelType);
-    } else if (typeof filters.fuelType === "string") {
-      query = query.eq("fuel_type", filters.fuelType);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "fuel_type", filters.fuelType);
   }
 
   if (filters?.condition) {
@@ -197,6 +216,10 @@ export async function searchListings({
     query = query.not("dealer_id", "is", null);
   } else if (filters?.sellerType === "private") {
     query = query.is("dealer_id", null);
+  }
+
+  if (filters?.location) {
+    query = query.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
   }
 
   // Color filter
@@ -239,7 +262,7 @@ export async function searchListings({
   }
 
   return {
-    listings: data as Listing[],
+    listings: (data || []) as unknown as Listing[],
     total: count || 0,
   };
 }
@@ -251,10 +274,15 @@ export async function countMatchingListings(
 
   let query = supabase
     .from("listings")
-    .select("*", { count: "exact", head: true })
+    .select(getListingSelect(Boolean(filters?.location)), { count: "exact", head: true })
     .eq("status", "active");
 
   // Apply filters
+  if (filters?.q) {
+    query = query.or(
+      `make.ilike.%${filters.q}%,model.ilike.%${filters.q}%,description.ilike.%${filters.q}%`
+    );
+  }
   if (filters?.make) {
     query = query.ilike("make", `%${filters.make}%`);
   }
@@ -284,29 +312,17 @@ export async function countMatchingListings(
 
   // Handle array or single value for bodyType
   if (filters?.bodyType) {
-    if (Array.isArray(filters.bodyType) && filters.bodyType.length > 0) {
-      query = query.in("body_type", filters.bodyType);
-    } else if (typeof filters.bodyType === "string") {
-      query = query.eq("body_type", filters.bodyType);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "body_type", filters.bodyType);
   }
 
   // Handle array or single value for transmission
   if (filters?.transmission) {
-    if (Array.isArray(filters.transmission) && filters.transmission.length > 0) {
-      query = query.in("transmission", filters.transmission);
-    } else if (typeof filters.transmission === "string") {
-      query = query.eq("transmission", filters.transmission);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "transmission", filters.transmission);
   }
 
   // Handle array or single value for fuelType
   if (filters?.fuelType) {
-    if (Array.isArray(filters.fuelType) && filters.fuelType.length > 0) {
-      query = query.in("fuel_type", filters.fuelType);
-    } else if (typeof filters.fuelType === "string") {
-      query = query.eq("fuel_type", filters.fuelType);
-    }
+    query = applyCaseInsensitiveMultiValueFilter(query, "fuel_type", filters.fuelType);
   }
 
   // Mileage filters
@@ -322,6 +338,10 @@ export async function countMatchingListings(
     query = query.not("dealer_id", "is", null);
   } else if (filters?.sellerType === "private") {
     query = query.is("dealer_id", null);
+  }
+
+  if (filters?.location) {
+    query = query.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
   }
 
   // Color filter

@@ -65,7 +65,7 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Dealer Verification Queue</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Verification (KYC)</h2>
           <p className="mt-2 text-sm text-slate-600">
             Review submitted dealership profiles and their supporting documents.
           </p>
@@ -85,7 +85,7 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Dealer Verification Queue</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Verification (KYC)</h2>
           <p className="mt-2 text-sm text-slate-600">
             {dealerRows.length} dealer application{dealerRows.length === 1 ? "" : "s"} waiting for
             review.
