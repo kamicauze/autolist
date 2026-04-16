@@ -1,7 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { CalendarDays, Eye, MoreHorizontal, Pencil, Search, Trash2 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { CalendarDays, Eye, Pencil, Search } from "lucide-react";
+import type { Listing } from "@/lib/types/listing";
+import { getImageUrl } from "@/lib/utils/listings";
+import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 import {
   SellerPagination,
   SellerStatusPill,
@@ -9,65 +14,23 @@ import {
   formatDashboardCurrency,
 } from "./seller-dashboard-ui";
 
-type DashboardListing = {
-  id: string;
-  title: string;
-  date: string;
-  status: "active" | "pending" | "draft" | "sold";
-  price: number;
-};
-
-const tableListings: DashboardListing[] = [
-  {
-    id: "1",
-    title: "Mercedes Benz GLC 2021",
-    date: "2025-01-22",
-    status: "active",
-    price: 7250000,
-  },
-  {
-    id: "2",
-    title: "Toyota Land Cruiser Prado TXL",
-    date: "2025-01-17",
-    status: "pending",
-    price: 6850000,
-  },
-  {
-    id: "3",
-    title: "Audi Q8 S Line",
-    date: "2025-01-10",
-    status: "draft",
-    price: 12400000,
-  },
-  {
-    id: "4",
-    title: "Mazda CX-5 Touring",
-    date: "2025-01-08",
-    status: "active",
-    price: 3250000,
-  },
-  {
-    id: "5",
-    title: "Subaru Forester XT",
-    date: "2024-12-28",
-    status: "sold",
-    price: 2980000,
-  },
-];
-
 const tones = {
   active: "green" as const,
   pending: "amber" as const,
   draft: "blue" as const,
+  reserved: "amber" as const,
   sold: "neutral" as const,
+  expired: "neutral" as const,
+  rejected: "neutral" as const,
 };
 
-export function ListingsTable() {
+export function ListingsTable({ listings: initialListings = [] }: { listings?: Listing[] }) {
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All status");
 
-  const listings = tableListings.filter((listing) => {
-    const matchesQuery = listing.title.toLowerCase().includes(query.toLowerCase());
+  const listings = initialListings.filter((listing) => {
+    const title = getListingDisplayTitle(listing);
+    const matchesQuery = title.toLowerCase().includes(query.toLowerCase());
     const matchesStatus = status === "All status" || listing.status === status.toLowerCase();
     return matchesQuery && matchesStatus;
   });
@@ -122,16 +85,35 @@ export function ListingsTable() {
             </tr>
           </thead>
           <tbody>
+            {listings.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center text-[14px] text-[#707070]">
+                  No listings match the current filters.
+                </td>
+              </tr>
+            ) : null}
             {listings.map((listing) => (
               <tr key={listing.id} className="border-b border-[#f1f1f1] last:border-b-0">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-4">
-                    <div className="h-14 w-[72px] rounded-[16px] bg-[linear-gradient(135deg,#f0f4ff,#e7e1d8)]" />
-                    <p className="text-[14px] font-semibold text-[#202224]">{listing.title}</p>
+                    <div className="relative h-14 w-[72px] overflow-hidden rounded-[16px] bg-[linear-gradient(135deg,#f0f4ff,#e7e1d8)]">
+                      <Image
+                        src={
+                          listing.images?.[0]?.r2_key
+                            ? getImageUrl(listing.images[0].r2_key, "thumb")
+                            : "/placeholder-car.jpg"
+                        }
+                        alt={getListingDisplayTitle(listing)}
+                        fill
+                        className="object-cover"
+                        sizes="72px"
+                      />
+                    </div>
+                    <p className="text-[14px] font-semibold text-[#202224]">{getListingDisplayTitle(listing)}</p>
                   </div>
                 </td>
                 <td className="px-5 py-4 text-[14px] text-[#707070]">
-                  {new Date(listing.date).toLocaleDateString("en-KE", {
+                  {new Date(listing.created_at).toLocaleDateString("en-KE", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
@@ -140,7 +122,7 @@ export function ListingsTable() {
                 <td className="px-5 py-4">
                   <SellerStatusPill
                     label={listing.status[0].toUpperCase() + listing.status.slice(1)}
-                    tone={tones[listing.status]}
+                    tone={tones[listing.status] ?? "neutral"}
                   />
                 </td>
                 <td className="px-5 py-4 text-[14px] font-semibold text-[#202224]">
@@ -148,18 +130,18 @@ export function ListingsTable() {
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                    <Link
+                      href={`/vehicle/${listing.id}`}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                    >
                       <Eye className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
+                    </Link>
+                    <Link
+                      href={`/dashboard/listings/${listing.id}/edit`}
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                    >
                       <Pencil className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#f04438] hover:text-[#f04438]">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+                    </Link>
                   </div>
                 </td>
               </tr>

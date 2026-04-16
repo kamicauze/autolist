@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
+import type { Listing } from "@/lib/types/listing";
 import { WizardProvider, useWizard } from "./wizard-context";
 import { StepBasicInfo } from "./step-basic-info";
 import { StepCategory } from "./step-category";
@@ -28,6 +29,7 @@ const STEP_COMPONENTS = [
 
 function WizardContent() {
   const {
+    isEditing,
     activeStep,
     submitted,
     autoApproved,
@@ -56,10 +58,12 @@ function WizardContent() {
             <CheckCircle2 className="h-7 w-7" />
           </div>
           <h2 className="mt-5 font-heading text-[34px] font-semibold text-[#202224]">
-            {autoApproved ? "Your listing is live" : "Listing submitted"}
+            {isEditing ? "Listing updated" : autoApproved ? "Your listing is live" : "Listing submitted"}
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6e6e6e]">
-            {autoApproved
+            {isEditing
+              ? "Your changes have been saved. Public listing pages and seller dashboard views will refresh with the updated data."
+              : autoApproved
               ? "The seller dashboard has published your package immediately and buyers can view it now."
               : "Your package has been sent for review. It will appear publicly as soon as the moderation team approves it."}
           </p>
@@ -112,8 +116,8 @@ function WizardContent() {
       </div>
 
       <WizardShell
-        title="Add Listing"
-        description="Unified listing form for all vehicle categories."
+        title={isEditing ? "Edit Listing" : "Add Listing"}
+        description={isEditing ? "Update the saved listing details and publish the latest changes." : "Unified listing form for all vehicle categories."}
         steps={LISTING_WIZARD_STEPS}
         activeStep={activeStep}
         footerMeta={footerMeta}
@@ -134,7 +138,7 @@ function WizardContent() {
               onClick={handleContinue}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting..." : isLastStep ? "Submit Listing" : "Next Step"}
+              {isSubmitting ? (isEditing ? "Saving..." : "Submitting...") : isLastStep ? (isEditing ? "Save Changes" : "Submit Listing") : "Next Step"}
             </Button>
           </>
         }
@@ -159,9 +163,9 @@ function WizardContent() {
   );
 }
 
-export function ListingWizardV2() {
+export function ListingWizardV2({ initialListing }: { initialListing?: Listing | null }) {
   return (
-    <WizardProvider>
+    <WizardProvider initialListing={initialListing}>
       <WizardContent />
     </WizardProvider>
   );

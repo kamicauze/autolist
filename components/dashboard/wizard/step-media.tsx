@@ -65,8 +65,10 @@ function GalleryPreview({
 
 export function StepMedia() {
   const {
+    isEditing,
     draft,
     updateField,
+    coverFile,
     galleryFiles,
     documentFiles,
     handleCoverSelection,
@@ -76,6 +78,9 @@ export function StepMedia() {
     removeDocumentFile,
     mediaValidationError,
   } = useWizard();
+  const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
+  const existingGalleryImageNames =
+    isEditing && !hasReplacementMedia ? draft.galleryImageNames : [];
 
   return (
     <div className="space-y-6">
@@ -88,6 +93,13 @@ export function StepMedia() {
 
       <div className="space-y-6 rounded-[24px] border border-[#ededed] bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.04)]">
         <div className="space-y-5">
+          {isEditing && !hasReplacementMedia ? (
+            <div className="rounded-[18px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[13px] leading-6 text-[#3157c8]">
+              Current listing media is preserved as-is. Upload a new cover image and gallery set only if you want
+              to replace the existing photos.
+            </div>
+          ) : null}
+
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
             <div>
               <label className={sellerLabelClass}>Cover Image</label>
@@ -97,7 +109,11 @@ export function StepMedia() {
               <Dropzone
                 onFilesAdded={handleCoverSelection}
                 files={draft.coverImageName ? [{ name: draft.coverImageName } as File] : []}
-                onRemove={() => updateField("coverImageName", null)}
+                onRemove={
+                  isEditing && !hasReplacementMedia
+                    ? undefined
+                    : () => updateField("coverImageName", null)
+                }
                 accept="image/*"
                 multiple={false}
                 maxSize={MAX_FILE_SIZE_BYTES}
@@ -134,10 +150,12 @@ export function StepMedia() {
               <button
                 type="button"
                 onClick={() => {
+                  if (isEditing && !hasReplacementMedia) return;
                   updateField("coverImageName", null);
                   updateField("coverFromGalleryIndex", galleryFiles.length > 0 ? 0 : null);
                 }}
                 className={sellerGhostButtonClass}
+                disabled={isEditing && !hasReplacementMedia}
               >
                 Use gallery cover
               </button>
@@ -171,6 +189,20 @@ export function StepMedia() {
                   No gallery media uploaded yet.
                 </div>
               ) : null}
+
+              {existingGalleryImageNames.map((name) => (
+                <div
+                  key={name}
+                  className="overflow-hidden rounded-[18px] border border-[#ededed] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.04)]"
+                >
+                  <div className="flex aspect-[1.4/1] items-center justify-center bg-[#f3f4f6] px-4 text-center text-[13px] font-medium text-[#6b7280]">
+                    Existing image
+                  </div>
+                  <div className="p-4">
+                    <p className="truncate text-[13px] font-medium text-[#202224]">{name}</p>
+                  </div>
+                </div>
+              ))}
 
               {galleryFiles.map((file, index) => (
                 <GalleryPreview

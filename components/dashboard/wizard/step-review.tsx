@@ -57,7 +57,7 @@ function SummarySection({
 }
 
 export function StepReview() {
-  const { draft, selectedCategoryFields, marketIndicator } = useWizard();
+  const { draft, isEditing, selectedCategoryFields, marketIndicator } = useWizard();
 
   const categoryLabel =
     LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "-";
@@ -219,7 +219,11 @@ export function StepReview() {
         <SummaryRow label="Market Note" value={marketIndicator.note} />
         <SummaryRow
           label="Submission Outcome"
-          value="The listing will be sent for moderation and remain pending until it is approved."
+          value={
+            isEditing
+              ? "Saving will update the existing listing. If you upload new media, the current media set will be replaced."
+              : "The listing will be sent for moderation and remain pending until it is approved."
+          }
         />
       </SummarySection>
 

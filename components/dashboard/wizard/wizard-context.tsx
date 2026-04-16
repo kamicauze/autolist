@@ -10,6 +10,8 @@ import {
   type ListingCategory,
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
+import type { Listing } from "@/lib/types/listing";
+import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -214,6 +216,8 @@ export function getMarketIndicator(category: ListingCategory | "", priceKes: str
 
 // ─── Context ───
 interface WizardContextValue {
+  isEditing: boolean;
+  editingListingId: string | null;
   draft: ListingDraft;
   activeStep: number;
   showValidationErrors: boolean;
@@ -272,6 +276,73 @@ interface WizardContextValue {
 }
 
 const WizardContext = React.createContext<WizardContextValue | null>(null);
+
+function extractFileName(pathLike: string | null | undefined) {
+  if (!pathLike) return null;
+  const normalized = pathLike.split("?")[0] ?? pathLike;
+  const segments = normalized.split("/");
+  return segments[segments.length - 1] || normalized;
+}
+
+function buildDraftFromListing(listing: Listing): ListingDraft {
+  const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
+  const [coverImage, ...galleryImages] = sortedImages;
+  const cityTown = listing.dealer?.city?.trim() || "";
+  const locationArea =
+    listing.dealer?.address?.trim() ||
+    (typeof listing.metadata?.locationArea === "string" ? listing.metadata.locationArea.trim() : "") ||
+    "";
+  const contactName =
+    listing.dealer?.name?.trim() ||
+    listing.seller?.full_name?.trim() ||
+    "";
+  const phoneNumber =
+    listing.dealer?.mobile?.trim() ||
+    "";
+  const whatsappNumber =
+    listing.dealer?.whatsapp?.trim() ||
+    phoneNumber;
+
+  return {
+    ...DEFAULT_DRAFT,
+    category: "car",
+    title: getListingDisplayTitle(listing),
+    condition: (listing.condition === "new" || listing.condition === "foreign_used" || listing.condition === "locally_used")
+      ? listing.condition
+      : DEFAULT_DRAFT.condition,
+    priceKes: String(listing.price ?? ""),
+    country: "Kenya",
+    cityTown,
+    locationArea,
+    description: listing.description ?? "",
+    details: {
+      ...DEFAULT_DRAFT.details,
+      make: listing.make ?? "",
+      model: listing.model ?? "",
+      trim: getListingTrim(listing) ?? "",
+      variant: getListingVariant(listing) ?? "",
+      year: listing.year ? String(listing.year) : "",
+      mileage: typeof listing.mileage === "number" ? String(listing.mileage) : "",
+      bodyType: listing.body_type ?? "",
+      transmission: listing.transmission ?? "",
+      fuelType: listing.fuel_type ?? "",
+      engineType: listing.fuel_type ?? "",
+      color: listing.color ?? "",
+      seats: typeof listing.seats === "number" ? String(listing.seats) : "",
+      driveType: listing.drive_type ?? "",
+    },
+    selectedFeatureIds: Array.isArray(listing.features) ? listing.features : [],
+    coverImageName: extractFileName(coverImage?.r2_key),
+    galleryImageNames: galleryImages.map((image) => extractFileName(image.r2_key)).filter((name): name is string => Boolean(name)),
+    sellerType: listing.dealer_id ? "dealer" : "individual",
+    useDealerAutoFill: Boolean(listing.dealer_id),
+    contactName,
+    phoneNumber,
+    whatsappEnabled: Boolean(whatsappNumber),
+    whatsappNumber,
+    allowPhoneCalls: Boolean(phoneNumber),
+  };
+}
 
 const SUBMISSION_FIELD_METADATA: Record<
   string,
@@ -338,15 +409,28 @@ export function useWizard() {
 }
 
 // ─── Provider ───
-export function WizardProvider({ children }: { children: React.ReactNode }) {
+export function WizardProvider({
+  children,
+  initialListing,
+}: {
+  children: React.ReactNode;
+  initialListing?: Listing | null;
+}) {
+  const initialDraft = React.useMemo(
+    () => (initialListing ? buildDraftFromListing(initialListing) : DEFAULT_DRAFT),
+    [initialListing]
+  );
+  const storageKey = initialListing ? `${DRAFT_STORAGE_KEY}:${initialListing.id}` : DRAFT_STORAGE_KEY;
+  const isEditing = Boolean(initialListing);
+  const editingListingId = initialListing?.id ?? null;
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
   const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [submitErrorDetails, setSubmitErrorDetails] = React.useState<string[]>([]);
-  const [createdListingId, setCreatedListingId] = React.useState<string | null>(null);
-  const [draft, setDraft] = React.useState<ListingDraft>(DEFAULT_DRAFT);
+  const [createdListingId, setCreatedListingId] = React.useState<string | null>(editingListingId);
+  const [draft, setDraft] = React.useState<ListingDraft>(initialDraft);
   const [mediaError, setMediaError] = React.useState<string | null>(null);
   const [featureQuery, setFeatureQuery] = React.useState("");
   const [showFeatureIds, setShowFeatureIds] = React.useState(false);
@@ -362,27 +446,27 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   // Auto-save draft
   React.useEffect(() => {
     if (draft.category) {
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      localStorage.setItem(storageKey, JSON.stringify(draft));
     }
-  }, [draft]);
+  }, [draft, storageKey]);
 
   // Restore draft
   React.useEffect(() => {
-    const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    const savedDraft = localStorage.getItem(storageKey);
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft) as Partial<ListingDraft>;
         if (parsed.category) {
           setDraft({
-            ...DEFAULT_DRAFT,
+            ...initialDraft,
             ...parsed,
-            country: parsed.country?.trim() || DEFAULT_DRAFT.country,
-            details: { ...DEFAULT_DRAFT.details, ...(parsed.details || {}) },
+            country: parsed.country?.trim() || initialDraft.country,
+            details: { ...initialDraft.details, ...(parsed.details || {}) },
           });
         }
       } catch { /* ignore */ }
     }
-  }, []);
+  }, [initialDraft, storageKey]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -692,12 +776,17 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
 
   // Validation
   const mediaValidationError = React.useMemo(() => {
+    const replacingImages = isEditing && (coverFile !== null || galleryFiles.length > 0);
+    if (replacingImages) {
+      if (!coverFile) return "Upload a new cover image to replace the current media set.";
+      if (galleryFiles.length < 2) return "Upload at least two gallery images when replacing the current media set.";
+    }
     const totalImages = (draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length;
     if (totalImages < MIN_TOTAL_IMAGES) return `Minimum ${MIN_TOTAL_IMAGES} photos required.`;
     if (!draft.coverImageName && draft.coverFromGalleryIndex === null) return "Select a cover image or choose one from gallery.";
     if (draft.galleryImageNames.length > MAX_GALLERY_IMAGES) return `Gallery supports up to ${MAX_GALLERY_IMAGES} images.`;
     return mediaError;
-  }, [draft.coverFromGalleryIndex, draft.coverImageName, draft.galleryImageNames.length, mediaError]);
+  }, [coverFile, draft.coverFromGalleryIndex, draft.coverImageName, draft.galleryImageNames.length, galleryFiles.length, isEditing, mediaError]);
 
   const sellerValidationError = React.useMemo(() => {
     if (!draft.contactName.trim() || !draft.phoneNumber.trim()) return "Contact name and phone number are required.";
@@ -727,7 +816,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setShowValidationErrors(false);
 
     if (isLastStep) {
-      const { createListing, submitListingForReview, uploadListingImages } = await import("@/lib/actions/listings");
+      const { createListing, submitListingForReview, updateListing, uploadListingImages } = await import("@/lib/actions/listings");
 
       const listingData = {
         make: draft.details.make || "",
@@ -751,72 +840,92 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setSubmitError(null);
       setSubmitErrorDetails([]);
       try {
-        // Step 1: Create listing record (status: draft)
-        const result = await createListing(listingData);
-        if (result.error) {
-          if (typeof result.error === "string") {
-            setSubmitError(result.error);
-            setSubmitErrorDetails([result.error]);
-          } else {
-            const details = formatSubmissionErrorDetails(result.error);
-            setSubmitError("Please fix the validation issues below before submitting.");
-            setSubmitErrorDetails(details);
-          }
-          setIsSubmitting(false);
-          return;
-        }
-        if (!("data" in result) || !result.data) {
-          setSubmitError("Failed to create listing.");
-          setIsSubmitting(false);
-          return;
-        }
+        let listingId = editingListingId;
 
-        const listingId = result.data.id;
-        setCreatedListingId(listingId);
-
-        // Step 2: Upload images server-side to avoid client-side R2 CORS failures.
-        const uploadFormData = new FormData();
-        uploadFormData.set("listingId", listingId);
-        uploadFormData.set("altTextBase", `${draft.details.make} ${draft.details.model}`.trim());
-
-        if (coverFile) {
-          uploadFormData.set("coverImage", coverFile);
-        } else if (
-          draft.coverFromGalleryIndex !== null &&
-          galleryFiles[draft.coverFromGalleryIndex]
-        ) {
-          uploadFormData.set("coverImage", galleryFiles[draft.coverFromGalleryIndex]);
-        }
-
-        galleryFiles.forEach((file, index) => {
-          if (!coverFile && draft.coverFromGalleryIndex === index) {
+        if (isEditing && listingId) {
+          const updateResult = await updateListing(listingId, listingData);
+          if (updateResult.error) {
+            setSubmitError(updateResult.error);
+            setSubmitErrorDetails([updateResult.error]);
+            setIsSubmitting(false);
             return;
           }
-          uploadFormData.append("galleryImages", file);
-        });
+        } else {
+          const result = await createListing(listingData);
+          if (result.error) {
+            if (typeof result.error === "string") {
+              setSubmitError(result.error);
+              setSubmitErrorDetails([result.error]);
+            } else {
+              const details = formatSubmissionErrorDetails(result.error);
+              setSubmitError("Please fix the validation issues below before submitting.");
+              setSubmitErrorDetails(details);
+            }
+            setIsSubmitting(false);
+            return;
+          }
+          if (!("data" in result) || !result.data) {
+            setSubmitError("Failed to create listing.");
+            setIsSubmitting(false);
+            return;
+          }
 
-        const uploadResult = await uploadListingImages(uploadFormData);
-        if ("error" in uploadResult) {
-          setSubmitError(uploadResult.error || "Unable to upload listing images.");
-          setSubmitErrorDetails(uploadResult.error ? [uploadResult.error] : []);
+          listingId = result.data.id;
+          setCreatedListingId(listingId);
+        }
+
+        if (!listingId) {
+          setSubmitError("Listing not found.");
           setIsSubmitting(false);
           return;
         }
 
-        // Step 3: Submit for review (draft → pending, or auto-approved → active for verified dealers)
-        const submitResult = await submitListingForReview(listingId);
-        if ("error" in submitResult) {
-          setSubmitError(submitResult.error || "Unable to submit listing for review.");
-          setSubmitErrorDetails(submitResult.error ? [submitResult.error] : []);
-          setIsSubmitting(false);
-          return;
+        const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
+        if (!isEditing || hasReplacementMedia) {
+          const uploadFormData = new FormData();
+          uploadFormData.set("listingId", listingId);
+          uploadFormData.set("altTextBase", `${draft.details.make} ${draft.details.model}`.trim());
+
+          if (coverFile) {
+            uploadFormData.set("coverImage", coverFile);
+          } else if (
+            draft.coverFromGalleryIndex !== null &&
+            galleryFiles[draft.coverFromGalleryIndex]
+          ) {
+            uploadFormData.set("coverImage", galleryFiles[draft.coverFromGalleryIndex]);
+          }
+
+          galleryFiles.forEach((file, index) => {
+            if (!coverFile && draft.coverFromGalleryIndex === index) {
+              return;
+            }
+            uploadFormData.append("galleryImages", file);
+          });
+
+          const uploadResult = await uploadListingImages(uploadFormData);
+          if ("error" in uploadResult) {
+            setSubmitError(uploadResult.error || "Unable to upload listing images.");
+            setSubmitErrorDetails(uploadResult.error ? [uploadResult.error] : []);
+            setIsSubmitting(false);
+            return;
+          }
         }
 
-        if ('autoApproved' in submitResult && submitResult.autoApproved) {
-          setAutoApproved(true);
+        if (!isEditing) {
+          const submitResult = await submitListingForReview(listingId);
+          if ("error" in submitResult) {
+            setSubmitError(submitResult.error || "Unable to submit listing for review.");
+            setSubmitErrorDetails(submitResult.error ? [submitResult.error] : []);
+            setIsSubmitting(false);
+            return;
+          }
+
+          if ('autoApproved' in submitResult && submitResult.autoApproved) {
+            setAutoApproved(true);
+          }
         }
 
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(storageKey);
         setSubmitted(true);
       } catch {
         setSubmitError("An unexpected error occurred. Please try again.");
@@ -835,6 +944,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: WizardContextValue = {
+    isEditing, editingListingId,
     draft, activeStep, showValidationErrors, isSubmitting, submitError, submitErrorDetails, submitted, autoApproved, createdListingId,
     coverFile, galleryFiles, documentFiles,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,

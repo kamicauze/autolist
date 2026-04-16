@@ -3,6 +3,7 @@ import { ListingsTable } from "@/components/dashboard/listings-table";
 import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
 import { VerificationBanner } from "@/components/dashboard/verification-banner";
+import { getMyListings } from "@/lib/actions/listings";
 import {
   SellerPageHeader,
   SellerStatCard,
@@ -35,7 +36,10 @@ const dashboardStats = [
   },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { data: listings } = await getMyListings();
+  const recentListings = (listings || []).slice(0, 5);
+
   return (
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
@@ -51,7 +55,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <ListingsTable />
+      <ListingsTable listings={recentListings} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <PageInsightsChart />

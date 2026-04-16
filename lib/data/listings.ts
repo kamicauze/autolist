@@ -55,12 +55,47 @@ const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
     "xtrail",
     "sportage",
     "harrier",
+    "x1",
+    "x2",
+    "x3",
+    "x4",
     "x5",
+    "x6",
+    "x7",
+    "gla",
+    "glb",
+    "glc",
+    "gle",
+    "gls",
+    "q3",
+    "q5",
+    "q7",
     "q8",
+    "tiguan",
+    "touareg",
+    "macan",
+    "cayenne",
     "fortuner",
     "sorento",
   ],
-  Crossover: ["crossover", "forester", "cx-5", "cx5", "qashqai", "x-trail", "xtrail", "vezel", "sportage"],
+  Crossover: [
+    "crossover",
+    "forester",
+    "cx-5",
+    "cx5",
+    "qashqai",
+    "x-trail",
+    "xtrail",
+    "vezel",
+    "sportage",
+    "x1",
+    "x2",
+    "q3",
+    "gla",
+    "glb",
+    "tiguan",
+    "macan",
+  ],
   Hatchback: ["hatchback", "demio", "fit", "march", "vitz", "note", "a1", "polo", "swift", "passo", "yaris"],
   Pickup: ["pickup", "pick up", "pick-up", "hilux", "d-max", "dmax", "ranger", "navara", "amarok"],
   Wagon: ["wagon", "estate", "fielder", "outback"],
@@ -73,6 +108,7 @@ const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
 function normalizeBodyTypeValue(value: string) {
   const lower = value.trim().toLowerCase();
   if (!lower) return null;
+  if (lower === "suv") return "SUV";
   if (lower === "saloon") return "Sedan";
   if (lower === "estate") return "Wagon";
   if (lower === "pick up" || lower === "pick-up") return "Pickup";
@@ -378,8 +414,9 @@ export async function searchListings({
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
+  const requiresDerivedFiltering = requestedUseCase || requestedBodyTypes.length > 0;
 
-  if (requestedUseCase) {
+  if (requiresDerivedFiltering) {
     let rankingQuery = supabase
       .from("listings")
       .select(getListingSelect(Boolean(filters?.location)))
@@ -396,7 +433,15 @@ export async function searchListings({
       return { listings: [], total: 0 };
     }
 
-    const ranked = rankListingsForUseCase((rankingData || []) as unknown as Listing[], requestedUseCase);
+    let processedListings = (rankingData || []) as unknown as Listing[];
+    if (requestedBodyTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+    const ranked = requestedUseCase
+      ? rankListingsForUseCase(processedListings, requestedUseCase)
+      : processedListings;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -428,36 +473,9 @@ export async function searchListings({
     return { listings: [], total: 0 };
   }
 
-  const initialListings = (data || []) as unknown as Listing[];
-  if ((count || 0) > 0 || requestedBodyTypes.length === 0) {
-    return {
-      listings: initialListings,
-      total: count || 0,
-    };
-  }
-
-  let fallbackQuery = supabase
-    .from("listings")
-    .select(getListingSelect(Boolean(filters?.location)))
-    .eq("status", "active");
-
-  fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
-  fallbackQuery = fallbackQuery.order(sort.field, { ascending: sort.direction === "asc" });
-  fallbackQuery = fallbackQuery.range(0, Math.max(limit * 8, 120) - 1);
-
-  const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-  if (fallbackError) {
-    console.error("Error searching listings with body type fallback:", fallbackError);
-    return { listings: [], total: 0 };
-  }
-
-  const fallbackMatches = ((fallbackData || []) as unknown as Listing[]).filter((listing) =>
-    listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
-  );
-
   return {
-    listings: fallbackMatches.slice(from, to + 1),
-    total: fallbackMatches.length,
+    listings: (data || []) as unknown as Listing[],
+    total: count || 0,
   };
 }
 
@@ -467,8 +485,9 @@ export async function countMatchingListings(
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
+  const requiresDerivedFiltering = requestedUseCase || requestedBodyTypes.length > 0;
 
-  if (requestedUseCase) {
+  if (requiresDerivedFiltering) {
     let rankingQuery = supabase
       .from("listings")
       .select(getListingSelect(Boolean(filters?.location)))
@@ -484,7 +503,16 @@ export async function countMatchingListings(
       return 0;
     }
 
-    return rankListingsForUseCase((rankingData || []) as unknown as Listing[], requestedUseCase).length;
+    let processedListings = (rankingData || []) as unknown as Listing[];
+    if (requestedBodyTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+
+    return requestedUseCase
+      ? rankListingsForUseCase(processedListings, requestedUseCase).length
+      : processedListings.length;
   }
 
   let query = supabase
@@ -500,27 +528,7 @@ export async function countMatchingListings(
     return 0;
   }
 
-  if ((count || 0) > 0 || requestedBodyTypes.length === 0) {
-    return count || 0;
-  }
-
-  let fallbackQuery = supabase
-    .from("listings")
-    .select(getListingSelect(Boolean(filters?.location)))
-    .eq("status", "active");
-
-  fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
-  fallbackQuery = fallbackQuery.range(0, 499);
-
-  const { data: fallbackData, error: fallbackError } = await fallbackQuery;
-  if (fallbackError) {
-    console.error("Error counting listings with body type fallback:", fallbackError);
-    return 0;
-  }
-
-  return ((fallbackData || []) as unknown as Listing[]).filter((listing) =>
-    listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
-  ).length;
+  return count || 0;
 }
 
 export async function getSimilarListings(

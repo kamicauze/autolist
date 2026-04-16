@@ -155,11 +155,51 @@ export async function insertListingInternal(
 
 export async function updateListing(id: string, input: Partial<CreateListingInput>) {
     const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data: existingListing, error: existingError } = await supabase
+        .from('listings')
+        .select('id, metadata')
+        .eq('id', id)
+        .eq('seller_id', user.id)
+        .single();
+
+    if (existingError || !existingListing) {
+        return { error: existingError?.message || "Listing not found." };
+    }
+
+    const {
+        trim,
+        variant,
+        ...listingValues
+    } = input;
+
+    const nextMetadata = {
+        ...((existingListing.metadata && typeof existingListing.metadata === "object") ? existingListing.metadata : {}),
+    } as Record<string, unknown>;
+
+    if (trim === undefined) {
+        // keep existing metadata
+    } else if (trim) {
+        nextMetadata.trim = trim;
+    } else {
+        delete nextMetadata.trim;
+    }
+
+    if (variant === undefined) {
+        // keep existing metadata
+    } else if (variant) {
+        nextMetadata.variant = variant;
+    } else {
+        delete nextMetadata.variant;
+    }
 
     const { error } = await supabase
         .from('listings')
         .update({
-            ...input,
+            ...listingValues,
+            metadata: Object.keys(nextMetadata).length > 0 ? nextMetadata : null,
             updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -168,7 +208,9 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         return { error: error.message };
     }
 
-    revalidatePath(`/listings/${id}`);
+    revalidatePath(`/vehicle/${id}`);
+    revalidatePath('/dashboard/listings');
+    revalidatePath('/search');
     return { success: true };
 }
 
@@ -245,7 +287,6 @@ export async function uploadListingImages(formData: FormData) {
         .select("id")
         .eq("id", listingId)
         .eq("seller_id", user.id)
-        .eq("status", "draft")
         .single();
 
     if (listingError || !listing) {
@@ -510,4 +551,28 @@ export async function getMyListings() {
     }
 
     return { data: data || [] };
+}
+
+export async function getMyListingById(id: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data, error } = await supabase
+        .from('listings')
+        .select(`
+            *,
+            images:listing_images(id, r2_key, alt_text, image_order),
+            seller:profiles!seller_id(id, full_name, avatar_url, email),
+            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+        `)
+        .eq('id', id)
+        .eq('seller_id', user.id)
+        .single();
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { data };
 }

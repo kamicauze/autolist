@@ -210,9 +210,12 @@ function ListingSummaryCard({
           >
             View listing
           </Link>
-          <button className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white">
+          <Link
+            href={`/dashboard/listings/${listing.id}/edit`}
+            className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white"
+          >
             Edit listing
-          </button>
+          </Link>
           <button
             type="button"
             onClick={handleDelete}
