@@ -22,6 +22,50 @@ function toSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function buildTrimRowsForModel(
+  modelId: number,
+  makeTrims: string[],
+  modelTrims?: string[]
+) {
+  const rows: Array<{
+    model_id: number;
+    name: string;
+    is_shared: boolean;
+    sort_order: number;
+  }> = [];
+  const seen = new Set<string>();
+
+  for (const trim of modelTrims ?? []) {
+    const normalized = normalizeName(trim);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    rows.push({
+      model_id: modelId,
+      name: trim,
+      is_shared: false,
+      sort_order: rows.length,
+    });
+  }
+
+  for (const trim of makeTrims) {
+    const normalized = normalizeName(trim);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    rows.push({
+      model_id: modelId,
+      name: trim,
+      is_shared: true,
+      sort_order: rows.length,
+    });
+  }
+
+  return rows;
+}
+
 const POPULAR_MAKES = new Set([
   "Toyota",
   "Nissan",
@@ -115,6 +159,28 @@ async function main() {
 
       totalModels++;
 
+      // ── Insert trims ─────────────────────────────────────────────────
+      const trimRows = buildTrimRowsForModel(
+        model.id,
+        makeData.trims,
+        modelData.trims
+      );
+
+      if (trimRows.length > 0) {
+        const { error: trimError } = await supabase
+          .from("car_trims")
+          .upsert(trimRows, { onConflict: "model_id,name" });
+
+        if (trimError) {
+          console.error(
+            `  ✗ Trims for "${makeData.name} ${modelData.name}":`,
+            trimError.message
+          );
+        } else {
+          totalTrims += trimRows.length;
+        }
+      }
+
       // ── Insert variants ──────────────────────────────────────────────
       if (modelData.variants && modelData.variants.length > 0) {
         const variantRows = modelData.variants.map((v, i) => ({
@@ -138,30 +204,8 @@ async function main() {
       }
     }
 
-    // ── Insert trims ─────────────────────────────────────────────────────
-    if (makeData.trims.length > 0) {
-      const trimRows = makeData.trims.map((t, i) => ({
-        make_id: makeId,
-        name: t,
-        sort_order: i,
-      }));
-
-      const { error: trimError } = await supabase
-        .from("car_trims")
-        .upsert(trimRows, { onConflict: "make_id,name" });
-
-      if (trimError) {
-        console.error(
-          `  ✗ Trims for "${makeData.name}":`,
-          trimError.message
-        );
-      } else {
-        totalTrims += trimRows.length;
-      }
-    }
-
     console.log(
-      `  ✓ ${makeData.name} — ${makeData.models.length} models, ${makeData.trims.length} trims`
+      `  ✓ ${makeData.name} — ${makeData.models.length} models`
     );
   }
 

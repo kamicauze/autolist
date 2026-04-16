@@ -114,7 +114,7 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
           const title = `${listing.year} ${listing.make} ${listing.model}`;
           const coverImage = listing.images
             ?.sort((a, b) => a.image_order - b.image_order)[0];
-          const imageUrl = coverImage ? getImageUrl(coverImage.r2_key) : null;
+          const imageUrl = coverImage ? getImageUrl(coverImage.r2_key, "card") : null;
           const isProcessing = processing === listing.id;
           const seller = listing.seller as { id: string; full_name: string | null; email?: string } | undefined;
           const duplicateSuggestion = duplicateSuggestions[listing.id];

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type ProfileRole = "buyer" | "seller" | "dealer" | "admin";
+type ProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
 type DealerStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 const AUTH_PATHS = new Set([
@@ -57,6 +57,10 @@ export async function resolvePostAuthPath(
 
   if (profile.role === "admin") {
     return "/admin/dashboard";
+  }
+
+  if (profile.role === "support") {
+    return "/support/tickets";
   }
 
   if (profile.role === "buyer") {

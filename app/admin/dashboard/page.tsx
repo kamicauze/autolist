@@ -1,17 +1,7 @@
-import { getPendingListings } from "@/lib/actions/listings";
-import { getPendingDealerVerifications } from "@/lib/data/dealers";
-import { AdminDashboardPage } from "@/components/admin/admin-static-pages";
+import { AdminDashboardLive } from "@/components/admin/admin-dashboard-live";
+import { getAdminDashboardData } from "@/lib/data/admin";
 
 export default async function AdminDashboardRoute() {
-  const [{ data: listings }, dealers] = await Promise.all([
-    getPendingListings(),
-    getPendingDealerVerifications(),
-  ]);
-
-  return (
-    <AdminDashboardPage
-      pendingListings={listings?.length ?? 0}
-      pendingDealers={dealers.length}
-    />
-  );
+  const data = await getAdminDashboardData();
+  return <AdminDashboardLive data={data} />;
 }

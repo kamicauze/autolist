@@ -5,6 +5,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
 import type { Listing } from "@/lib/types/listing";
 import { getImageUrl } from "@/lib/utils/listings";
+import {
+  getListingDisplayTitle,
+  getListingSubtitle,
+} from "@/lib/utils/vehicle-display";
 
 interface ListingsSectionProps {
   title: string;
@@ -120,7 +124,7 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
       {listings.map((listing) => {
         const sortedImages = (listing.images || [])
           .sort((a, b) => a.image_order - b.image_order)
-          .map((img) => getImageUrl(img.r2_key));
+          .map((img) => getImageUrl(img.r2_key, "card"));
 
         const sellerName =
           listing.dealer?.name ||
@@ -131,7 +135,8 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
           <CarCard
             key={listing.id}
             id={listing.id}
-            title={`${listing.year} ${listing.make} ${listing.model}`}
+            title={getListingDisplayTitle(listing)}
+            subtitle={getListingSubtitle(listing)}
             bodyType={listing.body_type || "Vehicle"}
             year={listing.year}
             mileage={

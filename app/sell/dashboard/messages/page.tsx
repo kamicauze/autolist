@@ -1,5 +1,7 @@
-import { SalesRepMessagesPage } from "@/components/seller/sales-rep-dashboard";
+import { ChatLayout } from "@/components/dashboard/messages/chat-layout";
+import { getMessagingCenterData } from "@/lib/data/messaging";
 
-export default function SalesRepMessagesRoute() {
-  return <SalesRepMessagesPage />;
+export default async function SalesRepMessagesRoute() {
+  const data = await getMessagingCenterData();
+  return <ChatLayout initialData={data} />;
 }

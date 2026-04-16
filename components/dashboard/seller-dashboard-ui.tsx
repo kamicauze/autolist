@@ -428,6 +428,60 @@ export const sellerMessages: Record<
       time: "10:38 AM",
     },
   ],
+  "2": [
+    {
+      id: "1",
+      text: "Hi, I’m available for a viewing on Friday afternoon. Is the Audi Q8 still available?",
+      sender: "them",
+      time: "09:04 AM",
+    },
+    {
+      id: "2",
+      text: "Yes, it is still available. Friday afternoon is possible. Would 3:30 PM work for you?",
+      sender: "me",
+      time: "09:08 AM",
+    },
+    {
+      id: "3",
+      text: "3:30 PM works. Please share whether the service records and spare key are available.",
+      sender: "them",
+      time: "09:11 AM",
+    },
+  ],
+  "3": [
+    {
+      id: "1",
+      text: "Would you accept a trade-in plus cash for the Subaru Forester?",
+      sender: "them",
+      time: "Yesterday",
+    },
+    {
+      id: "2",
+      text: "Possibly, depending on the vehicle and valuation. Send the details and photos first.",
+      sender: "me",
+      time: "Yesterday",
+    },
+    {
+      id: "3",
+      text: "It is a 2018 Mazda CX-5. I can send photos this evening if that helps.",
+      sender: "them",
+      time: "Yesterday",
+    },
+  ],
+  "4": [
+    {
+      id: "1",
+      text: "Please confirm if the logbook is ready for the Mazda CX-5.",
+      sender: "them",
+      time: "Mon",
+    },
+    {
+      id: "2",
+      text: "The logbook is available and I can share a copy before the viewing.",
+      sender: "me",
+      time: "Mon",
+    },
+  ],
 };
 
 export const membershipPlans = [

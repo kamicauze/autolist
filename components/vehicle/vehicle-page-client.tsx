@@ -36,6 +36,7 @@ import {
   PriceAdviserSummary,
 } from "./price-adviser-panel";
 import { FinancingRequestDialog } from "./financing-request-dialog";
+import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
 
 interface VehiclePageClientProps {
   listing: Listing;
@@ -215,7 +216,7 @@ export function VehiclePageClient({
 
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
-    .map((img) => getImageUrl(img.r2_key));
+    .map((img) => getImageUrl(img.r2_key, "hero"));
 
   const setSectionOpen = (key: SectionKey, open: boolean) => {
     setAccordionState((prev) => ({ ...prev, [key]: open }));
@@ -240,6 +241,13 @@ export function VehiclePageClient({
                     </span>
                   )}
                 </div>
+                {getListingTrim(listing) || getListingVariant(listing) ? (
+                  <p className="mt-2 text-sm font-medium text-gray-600">
+                    {[getListingTrim(listing), getListingVariant(listing)]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-2">
@@ -377,6 +385,18 @@ export function VehiclePageClient({
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-100 p-3">
+                    <p className="text-xs text-gray-500">Trim</p>
+                    <p className="font-semibold text-gray-900">
+                      {getListingTrim(listing) || "N/A"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-100 p-3">
+                    <p className="text-xs text-gray-500">Variant / Engine</p>
+                    <p className="font-semibold text-gray-900">
+                      {getListingVariant(listing) || "N/A"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-100 p-3">
                     <p className="text-xs text-gray-500">Stock number</p>
                     <p className="font-semibold text-gray-900">
                       {metadataValue(listing.metadata, "stock_number")}
@@ -489,7 +509,7 @@ export function VehiclePageClient({
 
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-5">
-              <SellerCard dealer={listing.dealer} seller={listing.seller} />
+              <SellerCard listingId={listing.id} dealer={listing.dealer} seller={listing.seller} />
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>

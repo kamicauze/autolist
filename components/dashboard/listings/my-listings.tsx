@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   CarFront,
@@ -15,10 +16,13 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  Trash2,
   X,
 } from "lucide-react";
+import { deleteListing } from "@/lib/actions/listings";
 import { getImageUrl } from "@/lib/utils/listings";
 import type { Listing } from "@/lib/types/listing";
+import { getListingDisplayTitle, getListingSubtitle } from "@/lib/utils/vehicle-display";
 import {
   SellerLinkArrow,
   SellerPageHeader,
@@ -99,10 +103,34 @@ const mockOffersByBidId: Record<
   ],
 };
 
-function ListingSummaryCard({ listing }: { listing: Listing }) {
-  const title = `${listing.year} ${listing.make} ${listing.model}`;
+function ListingSummaryCard({
+  listing,
+  onDeleted,
+}: {
+  listing: Listing;
+  onDeleted: (listingId: string) => void;
+}) {
+  const router = useRouter();
+  const [isDeleting, startDeleteTransition] = React.useTransition();
+  const title = getListingDisplayTitle(listing);
+  const subtitle = getListingSubtitle(listing);
   const image = listing.images?.sort((a, b) => a.image_order - b.image_order)[0];
-  const imageUrl = image ? getImageUrl(image.r2_key) : "/placeholder-car.jpg";
+  const imageUrl = image ? getImageUrl(image.r2_key, "card") : "/placeholder-car.jpg";
+
+  const handleDelete = () => {
+    const confirmed = window.confirm(`Delete "${title}"? This will remove it from seller and public views.`);
+    if (!confirmed) return;
+
+    startDeleteTransition(async () => {
+      const result = await deleteListing(listing.id);
+      if (result.error) {
+        window.alert(result.error);
+        return;
+      }
+      onDeleted(listing.id);
+      router.refresh();
+    });
+  };
 
   return (
     <article className="rounded-[24px] border border-[#ededed] bg-white p-4 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
@@ -113,6 +141,7 @@ function ListingSummaryCard({ listing }: { listing: Listing }) {
           </div>
           <div className="min-w-0">
             <h2 className="truncate font-heading text-[24px] font-semibold text-[#202224]">{title}</h2>
+            {subtitle ? <p className="mt-1 truncate text-[13px] text-[#6b7280]">{subtitle}</p> : null}
             <p className="mt-1 text-[13px] text-[#7b7b7b]">
               Submitted on{" "}
               {new Date(listing.created_at).toLocaleDateString("en-KE", {
@@ -183,6 +212,15 @@ function ListingSummaryCard({ listing }: { listing: Listing }) {
           </Link>
           <button className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white">
             Edit listing
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[#fecaca] bg-white px-4 text-[13px] font-semibold text-[#dc2626] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
@@ -297,17 +335,23 @@ function OfferModal({
 }
 
 export function MyListings({ listings }: MyListingsProps) {
+  const [listingItems, setListingItems] = React.useState(listings);
   const [tab, setTab] = React.useState("all");
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All status");
   const [bidStatus, setBidStatus] = React.useState<(typeof bidStatusOptions)[number]>("Available");
   const [openBidId, setOpenBidId] = React.useState<string | null>(null);
 
-  const filteredListings = listings.filter((listing) => {
-    const title = `${listing.year} ${listing.make} ${listing.model}`.toLowerCase();
+  React.useEffect(() => {
+    setListingItems(listings);
+  }, [listings]);
+
+  const filteredListings = listingItems.filter((listing) => {
+    const title = getListingDisplayTitle(listing).toLowerCase();
+    const subtitle = getListingSubtitle(listing).toLowerCase();
     const matchesQuery = title.includes(query.toLowerCase());
     const matchesStatus = status === "All status" || listing.status === status.toLowerCase();
-    return matchesQuery && matchesStatus;
+    return (matchesQuery || subtitle.includes(query.toLowerCase())) && matchesStatus;
   });
 
   const filteredBidCards = listingBidCards.filter((bid, index) => {
@@ -423,7 +467,13 @@ export function MyListings({ listings }: MyListingsProps) {
             ) : (
               <div className="space-y-4">
                 {filteredListings.map((listing) => (
-                  <ListingSummaryCard key={listing.id} listing={listing} />
+                  <ListingSummaryCard
+                    key={listing.id}
+                    listing={listing}
+                    onDeleted={(listingId) =>
+                      setListingItems((current) => current.filter((item) => item.id !== listingId))
+                    }
+                  />
                 ))}
               </div>
             )}

@@ -15,6 +15,8 @@ export interface CarMakeData {
 
 export interface CarModelData {
   name: string;
+  /** Model-specific trims (e.g. Prado -> TX, TZ-G) */
+  trims?: string[];
   /** Engine / variant sub-models (e.g. BMW 3 Series → 316i, 318i …) */
   variants?: string[];
 }

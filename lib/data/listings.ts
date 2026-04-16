@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
+import {
+  getMakesForOrigin,
+  getMinimumUseCaseScore,
+  getUseCaseScore,
+} from "@/lib/search/vehicle-ontology";
 
 function escapeLike(value: string) {
   return value.replace(/[,%]/g, "");
@@ -19,7 +24,25 @@ function getListingSelect(includeDealerLocationFilter = false) {
 }
 
 const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
-  Sedan: ["sedan", "saloon", "premio", "allion", "axio", "corolla", "civic", "mark x"],
+  Sedan: [
+    "sedan",
+    "saloon",
+    "premio",
+    "allion",
+    "axio",
+    "corolla",
+    "civic",
+    "mark x",
+    "jetta",
+    "passat",
+    "s60",
+    "c200",
+    "e200",
+    "3 series",
+    "5 series",
+    "a4",
+    "a6",
+  ],
   SUV: [
     "suv",
     "4x4",
@@ -38,7 +61,7 @@ const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
     "sorento",
   ],
   Crossover: ["crossover", "forester", "cx-5", "cx5", "qashqai", "x-trail", "xtrail", "vezel", "sportage"],
-  Hatchback: ["hatchback", "demio", "fit", "march", "vitz", "note", "a1"],
+  Hatchback: ["hatchback", "demio", "fit", "march", "vitz", "note", "a1", "polo", "swift", "passo", "yaris"],
   Pickup: ["pickup", "pick up", "pick-up", "hilux", "d-max", "dmax", "ranger", "navara", "amarok"],
   Wagon: ["wagon", "estate", "fielder", "outback"],
   Van: ["van", "hiace", "serena", "voxy", "noah"],
@@ -104,11 +127,42 @@ function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: 
   return requestedBodyTypes.some((type) => inferred.includes(type));
 }
 
-function applyListingFilters(
-  query: any,
+function rankListingsForUseCase(listings: Listing[], requestedUseCase?: string) {
+  if (!requestedUseCase) {
+    return listings;
+  }
+
+  const minimumScore = getMinimumUseCaseScore(requestedUseCase);
+
+  return listings
+    .map((listing) => ({
+      listing,
+      score: getUseCaseScore(listing, requestedUseCase),
+    }))
+    .filter((entry) => entry.score >= minimumScore)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return new Date(b.listing.created_at).getTime() - new Date(a.listing.created_at).getTime();
+    })
+    .map((entry) => entry.listing);
+}
+
+interface ListingQuery {
+  or(filters: string): this;
+  ilike(column: string, value: string): this;
+  gte(column: string, value: number): this;
+  lte(column: string, value: number): this;
+  in(column: string, values: string[]): this;
+  eq(column: string, value: string | number): this;
+  not(column: string, operator: string, value: string | null): this;
+  is(column: string, value: null): this;
+}
+
+function applyListingFilters<TQuery extends ListingQuery>(
+  query: TQuery,
   filters?: ListingFilters,
   options?: { skipBodyType?: boolean }
-) {
+): TQuery {
   let nextQuery = query;
 
   if (filters?.q) {
@@ -119,6 +173,12 @@ function applyListingFilters(
   }
   if (filters?.make) {
     nextQuery = nextQuery.ilike("make", `%${filters.make}%`);
+  }
+  if (filters?.origin) {
+    const originMakes = getMakesForOrigin(filters.origin);
+    if (originMakes.length > 0) {
+      nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "make", originMakes);
+    }
   }
   if (filters?.model) {
     nextQuery = nextQuery.ilike("model", `%${filters.model}%`);
@@ -185,7 +245,7 @@ function applyListingFilters(
   return nextQuery;
 }
 
-function applyCaseInsensitiveMultiValueFilter<TQuery extends { or: (filters: string) => TQuery }>(
+function applyCaseInsensitiveMultiValueFilter<TQuery extends { or(filters: string): TQuery }>(
   query: TQuery,
   column: string,
   value: string | string[]
@@ -317,6 +377,34 @@ export async function searchListings({
 }): Promise<{ listings: Listing[]; total: number }> {
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedUseCase = filters?.useCase?.trim() || undefined;
+
+  if (requestedUseCase) {
+    let rankingQuery = supabase
+      .from("listings")
+      .select(getListingSelect(Boolean(filters?.location)))
+      .eq("status", "active");
+
+    rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
+    rankingQuery = rankingQuery.order(sort.field, { ascending: sort.direction === "asc" });
+    rankingQuery = rankingQuery.range(0, Math.max(limit * 10, 160) - 1);
+
+    const { data: rankingData, error: rankingError } = await rankingQuery;
+
+    if (rankingError) {
+      console.error("Error searching listings with use-case ranking:", rankingError);
+      return { listings: [], total: 0 };
+    }
+
+    const ranked = rankListingsForUseCase((rankingData || []) as unknown as Listing[], requestedUseCase);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    return {
+      listings: ranked.slice(from, to + 1),
+      total: ranked.length,
+    };
+  }
 
   let query = supabase
     .from("listings")
@@ -355,7 +443,7 @@ export async function searchListings({
 
   fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
   fallbackQuery = fallbackQuery.order(sort.field, { ascending: sort.direction === "asc" });
-  fallbackQuery = fallbackQuery.range(0, Math.max(limit * 4, 60) - 1);
+  fallbackQuery = fallbackQuery.range(0, Math.max(limit * 8, 120) - 1);
 
   const { data: fallbackData, error: fallbackError } = await fallbackQuery;
   if (fallbackError) {
@@ -378,6 +466,26 @@ export async function countMatchingListings(
 ): Promise<number> {
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedUseCase = filters?.useCase?.trim() || undefined;
+
+  if (requestedUseCase) {
+    let rankingQuery = supabase
+      .from("listings")
+      .select(getListingSelect(Boolean(filters?.location)))
+      .eq("status", "active");
+
+    rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
+    rankingQuery = rankingQuery.range(0, 499);
+
+    const { data: rankingData, error: rankingError } = await rankingQuery;
+
+    if (rankingError) {
+      console.error("Error counting listings with use-case ranking:", rankingError);
+      return 0;
+    }
+
+    return rankListingsForUseCase((rankingData || []) as unknown as Listing[], requestedUseCase).length;
+  }
 
   let query = supabase
     .from("listings")
@@ -402,7 +510,7 @@ export async function countMatchingListings(
     .eq("status", "active");
 
   fallbackQuery = applyListingFilters(fallbackQuery, filters, { skipBodyType: true });
-  fallbackQuery = fallbackQuery.range(0, 199);
+  fallbackQuery = fallbackQuery.range(0, 499);
 
   const { data: fallbackData, error: fallbackError } = await fallbackQuery;
   if (fallbackError) {

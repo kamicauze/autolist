@@ -198,7 +198,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                   const sortedImages = (listing.images || [])
                     .slice()
                     .sort((a, b) => a.image_order - b.image_order);
-                  const firstImage = sortedImages[0] ? getImageUrl(sortedImages[0].r2_key) : "/placeholder-car.jpg";
+                  const firstImage = sortedImages[0] ? getImageUrl(sortedImages[0].r2_key, "card") : "/placeholder-car.jpg";
                   const sellerName =
                     listing.dealer?.name ||
                     listing.seller?.full_name ||

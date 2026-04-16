@@ -20,8 +20,9 @@ export type CarModel = {
 
 export type CarTrim = {
   id: number;
-  make_id: number;
+  model_id: number;
   name: string;
+  is_shared: boolean;
   sort_order: number;
 };
 

@@ -904,7 +904,7 @@ export function SalesRepFavoritesPage() {
 }
 
 export function SalesRepMessagesPage() {
-  return <ChatLayout />;
+  return <ChatLayout initialData={null} />;
 }
 
 export function SalesRepReviewsPage() {

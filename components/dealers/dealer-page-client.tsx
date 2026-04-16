@@ -29,7 +29,7 @@ interface DealerPageClientProps {
 function getListingImage(listing: Listing): string {
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
-    .map((img) => getImageUrl(img.r2_key));
+    .map((img) => getImageUrl(img.r2_key, "card"));
   return sortedImages[0] || "/placeholder-car.jpg";
 }
 

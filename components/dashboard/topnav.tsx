@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, Menu, Plus, Search } from "lucide-react";
+import { ChevronDown, Menu, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SellerUserChip } from "./seller-dashboard-ui";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const topNavLinks = [
   { name: "Home", href: "/" },
@@ -63,10 +64,9 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
             />
           </div>
 
-          <button className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#6c6c6c] transition hover:text-[#202224]">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-[#f04438]" />
-          </button>
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#6c6c6c] transition hover:text-[#202224]">
+            <NotificationBell className="text-[#6c6c6c]" />
+          </div>
 
           <Link href="/dashboard/listings/new">
             <Button

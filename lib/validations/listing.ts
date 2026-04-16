@@ -12,6 +12,8 @@ const normalizeCondition = (value: unknown) => {
 export const listingSchema = z.object({
   make: z.string().trim().min(2, "Make must be at least 2 characters"),
   model: z.string().trim().min(1, "Model is required"),
+  trim: z.string().trim().optional(),
+  variant: z.string().trim().optional(),
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
   price: z.coerce.number().positive("Price must be positive"),
   currency: z.literal("KES").default("KES"),

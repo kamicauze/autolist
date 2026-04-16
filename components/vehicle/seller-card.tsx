@@ -2,11 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Phone, ShieldCheck, BadgeCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, Phone, ShieldCheck, BadgeCheck, Loader2, MessageSquareText } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconWhatsapp } from "@/components/ui/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SellerCardProps {
+  listingId: string;
   dealer?: {
     id: string;
     name: string;
@@ -25,89 +36,182 @@ interface SellerCardProps {
   };
 }
 
-export function SellerCard({ dealer, seller }: SellerCardProps) {
+export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
+  const router = useRouter();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
 
+  async function submitEnquiry() {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      setFeedback("Write a message before sending.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}/enquiry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      const payload = (await response.json()) as { error?: string; success?: boolean };
+
+      if (response.status === 401) {
+        router.push(`/login?next=${encodeURIComponent(`/vehicle/${listingId}`)}`);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Unable to send enquiry.");
+      }
+
+      setFeedback("Message sent. You can continue this conversation in Messages.");
+      setMessage("");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Unable to send enquiry.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
-      <div className="flex items-start gap-3">
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-100">
-          {avatarUrl ? (
-            <Image src={avatarUrl} alt={name} fill className="object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-500">
-              {name.charAt(0)}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-gray-900">
-            {dealer?.id ? (
-              <Link href={`/dealers/${dealer.id}`} className="hover:text-primary">
-                {name}
-              </Link>
+    <>
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="flex items-start gap-3">
+          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-100">
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt={name} fill className="object-cover" />
             ) : (
-              name
+              <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-500">
+                {name.charAt(0)}
+              </div>
             )}
-          </h3>
-          <div className="mt-1 flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <Star key={value} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-            ))}
-            <span className="ml-1 text-xs text-gray-500">5.0</span>
+          </div>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-gray-900">
+              {dealer?.id ? (
+                <Link href={`/dealers/${dealer.id}`} className="hover:text-primary">
+                  {name}
+                </Link>
+              ) : (
+                name
+              )}
+            </h3>
+            <div className="mt-1 flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <Star key={value} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+              ))}
+              <span className="ml-1 text-xs text-gray-500">5.0</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {isDealer && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-            <BadgeCheck className="h-3.5 w-3.5" />
-            Verified dealer
+        <div className="mt-3 flex flex-wrap gap-2">
+          {isDealer && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              Verified dealer
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Car transaction handled by Autolist
           </span>
-        )}
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Car transaction handled by Autolist
-        </span>
-      </div>
-
-      <p className="mt-4 text-xs leading-relaxed text-gray-600">
-        {dealer?.about_text ||
-          "Trusted local dealer with verified listings and transparent pricing. Contact us for full inspection and purchase support."}
-      </p>
-
-      <div className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Member since</span>
-          <span className="font-semibold text-gray-900">2018</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Active listings</span>
-          <span className="font-semibold text-gray-900">48</span>
-        </div>
-      </div>
 
-      <div className="mt-4 border-t border-gray-100 pt-4">
-        <p className="text-xs text-gray-500">Seller preferred contact</p>
-        <p className="mt-1 text-lg font-bold text-gray-900">Call Seller</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button variant="default" size="sm" className="gap-2">
-            <Phone className="h-4 w-4" />
-            Call
-          </Button>
+        <p className="mt-4 text-xs leading-relaxed text-gray-600">
+          {dealer?.about_text ||
+            "Trusted local dealer with verified listings and transparent pricing. Contact us for full inspection and purchase support."}
+        </p>
+
+        <div className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">Member since</span>
+            <span className="font-semibold text-gray-900">2018</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">Active listings</span>
+            <span className="font-semibold text-gray-900">48</span>
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <p className="text-xs text-gray-500">Seller preferred contact</p>
+          <p className="mt-1 text-lg font-bold text-gray-900">Call Seller</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button variant="default" size="sm" className="gap-2">
+              <Phone className="h-4 w-4" />
+              Call
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
+            >
+              <IconWhatsapp className="h-4 w-4" />
+              WhatsApp
+            </Button>
+          </div>
           <Button
-            variant="secondary"
-            size="sm"
-            className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
+            type="button"
+            variant="outline"
+            className="mt-3 w-full gap-2"
+            onClick={() => setDialogOpen(true)}
           >
-            <IconWhatsapp className="h-4 w-4" />
-            WhatsApp
+            <MessageSquareText className="h-4 w-4" />
+            Send enquiry
           </Button>
         </div>
       </div>
-    </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Send an enquiry</DialogTitle>
+            <DialogDescription>
+              This message will reach the seller and open a conversation thread.
+            </DialogDescription>
+          </DialogHeader>
+
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="Hi, I’m interested in this vehicle. Is it still available? Can you share the service history and best viewing time?"
+            className="min-h-[160px] w-full rounded-[14px] border border-[#d7dce5] bg-white px-4 py-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+
+          {feedback ? (
+            <div className="rounded-[12px] border border-[#d0d5dd] bg-[#f8fafc] px-4 py-3 text-[13px] text-[#475467]">
+              {feedback}
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void submitEnquiry()} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending
+                </>
+              ) : (
+                "Send enquiry"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

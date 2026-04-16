@@ -1,11 +1,177 @@
 "use client";
 
+import * as React from "react";
 import { cn } from "@/lib/utils";
+import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
+import type { VehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { useWizard } from "./wizard-context";
-import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
+import {
+  sellerInputClass,
+  sellerLabelClass,
+  sellerSelectClass,
+} from "../seller-dashboard-ui";
+
+const EMPTY_REFERENCE_OPTIONS: VehicleReferenceOptions = {
+  makes: [],
+  models: [],
+  trimOptions: [],
+  variants: [],
+};
 
 export function StepVehicleDetails() {
   const { draft, updateDetailField, showValidationErrors, selectedCategoryFields } = useWizard();
+  const [referenceOptions, setReferenceOptions] = React.useState<VehicleReferenceOptions>(
+    EMPTY_REFERENCE_OPTIONS
+  );
+
+  const isCarCategory = draft.category === "car";
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadReferenceOptions() {
+      if (!isCarCategory) {
+        setReferenceOptions(EMPTY_REFERENCE_OPTIONS);
+        return;
+      }
+
+      const nextOptions = await fetchVehicleReferenceOptionsAction(
+        draft.details.make,
+        draft.details.model
+      );
+
+      if (!cancelled) {
+        setReferenceOptions(nextOptions);
+      }
+    }
+
+    void loadReferenceOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.details.make, draft.details.model, isCarCategory]);
+
+  const renderReferenceField = (field: (typeof selectedCategoryFields)[number], hasError: boolean) => {
+    if (!isCarCategory) return null;
+
+    if (field.key === "make") {
+      return (
+        <select
+          value={draft.details.make}
+          onChange={(event) => updateDetailField("make", event.target.value)}
+          className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
+        >
+          <option value="">Select make</option>
+          {referenceOptions.makes.map((make) => (
+            <option key={make} value={make}>
+              {make}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.key === "model") {
+      return (
+        <select
+          value={draft.details.model}
+          onChange={(event) => updateDetailField("model", event.target.value)}
+          disabled={!draft.details.make}
+          className={cn(
+            sellerSelectClass,
+            !draft.details.make && "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
+            hasError && "border-[#f04438]"
+          )}
+        >
+          <option value="">{draft.details.make ? "Select model" : "Select make first"}</option>
+          {referenceOptions.models.map((model) => (
+            <option key={model} value={model}>
+              {model}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.key === "trim") {
+      return (
+        <>
+          <select
+            value={draft.details.trim}
+            onChange={(event) => updateDetailField("trim", event.target.value)}
+            disabled={!draft.details.model || referenceOptions.trimOptions.length === 0}
+            className={cn(
+              sellerSelectClass,
+              (!draft.details.model || referenceOptions.trimOptions.length === 0) &&
+                "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
+              hasError && "border-[#f04438]"
+            )}
+          >
+            <option value="">
+              {!draft.details.model
+                ? "Select model first"
+                : referenceOptions.trimOptions.length > 0
+                  ? "Select trim"
+                  : "No trim catalog for this model"}
+            </option>
+            {referenceOptions.trimOptions.map((trim) => (
+              <option key={`${trim.source}-${trim.value}`} value={trim.value}>
+                {trim.label}
+                {trim.source === "model" ? " (model-specific)" : " (shared)"}
+              </option>
+            ))}
+          </select>
+          {draft.details.model ? (
+            <p className="mt-2 text-[12px] text-[#767676]">
+              {referenceOptions.trimOptions.some((trim) => trim.source === "model")
+                ? "Model-specific trims are shown first. Shared make trims for this model remain available below."
+                : "This model is currently using inherited make trims that were attached directly to the selected model."}
+            </p>
+          ) : null}
+        </>
+      );
+    }
+
+    if (field.key === "variant") {
+      return (
+        <>
+          <select
+            value={draft.details.variant}
+            onChange={(event) => updateDetailField("variant", event.target.value)}
+            disabled={!draft.details.model || referenceOptions.variants.length === 0}
+            className={cn(
+              sellerSelectClass,
+              (!draft.details.model || referenceOptions.variants.length === 0) &&
+                "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
+              hasError && "border-[#f04438]"
+            )}
+          >
+            <option value="">
+              {!draft.details.model
+                ? "Select model first"
+                : referenceOptions.variants.length > 0
+                  ? "Select variant / engine"
+                  : "No engine variants cataloged"}
+            </option>
+            {referenceOptions.variants.map((variant) => (
+              <option key={variant} value={variant}>
+                {variant}
+              </option>
+            ))}
+          </select>
+          {referenceOptions.variants.length > 0 ? (
+            <p className="mt-2 text-[12px] text-[#767676]">
+              Use this field for engine or drivetrain naming such as BMW `xDrive30d` or Mercedes
+              `C200`.
+            </p>
+          ) : null}
+        </>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -24,10 +190,19 @@ export function StepVehicleDetails() {
         </div>
       ) : null}
 
+      {isCarCategory ? (
+        <div className="rounded-[18px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[13px] leading-6 text-[#3157c8]">
+          Step 3 now uses a structured vehicle catalog: make leads to model, then trim and
+          engine-specific variants. Every trim is loaded against the selected model, with inherited
+          shared trims clearly labeled.
+        </div>
+      ) : null}
+
       <section className="rounded-[24px] border border-[#ededed] bg-white p-5">
         <div className="grid gap-5 md:grid-cols-2">
           {selectedCategoryFields.map((field) => {
             const hasError = showValidationErrors && field.required && !draft.details[field.key].trim();
+            const referenceField = renderReferenceField(field, hasError);
 
             return (
               <div key={field.key}>
@@ -35,7 +210,9 @@ export function StepVehicleDetails() {
                   {field.label}
                   {field.required ? " *" : ""}
                 </label>
-                {field.type === "select" ? (
+                {referenceField ? (
+                  referenceField
+                ) : field.type === "select" ? (
                   <select
                     value={draft.details[field.key]}
                     onChange={(event) => updateDetailField(field.key, event.target.value)}

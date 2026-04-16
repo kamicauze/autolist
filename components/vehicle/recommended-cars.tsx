@@ -7,6 +7,10 @@ import Image from "next/image";
 import { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { getImageUrl } from "@/lib/utils/listings";
+import {
+  getListingDisplayTitle,
+  getListingSubtitle,
+} from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
 import { useCompare } from "@/lib/hooks/use-compare";
 
@@ -45,10 +49,10 @@ export function RecommendedCars({ listings, sidebarMode = false }: RecommendedCa
           {displayListings.map((listing) => {
              const sortedImages = (listing.images || [])
               .sort((a, b) => a.image_order - b.image_order)
-              .map((img) => getImageUrl(img.r2_key));
+              .map((img) => getImageUrl(img.r2_key, "card"));
              const image = sortedImages.length > 0 ? sortedImages[0] : "/placeholder-car.jpg";
              const formattedPrice = new Intl.NumberFormat("en-KE").format(listing.price);
-             const title = `${listing.year} ${listing.make} ${listing.model}`;
+             const title = getListingDisplayTitle(listing);
              const inCompare = isInCompare(listing.id);
              const compareLimitReached = !inCompare && ids.length >= maxItems;
              const isLiked = Boolean(likedIds[listing.id]);
@@ -145,7 +149,7 @@ export function RecommendedCars({ listings, sidebarMode = false }: RecommendedCa
           {displayListings.map((listing) => {
             const sortedImages = (listing.images || [])
               .sort((a, b) => a.image_order - b.image_order)
-              .map((img) => getImageUrl(img.r2_key));
+              .map((img) => getImageUrl(img.r2_key, "card"));
 
             const sellerName =
               listing.dealer?.name ||
@@ -156,7 +160,8 @@ export function RecommendedCars({ listings, sidebarMode = false }: RecommendedCa
               <CarCard
                 key={listing.id}
                 id={listing.id}
-                title={`${listing.year} ${listing.make} ${listing.model}`}
+                title={getListingDisplayTitle(listing)}
+                subtitle={getListingSubtitle(listing)}
                 bodyType={listing.body_type || "Vehicle"}
                 year={listing.year}
                 mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}

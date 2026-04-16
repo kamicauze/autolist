@@ -10,6 +10,11 @@ import { useCompare } from "@/lib/hooks/use-compare";
 import { Listing } from "@/lib/types/listing";
 import { COMPARE_MAX_ITEMS } from "@/lib/utils/compare";
 import { getImageUrl } from "@/lib/utils/listings";
+import {
+  getListingDisplayTitle,
+  getListingTrim,
+  getListingVariant,
+} from "@/lib/utils/vehicle-display";
 
 interface ComparePageClientProps {
   initialIds: string[];
@@ -23,7 +28,7 @@ type RowDefinition = {
 const numberFormatter = new Intl.NumberFormat("en-KE");
 
 function listingTitle(listing: Listing): string {
-  return `${listing.year} ${listing.make} ${listing.model}`;
+  return getListingDisplayTitle(listing);
 }
 
 function listingImage(listing: Listing): string {
@@ -35,7 +40,7 @@ function listingImage(listing: Listing): string {
     return "/placeholder-car.jpg";
   }
 
-  return getImageUrl(firstImage.r2_key);
+  return getImageUrl(firstImage.r2_key, "card");
 }
 
 function formatUnknownValue(value: unknown): string | null {
@@ -292,6 +297,14 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => String(listing.year),
       },
       {
+        label: "Trim",
+        getValue: (listing) => valueOrDash(getListingTrim(listing)),
+      },
+      {
+        label: "Variant / Engine",
+        getValue: (listing) => valueOrDash(getListingVariant(listing)),
+      },
+      {
         label: "Transmission",
         getValue: (listing) => valueOrDash(listing.transmission),
       },
@@ -351,6 +364,10 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => {
           const engine = metadataValue(listing, ["engine_displacement", "engine_capacity", "engine_cc"]);
           const transmission = valueOrDash(listing.transmission);
+          const variant = getListingVariant(listing);
+          if (variant) {
+            return transmission !== "-" ? `${variant} / ${transmission}` : variant;
+          }
           return engine ? `${engine} / ${transmission}` : transmission;
         },
       },

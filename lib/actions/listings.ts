@@ -1,12 +1,10 @@
 'use server'
 
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { createHash } from "crypto";
-import { nanoid } from "nanoid";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
-import { r2 } from "@/lib/r2";
+import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
 
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -14,6 +12,8 @@ import { type SupabaseClient } from "@supabase/supabase-js";
 export type CreateListingInput = {
     make: string;
     model: string;
+    trim?: string;
+    variant?: string;
     year: number;
     price: number;
     currency?: string;
@@ -27,13 +27,8 @@ export type CreateListingInput = {
     color?: string;
 };
 
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-function sanitizeFileName(fileName: string) {
-    return fileName.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
-}
 
 function extensionForFile(file: File) {
     if (file.name.includes(".")) {
@@ -47,10 +42,6 @@ async function uploadListingFile(
     listingId: string,
     file: File,
 ) {
-    if (!R2_BUCKET_NAME) {
-        throw new Error("R2 bucket configuration is missing.");
-    }
-
     if (!IMAGE_ACCEPTED_TYPES.has(file.type)) {
         throw new Error(`"${file.name}" must be a JPG, PNG, or WebP image.`);
     }
@@ -61,23 +52,13 @@ async function uploadListingFile(
 
     const extension = extensionForFile(file);
     const baseName = extension ? file.name.slice(0, -extension.length) : file.name;
-    const key = `listings/${listingId}/${Date.now()}-${nanoid(10)}-${sanitizeFileName(
-        `${baseName}${extension}`
-    )}`;
-
     const bytes = Buffer.from(await file.arrayBuffer());
-    const hash = createHash("sha256").update(bytes).digest("hex");
-
-    await r2.send(
-        new PutObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key,
-            Body: bytes,
-            ContentType: file.type || "application/octet-stream",
-        })
-    );
-
-    return { key, hash };
+    return uploadListingImageAssets({
+        listingId,
+        fileName: `${baseName}${extension}`,
+        bytes,
+        contentType: file.type || "application/octet-stream",
+    });
 }
 
 export async function createListing(input: ListingFormData) {
@@ -113,6 +94,11 @@ export async function insertListingInternal(
         return { error: result.error.flatten() };
     }
     const data = result.data;
+    const { trim, variant, ...listingValues } = data;
+    const vehicleReferenceMetadata = {
+        ...(trim ? { trim } : {}),
+        ...(variant ? { variant } : {}),
+    };
 
     // 2. Duplicate Detection (MVP)
     // Check if the user already has a listing for this exact vehicle (Make + Model + Year + Price within 1%)
@@ -151,7 +137,8 @@ export async function insertListingInternal(
             seller_id: userId,
             dealer_id: dealerId ?? null,
             status: initialStatus,
-            ...data,
+            ...listingValues,
+            metadata: Object.keys(vehicleReferenceMetadata).length > 0 ? vehicleReferenceMetadata : null,
             features: data.features // Zod array -> JSONB
         })
         .select()
@@ -187,17 +174,24 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
 
 export async function deleteListing(id: string) {
     const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
 
-    const { error } = await supabase
+    const adminSupabase = createAdminClient();
+
+    const { error } = await adminSupabase
         .from('listings')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('seller_id', user.id);
 
     if (error) {
         return { error: error.message };
     }
 
     revalidatePath('/dashboard/listings');
+    revalidatePath('/search');
+    revalidatePath(`/vehicle/${id}`);
     return { success: true };
 }
 

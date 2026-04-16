@@ -6,6 +6,10 @@ import { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { Pagination } from "@/components/ui/pagination";
 import { getImageUrl } from "@/lib/utils/listings";
+import {
+  getListingDisplayTitle,
+  getListingSubtitle,
+} from "@/lib/utils/vehicle-display";
 
 interface SearchResultsProps {
   listings: Listing[];
@@ -42,7 +46,7 @@ export function SearchResults({ listings, totalPages }: SearchResultsProps) {
         {listings.map((listing) => {
           const sortedImages = (listing.images || [])
             .sort((a, b) => a.image_order - b.image_order)
-            .map((img) => getImageUrl(img.r2_key));
+            .map((img) => getImageUrl(img.r2_key, "card"));
 
           const sellerName =
             listing.dealer?.name ||
@@ -53,7 +57,8 @@ export function SearchResults({ listings, totalPages }: SearchResultsProps) {
             <CarCard
               key={listing.id}
               id={listing.id}
-              title={`${listing.year} ${listing.make} ${listing.model}`}
+              title={getListingDisplayTitle(listing)}
+              subtitle={getListingSubtitle(listing)}
               bodyType={listing.body_type || "Vehicle"}
               year={listing.year}
               mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}

@@ -68,6 +68,8 @@ export interface ListingFilters {
   q?: string;
   make?: string;
   model?: string;
+  origin?: string;
+  useCase?: string;
   minPrice?: number;
   maxPrice?: number;
   minYear?: number;

@@ -2,7 +2,7 @@
 
 import {
   getModelsForMakeName,
-  getTrimsForMakeName,
+  getVehicleReferenceOptions,
 } from "@/lib/data/car-data";
 
 /**
@@ -16,12 +16,9 @@ export async function fetchModelsForMake(
   return getModelsForMakeName(makeName);
 }
 
-/**
- * Server action: fetch trim names for a given make.
- */
-export async function fetchTrimsForMake(
-  makeName: string
-): Promise<string[]> {
-  if (!makeName || makeName === "any") return [];
-  return getTrimsForMakeName(makeName);
+export async function fetchVehicleReferenceOptionsAction(
+  makeName?: string,
+  modelName?: string
+) {
+  return getVehicleReferenceOptions(makeName, modelName);
 }

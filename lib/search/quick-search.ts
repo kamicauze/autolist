@@ -1,5 +1,10 @@
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import type { ListingFilters } from "@/lib/types/listing";
+import {
+  detectVehicleOrigin,
+  detectVehicleUseCase,
+  getDefaultBodyTypesForUseCase,
+} from "@/lib/search/vehicle-ontology";
 
 const MAKE_ALIASES = [
   ["toyota", "Toyota"],
@@ -262,11 +267,20 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   }
 
   const make = findAliasMatch(lower, MAKE_ALIASES) || undefined;
+  const origin = detectVehicleOrigin(lower);
+  const useCase = detectVehicleUseCase(lower);
   const bodyTypeMatches = findAliasMatches(lower, BODY_TYPE_ALIASES);
   const intentBodyTypeMatches = findIntentBodyTypes(lower);
   const expandedBodyTypes = [...bodyTypeMatches];
+  const useCaseBodyTypes = getDefaultBodyTypesForUseCase(useCase);
 
   intentBodyTypeMatches.forEach((bodyType) => {
+    if (!expandedBodyTypes.includes(bodyType)) {
+      expandedBodyTypes.push(bodyType);
+    }
+  });
+
+  useCaseBodyTypes.forEach((bodyType) => {
     if (!expandedBodyTypes.includes(bodyType)) {
       expandedBodyTypes.push(bodyType);
     }
@@ -298,6 +312,8 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   const params: SmartSearchParams = {
     make,
     model,
+    origin,
+    useCase,
     minPrice,
     maxPrice,
     minYear,
@@ -309,7 +325,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     sellerType,
   };
 
-  if (!make && !model && !fuelType && !transmission && !location && bodyType && maxPrice) {
+  if (!make && !model && !origin && !useCase && !fuelType && !transmission && !location && bodyType && maxPrice) {
     delete params.q;
   }
 
@@ -347,6 +363,12 @@ export function shouldUseSmartSearchFallback(query: string, result: SmartSearchR
     "compact car",
     "town car",
     "work car",
+    "european",
+    "german",
+    "japanese",
+    "first car",
+    "executive",
+    "fuel efficient",
   ];
   if (intentWords.some((word) => lower.includes(word))) {
     return true;
@@ -370,6 +392,8 @@ export function sanitizeSmartSearchParams(input: Partial<SmartSearchParams>): Sm
   assign("q", input.q);
   assign("make", input.make);
   assign("model", input.model);
+  assign("origin", input.origin);
+  assign("useCase", input.useCase);
   assign("minPrice", input.minPrice);
   assign("maxPrice", input.maxPrice);
   assign("minYear", input.minYear);
@@ -381,6 +405,137 @@ export function sanitizeSmartSearchParams(input: Partial<SmartSearchParams>): Sm
   assign("sellerType", input.sellerType);
 
   return params;
+}
+
+function hasStructuredSearchParams(params: SmartSearchParams) {
+  return Object.entries(params).some(([key, value]) => key !== "q" && Boolean(value));
+}
+
+function shouldClearBudget(query: string) {
+  return /\b(clear|remove|reset)\s+budget\b|\bany\s+budget\b|\bno\s+budget\b/i.test(query);
+}
+
+function shouldClearLocation(query: string) {
+  return /\b(clear|remove|reset)\s+location\b|\bany\s+location\b|\bnationwide\b/i.test(query);
+}
+
+function shouldClearBodyType(query: string) {
+  return /\b(clear|remove|reset)\s+body\s*type\b|\bany\s+body\s*type\b/i.test(query);
+}
+
+function shouldClearTransmission(query: string) {
+  return /\b(clear|remove|reset)\s+transmission\b|\bany\s+transmission\b/i.test(query);
+}
+
+function shouldClearFuelType(query: string) {
+  return /\b(clear|remove|reset)\s+fuel\b|\bany\s+fuel\b/i.test(query);
+}
+
+function shouldClearSellerType(query: string) {
+  return /\b(clear|remove|reset)\s+seller\b|\bany\s+seller\b/i.test(query);
+}
+
+function shouldClearYear(query: string) {
+  return /\b(clear|remove|reset)\s+year\b|\bany\s+year\b/i.test(query);
+}
+
+function shouldClearMake(query: string) {
+  return /\b(clear|remove|reset)\s+make\b|\bany\s+make\b/i.test(query);
+}
+
+function shouldClearModel(query: string) {
+  return /\b(clear|remove|reset)\s+model\b|\bany\s+model\b/i.test(query);
+}
+
+function shouldExcludeCurrentLocation(query: string, currentLocation?: string) {
+  if (!currentLocation) return false;
+  return new RegExp(`\\b(?:not|exclude|without)\\s+${currentLocation}\\b`, "i").test(query);
+}
+
+export function applyAssistantSearchTurn(
+  currentParams: SmartSearchParams | undefined,
+  turnQuery: string,
+  nextParams: SmartSearchParams
+) {
+  const merged: SmartSearchParams = { ...(currentParams || {}) };
+  const query = turnQuery.trim();
+  const excludedCurrentLocation = shouldExcludeCurrentLocation(query, currentParams?.location);
+  const sanitizedNextParams = sanitizeSmartSearchParams(nextParams);
+
+  if (shouldClearBudget(query)) {
+    delete merged.minPrice;
+    delete merged.maxPrice;
+  }
+  if (shouldClearLocation(query) || excludedCurrentLocation) {
+    delete merged.location;
+  }
+  if (shouldClearBodyType(query)) {
+    delete merged.bodyType;
+  }
+  if (shouldClearTransmission(query)) {
+    delete merged.transmission;
+  }
+  if (shouldClearFuelType(query)) {
+    delete merged.fuelType;
+  }
+  if (shouldClearSellerType(query)) {
+    delete merged.sellerType;
+  }
+  if (shouldClearYear(query)) {
+    delete merged.minYear;
+    delete merged.maxYear;
+  }
+  if (shouldClearMake(query)) {
+    delete merged.make;
+    delete merged.model;
+    delete merged.origin;
+  }
+  if (shouldClearModel(query)) {
+    delete merged.model;
+  }
+
+  const currentMake = merged.make;
+  const currentModel = merged.model;
+  const currentOrigin = merged.origin;
+
+  if (sanitizedNextParams.make && currentMake && sanitizedNextParams.make !== currentMake) {
+    delete merged.model;
+  }
+  if (sanitizedNextParams.origin && currentOrigin && sanitizedNextParams.origin !== currentOrigin) {
+    delete merged.make;
+    delete merged.model;
+  }
+  if (sanitizedNextParams.make) {
+    delete merged.origin;
+  }
+  if (sanitizedNextParams.model && currentModel && sanitizedNextParams.model !== currentModel && !sanitizedNextParams.make) {
+    delete merged.q;
+  }
+  if (sanitizedNextParams.bodyType) {
+    delete merged.q;
+  }
+  if (sanitizedNextParams.location) {
+    if (!excludedCurrentLocation || sanitizedNextParams.location !== currentParams?.location) {
+      delete merged.location;
+    } else {
+      delete sanitizedNextParams.location;
+    }
+  }
+
+  const combined = sanitizeSmartSearchParams({
+    ...merged,
+    ...sanitizedNextParams,
+  });
+
+  if (hasStructuredSearchParams(combined)) {
+    delete combined.q;
+  }
+
+  if (!Object.values(combined).some(Boolean)) {
+    combined.q = compactWhitespace(query);
+  }
+
+  return combined;
 }
 
 export function buildSearchParams(params: SmartSearchParams) {
@@ -409,6 +564,8 @@ export function smartSearchParamsToListingFilters(params: SmartSearchParams): Li
     q: params.q,
     make: params.make,
     model: params.model,
+    origin: params.origin,
+    useCase: params.useCase,
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,
     maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
     minYear: params.minYear ? Number(params.minYear) : undefined,

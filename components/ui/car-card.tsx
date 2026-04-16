@@ -13,6 +13,7 @@ import { useCompare } from "@/lib/hooks/use-compare";
 export interface CarCardProps {
   id: string;
   title: string;
+  subtitle?: string;
   bodyType: string;
   year: number;
   mileage: string;
@@ -33,6 +34,7 @@ export interface CarCardProps {
 export function CarCard({
   id,
   title,
+  subtitle,
   bodyType,
   year,
   mileage,
@@ -43,9 +45,10 @@ export function CarCard({
   currency = "Ksh",
   images,
   isFeatured = false,
-  seller,
+  seller: _seller,
   href,
 }: CarCardProps) {
+  void _seller;
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [isLiked, setIsLiked] = React.useState(false);
@@ -253,6 +256,11 @@ export function CarCard({
         <h3 className="mt-1 text-[18px] font-medium leading-[25.2px] text-[#242720] line-clamp-1">
           {title}
         </h3>
+        {subtitle ? (
+          <p className="mt-1 line-clamp-1 text-[13px] font-medium leading-[18px] text-[#696665]">
+            {subtitle}
+          </p>
+        ) : null}
 
         {/* Specs */}
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-[#696665]">

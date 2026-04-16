@@ -2,6 +2,8 @@ export type SmartSearchParams = {
   q?: string;
   make?: string;
   model?: string;
+  origin?: string;
+  useCase?: string;
   minPrice?: string;
   maxPrice?: string;
   minYear?: string;
@@ -13,6 +15,16 @@ export type SmartSearchParams = {
   sellerType?: "dealer" | "private";
 };
 
+export type SmartSearchClarificationOption = {
+  label: string;
+  query: string;
+};
+
+export type SmartSearchClarification = {
+  question: string;
+  options: SmartSearchClarificationOption[];
+};
+
 export type SmartSearchResult = {
   normalizedQuery: string;
   params: SmartSearchParams;
@@ -20,4 +32,5 @@ export type SmartSearchResult = {
   model: string | null;
   confidence: "low" | "medium" | "high";
   note: string;
+  clarification?: SmartSearchClarification | null;
 };

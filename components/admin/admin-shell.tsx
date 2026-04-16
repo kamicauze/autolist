@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   ADMIN_NAV_SECTIONS,
   AdminNavLink,
@@ -24,10 +25,11 @@ import {
 
 interface AdminShellProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
+  badgeCounts?: Partial<Record<string, number>>;
   children: React.ReactNode;
 }
 
-export function AdminShell({ user, children }: AdminShellProps) {
+export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -118,7 +120,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
                     href={item.href}
                     label={item.name}
                     icon={item.icon}
-                    badge={item.badge}
+                    badge={badgeCounts?.[item.href] ?? item.badge}
                     active={isActive(item.href)}
                     onClick={() => setSidebarOpen(false)}
                   />
@@ -160,6 +162,9 @@ export function AdminShell({ user, children }: AdminShellProps) {
             </button>
             <AdminTopNavigation />
             <div className="ml-auto flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151]">
+                <NotificationBell className="text-[#374151]" />
+              </div>
               <div className="hidden items-center gap-3 lg:flex">
                 <div className="h-9 w-9 rounded-full bg-[#e5e7eb]" />
                 <div className="flex items-center gap-1 text-[13px] font-medium text-[#374151]">

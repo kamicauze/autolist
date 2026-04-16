@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
+import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
 
 interface CarOverviewProps {
   listing: Listing;
@@ -73,6 +74,16 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
       label: "Body Type",
       value: listing.body_type || "N/A",
       icon: <Car className="h-4 w-4" />,
+    },
+    {
+      label: "Trim",
+      value: getListingTrim(listing) || "N/A",
+      icon: <Car className="h-4 w-4" />,
+    },
+    {
+      label: "Variant / Engine",
+      value: getListingVariant(listing) || "N/A",
+      icon: <Cog className="h-4 w-4" />,
     },
     {
       label: "Color",

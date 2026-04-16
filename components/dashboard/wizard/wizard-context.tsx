@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ───
 export type DetailFieldKey =
-  | "make" | "model" | "year" | "engineType" | "transmission"
+  | "make" | "model" | "trim" | "variant" | "year" | "engineType" | "transmission"
   | "driveType" | "mileage" | "bodyType" | "bodyStyle" | "loadCapacity"
   | "engineCapacity" | "fuelType" | "fuelSystem" | "bikeType" | "color"
   | "seats" | "axleConfiguration" | "equipmentType" | "operatingHours"
@@ -68,7 +68,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
   description: "",
   availability: "available",
   details: {
-    make: "", model: "", year: "", engineType: "", transmission: "",
+    make: "", model: "", trim: "", variant: "", year: "", engineType: "", transmission: "",
     driveType: "", mileage: "", bodyType: "", bodyStyle: "", loadCapacity: "",
     engineCapacity: "", fuelType: "", fuelSystem: "", bikeType: "", color: "",
     seats: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
@@ -92,8 +92,10 @@ export const DEFAULT_DRAFT: ListingDraft = {
 
 export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
   car: [
-    { key: "make", label: "Make", type: "text", required: true, placeholder: "Toyota" },
-    { key: "model", label: "Model", type: "text", required: true, placeholder: "Corolla" },
+    { key: "make", label: "Make", type: "select", required: true, placeholder: "Toyota" },
+    { key: "model", label: "Model", type: "select", required: true, placeholder: "Corolla" },
+    { key: "trim", label: "Trim", type: "select", required: false, placeholder: "TX" },
+    { key: "variant", label: "Variant / Engine", type: "select", required: false, placeholder: "xDrive30d" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
@@ -168,7 +170,7 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
 
-type AuthenticatedProfileRole = "buyer" | "seller" | "dealer" | "admin";
+type AuthenticatedProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
 
 type SellerAccountDefaults = {
   sellerType: ListingDraft["sellerType"];
@@ -277,6 +279,8 @@ const SUBMISSION_FIELD_METADATA: Record<
 > = {
   make: { label: "Make", step: "Vehicle / Equipment Details" },
   model: { label: "Model", step: "Vehicle / Equipment Details" },
+  trim: { label: "Trim", step: "Vehicle / Equipment Details" },
+  variant: { label: "Variant / Engine", step: "Vehicle / Equipment Details" },
   year: { label: "Year", step: "Vehicle / Equipment Details" },
   mileage: { label: "Mileage", step: "Vehicle / Equipment Details" },
   body_type: { label: "Body Type", step: "Vehicle / Equipment Details" },
@@ -522,7 +526,22 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setSubmitError(null);
       setSubmitErrorDetails([]);
     }
-    setDraft((prev) => ({ ...prev, details: { ...prev.details, [key]: value } }));
+    setDraft((prev) => {
+      const nextDetails = { ...prev.details, [key]: value };
+
+      if (key === "make" && value !== prev.details.make) {
+        nextDetails.model = "";
+        nextDetails.trim = "";
+        nextDetails.variant = "";
+      }
+
+      if (key === "model" && value !== prev.details.model) {
+        nextDetails.trim = "";
+        nextDetails.variant = "";
+      }
+
+      return { ...prev, details: nextDetails };
+    });
   };
 
   const toggleFeature = (id: string) => {
@@ -713,6 +732,8 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       const listingData = {
         make: draft.details.make || "",
         model: draft.details.model || "",
+        trim: draft.details.trim || undefined,
+        variant: draft.details.variant || undefined,
         year: parseInt(draft.details.year) || new Date().getFullYear(),
         price: parseFloat(draft.priceKes.replace(/,/g, "")) || 0,
         currency: "KES" as const,

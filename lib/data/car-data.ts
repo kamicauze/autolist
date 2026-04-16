@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CarMake } from "@/lib/types/car-data";
+import {
+  getVehicleReferenceOptionsFallback,
+  type VehicleReferenceOptions,
+} from "@/lib/data/vehicle-reference-catalog";
 
 // ── Server-side fetchers for car reference data ─────────────────────────────
 // These tables are small (~57 makes, ~850 models) so direct queries are fast.
@@ -76,73 +80,128 @@ export async function getModelsForMakeName(
 }
 
 /**
- * Returns trim names for a given make (by name, case-insensitive).
+ * Returns the full vehicle reference chain for a given make/model selection.
  */
-export async function getTrimsForMakeName(
-  makeName: string
-): Promise<string[]> {
+export async function getVehicleReferenceOptions(
+  makeName?: string | null,
+  modelName?: string | null
+): Promise<VehicleReferenceOptions> {
   const supabase = await createClient();
+  const { data: makes, error: makesError } = await supabase
+    .from("car_makes")
+    .select("id, name")
+    .order("name");
+
+  if (makesError) {
+    console.error("getVehicleReferenceOptions makes error:", makesError.message);
+    return getVehicleReferenceOptionsFallback(makeName, modelName);
+  }
+
+  const makeOptions = makes.map((make) => make.name);
+  const selectedMakeName = makeName?.trim();
+
+  if (!selectedMakeName) {
+    return {
+      makes: makeOptions,
+      models: [],
+      trimOptions: [],
+      variants: [],
+    };
+  }
 
   const { data: make } = await supabase
     .from("car_makes")
     .select("id")
-    .ilike("name", makeName)
+    .ilike("name", selectedMakeName)
     .single();
 
-  if (!make) return [];
+  if (!make) {
+    return {
+      makes: makeOptions,
+      models: [],
+      trimOptions: [],
+      variants: [],
+    };
+  }
+
+  const { data: models, error: modelsError } = await supabase
+    .from("car_models")
+    .select("id, name")
+    .eq("make_id", make.id)
+    .order("name");
+
+  if (modelsError) {
+    console.error("getVehicleReferenceOptions models error:", modelsError.message);
+    return getVehicleReferenceOptionsFallback(makeName, modelName);
+  }
+
+  const modelOptions = models.map((model) => model.name);
+  const selectedModelName = modelName?.trim();
+
+  if (!selectedModelName) {
+    return {
+      makes: makeOptions,
+      models: modelOptions,
+      trimOptions: [],
+      variants: [],
+    };
+  }
+
+  const selectedModel = models.find(
+    (model) => model.name.toLowerCase() === selectedModelName.toLowerCase()
+  );
+
+  if (!selectedModel) {
+    return {
+      makes: makeOptions,
+      models: modelOptions,
+      trimOptions: [],
+      variants: [],
+    };
+  }
 
   const { data: trims, error } = await supabase
     .from("car_trims")
-    .select("name")
-    .eq("make_id", make.id)
+    .select("name, is_shared")
+    .eq("model_id", selectedModel.id)
+    .order("is_shared", { ascending: true })
     .order("sort_order")
     .order("name");
 
   if (error) {
-    console.error("getTrimsForMakeName error:", error.message);
-    return [];
+    console.error("getVehicleReferenceOptions trims error:", error.message);
+    return getVehicleReferenceOptionsFallback(makeName, modelName);
   }
 
-  return trims.map((t) => t.name);
-}
-
-/**
- * Returns variant names for a model (by make name + model name).
- */
-export async function getVariantsForModelName(
-  makeName: string,
-  modelName: string
-): Promise<string[]> {
-  const supabase = await createClient();
-
-  const { data: make } = await supabase
-    .from("car_makes")
-    .select("id")
-    .ilike("name", makeName)
-    .single();
-
-  if (!make) return [];
-
-  const { data: model } = await supabase
-    .from("car_models")
-    .select("id")
-    .eq("make_id", make.id)
-    .ilike("name", modelName)
-    .single();
-
-  if (!model) return [];
-
-  const { data: variants, error } = await supabase
+  const { data: variants, error: variantsError } = await supabase
     .from("car_variants")
     .select("name")
-    .eq("model_id", model.id)
+    .eq("model_id", selectedModel.id)
     .order("sort_order")
     .order("name");
 
-  if (error) {
-    console.error("getVariantsForModelName error:", error.message);
-    return [];
+  if (variantsError) {
+    console.error("getVehicleReferenceOptions variants error:", variantsError.message);
+    return {
+      makes: makeOptions,
+      models: modelOptions,
+      trimOptions: trims.map((trim) => ({
+        label: trim.name,
+        value: trim.name,
+        source: trim.is_shared ? ("shared" as const) : ("model" as const),
+      })),
+      variants: [],
+    };
   }
 
-  return variants.map((v) => v.name);
+  return {
+    makes: makeOptions,
+    models: modelOptions,
+    trimOptions: trims.map((trim) => ({
+      label: trim.name,
+      value: trim.name,
+      source: trim.is_shared ? ("shared" as const) : ("model" as const),
+    })),
+    variants: variants.map((variant) => variant.name),
+  };
 }

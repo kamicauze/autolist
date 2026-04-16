@@ -11,6 +11,7 @@ import { IconMenu, IconX, IconUser, IconSearch } from "@/components/ui/icons";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const vehicleTypes = [
   { name: "Cars", href: "/search" },
@@ -176,6 +177,9 @@ export function Header() {
               <div className="hidden h-10 w-32 animate-pulse rounded-lg bg-gray-100 sm:block" />
             ) : user ? (
               <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700">
+                  <NotificationBell className="text-gray-700" />
+                </div>
                 <Link href="/dashboard" className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                     {userInitial}
