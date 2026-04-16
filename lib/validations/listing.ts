@@ -32,6 +32,10 @@ export const listingSchema = z.object({
   transmission: z.string().trim().optional(),
   fuel_type: z.string().trim().optional(),
   color: z.string().trim().optional(),
+  seats: z.coerce.number().int().min(1).max(100).optional(),
+  doors: z.coerce.number().int().min(1).max(10).optional(),
+  drive_type: z.string().trim().optional(),
+  details: z.record(z.string(), z.string().trim()).optional(),
 });
 
 export type ListingFormData = z.infer<typeof listingSchema>;

@@ -12,6 +12,7 @@ export interface WizardStep {
 interface WizardShellProps {
   title: string;
   description?: string;
+  headerAction?: React.ReactNode;
   steps: readonly WizardStep[];
   activeStep: number;
   children: React.ReactNode;
@@ -25,6 +26,7 @@ interface WizardShellProps {
 export function WizardShell({
   title,
   description,
+  headerAction,
   steps,
   activeStep,
   children,
@@ -52,6 +54,7 @@ export function WizardShell({
           {description ? (
             <p className="max-w-[240px] text-[14px] leading-6 text-[#757575]">{description}</p>
           ) : null}
+          {headerAction ? <div className="pt-2">{headerAction}</div> : null}
         </div>
 
         <div className="mt-10 rounded-[24px] border border-[#eaedf3] bg-white p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
+import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 import {
   getMakesForOrigin,
   getMinimumUseCaseScore,
@@ -23,99 +25,6 @@ function getListingSelect(includeDealerLocationFilter = false) {
     `;
 }
 
-const BODY_TYPE_SYNONYMS: Record<string, string[]> = {
-  Sedan: [
-    "sedan",
-    "saloon",
-    "premio",
-    "allion",
-    "axio",
-    "corolla",
-    "civic",
-    "mark x",
-    "jetta",
-    "passat",
-    "s60",
-    "c200",
-    "e200",
-    "3 series",
-    "5 series",
-    "a4",
-    "a6",
-  ],
-  SUV: [
-    "suv",
-    "4x4",
-    "prado",
-    "land cruiser",
-    "forester",
-    "cx-5",
-    "cx5",
-    "x-trail",
-    "xtrail",
-    "sportage",
-    "harrier",
-    "x1",
-    "x2",
-    "x3",
-    "x4",
-    "x5",
-    "x6",
-    "x7",
-    "gla",
-    "glb",
-    "glc",
-    "gle",
-    "gls",
-    "q3",
-    "q5",
-    "q7",
-    "q8",
-    "tiguan",
-    "touareg",
-    "macan",
-    "cayenne",
-    "fortuner",
-    "sorento",
-  ],
-  Crossover: [
-    "crossover",
-    "forester",
-    "cx-5",
-    "cx5",
-    "qashqai",
-    "x-trail",
-    "xtrail",
-    "vezel",
-    "sportage",
-    "x1",
-    "x2",
-    "q3",
-    "gla",
-    "glb",
-    "tiguan",
-    "macan",
-  ],
-  Hatchback: ["hatchback", "demio", "fit", "march", "vitz", "note", "a1", "polo", "swift", "passo", "yaris"],
-  Pickup: ["pickup", "pick up", "pick-up", "hilux", "d-max", "dmax", "ranger", "navara", "amarok"],
-  Wagon: ["wagon", "estate", "fielder", "outback"],
-  Van: ["van", "hiace", "serena", "voxy", "noah"],
-  Truck: ["truck", "canter", "actros", "scania"],
-  Coupe: ["coupe", "86", "mustang"],
-  Convertible: ["convertible", "cabriolet", "roadster"],
-};
-
-function normalizeBodyTypeValue(value: string) {
-  const lower = value.trim().toLowerCase();
-  if (!lower) return null;
-  if (lower === "suv") return "SUV";
-  if (lower === "saloon") return "Sedan";
-  if (lower === "estate") return "Wagon";
-  if (lower === "pick up" || lower === "pick-up") return "Pickup";
-  if (lower === "4x4") return "SUV";
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
-}
-
 function parseRequestedBodyTypes(value?: string | string[]) {
   const values = Array.isArray(value) ? value : value ? [value] : [];
   return values
@@ -124,29 +33,18 @@ function parseRequestedBodyTypes(value?: string | string[]) {
     .filter((item): item is string => Boolean(item));
 }
 
-function inferBodyTypesFromText(text: string) {
-  const normalized = ` ${text.toLowerCase()} `;
-  const matches = new Set<string>();
-
-  Object.entries(BODY_TYPE_SYNONYMS).forEach(([bodyType, terms]) => {
-    if (terms.some((term) => normalized.includes(` ${term} `))) {
-      matches.add(bodyType);
-    }
-  });
-
-  if (matches.has("Crossover")) matches.add("SUV");
-  if (matches.has("SUV") && normalized.includes(" crossover ")) matches.add("Crossover");
-
-  return Array.from(matches);
-}
-
 function inferListingBodyTypes(listing: Listing) {
-  const explicit = listing.body_type ? [normalizeBodyTypeValue(listing.body_type)].filter(Boolean) : [];
+  const metadataBodyType = getListingMetadataString(listing, "bodyType") ?? getListingMetadataString(listing, "body_type");
+  const explicit = [listing.body_type, metadataBodyType]
+    .filter(Boolean)
+    .map((value) => normalizeBodyTypeValue(String(value)))
+    .filter(Boolean);
   const inferred = inferBodyTypesFromText(
     [
       listing.make,
       listing.model,
       listing.body_type,
+      metadataBodyType,
       listing.description,
       listing.features?.join(" "),
     ]

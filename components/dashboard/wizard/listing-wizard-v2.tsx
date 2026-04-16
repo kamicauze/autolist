@@ -37,6 +37,7 @@ function WizardContent() {
     submitError,
     submitErrorDetails,
     draft,
+    resetDraft,
     handleContinue,
     handleBack,
   } = useWizard();
@@ -118,6 +119,22 @@ function WizardContent() {
       <WizardShell
         title={isEditing ? "Edit Listing" : "Add Listing"}
         description={isEditing ? "Update the saved listing details and publish the latest changes." : "Unified listing form for all vehicle categories."}
+        headerAction={
+          !isEditing ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-[12px] border-[#d9d9d9] px-4 text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
+              onClick={() => {
+                if (window.confirm("Clear the saved draft and start this listing from scratch?")) {
+                  resetDraft();
+                }
+              }}
+            >
+              Start Fresh
+            </Button>
+          ) : null
+        }
         steps={LISTING_WIZARD_STEPS}
         activeStep={activeStep}
         footerMeta={footerMeta}

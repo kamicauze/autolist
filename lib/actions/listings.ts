@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
+import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
 
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -25,6 +26,10 @@ export type CreateListingInput = {
     transmission?: string;
     fuel_type?: string;
     color?: string;
+    seats?: number;
+    doors?: number;
+    drive_type?: string;
+    details?: Record<string, string>;
 };
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
@@ -94,10 +99,27 @@ export async function insertListingInternal(
         return { error: result.error.flatten() };
     }
     const data = result.data;
-    const { trim, variant, ...listingValues } = data;
+    const { trim, variant, details, seats, doors, drive_type, ...listingValues } = data;
+    const normalizedDetails = buildListingDetailMetadata({
+        ...details,
+        make: data.make,
+        model: data.model,
+        trim,
+        variant,
+        year: String(data.year),
+        mileage: data.mileage != null ? String(data.mileage) : undefined,
+        bodyType: data.body_type,
+        transmission: data.transmission,
+        fuelType: data.fuel_type,
+        color: data.color,
+        seats: seats != null ? String(seats) : undefined,
+        doors: doors != null ? String(doors) : undefined,
+        driveType: drive_type,
+    });
     const vehicleReferenceMetadata = {
         ...(trim ? { trim } : {}),
         ...(variant ? { variant } : {}),
+        ...(Object.keys(normalizedDetails).length > 0 ? { details: normalizedDetails } : {}),
     };
 
     // 2. Duplicate Detection (MVP)
@@ -172,12 +194,17 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
     const {
         trim,
         variant,
+        details,
+        seats,
+        doors,
+        drive_type,
         ...listingValues
     } = input;
 
     const nextMetadata = {
         ...((existingListing.metadata && typeof existingListing.metadata === "object") ? existingListing.metadata : {}),
     } as Record<string, unknown>;
+    const existingDetails = getListingMetadataDetails({ metadata: existingListing.metadata });
 
     if (trim === undefined) {
         // keep existing metadata
@@ -193,6 +220,61 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         nextMetadata.variant = variant;
     } else {
         delete nextMetadata.variant;
+    }
+
+    if (details !== undefined || seats !== undefined || doors !== undefined || drive_type !== undefined) {
+        const nextDetails = buildListingDetailMetadata({
+            ...existingDetails,
+            ...(details ?? {}),
+            make: typeof input.make === "string" ? input.make : existingDetails.make,
+            model: typeof input.model === "string" ? input.model : existingDetails.model,
+            trim: trim === undefined ? existingDetails.trim : trim,
+            variant: variant === undefined ? existingDetails.variant : variant,
+            year:
+                typeof input.year === "number"
+                    ? String(input.year)
+                    : existingDetails.year,
+            mileage:
+                typeof input.mileage === "number"
+                    ? String(input.mileage)
+                    : input.mileage === null
+                        ? undefined
+                        : existingDetails.mileage,
+            bodyType:
+                typeof input.body_type === "string"
+                    ? input.body_type
+                    : existingDetails.bodyType,
+            transmission:
+                typeof input.transmission === "string"
+                    ? input.transmission
+                    : existingDetails.transmission,
+            fuelType:
+                typeof input.fuel_type === "string"
+                    ? input.fuel_type
+                    : existingDetails.fuelType,
+            color:
+                typeof input.color === "string"
+                    ? input.color
+                    : existingDetails.color,
+            seats:
+                typeof seats === "number"
+                    ? String(seats)
+                    : existingDetails.seats,
+            doors:
+                typeof doors === "number"
+                    ? String(doors)
+                    : existingDetails.doors,
+            driveType:
+                typeof drive_type === "string"
+                    ? drive_type
+                    : existingDetails.driveType,
+        });
+
+        if (Object.keys(nextDetails).length > 0) {
+            nextMetadata.details = nextDetails;
+        } else {
+            delete nextMetadata.details;
+        }
     }
 
     const { error } = await supabase

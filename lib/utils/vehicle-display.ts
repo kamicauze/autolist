@@ -1,18 +1,12 @@
 import type { Listing } from "@/lib/types/listing";
-
-function readMetadataString(metadata: Listing["metadata"], key: string) {
-  const value = metadata && key in metadata ? metadata[key] : null;
-  if (value == null) return null;
-  const normalized = String(value).trim();
-  return normalized.length > 0 ? normalized : null;
-}
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 
 export function getListingTrim(listing: Listing) {
-  return readMetadataString(listing.metadata, "trim");
+  return getListingMetadataString(listing, "trim");
 }
 
 export function getListingVariant(listing: Listing) {
-  return readMetadataString(listing.metadata, "variant");
+  return getListingMetadataString(listing, "variant");
 }
 
 export function getListingDisplayTitle(listing: Listing) {
@@ -29,7 +23,7 @@ export function getListingDisplayTitle(listing: Listing) {
 export function getListingSubtitle(listing: Listing) {
   const parts = [
     getListingVariant(listing),
-    listing.body_type,
+    getListingMetadataString(listing, "bodyType") ?? getListingMetadataString(listing, "body_type") ?? listing.body_type,
   ].filter(Boolean);
 
   return parts.join(" • ");

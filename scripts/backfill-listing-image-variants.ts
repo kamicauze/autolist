@@ -1,7 +1,8 @@
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { promises as fs } from "fs";
 import { r2 } from "../lib/r2";
-import { uploadListingImageVariants, scoreListingCoverCandidate } from "../lib/server/listing-image-pipeline";
+import { rankListingImageCandidates } from "../lib/server/listing-image-ranking";
+import { uploadListingImageVariants } from "../lib/server/listing-image-pipeline";
 import { createAdminClient } from "../lib/supabase/admin";
 import { buildListingImageVariantKey } from "../lib/utils/image-variants";
 
@@ -151,6 +152,7 @@ async function backfill() {
     listingIndex += 1;
     console.log(`[${listingIndex}/${totalListings}] ${listingId}: processing ${images.length} image(s)`);
     const scored: Array<{ id: string; score: number; imageOrder: number }> = [];
+    const candidates: Array<{ id: string; fileName: string; originalIndex: number; bytes: Buffer; imageOrder: number }> = [];
 
     for (const image of images) {
       try {
@@ -171,12 +173,7 @@ async function backfill() {
             60_000,
             `Read ${image.r2_key}`
           );
-          const score = await withTimeout(
-            scoreListingCoverCandidate(fileName, bytes),
-            60_000,
-            `Score ${image.r2_key}`
-          );
-          scored.push({ id: image.id, score, imageOrder: image.image_order });
+          candidates.push({ id: image.id, fileName, originalIndex: image.image_order, bytes, imageOrder: image.image_order });
           continue;
         }
 
@@ -205,12 +202,7 @@ async function backfill() {
         variantCount += 1;
 
         const fileName = image.r2_key.split("/").pop() || image.r2_key;
-        const score = await withTimeout(
-          scoreListingCoverCandidate(fileName, bytes),
-          60_000,
-          `Score ${image.r2_key}`
-        );
-        scored.push({ id: image.id, score, imageOrder: image.image_order });
+        candidates.push({ id: image.id, fileName, originalIndex: image.image_order, bytes, imageOrder: image.image_order });
       } catch (error) {
         failedImages += 1;
         console.warn(
@@ -218,6 +210,20 @@ async function backfill() {
         );
       }
     }
+
+    const ranked = await rankListingImageCandidates(
+      candidates.map((candidate) => ({
+        fileName: candidate.fileName,
+        originalIndex: candidate.originalIndex,
+        bytes: candidate.bytes,
+      }))
+    );
+
+    ranked.forEach((candidate) => {
+      const original = candidates.find((entry) => entry.originalIndex === candidate.originalIndex);
+      if (!original) return;
+      scored.push({ id: original.id, score: candidate.score, imageOrder: original.imageOrder });
+    });
 
     if (!importedListingMap.has(listingId)) {
       continue;

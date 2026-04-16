@@ -2,8 +2,10 @@ import { promises as fs } from "fs";
 import path from "path";
 import mime from "mime";
 import { ALL_MAKES, CAR_MAKES_DATA, getModelsForMake, getVariantsForModel } from "../lib/constants/car-data";
+import { rankListingImageCandidates } from "../lib/server/listing-image-ranking";
 import { uploadListingImageAssets } from "../lib/server/listing-image-pipeline";
 import { createAdminClient } from "../lib/supabase/admin";
+import { buildListingDetailMetadata } from "../lib/utils/listing-details";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -1089,12 +1091,12 @@ async function mergeReviewCsv(options: MergeCsvCommandOptions) {
   };
 }
 
-async function uploadFileToR2(listingId: string, image: ManifestImage) {
-  const bytes = await fs.readFile(image.path);
+async function uploadFileToR2(listingId: string, image: ManifestImage, bytes?: Buffer) {
+  const fileBytes = bytes ?? (await fs.readFile(image.path));
   return uploadListingImageAssets({
     listingId,
     fileName: image.fileName,
-    bytes,
+    bytes: fileBytes,
     contentType: image.mimeType,
   });
 }
@@ -1192,7 +1194,21 @@ async function createListingIfMissing(
     condition: item.listing.condition,
     description: item.listing.description,
     features: item.listing.features,
-    metadata: item.listing.metadata,
+    metadata: {
+      ...(item.listing.metadata ?? {}),
+      ...(item.listing.trim ? { trim: item.listing.trim } : {}),
+      ...(item.listing.variant ? { variant: item.listing.variant } : {}),
+      details: buildListingDetailMetadata({
+        make: item.listing.make,
+        model: item.listing.model,
+        trim: item.listing.trim,
+        variant: item.listing.variant,
+        year: item.listing.year != null ? String(item.listing.year) : undefined,
+        mileage: item.listing.mileage != null ? String(item.listing.mileage) : undefined,
+        bodyType: item.listing.bodyType,
+        color: item.listing.color,
+      }),
+    },
   };
 
   const { data, error } = await supabase.from("listings").insert(insertPayload).select("id").single();
@@ -1206,9 +1222,10 @@ async function saveListingImages(
   item: ManifestItem,
   dryRun: boolean,
 ) {
-  const uploaded: Array<{ key: string; hash: string; fileName: string; coverScore: number; originalIndex: number }> = [];
+  const uploaded: Array<{ key: string; hash: string; fileName: string; coverScore: number; originalIndex: number; bytes?: Buffer }> = [];
 
   for (const [index, image] of item.images.entries()) {
+    const bytes = dryRun ? Buffer.alloc(0) : await fs.readFile(image.path);
     if (dryRun) {
       uploaded.push({
         key: `dry-run/${listingId}/${image.fileName}`,
@@ -1216,20 +1233,34 @@ async function saveListingImages(
         fileName: image.fileName,
         coverScore: 0,
         originalIndex: index,
+        bytes,
       });
       continue;
     }
 
-    const { key, hash, coverScore } = await uploadFileToR2(listingId, image);
-    uploaded.push({ key, hash, fileName: image.fileName, coverScore, originalIndex: index });
+    const { key, hash, coverScore } = await uploadFileToR2(listingId, image, bytes);
+    uploaded.push({ key, hash, fileName: image.fileName, coverScore, originalIndex: index, bytes });
   }
 
-  const ordered = uploaded
-    .slice()
-    .sort((a, b) => {
-      if (b.coverScore !== a.coverScore) return b.coverScore - a.coverScore;
-      return a.originalIndex - b.originalIndex;
-    });
+  const ranked = dryRun
+    ? uploaded
+        .slice()
+        .sort((a, b) => a.originalIndex - b.originalIndex)
+        .map((image) => ({
+          ...image,
+          score: image.coverScore,
+        }))
+    : await rankListingImageCandidates(
+        uploaded.map((image) => ({
+          fileName: image.fileName,
+          originalIndex: image.originalIndex,
+          bytes: image.bytes ?? Buffer.alloc(0),
+        }))
+      );
+
+  const ordered = ranked.map((rankedImage) =>
+    uploaded.find((image) => image.originalIndex === rankedImage.originalIndex)!
+  );
 
   for (const [index, image] of ordered.entries()) {
     const { error } = await supabase.from("listing_images").insert({

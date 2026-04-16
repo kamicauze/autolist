@@ -806,8 +806,8 @@ export function AdminReportsPage() {
         items={[
           { label: "Open Reports", value: "07", icon: adminMetricIcons.warning },
           { label: "High Priority", value: "02", icon: adminMetricIcons.pending },
-          { label: "Resolved Today", value: "14", icon: CheckCircle2({ className: "h-5 w-5" }) },
-          { label: "Repeat Offenders", value: "03", icon: ShieldCheck({ className: "h-5 w-5" }) },
+          { label: "Resolved Today", value: "14", icon: <CheckCircle2 className="h-5 w-5" /> },
+          { label: "Repeat Offenders", value: "03", icon: <ShieldCheck className="h-5 w-5" /> },
         ]}
       />
       <AdminPreviewNotice />
@@ -839,10 +839,10 @@ export function AdminInsuranceRequestsPage() {
         title="Insurance Requests"
         description="Track policy applications, missing documents, and insurer handoffs from one queue."
         stats={[
-          { label: "Open Requests", value: "23", icon: ReceiptText({ className: "h-5 w-5" }) },
-          { label: "Quoted Today", value: "11", icon: CircleDollarSign({ className: "h-5 w-5" }) },
+          { label: "Open Requests", value: "23", icon: <ReceiptText className="h-5 w-5" /> },
+          { label: "Quoted Today", value: "11", icon: <CircleDollarSign className="h-5 w-5" /> },
           { label: "Blocked Cases", value: "03", icon: adminMetricIcons.warning },
-          { label: "Policies Bound", value: "07", icon: ShieldCheck({ className: "h-5 w-5" }) },
+          { label: "Policies Bound", value: "07", icon: <ShieldCheck className="h-5 w-5" /> },
         ]}
         items={insuranceItems}
       />
@@ -858,10 +858,10 @@ export function AdminCarInquiriesPage() {
         title="Car Inquiries"
         description="Monitor buyer-to-seller conversations that need intervention, follow-up, or SLA protection."
         stats={[
-          { label: "Open Threads", value: "23", icon: MessageSquareText({ className: "h-5 w-5" }) },
+          { label: "Open Threads", value: "23", icon: <MessageSquareText className="h-5 w-5" /> },
           { label: "Escalated", value: "05", icon: adminMetricIcons.warning },
-          { label: "Seller SLA Risk", value: "09", icon: Bell({ className: "h-5 w-5" }) },
-          { label: "Resolved Today", value: "18", icon: CheckCircle2({ className: "h-5 w-5" }) },
+          { label: "Seller SLA Risk", value: "09", icon: <Bell className="h-5 w-5" /> },
+          { label: "Resolved Today", value: "18", icon: <CheckCircle2 className="h-5 w-5" /> },
         ]}
         items={inquiryItems}
       />
@@ -884,7 +884,7 @@ export function AdminPaymentsPage() {
       <StatGrid
         items={[
           { label: "Gross Volume", value: "$18,240", icon: adminMetricIcons.payments, note: "+14%" },
-          { label: "Pending Payouts", value: "$2,410", icon: ReceiptText({ className: "h-5 w-5" }) },
+          { label: "Pending Payouts", value: "$2,410", icon: <ReceiptText className="h-5 w-5" /> },
           { label: "Refund Queue", value: "02", icon: adminMetricIcons.warning },
           { label: "Dealer Plans", value: "84", icon: adminMetricIcons.users },
         ]}
@@ -927,8 +927,8 @@ export function AdminAdsBannersPage() {
       />
       <StatGrid
         items={[
-          { label: "Live Campaigns", value: "12", icon: FileBadge2({ className: "h-5 w-5" }) },
-          { label: "Scheduled", value: "04", icon: Bell({ className: "h-5 w-5" }) },
+          { label: "Live Campaigns", value: "12", icon: <FileBadge2 className="h-5 w-5" /> },
+          { label: "Scheduled", value: "04", icon: <Bell className="h-5 w-5" /> },
           { label: "Avg CTR", value: "3.8%", icon: adminMetricIcons.analytics },
           { label: "Expiring Soon", value: "02", icon: adminMetricIcons.warning },
         ]}
@@ -990,10 +990,10 @@ export function AdminBlogsContentPage() {
       />
       <StatGrid
         items={[
-          { label: "Published Posts", value: "184", icon: FileText({ className: "h-5 w-5" }) },
-          { label: "Scheduled", value: "07", icon: Bell({ className: "h-5 w-5" }) },
-          { label: "Drafts", value: "21", icon: LayoutTemplate({ className: "h-5 w-5" }) },
-          { label: "Newsletter Slots", value: "03", icon: Mail({ className: "h-5 w-5" }) },
+          { label: "Published Posts", value: "184", icon: <FileText className="h-5 w-5" /> },
+          { label: "Scheduled", value: "07", icon: <Bell className="h-5 w-5" /> },
+          { label: "Drafts", value: "21", icon: <LayoutTemplate className="h-5 w-5" /> },
+          { label: "Newsletter Slots", value: "03", icon: <Mail className="h-5 w-5" /> },
         ]}
       />
       <AdminPreviewNotice />

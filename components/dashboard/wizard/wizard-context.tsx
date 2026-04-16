@@ -11,6 +11,7 @@ import {
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
 import type { Listing } from "@/lib/types/listing";
+import { getListingMetadataDetails, getListingMetadataString } from "@/lib/utils/listing-details";
 import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
 
 // ─── Types ───
@@ -261,6 +262,7 @@ interface WizardContextValue {
 
   // Seller
   applyDealerAutofill: (enabled: boolean) => void;
+  resetDraft: () => void;
 
   // Navigation
   handleContinue: () => Promise<void>;
@@ -285,6 +287,7 @@ function extractFileName(pathLike: string | null | undefined) {
 }
 
 function buildDraftFromListing(listing: Listing): ListingDraft {
+  const detailMetadata = getListingMetadataDetails(listing);
   const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
   const [coverImage, ...galleryImages] = sortedImages;
   const cityTown = listing.dealer?.city?.trim() || "";
@@ -322,14 +325,21 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
       trim: getListingTrim(listing) ?? "",
       variant: getListingVariant(listing) ?? "",
       year: listing.year ? String(listing.year) : "",
-      mileage: typeof listing.mileage === "number" ? String(listing.mileage) : "",
-      bodyType: listing.body_type ?? "",
-      transmission: listing.transmission ?? "",
-      fuelType: listing.fuel_type ?? "",
-      engineType: listing.fuel_type ?? "",
-      color: listing.color ?? "",
-      seats: typeof listing.seats === "number" ? String(listing.seats) : "",
-      driveType: listing.drive_type ?? "",
+      mileage: typeof listing.mileage === "number" ? String(listing.mileage) : detailMetadata.mileage ?? "",
+      bodyType: listing.body_type ?? detailMetadata.bodyType ?? detailMetadata.body_type ?? "",
+      transmission: listing.transmission ?? detailMetadata.transmission ?? "",
+      fuelType: listing.fuel_type ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
+      engineType: listing.fuel_type ?? detailMetadata.engineType ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
+      color: listing.color ?? detailMetadata.color ?? "",
+      seats:
+        typeof listing.seats === "number"
+          ? String(listing.seats)
+          : getListingMetadataString(listing, "seats") ?? "",
+      driveType:
+        listing.drive_type ??
+        detailMetadata.driveType ??
+        detailMetadata.drive_type ??
+        "",
     },
     selectedFeatureIds: Array.isArray(listing.features) ? listing.features : [],
     coverImageName: extractFileName(coverImage?.r2_key),
@@ -341,6 +351,26 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     whatsappEnabled: Boolean(whatsappNumber),
     whatsappNumber,
     allowPhoneCalls: Boolean(phoneNumber),
+  };
+}
+
+function buildFreshDraft(
+  sellerAccountDefaults: SellerAccountDefaults | null,
+  initialDraft: ListingDraft
+): ListingDraft {
+  if (!sellerAccountDefaults) {
+    return { ...DEFAULT_DRAFT, details: { ...DEFAULT_DRAFT.details } };
+  }
+
+  return {
+    ...DEFAULT_DRAFT,
+    details: { ...DEFAULT_DRAFT.details },
+    sellerType: sellerAccountDefaults.sellerType,
+    useDealerAutoFill: sellerAccountDefaults.useDealerAutoFill,
+    contactName: sellerAccountDefaults.contactName || initialDraft.contactName,
+    phoneNumber: sellerAccountDefaults.phoneNumber || initialDraft.phoneNumber,
+    whatsappEnabled: sellerAccountDefaults.whatsappEnabled,
+    whatsappNumber: sellerAccountDefaults.whatsappNumber || initialDraft.whatsappNumber,
   };
 }
 
@@ -602,7 +632,36 @@ export function WizardProvider({
       setSubmitError(null);
       setSubmitErrorDetails([]);
     }
-    setDraft((prev) => ({ ...prev, [key]: value }));
+    setDraft((prev) => {
+      if (key !== "category") {
+        return { ...prev, [key]: value };
+      }
+
+      const nextCategory = value as ListingDraft["category"];
+      if (prev.category === nextCategory) {
+        return prev;
+      }
+
+      setFeatureQuery("");
+      setExpandedFeatureGroups({});
+      setPresetUndoSelection(null);
+      setMediaError(null);
+      setCoverFile(null);
+      setGalleryFiles([]);
+      setDocumentFiles([]);
+
+      return {
+        ...prev,
+        category: nextCategory,
+        details: { ...DEFAULT_DRAFT.details },
+        selectedFeatureIds: [],
+        coverImageName: null,
+        galleryImageNames: [],
+        coverFromGalleryIndex: null,
+        documentNames: [],
+        videoUrl: "",
+      };
+    });
   };
 
   const updateDetailField = (key: DetailFieldKey, value: string) => {
@@ -774,6 +833,28 @@ export function WizardProvider({
     }));
   };
 
+  const resetDraft = () => {
+    const nextDraft = buildFreshDraft(sellerAccountDefaults, initialDraft);
+    localStorage.removeItem(storageKey);
+    setDraft(nextDraft);
+    setActiveStep(0);
+    setSubmitted(false);
+    setAutoApproved(false);
+    setIsSubmitting(false);
+    setSubmitError(null);
+    setSubmitErrorDetails([]);
+    setCreatedListingId(editingListingId);
+    setMediaError(null);
+    setFeatureQuery("");
+    setShowFeatureIds(false);
+    setExpandedFeatureGroups({});
+    setPresetUndoSelection(null);
+    setShowValidationErrors(false);
+    setCoverFile(null);
+    setGalleryFiles([]);
+    setDocumentFiles([]);
+  };
+
   // Validation
   const mediaValidationError = React.useMemo(() => {
     const replacingImages = isEditing && (coverFile !== null || galleryFiles.length > 0);
@@ -834,6 +915,7 @@ export function WizardProvider({
         transmission: draft.details.transmission || undefined,
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
+        details: draft.details,
       };
 
       setIsSubmitting(true);
@@ -951,7 +1033,7 @@ export function WizardProvider({
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
     handleCoverSelection, handleGallerySelection, removeGalleryFile, moveGalleryImage, handleDocumentSelection, removeDocumentFile,
-    applyDealerAutofill,
+    applyDealerAutofill, resetDraft,
     handleContinue, handleBack, setActiveStep,
     canContinue, mediaValidationError, sellerValidationError, marketIndicator, selectedCategoryFields,
   };

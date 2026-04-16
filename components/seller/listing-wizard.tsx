@@ -45,6 +45,8 @@ import type { ListingFormData } from "@/lib/validations/listing";
 type DetailFieldKey =
   | "make"
   | "model"
+  | "trim"
+  | "variant"
   | "year"
   | "engineType"
   | "transmission"
@@ -108,6 +110,8 @@ const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
   car: [
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "Corolla" },
+    { key: "trim", label: "Trim", type: "text", required: false, placeholder: "TX" },
+    { key: "variant", label: "Variant / Engine", type: "text", required: false, placeholder: "xDrive30d" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
     {
       key: "engineType",
@@ -364,6 +368,8 @@ const DEFAULT_DRAFT: ListingDraft = {
   details: {
     make: "",
     model: "",
+    trim: "",
+    variant: "",
     year: "",
     engineType: "",
     transmission: "",
@@ -1071,6 +1077,8 @@ export function ListingWizard() {
       const listingData: ListingFormData = {
         make: draft.details.make || "",
         model: draft.details.model || "",
+        trim: draft.details.trim || undefined,
+        variant: draft.details.variant || undefined,
         year: parseInt(draft.details.year) || new Date().getFullYear(),
         price: parseFloat(draft.priceKes.replace(/,/g, "")) || 0,
         currency: "KES",
@@ -1082,6 +1090,7 @@ export function ListingWizard() {
         transmission: draft.details.transmission || undefined,
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
+        details: draft.details,
       };
 
       setIsSubmitting(true);
