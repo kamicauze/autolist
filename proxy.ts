@@ -1,6 +1,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabasePublicEnv } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
     let response = NextResponse.next({
@@ -9,16 +10,28 @@ export async function proxy(request: NextRequest) {
         },
     });
 
+    const { url, anonKey, configured } = getSupabasePublicEnv();
+
+    if (!configured) {
+        return response;
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        url,
+        anonKey,
         {
             cookies: {
                 getAll() {
                     return request.cookies.getAll();
                 },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                setAll(
+                    cookiesToSet: Array<{
+                        name: string;
+                        value: string;
+                        options?: Parameters<typeof response.cookies.set>[2];
+                    }>
+                ) {
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     );
                     response = NextResponse.next({
@@ -32,7 +45,11 @@ export async function proxy(request: NextRequest) {
         }
     );
 
-    await supabase.auth.getUser();
+    try {
+        await supabase.auth.getUser();
+    } catch (error) {
+        console.error("Supabase auth refresh failed in proxy:", error);
+    }
 
     return response;
 }

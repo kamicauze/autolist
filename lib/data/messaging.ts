@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
   MessagingCenterData,
@@ -108,14 +108,16 @@ function firstRelation<T>(value: T[] | null | undefined) {
 
 export const getMessagingCenterData = cache(async (): Promise<MessagingCenterData | null> => {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
   const viewer = await getViewer(supabase);
 
   if (!viewer) {
     return null;
   }
 
-  let threadQuery = adminSupabase
+  const threadClient = adminSupabase ?? supabase;
+
+  let threadQuery = threadClient
     .from("conversation_threads")
     .select(
       `
@@ -182,7 +184,8 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     };
   }
 
-  const { data: messageRows, error: messageError } = await adminSupabase
+  const messageClient = adminSupabase ?? supabase;
+  const { data: messageRows, error: messageError } = await messageClient
     .from("conversation_messages")
     .select(
       `
@@ -237,11 +240,24 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
 
 export const getSupportQueueData = cache(async (): Promise<SupportQueueData | null> => {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
   const viewer = await getViewer(supabase);
 
   if (!viewer || !["admin", "support"].includes(viewer.role)) {
     return null;
+  }
+
+  if (!adminSupabase) {
+    return {
+      viewer,
+      tickets: [],
+      stats: {
+        open: 0,
+        escalated: 0,
+        waitingOnSeller: 0,
+        resolvedToday: 0,
+      },
+    };
   }
 
   const { data, error } = await adminSupabase
