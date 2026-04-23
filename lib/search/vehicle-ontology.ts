@@ -22,6 +22,17 @@ export const SEARCH_USE_CASES = [
 
 export type SearchUseCase = (typeof SEARCH_USE_CASES)[number];
 
+export const SEARCH_INTENTS = [
+  "reliable",
+  "comfortable",
+  "daily_driver",
+  "road_trip",
+  "value",
+  "spacious",
+] as const;
+
+export type SearchIntent = (typeof SEARCH_INTENTS)[number];
+
 const ORIGIN_ALIASES: ReadonlyArray<readonly [string, SearchOrigin]> = [
   ["european", "European"],
   ["german", "German"],
@@ -55,6 +66,35 @@ const USE_CASE_ALIASES: ReadonlyArray<readonly [string, SearchUseCase]> = [
   ["cheap to run", "fuel_efficient"],
   ["low fuel consumption", "fuel_efficient"],
   ["good mileage", "fuel_efficient"],
+];
+
+const INTENT_ALIASES: ReadonlyArray<readonly [string, SearchIntent]> = [
+  ["reliable", "reliable"],
+  ["dependable", "reliable"],
+  ["durable", "reliable"],
+  ["comfortable", "comfortable"],
+  ["comfort", "comfortable"],
+  ["smooth ride", "comfortable"],
+  ["daily driver", "daily_driver"],
+  ["daily use", "daily_driver"],
+  ["commute", "daily_driver"],
+  ["commuter", "daily_driver"],
+  ["traffic", "daily_driver"],
+  ["everyday", "daily_driver"],
+  ["road trip", "road_trip"],
+  ["long distance", "road_trip"],
+  ["highway", "road_trip"],
+  ["upcountry trip", "road_trip"],
+  ["value", "value"],
+  ["good value", "value"],
+  ["budget friendly", "value"],
+  ["affordable", "value"],
+  ["not too expensive", "value"],
+  ["cheap", "value"],
+  ["spacious", "spacious"],
+  ["roomy", "spacious"],
+  ["7 seater", "spacious"],
+  ["seven seater", "spacious"],
 ];
 
 const ORIGIN_MAKES: Record<SearchOrigin, string[]> = {
@@ -163,6 +203,11 @@ const EXECUTIVE_MAKES = ["Audi", "BMW", "Jaguar", "Land Rover", "Lexus", "Merced
 const WORK_MODELS = ["probox", "hiace", "hilux", "canter", "d-max", "dmax", "ranger", "navara"];
 const OFFROAD_MODELS = ["prado", "land cruiser", "pajero", "forester", "x-trail", "xtrail", "hilux", "range rover"];
 const FUEL_EFFICIENT_MODELS = ["aqua", "demio", "fit", "note", "passo", "polo", "prius", "swift", "vitz", "yaris"];
+const RELIABLE_MAKES = ["Honda", "Hyundai", "Kia", "Lexus", "Mazda", "Subaru", "Suzuki", "Toyota"];
+const RELIABLE_MODELS = ["axio", "corolla", "demio", "fielder", "fit", "forester", "impreza", "outback", "passo", "premio", "swift", "vitz", "yaris"];
+const COMFORT_FEATURES = ["360 camera", "adaptive cruise", "armrest", "climate control", "cruise control", "dual zone", "heated seat", "leather", "memory seat", "premium audio", "sunroof"];
+const ROAD_TRIP_MODELS = ["alphard", "cx-5", "cx5", "cx-8", "fortuner", "harrier", "land cruiser", "outback", "prado", "sorento", "x-trail", "xtrail"];
+const SPACIOUS_MODELS = ["alphard", "cx-8", "highlander", "outback", "prado", "serena", "sienta", "sorento", "voxy"];
 
 function padded(value: string) {
   return ` ${value.trim().toLowerCase()} `;
@@ -204,12 +249,32 @@ function detectLatestAlias<TValue extends string>(
   return latestMatch?.value;
 }
 
+function detectAliasMatches<TValue extends string>(
+  query: string,
+  aliases: ReadonlyArray<readonly [string, TValue]>
+) {
+  const normalized = padded(query);
+  const matches: TValue[] = [];
+
+  for (const [phrase, value] of aliases) {
+    if (normalized.includes(` ${phrase} `) && !matches.includes(value)) {
+      matches.push(value);
+    }
+  }
+
+  return matches;
+}
+
 export function detectVehicleOrigin(query: string): SearchOrigin | undefined {
   return detectLatestAlias(query, ORIGIN_ALIASES);
 }
 
 export function detectVehicleUseCase(query: string): SearchUseCase | undefined {
   return detectLatestAlias(query, USE_CASE_ALIASES);
+}
+
+export function detectVehicleIntents(query: string) {
+  return detectAliasMatches(query, INTENT_ALIASES);
 }
 
 export function getMakesForOrigin(origin?: string | null) {
@@ -278,12 +343,86 @@ export function getUseCaseScore(listing: Listing, useCase?: string | null) {
   return score;
 }
 
+export function getIntentScore(listing: Listing, intent?: string | null) {
+  if (!intent || !(SEARCH_INTENTS as readonly string[]).includes(intent)) {
+    return 0;
+  }
+
+  const scoreTarget = intent as SearchIntent;
+  const text = listingText(listing);
+  const model = listing.model.toLowerCase();
+  const make = listing.make;
+  const bodyType = listing.body_type?.toLowerCase() || "";
+  const price = Number(listing.price) || 0;
+  const seats = listing.seats || 0;
+  const transmission = (listing.transmission || "").toLowerCase();
+  const fuelType = (listing.fuel_type || "").toLowerCase();
+  let score = 0;
+
+  switch (scoreTarget) {
+    case "reliable":
+      if (RELIABLE_MAKES.includes(make)) score += 4;
+      if (textContainsAny(model, RELIABLE_MODELS)) score += 4;
+      if (price > 0 && price <= 4_000_000) score += 1;
+      break;
+    case "comfortable":
+      if (["sedan", "suv", "wagon", "van"].some((type) => bodyType.includes(type))) score += 2;
+      if (EXECUTIVE_MAKES.includes(make)) score += 2;
+      if (textContainsAny(text, COMFORT_FEATURES)) score += 3;
+      if (seats >= 5) score += 1;
+      break;
+    case "daily_driver":
+      if (["automatic", "cvt"].some((type) => transmission.includes(type))) score += 3;
+      if (["hatchback", "sedan", "crossover", "suv"].some((type) => bodyType.includes(type))) score += 2;
+      if (textContainsAny(text, FUEL_EFFICIENT_MODELS) || fuelType.includes("hybrid")) score += 2;
+      if (price > 0 && price <= 3_000_000) score += 1;
+      break;
+    case "road_trip":
+      if (["suv", "wagon", "van", "pickup"].some((type) => bodyType.includes(type))) score += 3;
+      if (bodyType.includes("sedan")) score += 1;
+      if (textContainsAny(text, ROAD_TRIP_MODELS)) score += 3;
+      if (fuelType.includes("diesel")) score += 1;
+      if (seats >= 5) score += 1;
+      break;
+    case "value":
+      if (price > 0 && price <= 2_500_000) score += 3;
+      else if (price > 0 && price <= 4_000_000) score += 1;
+      if (["Toyota", "Honda", "Mazda", "Suzuki", "Hyundai", "Kia", "Nissan"].includes(make)) score += 2;
+      if (["hatchback", "sedan", "crossover"].some((type) => bodyType.includes(type))) score += 1;
+      if (textContainsAny(text, FUEL_EFFICIENT_MODELS)) score += 1;
+      break;
+    case "spacious":
+      if (seats >= 7) score += 4;
+      else if (seats >= 5) score += 2;
+      if (["suv", "wagon", "van"].some((type) => bodyType.includes(type))) score += 2;
+      if (textContainsAny(text, SPACIOUS_MODELS)) score += 3;
+      break;
+  }
+
+  return score;
+}
+
 export function getMinimumUseCaseScore(useCase?: string | null) {
   if (!useCase || !(SEARCH_USE_CASES as readonly string[]).includes(useCase)) {
     return 1;
   }
 
   return MINIMUM_SCORE_BY_USE_CASE[useCase as SearchUseCase] || 1;
+}
+
+export function describeIntent(intent?: string | null) {
+  if (!intent) return null;
+
+  const labels: Record<SearchIntent, string> = {
+    reliable: "reliability",
+    comfortable: "comfort",
+    daily_driver: "daily-driving fit",
+    road_trip: "road-trip readiness",
+    value: "value-conscious picks",
+    spacious: "space and seating",
+  };
+
+  return labels[intent as SearchIntent] || null;
 }
 
 export function describeOrigin(origin?: string | null) {

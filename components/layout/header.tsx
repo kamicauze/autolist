@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, GitCompare, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,16 @@ import { useCompare } from "@/lib/hooks/use-compare";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import type { ListingCategory } from "@/lib/constants/marketplace";
 
 const vehicleTypes = [
-  { name: "Cars", href: "/search" },
-  { name: "Vans", href: "/search?bodyType=Van" },
-  { name: "Motorbikes", href: "/search?type=motorbikes" },
-  { name: "Trucks", href: "/search?bodyType=Truck" },
-  { name: "Farm", href: "/search?type=farm" },
-  { name: "Plant", href: "/search?type=plant" },
-];
+  { name: "Cars", href: "/search?category=car", category: "car" },
+  { name: "Vans", href: "/search?category=van", category: "van" },
+  { name: "Motorbikes", href: "/search?category=motorbike&q=motorbike", category: "motorbike" },
+  { name: "Trucks", href: "/search?category=truck&q=truck", category: "truck" },
+  { name: "Farm", href: "/search?category=farm_agricultural&q=farm+agricultural", category: "farm_agricultural" },
+  { name: "Plant", href: "/search?category=plant_construction&q=plant+construction", category: "plant_construction" },
+] as const satisfies ReadonlyArray<{ name: string; href: string; category: ListingCategory }>;
 
 const buyMenu = [
   { name: "New Cars", href: "/search?condition=new" },
@@ -55,6 +56,7 @@ const desktopLinks = [
 
 export function Header() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
@@ -71,18 +73,42 @@ export function Header() {
   const userLabel = user?.email?.split("@")[0] || "Account";
   const userInitial = userLabel.charAt(0).toUpperCase();
 
+  const activeVehicleCategory = React.useMemo<ListingCategory | null>(() => {
+    if (pathname !== "/search") {
+      return null;
+    }
+
+    const explicitCategory = searchParams.get("category") as ListingCategory | null;
+    if (explicitCategory) {
+      return explicitCategory;
+    }
+
+    const legacyType = searchParams.get("type");
+    if (legacyType === "motorbikes") return "motorbike";
+    if (legacyType === "plant") return "plant_construction";
+    if (legacyType === "farm") return "farm_agricultural";
+
+    const bodyType = searchParams.get("bodyType");
+    if (bodyType === "Van") return "van";
+    if (bodyType === "Truck") return "truck";
+
+    return "car";
+  }, [pathname, searchParams]);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur">
       <div className="hidden lg:block border-b border-gray-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center gap-2 text-[12px]">
-            {vehicleTypes.map((type, index) => (
+            {vehicleTypes.map((type) => (
               <Link
                 key={type.name}
                 href={type.href}
                 className={cn(
                   "border-b-2 px-2 py-2.5 font-medium text-gray-500 transition-colors hover:text-gray-900",
-                  index === 0 ? "border-primary text-primary" : "border-transparent"
+                  activeVehicleCategory === type.category
+                    ? "border-primary text-primary"
+                    : "border-transparent"
                 )}
               >
                 {type.name}

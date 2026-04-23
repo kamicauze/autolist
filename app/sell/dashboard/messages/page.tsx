@@ -1,7 +1,5 @@
-import { ChatLayout } from "@/components/dashboard/messages/chat-layout";
-import { getMessagingCenterData } from "@/lib/data/messaging";
+import { redirect } from "next/navigation";
 
-export default async function SalesRepMessagesRoute() {
-  const data = await getMessagingCenterData();
-  return <ChatLayout initialData={data} />;
+export default function SalesRepMessagesRoute() {
+  redirect("/dashboard/messages");
 }

@@ -12,12 +12,9 @@ import {
   LayoutDashboard,
   MessageSquareText,
   Newspaper,
-  ReceiptText,
   ScrollText,
-  Settings,
   ShieldCheck,
   SquarePen,
-  Tag,
   UserCog,
   Users,
 } from "lucide-react";
@@ -38,10 +35,7 @@ type AdminNavSection = {
 export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     title: "Overview",
-    items: [
-      { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-      { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    ],
+    items: [{ name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard }],
   },
   {
     title: "Operations",
@@ -49,24 +43,13 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { name: "Users", href: "/admin/users", icon: Users },
       { name: "All Listings", href: "/admin/listings", icon: SquarePen },
       { name: "Review", href: "/admin/review", icon: FileWarning },
-      { name: "Reports", href: "/admin/reports", icon: ScrollText },
       { name: "Verification (KYC)", href: "/admin/verification", icon: ShieldCheck },
-      { name: "Insurance Requests", href: "/admin/insurance-requests", icon: ReceiptText },
       { name: "Car Inquiries", href: "/admin/car-inquiries", icon: MessageSquareText },
-      { name: "Payments", href: "/admin/payments", icon: CircleDollarSign },
     ],
   },
   {
-    title: "Content & System",
-    items: [
-      { name: "Ads & Banners", href: "/admin/ads-banners", icon: SquarePen },
-      { name: "Blogs & Content", href: "/admin/blogs-content", icon: Newspaper },
-      { name: "Special Offers", href: "/admin/special-offers", icon: Tag },
-      { name: "CMS", href: "/admin/cms", icon: FileText },
-      { name: "Settings", href: "/admin/settings", icon: Settings },
-      { name: "Roles & Permissions", href: "/admin/roles-permissions", icon: UserCog },
-      { name: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },
-    ],
+    title: "System",
+    items: [{ name: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText }],
   },
 ];
 
@@ -295,9 +278,11 @@ export function AdminNavLink({
 export function AdminTopNavigation() {
   const links = [
     { label: "Dashboard", href: "/admin/dashboard" },
+    { label: "Users", href: "/admin/users" },
+    { label: "Listings", href: "/admin/listings" },
     { label: "Review Queue", href: "/admin/review" },
     { label: "Verification", href: "/admin/verification" },
-    { label: "Reports", href: "/admin/reports" },
+    { label: "Audit Logs", href: "/admin/audit-logs" },
   ];
 
   return (

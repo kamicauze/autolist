@@ -4,15 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BadgeCheck,
-  Heart,
   KeyRound,
   LayoutDashboard,
   ListOrdered,
   LogOut,
   MessageSquare,
   ShieldCheck,
-  Star,
   User,
   X,
 } from "lucide-react";
@@ -24,11 +21,8 @@ import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 const sellerNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Listings", href: "/dashboard/listings", icon: ListOrdered },
-  { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Verification", href: "/dashboard/verification", icon: ShieldCheck },
-  { name: "Reviews", href: "/dashboard/reviews", icon: Star },
-  { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
   { name: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
@@ -164,14 +158,6 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 px-5 py-5">
-          <div className="mb-4 rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Current plan</p>
-            <p className="mt-2 text-[16px] font-semibold text-white">Professional</p>
-            <p className="mt-1 text-[12px] leading-5 text-white/55">
-              12 active packages left this month.
-            </p>
-          </div>
-
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white"

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildListingTitle, emitNotificationEvent, getStaffRecipients, getTicketHref } from "@/lib/server/notifications";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -28,17 +28,17 @@ export async function POST(request: NextRequest) {
   }
   const ticketSubject = payload.subject.trim();
 
-  const { data: thread, error: threadError } = await adminSupabase
+  const { data: thread, error: threadError } = await supabase
     .from("conversation_threads")
     .select("id, listing_id, listing:listings(id, make, model, year)")
     .eq("id", payload.threadId)
-    .single();
+    .maybeSingle();
 
   if (threadError || !thread) {
     return NextResponse.json({ error: "Conversation thread not found." }, { status: 404 });
   }
 
-  const { data: existingOpen } = await adminSupabase
+  const { data: existingOpen } = await supabase
     .from("support_tickets")
     .select("id, status")
     .eq("thread_id", payload.threadId)
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "An open ticket already exists for this thread.", ticketId: existingOpen.id }, { status: 409 });
   }
 
-  const { data: ticket, error: ticketError } = await adminSupabase
+  const { data: ticket, error: ticketError } = await supabase
     .from("support_tickets")
     .insert({
       thread_id: payload.threadId,
@@ -70,13 +70,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: ticketError?.message || "Unable to create ticket." }, { status: 400 });
   }
 
-  await adminSupabase.from("conversation_threads").update({ status: "escalated" }).eq("id", payload.threadId);
-  await adminSupabase.from("ticket_events").insert({
-    ticket_id: ticket.id,
-    actor_id: user.id,
-    event_type: "created",
-    note: payload.internalNote?.trim() || "Ticket created from conversation thread.",
-  });
+  const { error: threadUpdateError } = await supabase
+    .from("conversation_threads")
+    .update({ status: "escalated" })
+    .eq("id", payload.threadId);
+
+  if (threadUpdateError) {
+    console.error("Failed to mark conversation thread as escalated", threadUpdateError);
+  }
+
+  if (adminSupabase) {
+    const { error: eventError } = await adminSupabase.from("ticket_events").insert({
+      ticket_id: ticket.id,
+      actor_id: user.id,
+      event_type: "created",
+      note: payload.internalNote?.trim() || "Ticket created from conversation thread.",
+    });
+
+    if (eventError) {
+      console.error("Failed to create ticket event", eventError);
+    }
+  }
 
   const listing = Array.isArray(thread.listing) ? thread.listing[0] : null;
   const listingTitle = buildListingTitle(listing || {});

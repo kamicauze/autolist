@@ -11,6 +11,7 @@ import { Listing } from "@/lib/types/listing";
 import { COMPARE_MAX_ITEMS } from "@/lib/utils/compare";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
+  getListingDisplayLocation,
   getListingDisplayTitle,
   getListingTrim,
   getListingVariant,
@@ -324,7 +325,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
       },
       {
         label: "Car location",
-        getValue: (listing) => valueOrDash(listing.dealer?.city || listing.dealer?.address || "Kenya"),
+        getValue: (listing) => valueOrDash(getListingDisplayLocation(listing)),
       },
     ],
     []

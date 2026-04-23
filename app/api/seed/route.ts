@@ -1,5 +1,6 @@
 
 import { insertListingInternal } from "@/lib/actions/listings";
+import { mergeSeedListingLocationMetadata } from "@/lib/constants/seed-locations";
 import { type ListingFormData } from "@/lib/validations/listing";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -42,7 +43,8 @@ export async function GET() {
     const password = "password123";
 
     // 2. Authenticate
-    let { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+    let user = signInData.user;
 
     if (error || !user) {
         // Try signup
@@ -58,7 +60,7 @@ export async function GET() {
 
     const results = [];
 
-    for (const item of RAW_DATA) {
+    for (const [index, item] of RAW_DATA.entries()) {
         const payload: ListingFormData = {
             make: item.make,
             model: item.model,
@@ -68,7 +70,7 @@ export async function GET() {
             mileage: parseMileage(item.features),
             description: item.description,
             features: item.features,
-            condition: item.condition as any,
+            condition: item.condition as ListingFormData["condition"],
             body_type: "Sedan",
             transmission: "Automatic",
             fuel_type: "Petrol",
@@ -77,6 +79,28 @@ export async function GET() {
 
         // Reuse the SAME supabase client which has the session
         const res = await insertListingInternal(supabase, user.id, payload);
+        if (res.success && res.data) {
+            const metadata = mergeSeedListingLocationMetadata(
+                res.data.metadata && typeof res.data.metadata === "object"
+                    ? (res.data.metadata as Record<string, unknown>)
+                    : null,
+                `${item.make}:${item.model}:${item.year}:${index}`
+            );
+
+            const { error: metadataError } = await supabase
+                .from("listings")
+                .update({
+                    metadata,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", res.data.id);
+
+            if (metadataError) {
+                results.push({ make: item.make, success: false, error: metadataError.message });
+                continue;
+            }
+        }
+
         results.push({ make: item.make, success: res.success, error: res.error });
     }
 

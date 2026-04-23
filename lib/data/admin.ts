@@ -131,6 +131,43 @@ export type AdminUsersOverviewData = {
   users: AdminDashboardUser[];
 };
 
+type AuditLogRow = {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+  actor: Array<{ id: string; full_name: string | null; email: string | null }> | null;
+};
+
+export type AdminAuditLogEntry = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  details: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+  actor: {
+    id: string | null;
+    name: string;
+    email: string | null;
+  };
+};
+
+export type AdminAuditLogsData = {
+  stats: {
+    total: number;
+    last24Hours: number;
+    dealerEvents: number;
+    listingEvents: number;
+  };
+  logs: AdminAuditLogEntry[];
+};
+
 export type AdminNavBadgeCounts = Partial<Record<string, number>>;
 
 function firstRelation<T>(value: T[] | null | undefined) {
@@ -212,6 +249,25 @@ function normalizeTicket(ticket: TicketRow): AdminDashboardTicket {
     status: ticket.status,
     updatedAt: ticket.updated_at,
     assignedTo: assignee?.full_name || assignee?.email || null,
+  };
+}
+
+function normalizeAuditLog(log: AuditLogRow): AdminAuditLogEntry {
+  const actor = firstRelation(log.actor);
+
+  return {
+    id: log.id,
+    action: log.action,
+    entityType: log.entity_type,
+    entityId: log.entity_id,
+    details: log.details,
+    ipAddress: log.ip_address,
+    createdAt: log.created_at,
+    actor: {
+      id: actor?.id || log.user_id,
+      name: actor?.full_name || actor?.email || "System",
+      email: actor?.email || null,
+    },
   };
 }
 
@@ -480,5 +536,59 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
       pendingDealers,
     },
     users: profiles.map((profile) => normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)),
+  };
+});
+
+export const getAdminAuditLogsData = cache(async (limit = 80): Promise<AdminAuditLogsData> => {
+  const adminSupabase = createAdminClient();
+  const last24HoursCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [total, last24Hours, dealerEvents, listingEvents, logsResult] = await Promise.all([
+    readCount(adminSupabase.from("audit_logs").select("*", { count: "exact", head: true })),
+    readCount(
+      adminSupabase
+        .from("audit_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", last24HoursCutoff)
+    ),
+    readCount(
+      adminSupabase
+        .from("audit_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("entity_type", "dealer")
+    ),
+    readCount(
+      adminSupabase
+        .from("audit_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("entity_type", "listing")
+    ),
+    adminSupabase
+      .from("audit_logs")
+      .select(
+        `
+          id,
+          user_id,
+          action,
+          entity_type,
+          entity_id,
+          details,
+          ip_address,
+          created_at,
+          actor:profiles!user_id(id, full_name, email)
+        `
+      )
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  ]);
+
+  return {
+    stats: {
+      total,
+      last24Hours,
+      dealerEvents,
+      listingEvents,
+    },
+    logs: ((logsResult.data || []) as unknown as AuditLogRow[]).map(normalizeAuditLog),
   };
 });

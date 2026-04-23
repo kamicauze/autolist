@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { CarMake } from "@/lib/types/car-data";
 import {
+  getNonCarVehicleReferenceOptions,
   getVehicleReferenceOptionsFallback,
   type VehicleReferenceOptions,
 } from "@/lib/data/vehicle-reference-catalog";
@@ -83,9 +85,14 @@ export async function getModelsForMakeName(
  * Returns the full vehicle reference chain for a given make/model selection.
  */
 export async function getVehicleReferenceOptions(
+  category?: ListingCategory | "" | null,
   makeName?: string | null,
   modelName?: string | null
 ): Promise<VehicleReferenceOptions> {
+  if (category && category !== "car") {
+    return getNonCarVehicleReferenceOptions(category);
+  }
+
   const supabase = await createClient();
   const { data: makes, error: makesError } = await supabase
     .from("car_makes")

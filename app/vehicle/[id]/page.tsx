@@ -6,7 +6,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getListingById, getSimilarListings } from "@/lib/data/listings";
 import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
-import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
+import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
 interface VehiclePageProps {
   params: Promise<{ id: string }>;
@@ -24,7 +24,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
   const pricePositioning = await getListingPricePositioning(listing);
 
   const title = getListingDisplayTitle(listing);
-  const location = listing.dealer?.city || "Kenya";
+  const location = getListingDisplayLocation(listing);
 
   return (
     <div className="min-h-screen flex flex-col">

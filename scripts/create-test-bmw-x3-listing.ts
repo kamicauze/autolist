@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { mergeSeedListingLocationMetadata } from "@/lib/constants/seed-locations";
+import { rankListingImageCandidates } from "@/lib/server/listing-image-ranking";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
 
 type DealerRow = {
@@ -80,6 +82,7 @@ async function main() {
       metadata: {
         trim: "M-Sport",
         variant: "M40d",
+        ...mergeSeedListingLocationMetadata(null, "BMW:X3:2020:test"),
       },
     })
     .select("id, status")
@@ -95,6 +98,14 @@ async function main() {
     path.join(process.cwd(), "public/sample-car-3.jpg"),
   ];
 
+  const uploadedImages: Array<{
+    key: string;
+    hash: string;
+    fileName: string;
+    originalIndex: number;
+    bytes: Buffer;
+  }> = [];
+
   for (const [index, imagePath] of imagePaths.entries()) {
     const bytes = await readFile(imagePath);
     const fileName = path.basename(imagePath);
@@ -105,12 +116,36 @@ async function main() {
       contentType: "image/jpeg",
     });
 
+    uploadedImages.push({
+      key,
+      hash,
+      fileName,
+      originalIndex: index,
+      bytes,
+    });
+  }
+
+  const ranked = await rankListingImageCandidates(
+    uploadedImages.map((image) => ({
+      fileName: image.fileName,
+      originalIndex: image.originalIndex,
+      bytes: image.bytes,
+    }))
+  );
+
+  const orderedImages = ranked
+    .map((rankedImage) =>
+      uploadedImages.find((image) => image.originalIndex === rankedImage.originalIndex)
+    )
+    .filter((image): image is (typeof uploadedImages)[number] => Boolean(image));
+
+  for (const [index, image] of orderedImages.entries()) {
     const { error: imageError } = await supabase.from("listing_images").insert({
       listing_id: listing.id,
-      r2_key: key,
+      r2_key: image.key,
       alt_text: `BMW X3 - Photo ${index + 1}`,
       image_order: index,
-      image_hash: hash,
+      image_hash: image.hash,
     });
 
     if (imageError) {

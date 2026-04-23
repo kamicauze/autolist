@@ -25,17 +25,20 @@ export function StepVehicleDetails() {
   );
 
   const isCarCategory = draft.category === "car";
+  const hasStructuredMakeSuggestions =
+    !isCarCategory && referenceOptions.makes.length > 0;
 
   React.useEffect(() => {
     let cancelled = false;
 
     async function loadReferenceOptions() {
-      if (!isCarCategory) {
+      if (!draft.category) {
         setReferenceOptions(EMPTY_REFERENCE_OPTIONS);
         return;
       }
 
       const nextOptions = await fetchVehicleReferenceOptionsAction(
+        draft.category,
         draft.details.make,
         draft.details.model
       );
@@ -50,12 +53,36 @@ export function StepVehicleDetails() {
     return () => {
       cancelled = true;
     };
-  }, [draft.details.make, draft.details.model, isCarCategory]);
+  }, [draft.category, draft.details.make, draft.details.model, isCarCategory]);
 
   const renderReferenceField = (field: (typeof selectedCategoryFields)[number], hasError: boolean) => {
-    if (!isCarCategory) return null;
-
     if (field.key === "make") {
+      if (!isCarCategory && hasStructuredMakeSuggestions) {
+        return (
+          <>
+            <input
+              list={`detail-make-options-${draft.category}`}
+              value={draft.details.make}
+              onChange={(event) => updateDetailField("make", event.target.value)}
+              placeholder={field.placeholder}
+              className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+            />
+            <datalist id={`detail-make-options-${draft.category}`}>
+              {referenceOptions.makes.map((make) => (
+                <option key={make} value={make} />
+              ))}
+            </datalist>
+            {referenceOptions.makeHelperText ? (
+              <p className="mt-2 text-[12px] text-[#767676]">
+                {referenceOptions.makeHelperText}
+              </p>
+            ) : null}
+          </>
+        );
+      }
+
+      if (!isCarCategory) return null;
+
       return (
         <select
           value={draft.details.make}
@@ -73,6 +100,26 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "model") {
+      if (!isCarCategory && referenceOptions.modelInputMode === "manual") {
+        return (
+          <>
+            <input
+              value={draft.details.model}
+              onChange={(event) => updateDetailField("model", event.target.value)}
+              placeholder={field.placeholder}
+              className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+            />
+            {referenceOptions.modelHelperText ? (
+              <p className="mt-2 text-[12px] text-[#767676]">
+                {referenceOptions.modelHelperText}
+              </p>
+            ) : null}
+          </>
+        );
+      }
+
+      if (!isCarCategory) return null;
+
       return (
         <select
           value={draft.details.model}
@@ -95,6 +142,8 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "trim") {
+      if (!isCarCategory) return null;
+
       return (
         <>
           <select
@@ -134,6 +183,8 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "variant") {
+      if (!isCarCategory) return null;
+
       return (
         <>
           <select
@@ -195,6 +246,11 @@ export function StepVehicleDetails() {
           Step 3 now uses a structured vehicle catalog: make leads to model, then trim and
           engine-specific variants. Every trim is loaded against the selected model, with inherited
           shared trims clearly labeled.
+        </div>
+      ) : hasStructuredMakeSuggestions ? (
+        <div className="rounded-[18px] border border-[#dcefe0] bg-[#f4fbf6] px-4 py-3 text-[13px] leading-6 text-[#25653b]">
+          Suggested make options are now loaded for this category. Models still stay manual where
+          the catalog does not define a reliable model list.
         </div>
       ) : null}
 

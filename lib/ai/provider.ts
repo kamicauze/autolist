@@ -4,10 +4,15 @@ const AI_PROVIDER = (process.env.AI_PROVIDER || "").trim().toLowerCase();
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_REQUEST_TIMEOUT_MS = Number(process.env.OPENAI_REQUEST_TIMEOUT_MS || "8000");
 
 const LOCAL_LLM_ENABLED = process.env.LOCAL_LLM_ENABLED === "true";
 const LOCAL_LLM_BASE_URL = process.env.LOCAL_LLM_BASE_URL || "http://127.0.0.1:11434";
 const LOCAL_LLM_MODEL = process.env.LOCAL_LLM_MODEL || "qwen2.5:3b-instruct";
+
+function resolveTimeoutMs(value: number | undefined, fallback: number) {
+  return Number.isFinite(value) && value && value > 0 ? value : fallback;
+}
 
 function resolveProvider(): AiProvider | null {
   if (AI_PROVIDER === "openai" && OPENAI_API_KEY) {
@@ -61,58 +66,77 @@ export function getAiProviderConfig() {
 async function generateOpenAiJson<T>({
   prompt,
   maxTokens,
+  model,
+  timeoutMs,
 }: {
   prompt: string;
   maxTokens: number;
+  model?: string;
+  timeoutMs?: number;
 }) {
   const config = getAiProviderConfig();
   if (!config.enabled || config.provider !== "openai") {
     return null;
   }
 
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0.1,
-      max_tokens: maxTokens,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Return valid JSON only. Do not wrap the JSON in markdown.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    }),
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const requestTimeout = resolveTimeoutMs(timeoutMs, resolveTimeoutMs(OPENAI_REQUEST_TIMEOUT_MS, 8000));
+  const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
 
-  if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}.`);
+  try {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || config.model,
+        temperature: 0.1,
+        max_tokens: maxTokens,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "Return valid JSON only. Do not wrap the JSON in markdown.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI request failed with status ${response.status}.`);
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string | null } }>;
+    };
+    const content = payload.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("OpenAI returned an empty response.");
+    }
+
+    return {
+      provider: "openai" as const,
+      model: model || config.model,
+      data: JSON.parse(content) as T,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`OpenAI request timed out after ${requestTimeout}ms.`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error("OpenAI returned an empty response.");
-  }
-
-  return {
-    provider: "openai" as const,
-    model: config.model,
-    data: JSON.parse(content) as T,
-  };
 }
 
 async function generateLocalJsonInternal<T>({
@@ -163,9 +187,13 @@ async function generateLocalJsonInternal<T>({
 export async function generateAiJson<T>({
   prompt,
   maxTokens = 220,
+  model,
+  timeoutMs,
 }: {
   prompt: string;
   maxTokens?: number;
+  model?: string;
+  timeoutMs?: number;
 }) {
   const config = getAiProviderConfig();
 
@@ -174,7 +202,7 @@ export async function generateAiJson<T>({
   }
 
   if (config.provider === "openai") {
-    return generateOpenAiJson<T>({ prompt, maxTokens });
+    return generateOpenAiJson<T>({ prompt, maxTokens, model, timeoutMs });
   }
 
   return generateLocalJsonInternal<T>({ prompt, maxTokens });

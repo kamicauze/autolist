@@ -290,10 +290,13 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
   const detailMetadata = getListingMetadataDetails(listing);
   const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
   const [coverImage, ...galleryImages] = sortedImages;
-  const cityTown = listing.dealer?.city?.trim() || "";
+  const cityTown =
+    getListingMetadataString(listing, "cityTown") ||
+    listing.dealer?.city?.trim() ||
+    "";
   const locationArea =
+    getListingMetadataString(listing, "locationArea") ||
     listing.dealer?.address?.trim() ||
-    (typeof listing.metadata?.locationArea === "string" ? listing.metadata.locationArea.trim() : "") ||
     "";
   const contactName =
     listing.dealer?.name?.trim() ||

@@ -14,6 +14,7 @@ import { Search, Sparkles, Loader2 } from "lucide-react";
 import type { SmartSearchResult } from "@/lib/types/smart-search";
 import type { Listing } from "@/lib/types/listing";
 import { getImageUrl } from "@/lib/utils/listings";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 
 interface QuickSearchDialogProps {
   open: boolean;
@@ -233,7 +234,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                         </p>
                         <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                           <span>{listing.body_type || "Vehicle"}</span>
-                          {listing.dealer?.city && <span>{listing.dealer.city}</span>}
+                          <span>{getListingDisplayLocation(listing)}</span>
                           {listing.transmission && <span>{listing.transmission}</span>}
                         </div>
                         <p className="text-[11px] text-muted-foreground">{sellerName}</p>

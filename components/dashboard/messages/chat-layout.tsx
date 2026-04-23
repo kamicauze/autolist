@@ -8,10 +8,8 @@ import {
   ClipboardList,
   Loader2,
   MessageSquareText,
-  Paperclip,
   Search,
   SendHorizontal,
-  SmilePlus,
   Sparkles,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -63,6 +61,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
   const [agentError, setAgentError] = React.useState<string | null>(null);
 
   const viewer = initialData?.viewer || null;
+  const loadError = initialData?.error || null;
   const canUseSellerAgent = viewer?.role === "seller" || viewer?.role === "dealer";
   const roleDescription =
     viewer?.role === "buyer"
@@ -250,9 +249,16 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
   if (!viewer) {
     return (
       <div className="space-y-6 lg:space-y-7">
-        <SellerPageHeader title="Messages" description="Sign in to access buyer and seller conversations." />
+        <SellerPageHeader
+          title="Messages"
+          description={
+            loadError
+              ? "Messaging is unavailable until the account profile and conversation access issue is resolved."
+              : "Sign in to access buyer and seller conversations."
+          }
+        />
         <SellerSurface className="p-6 text-[14px] text-[#5f6a7e]">
-          Messaging is available after authentication.
+          {loadError || "Messaging is available after authentication."}
         </SellerSurface>
       </div>
     );
@@ -264,6 +270,12 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
         title="Messages"
         description={roleDescription}
       />
+
+      {loadError ? (
+        <SellerSurface className="border border-[#fecdca] bg-[#fef3f2] p-4 text-[14px] text-[#b42318]">
+          {loadError}
+        </SellerSurface>
+      ) : null}
 
       <SellerSurface className="overflow-hidden">
         <div className={`grid min-h-[740px] ${canUseSellerAgent ? "xl:grid-cols-[340px_minmax(0,1fr)_380px]" : "xl:grid-cols-[340px_minmax(0,1fr)]"}`}>
@@ -406,12 +418,6 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     </div>
                   ) : null}
                   <div className="flex items-center gap-3 rounded-[20px] border border-[#ededed] bg-white px-4 py-3">
-                    <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#faf9f7] text-[#7f7f7f]">
-                      <Paperclip className="h-4 w-4" />
-                    </button>
-                    <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#faf9f7] text-[#7f7f7f]">
-                      <SmilePlus className="h-4 w-4" />
-                    </button>
                     <input
                       value={message}
                       onChange={(event) => setMessage(event.target.value)}

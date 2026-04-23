@@ -8,6 +8,7 @@ import { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
+  getListingDisplayLocation,
   getListingDisplayTitle,
   getListingSubtitle,
 } from "@/lib/utils/vehicle-display";
@@ -130,7 +131,7 @@ export function RecommendedCars({ listings, sidebarMode = false }: RecommendedCa
                           {listing.currency} {formattedPrice}
                       </p>
                       <p className="mt-0.5 text-[11px] text-gray-500">
-                        {listing.dealer?.city || "Kenya"}
+                        {getListingDisplayLocation(listing)}
                       </p>
                   </Link>
               </div>

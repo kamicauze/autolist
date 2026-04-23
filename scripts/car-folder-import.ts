@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import mime from "mime";
+import { mergeSeedListingLocationMetadata } from "../lib/constants/seed-locations";
 import { ALL_MAKES, CAR_MAKES_DATA, getModelsForMake, getVariantsForModel } from "../lib/constants/car-data";
 import { rankListingImageCandidates } from "../lib/server/listing-image-ranking";
 import { uploadListingImageAssets } from "../lib/server/listing-image-pipeline";
@@ -1177,6 +1178,11 @@ async function createListingIfMissing(
     return { id: existing.id, created: false };
   }
 
+  const locationSeed =
+    typeof importMetadata.sourceFolderName === "string" && importMetadata.sourceFolderName.trim()
+      ? importMetadata.sourceFolderName
+      : item.folderName;
+
   const insertPayload = {
     seller_id: sellerId,
     dealer_id: dealerId,
@@ -1195,7 +1201,10 @@ async function createListingIfMissing(
     description: item.listing.description,
     features: item.listing.features,
     metadata: {
-      ...(item.listing.metadata ?? {}),
+      ...mergeSeedListingLocationMetadata(
+        item.listing.metadata ?? {},
+        locationSeed
+      ),
       ...(item.listing.trim ? { trim: item.listing.trim } : {}),
       ...(item.listing.variant ? { variant: item.listing.variant } : {}),
       details: buildListingDetailMetadata({

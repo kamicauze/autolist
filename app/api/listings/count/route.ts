@@ -1,0 +1,40 @@
+import { NextRequest, NextResponse } from "next/server";
+import { countMatchingListings } from "@/lib/data/listings";
+import type { ListingFilters } from "@/lib/types/listing";
+
+function parseArrayParam(value: string | null): string[] | undefined {
+  if (!value) return undefined;
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+export async function GET(request: NextRequest) {
+  const params = request.nextUrl.searchParams;
+
+  const filters: ListingFilters = {
+    q: params.get("q") || undefined,
+    make: params.get("make") || undefined,
+    model: params.get("model") || undefined,
+    origin: params.get("origin") || undefined,
+    useCase: params.get("useCase") || undefined,
+    intent: parseArrayParam(params.get("intent")),
+    minPrice: params.get("minPrice") ? Number(params.get("minPrice")) : undefined,
+    maxPrice: params.get("maxPrice") ? Number(params.get("maxPrice")) : undefined,
+    minYear: params.get("minYear") ? Number(params.get("minYear")) : undefined,
+    maxYear: params.get("maxYear") ? Number(params.get("maxYear")) : undefined,
+    bodyType: parseArrayParam(params.get("bodyType")),
+    transmission: parseArrayParam(params.get("transmission")),
+    fuelType: parseArrayParam(params.get("fuelType")),
+    condition: (params.get("condition") as ListingFilters["condition"]) || undefined,
+    location: params.get("location") || undefined,
+    color: params.get("color") || undefined,
+    seats: params.get("seats") ? Number(params.get("seats")) : undefined,
+    doors: params.get("doors") ? Number(params.get("doors")) : undefined,
+    driveType: params.get("driveType") || undefined,
+    sellerType: (params.get("sellerType") as ListingFilters["sellerType"]) || undefined,
+    minMileage: params.get("minMileage") ? Number(params.get("minMileage")) : undefined,
+    maxMileage: params.get("maxMileage") ? Number(params.get("maxMileage")) : undefined,
+  };
+
+  const count = await countMatchingListings(filters);
+  return NextResponse.json({ count });
+}

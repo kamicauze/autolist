@@ -1,5 +1,6 @@
 "use server";
 
+import type { ListingCategory } from "@/lib/constants/marketplace";
 import {
   getModelsForMakeName,
   getVehicleReferenceOptions,
@@ -17,8 +18,9 @@ export async function fetchModelsForMake(
 }
 
 export async function fetchVehicleReferenceOptionsAction(
+  category?: ListingCategory | "",
   makeName?: string,
   modelName?: string
 ) {
-  return getVehicleReferenceOptions(makeName, modelName);
+  return getVehicleReferenceOptions(category, makeName, modelName);
 }

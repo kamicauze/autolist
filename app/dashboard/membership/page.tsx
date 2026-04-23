@@ -1,5 +1,5 @@
-import { MembershipPage } from "@/components/dashboard/membership/membership-page";
+import { redirect } from "next/navigation";
 
 export default function MembershipRoute() {
-  return <MembershipPage />;
+  redirect("/dashboard");
 }

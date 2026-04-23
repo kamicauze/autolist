@@ -32,7 +32,13 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string) {
 }
 
 function parseArgs(argv: string[]) {
-  const options: { limit?: number; offset?: number; listingId?: string; dryRun?: boolean } = {};
+  const options: {
+    limit?: number;
+    offset?: number;
+    listingId?: string;
+    dryRun?: boolean;
+    includeAllListings?: boolean;
+  } = {};
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -53,6 +59,10 @@ function parseArgs(argv: string[]) {
     }
     if (token === "--dry-run") {
       options.dryRun = true;
+      continue;
+    }
+    if (token === "--include-all-listings") {
+      options.includeAllListings = true;
     }
   }
 
@@ -225,7 +235,7 @@ async function backfill() {
       scored.push({ id: original.id, score: candidate.score, imageOrder: original.imageOrder });
     });
 
-    if (!importedListingMap.has(listingId)) {
+    if (!options.includeAllListings && !importedListingMap.has(listingId)) {
       continue;
     }
 
@@ -262,6 +272,7 @@ async function backfill() {
         skippedExisting,
         offset: options.offset || 0,
         dryRun: Boolean(options.dryRun),
+        includeAllListings: Boolean(options.includeAllListings),
       },
       null,
       2
@@ -278,6 +289,7 @@ async function backfill() {
         skippedExisting,
         offset: options.offset || 0,
         dryRun: Boolean(options.dryRun),
+        includeAllListings: Boolean(options.includeAllListings),
       },
       null,
       2

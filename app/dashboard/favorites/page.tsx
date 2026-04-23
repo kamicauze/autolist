@@ -1,5 +1,5 @@
-import { FavoritesGrid } from "@/components/dashboard/favorites/favorites-grid";
+import { redirect } from "next/navigation";
 
 export default function FavoritesPage() {
-  return <FavoritesGrid />;
+  redirect("/dashboard");
 }

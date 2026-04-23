@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { resolvePostAuthPath } from "@/lib/supabase/auth-routing";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 
 interface DashboardLayoutPageProps {
@@ -15,6 +16,11 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
 
   if (!user) {
     redirect("/login?next=/dashboard");
+  }
+
+  const destination = await resolvePostAuthPath(supabase, user.id);
+  if (destination !== "/dashboard") {
+    redirect(destination);
   }
 
   return (

@@ -3,6 +3,7 @@ import type {
   PricePositioningInput,
   PricePositioningResult,
 } from "@/lib/types/market-insights";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 
 type CandidateListing = {
   id: string;
@@ -14,6 +15,7 @@ type CandidateListing = {
   body_type: string | null;
   transmission: string | null;
   fuel_type: string | null;
+  metadata: Record<string, unknown> | null;
   dealer?: {
     city: string | null;
   } | null;
@@ -204,7 +206,7 @@ export function computePricePositioning(
     price: candidate.price,
     mileage: candidate.mileage,
     year: candidate.year,
-    location: candidate.dealer?.city || null,
+    location: getListingDisplayLocation(candidate, { fallback: "" }) || null,
   }));
 
   return {

@@ -70,6 +70,7 @@ export interface ListingFilters {
   model?: string;
   origin?: string;
   useCase?: string;
+  intent?: string | string[];
   minPrice?: number;
   maxPrice?: number;
   minYear?: number;

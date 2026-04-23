@@ -1,5 +1,5 @@
-import { SalesRepFavoritesPage } from "@/components/seller/sales-rep-dashboard";
+import { redirect } from "next/navigation";
 
 export default function SalesRepFavoritesRoute() {
-  return <SalesRepFavoritesPage />;
+  redirect("/dashboard");
 }

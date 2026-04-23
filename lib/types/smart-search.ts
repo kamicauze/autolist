@@ -4,6 +4,7 @@ export type SmartSearchParams = {
   model?: string;
   origin?: string;
   useCase?: string;
+  intent?: string;
   minPrice?: string;
   maxPrice?: string;
   minYear?: string;

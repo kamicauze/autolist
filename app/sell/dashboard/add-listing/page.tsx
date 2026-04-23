@@ -1,5 +1,5 @@
-import { SalesRepAddListingPage } from "@/components/seller/sales-rep-dashboard";
+import { redirect } from "next/navigation";
 
 export default function SalesRepAddListingRoute() {
-  return <SalesRepAddListingPage />;
+  redirect("/dashboard/listings/new");
 }

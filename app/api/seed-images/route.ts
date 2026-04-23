@@ -1,15 +1,15 @@
 
 import { r2 } from "@/lib/r2";
+import { rankListingImageCandidates } from "@/lib/server/listing-image-ranking";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import fs from "fs";
 import nodeCrypto from "crypto";
 import path from "path";
-import mime from "mime"; // You might need to install 'mime' or just guess from extension
 
 // Hardcoded path to images based on user info
-const IMAGE_DIR = "/home/kamicauze/Autolist/WhatsApp Chat with Autolist Dev Team";
+const IMAGE_DIR = process.env.SEED_IMAGE_DIR || path.join(process.cwd(), "WhatsApp Chat with Autolist Dev Team");
 
 // Simplified JSON copy to avoid massive file reads, or read full file
 import listingsData from "@/listings.json";
@@ -52,9 +52,15 @@ export async function GET() {
         }
 
         const images = item.images || [];
-        let order = 0;
+        const uploadedImages: Array<{
+            key: string;
+            hash: string;
+            fileName: string;
+            originalIndex: number;
+            bytes: Buffer;
+        }> = [];
 
-        for (const filename of images) {
+        for (const [originalIndex, filename] of images.entries()) {
             const filePath = path.join(IMAGE_DIR, filename);
             if (!fs.existsSync(filePath)) {
                 // console.warn(`File not found: ${filePath}`);
@@ -82,24 +88,74 @@ export async function GET() {
                     Metadata: { hash }
                 }));
 
-                // Insert into DB (using same client)
-                const { error: dbError } = await supabase
-                    .from('listing_images')
-                    .insert({
-                        listing_id: dbListing.id,
-                        r2_key: key,
-                        image_order: order++,
-                        alt_text: `${item.make} ${item.model} - ${order}`,
-                        image_hash: hash
-                    });
+                uploadedImages.push({
+                    key,
+                    hash,
+                    fileName: filename,
+                    originalIndex,
+                    bytes: fileBuffer,
+                });
 
-                if (dbError) throw dbError;
-
-            } catch (err: any) {
-                results.push({ make: item.make, file: filename, error: err.message });
+            } catch (err: unknown) {
+                results.push({
+                    make: item.make,
+                    file: filename,
+                    error: err instanceof Error ? err.message : String(err),
+                });
             }
         }
-        results.push({ make: item.make, model: item.model, images_count: order });
+
+        if (uploadedImages.length > 0) {
+            const ranked = await rankListingImageCandidates(
+                uploadedImages.map((image) => ({
+                    fileName: image.fileName,
+                    originalIndex: image.originalIndex,
+                    bytes: image.bytes,
+                }))
+            );
+
+            const orderedImages = ranked
+                .map((rankedImage) =>
+                    uploadedImages.find((image) => image.originalIndex === rankedImage.originalIndex)
+                )
+                .filter((image): image is (typeof uploadedImages)[number] => Boolean(image));
+
+            const { error: deleteError } = await supabase
+                .from("listing_images")
+                .delete()
+                .eq("listing_id", dbListing.id);
+
+            if (deleteError) {
+                results.push({ make: item.make, model: item.model, error: deleteError.message });
+                continue;
+            }
+
+            for (const [index, image] of orderedImages.entries()) {
+                const { error: dbError } = await supabase
+                    .from("listing_images")
+                    .insert({
+                        listing_id: dbListing.id,
+                        r2_key: image.key,
+                        image_order: index,
+                        alt_text: `${item.make} ${item.model} - Photo ${index + 1}`,
+                        image_hash: image.hash,
+                    });
+
+                if (dbError) {
+                    results.push({ make: item.make, file: image.fileName, error: dbError.message });
+                }
+            }
+
+            results.push({
+                make: item.make,
+                model: item.model,
+                images_count: orderedImages.length,
+                primary_image: orderedImages[0]?.fileName ?? null,
+            });
+            continue;
+        }
+
+        results.push({ make: item.make, model: item.model, images_count: 0 });
     }
 
     return NextResponse.json({ summary: "Image Migration Complete", results });

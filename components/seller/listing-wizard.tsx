@@ -39,6 +39,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WizardShell } from "@/components/seller/wizard-shell";
+import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
+import type { VehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { createListing } from "@/lib/actions/listings";
 import type { ListingFormData } from "@/lib/validations/listing";
 
@@ -345,6 +347,13 @@ const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
   ],
 };
 
+const EMPTY_REFERENCE_OPTIONS: VehicleReferenceOptions = {
+  makes: [],
+  models: [],
+  trimOptions: [],
+  variants: [],
+};
+
 const MARKET_BENCHMARKS: Record<ListingCategory, [number, number]> = {
   car: [1_500_000, 4_500_000],
   van: [1_800_000, 5_200_000],
@@ -593,6 +602,9 @@ export function ListingWizard() {
   const [showValidationErrors, setShowValidationErrors] = React.useState(false);
   const [draftSavedAt, setDraftSavedAt] = React.useState<Date | null>(null);
   const [showDraftSaved, setShowDraftSaved] = React.useState(false);
+  const [referenceOptions, setReferenceOptions] = React.useState<VehicleReferenceOptions>(
+    EMPTY_REFERENCE_OPTIONS
+  );
 
   // Local state for file objects to support previews
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
@@ -670,6 +682,9 @@ export function ListingWizard() {
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
   const selectedCategoryFields = draft.category ? DETAIL_FIELDS_BY_CATEGORY[draft.category] : [];
+  const isCarCategory = draft.category === "car";
+  const hasStructuredMakeSuggestions =
+    !isCarCategory && referenceOptions.makes.length > 0;
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const selectedFeatureGroupDefinition = draft.category
     ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category]
@@ -683,6 +698,33 @@ export function ListingWizard() {
     [featureQuery]
   );
   const marketIndicator = getMarketIndicator(draft.category, draft.priceKes);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function loadReferenceOptions() {
+      if (!draft.category) {
+        setReferenceOptions(EMPTY_REFERENCE_OPTIONS);
+        return;
+      }
+
+      const nextOptions = await fetchVehicleReferenceOptionsAction(
+        draft.category,
+        draft.details.make,
+        draft.details.model
+      );
+
+      if (!cancelled) {
+        setReferenceOptions(nextOptions);
+      }
+    }
+
+    void loadReferenceOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.category, draft.details.make, draft.details.model]);
 
   const allVisibleFeatureGroups = React.useMemo(() => {
     if (!selectedFeatureGroups || !selectedFeatureGroupDefinition) return [];
@@ -1437,16 +1479,183 @@ export function ListingWizard() {
           {!draft.category && (
             <p className="text-sm text-warning">Select a category first.</p>
           )}
+          {isCarCategory ? (
+            <p className="rounded-lg border border-info/20 bg-info/5 px-3 py-2 text-sm text-info">
+              Car listings use a structured catalog: make leads to model, then trim and variant.
+            </p>
+          ) : hasStructuredMakeSuggestions ? (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Suggested make options are loaded for this category. Models stay manual where the
+              catalog does not define a reliable model list.
+            </p>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             {selectedCategoryFields.map((field) => {
               const hasError = showValidationErrors && field.required && !draft.details[field.key].trim();
+              const datalistId = `listing-detail-${field.key}-options-${draft.category || "generic"}`;
+              const makeReferenceField =
+                field.key === "make" && hasStructuredMakeSuggestions ? (
+                  <>
+                    <Input
+                      id={`listing-detail-${field.key}`}
+                      list={datalistId}
+                      data-testid={DETAIL_TEST_IDS[field.key]}
+                      className={cn(hasError && "border-destructive focus-visible:ring-destructive")}
+                      placeholder={field.placeholder}
+                      value={draft.details[field.key]}
+                      onChange={(event) => updateDetailField(field.key, event.target.value)}
+                    />
+                    <datalist id={datalistId}>
+                      {referenceOptions.makes.map((make) => (
+                        <option key={make} value={make} />
+                      ))}
+                    </datalist>
+                    {referenceOptions.makeHelperText ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {referenceOptions.makeHelperText}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null;
+
+              const carReferenceField =
+                isCarCategory && field.key === "make" ? (
+                  <select
+                    id={`listing-detail-${field.key}`}
+                    data-testid={DETAIL_TEST_IDS[field.key]}
+                    className={cn(
+                      "flex h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base",
+                      hasError && "border-destructive focus:ring-destructive"
+                    )}
+                    value={draft.details.make}
+                    onChange={(event) => updateDetailField("make", event.target.value)}
+                  >
+                    <option value="">Select make</option>
+                    {referenceOptions.makes.map((make) => (
+                      <option key={make} value={make}>
+                        {make}
+                      </option>
+                    ))}
+                  </select>
+                ) : isCarCategory && field.key === "model" ? (
+                  <select
+                    id={`listing-detail-${field.key}`}
+                    data-testid={DETAIL_TEST_IDS[field.key]}
+                    className={cn(
+                      "flex h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base",
+                      !draft.details.make && "cursor-not-allowed bg-muted text-muted-foreground",
+                      hasError && "border-destructive focus:ring-destructive"
+                    )}
+                    value={draft.details.model}
+                    disabled={!draft.details.make}
+                    onChange={(event) => updateDetailField("model", event.target.value)}
+                  >
+                    <option value="">
+                      {draft.details.make ? "Select model" : "Select make first"}
+                    </option>
+                    {referenceOptions.models.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                ) : isCarCategory && field.key === "trim" ? (
+                  <>
+                    <select
+                      id={`listing-detail-${field.key}`}
+                      data-testid={DETAIL_TEST_IDS[field.key]}
+                      className={cn(
+                        "flex h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base",
+                        (!draft.details.model || referenceOptions.trimOptions.length === 0) &&
+                          "cursor-not-allowed bg-muted text-muted-foreground",
+                        hasError && "border-destructive focus:ring-destructive"
+                      )}
+                      value={draft.details.trim}
+                      disabled={!draft.details.model || referenceOptions.trimOptions.length === 0}
+                      onChange={(event) => updateDetailField("trim", event.target.value)}
+                    >
+                      <option value="">
+                        {!draft.details.model
+                          ? "Select model first"
+                          : referenceOptions.trimOptions.length > 0
+                            ? "Select trim"
+                            : "No trim catalog for this model"}
+                      </option>
+                      {referenceOptions.trimOptions.map((trim) => (
+                        <option key={`${trim.source}-${trim.value}`} value={trim.value}>
+                          {trim.label}
+                          {trim.source === "model" ? " (model-specific)" : " (shared)"}
+                        </option>
+                      ))}
+                    </select>
+                    {draft.details.model ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {referenceOptions.trimOptions.some((trim) => trim.source === "model")
+                          ? "Model-specific trims are shown first. Shared make trims remain available below."
+                          : "This model currently uses inherited shared trims only."}
+                      </p>
+                    ) : null}
+                  </>
+                ) : isCarCategory && field.key === "variant" ? (
+                  <>
+                    <select
+                      id={`listing-detail-${field.key}`}
+                      data-testid={DETAIL_TEST_IDS[field.key]}
+                      className={cn(
+                        "flex h-12 w-full rounded-lg border border-input bg-background px-4 py-2 text-base",
+                        (!draft.details.model || referenceOptions.variants.length === 0) &&
+                          "cursor-not-allowed bg-muted text-muted-foreground",
+                        hasError && "border-destructive focus:ring-destructive"
+                      )}
+                      value={draft.details.variant}
+                      disabled={!draft.details.model || referenceOptions.variants.length === 0}
+                      onChange={(event) => updateDetailField("variant", event.target.value)}
+                    >
+                      <option value="">
+                        {!draft.details.model
+                          ? "Select model first"
+                          : referenceOptions.variants.length > 0
+                            ? "Select variant / engine"
+                            : "No engine variants cataloged"}
+                      </option>
+                      {referenceOptions.variants.map((variant) => (
+                        <option key={variant} value={variant}>
+                          {variant}
+                        </option>
+                      ))}
+                    </select>
+                    {referenceOptions.variants.length > 0 ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Use this for engine or drivetrain naming like xDrive30d or C200.
+                      </p>
+                    ) : null}
+                  </>
+                ) : field.key === "model" && referenceOptions.modelInputMode === "manual" ? (
+                  <>
+                    <Input
+                      id={`listing-detail-${field.key}`}
+                      data-testid={DETAIL_TEST_IDS[field.key]}
+                      className={cn(hasError && "border-destructive focus-visible:ring-destructive")}
+                      type={field.type}
+                      placeholder={field.placeholder}
+                      value={draft.details[field.key]}
+                      onChange={(event) => updateDetailField(field.key, event.target.value)}
+                    />
+                    {referenceOptions.modelHelperText ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {referenceOptions.modelHelperText}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null;
+
               return (
               <div key={field.key}>
                 <Label htmlFor={`listing-detail-${field.key}`}>
                   {field.label}
                   {field.required ? " *" : ""}
                 </Label>
-                {field.type === "select" ? (
+                {makeReferenceField ?? carReferenceField ?? (field.type === "select" ? (
                   <select
                     id={`listing-detail-${field.key}`}
                     data-testid={DETAIL_TEST_IDS[field.key]}
@@ -1474,7 +1683,7 @@ export function ListingWizard() {
                     value={draft.details[field.key]}
                     onChange={(event) => updateDetailField(field.key, event.target.value)}
                   />
-                )}
+                ))}
                 {hasError && (
                   <p className="mt-1 text-xs text-destructive">{field.label} is required.</p>
                 )}

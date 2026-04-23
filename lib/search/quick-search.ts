@@ -1,6 +1,7 @@
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import type { ListingFilters } from "@/lib/types/listing";
 import {
+  detectVehicleIntents,
   detectVehicleOrigin,
   detectVehicleUseCase,
   getDefaultBodyTypesForUseCase,
@@ -126,8 +127,14 @@ const MODEL_STOPWORDS = new Set([
   "vehicle",
   "vehicles",
   "reliable",
+  "comfortable",
+  "comfort",
+  "classy",
   "family",
   "budget",
+  "daily",
+  "spacious",
+  "roomy",
 ]);
 
 function compactWhitespace(value: string) {
@@ -267,6 +274,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   }
 
   const make = findAliasMatch(lower, MAKE_ALIASES) || undefined;
+  const intents = detectVehicleIntents(lower);
   const origin = detectVehicleOrigin(lower);
   const useCase = detectVehicleUseCase(lower);
   const bodyTypeMatches = findAliasMatches(lower, BODY_TYPE_ALIASES);
@@ -296,6 +304,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
 
   const bodyType =
     expandedBodyTypes.length > 0 ? expandedBodyTypes.join(",") : undefined;
+  const intent = intents.length > 0 ? intents.join(",") : undefined;
   const fuelType = findAliasMatch(lower, FUEL_TYPE_ALIASES) || undefined;
   const transmission = findAliasMatch(lower, TRANSMISSION_ALIASES) || undefined;
   const location = findAliasMatch(lower, LOCATION_ALIASES) || undefined;
@@ -314,6 +323,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     model,
     origin,
     useCase,
+    intent,
     minPrice,
     maxPrice,
     minYear,
@@ -325,7 +335,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     sellerType,
   };
 
-  if (!make && !model && !origin && !useCase && !fuelType && !transmission && !location && bodyType && maxPrice) {
+  if (!make && !model && !origin && !useCase && !intent && !fuelType && !transmission && !location && bodyType && maxPrice) {
     delete params.q;
   }
 
@@ -369,6 +379,11 @@ export function shouldUseSmartSearchFallback(query: string, result: SmartSearchR
     "first car",
     "executive",
     "fuel efficient",
+    "classy",
+    "traffic",
+    "commute",
+    "spacious",
+    "roomy",
   ];
   if (intentWords.some((word) => lower.includes(word))) {
     return true;
@@ -394,6 +409,7 @@ export function sanitizeSmartSearchParams(input: Partial<SmartSearchParams>): Sm
   assign("model", input.model);
   assign("origin", input.origin);
   assign("useCase", input.useCase);
+  assign("intent", input.intent);
   assign("minPrice", input.minPrice);
   assign("maxPrice", input.maxPrice);
   assign("minYear", input.minYear);
@@ -447,9 +463,21 @@ function shouldClearModel(query: string) {
   return /\b(clear|remove|reset)\s+model\b|\bany\s+model\b/i.test(query);
 }
 
+function shouldClearIntent(query: string) {
+  return /\b(clear|remove|reset)\s+intent\b|\bclear\s+(comfort|reliability|road trip|daily|value|spacious)\b/i.test(query);
+}
+
 function shouldExcludeCurrentLocation(query: string, currentLocation?: string) {
   if (!currentLocation) return false;
   return new RegExp(`\\b(?:not|exclude|without)\\s+${currentLocation}\\b`, "i").test(query);
+}
+
+function mergeCsvValues(currentValue?: string, nextValue?: string) {
+  const merged = [...(currentValue || "").split(","), ...(nextValue || "").split(",")]
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return merged.length > 0 ? Array.from(new Set(merged)).join(",") : undefined;
 }
 
 export function applyAssistantSearchTurn(
@@ -493,6 +521,9 @@ export function applyAssistantSearchTurn(
   if (shouldClearModel(query)) {
     delete merged.model;
   }
+  if (shouldClearIntent(query)) {
+    delete merged.intent;
+  }
 
   const currentMake = merged.make;
   const currentModel = merged.model;
@@ -511,6 +542,9 @@ export function applyAssistantSearchTurn(
   if (sanitizedNextParams.model && currentModel && sanitizedNextParams.model !== currentModel && !sanitizedNextParams.make) {
     delete merged.q;
   }
+  if (sanitizedNextParams.intent) {
+    delete merged.q;
+  }
   if (sanitizedNextParams.bodyType) {
     delete merged.q;
   }
@@ -520,6 +554,9 @@ export function applyAssistantSearchTurn(
     } else {
       delete sanitizedNextParams.location;
     }
+  }
+  if (sanitizedNextParams.intent) {
+    sanitizedNextParams.intent = mergeCsvValues(merged.intent, sanitizedNextParams.intent);
   }
 
   const combined = sanitizeSmartSearchParams({
@@ -566,6 +603,7 @@ export function smartSearchParamsToListingFilters(params: SmartSearchParams): Li
     model: params.model,
     origin: params.origin,
     useCase: params.useCase,
+    intent: parseMaybeArray(params.intent),
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,
     maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
     minYear: params.minYear ? Number(params.minYear) : undefined,

@@ -13,6 +13,7 @@ type CandidateRow = {
   body_type: string | null;
   transmission: string | null;
   fuel_type: string | null;
+  metadata: Record<string, unknown> | null;
   dealer?: {
     city: string | null;
   } | null;
@@ -39,7 +40,7 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
     queries.push(
       supabase
         .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, dealer:dealers(city)")
+        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
         .eq("status", "active")
         .ilike("make", input.make)
         .ilike("model", input.model)
@@ -51,7 +52,7 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
     queries.push(
       supabase
         .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, dealer:dealers(city)")
+        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
         .eq("status", "active")
         .ilike("make", input.make)
         .eq("body_type", input.bodyType)
@@ -63,7 +64,7 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
     queries.push(
       supabase
         .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, dealer:dealers(city)")
+        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
         .eq("status", "active")
         .ilike("make", input.make)
         .limit(30)
@@ -74,7 +75,7 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
     queries.push(
       supabase
         .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, dealer:dealers(city)")
+        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
         .eq("status", "active")
         .eq("body_type", input.bodyType)
         .limit(30)

@@ -5,6 +5,11 @@ import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
 import { ListingFilters, ListingSort } from "@/lib/types/listing";
+import {
+  LANDING_SEARCH_CATEGORY_CONFIG,
+  type LandingSearchCategoryConfig,
+} from "@/lib/constants/landing-search";
+import type { ListingCategory } from "@/lib/constants/marketplace";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -14,6 +19,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const limit = 12; // 4 columns x 3 rows
+  const categoryParam = params.category as ListingCategory | undefined;
+  const categoryConfig: LandingSearchCategoryConfig | null =
+    categoryParam && categoryParam in LANDING_SEARCH_CATEGORY_CONFIG
+      ? LANDING_SEARCH_CATEGORY_CONFIG[categoryParam]
+      : null;
 
   // Parse array filters (comma-separated)
   const parseArrayParam = (value: string | string[] | undefined): string[] | undefined => {
@@ -27,6 +37,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     q: params.q as string,
     make: params.make as string,
     model: params.model as string,
+    origin: params.origin as string,
+    useCase: params.useCase as string,
+    intent: parseArrayParam(params.intent),
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,
     maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
     minYear: params.minYear ? Number(params.minYear) : undefined,
@@ -93,9 +106,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">All cars for sale</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                {categoryConfig?.searchPageTitle ?? "All vehicles for sale"}
+              </h1>
               <p className="mt-1 text-sm text-gray-600 sm:text-base">
-                Browse new and used listings from dealers and private sellers.
+                {categoryConfig?.searchPageDescription ??
+                  "Browse vehicle listings from dealers and private sellers."}
               </p>
             </div>
           </div>

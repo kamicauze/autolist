@@ -1,5 +1,5 @@
-import { SalesRepListingsPage } from "@/components/seller/sales-rep-dashboard";
+import { redirect } from "next/navigation";
 
 export default function SalesRepListingsRoute() {
-  return <SalesRepListingsPage />;
+  redirect("/dashboard/listings");
 }

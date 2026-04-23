@@ -19,6 +19,7 @@ import { ReviewsSection } from "@/components/vehicle/reviews-section";
 import { ReplyForm } from "@/components/vehicle/reply-form";
 import { getImageUrl } from "@/lib/utils/listings";
 import { IconWhatsapp } from "@/components/ui/icons";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 
 interface DealerPageClientProps {
   dealer: DealerProfile;
@@ -77,7 +78,7 @@ function DealerInventory({ inventory }: { inventory: Listing[] }) {
                     {price}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {listing.dealer?.name || "Dealer"} • {listing.dealer?.city || "Kenya"}
+                    {listing.dealer?.name || "Dealer"} • {getListingDisplayLocation(listing)}
                   </p>
                 </div>
 

@@ -1,5 +1,5 @@
-import { SalesRepVerificationPage } from "@/components/seller/sales-rep-dashboard";
+import { redirect } from "next/navigation";
 
 export default function SalesRepVerificationRoute() {
-  return <SalesRepVerificationPage />;
+  redirect("/dashboard/verification");
 }

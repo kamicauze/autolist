@@ -69,7 +69,7 @@ async function classifyVehicleImageView(bytes: Buffer): Promise<VisionClassifica
               {
                 type: "text",
                 text:
-                  'Classify this vehicle image for listing cover selection. Return JSON with keys: view, confidence, wholeVehicle. Favor exterior shots that show the full car. Interior/dashboard/detail/document images should not be primary covers.',
+                  'Classify this vehicle image for listing cover selection. Return JSON with keys: view, confidence, wholeVehicle. Favor exterior shots that show the full car. Prefer straight-on front views first, then front three-quarter views. Interior, dashboard, detail, or document images should not be primary covers.',
               },
               {
                 type: "image_url",
@@ -113,11 +113,11 @@ function getVisionScore(classification: VisionClassification | null) {
 
   let score = 0;
   switch (classification.view) {
-    case "front_three_quarter":
-      score += 140;
-      break;
     case "front":
-      score += 120;
+      score += 165;
+      break;
+    case "front_three_quarter":
+      score += 145;
       break;
     case "side":
       score += 80;
@@ -162,7 +162,7 @@ export async function rankListingImageCandidates(
   const topCandidates = heuristicRanked
     .slice()
     .sort((a, b) => b.heuristicScore - a.heuristicScore || a.originalIndex - b.originalIndex)
-    .slice(0, Math.min(4, heuristicRanked.length));
+    .slice(0, Math.min(12, heuristicRanked.length));
 
   const visionByIndex = new Map<number, VisionClassification | null>();
   for (const candidate of topCandidates) {

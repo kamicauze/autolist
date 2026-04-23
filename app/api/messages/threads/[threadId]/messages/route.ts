@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildListingTitle, emitNotificationEvent, getMessagingHref } from "@/lib/server/notifications";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
@@ -8,7 +7,6 @@ export async function POST(
   { params }: { params: Promise<{ threadId: string }> }
 ) {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -25,13 +23,13 @@ export async function POST(
     return NextResponse.json({ error: "Message body is required." }, { status: 400 });
   }
 
-  const { data: profile } = await adminSupabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle<{ role: string }>();
 
-  const { data: thread, error: threadError } = await adminSupabase
+  const { data: thread, error: threadError } = await supabase
     .from("conversation_threads")
     .select(
       `
@@ -42,7 +40,7 @@ export async function POST(
       `
     )
     .eq("id", threadId)
-    .single<{
+    .maybeSingle<{
       id: string;
       buyer_id: string;
       seller_id: string;
@@ -53,21 +51,12 @@ export async function POST(
     return NextResponse.json({ error: "Conversation thread not found." }, { status: 404 });
   }
 
-  const canAccessThread =
-    user.id === thread.buyer_id ||
-    user.id === thread.seller_id ||
-    ["admin", "support"].includes(profile?.role || "");
-
-  if (!canAccessThread) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const visibility =
     ["admin", "support"].includes(profile?.role || "") && user.id !== thread.buyer_id && user.id !== thread.seller_id
       ? "staff_only"
       : "participants";
 
-  const { data, error } = await adminSupabase
+  const { data, error } = await supabase
     .from("conversation_messages")
     .insert({
       thread_id: threadId,

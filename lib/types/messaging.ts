@@ -35,9 +35,10 @@ export type ThreadMessageItem = {
 };
 
 export type MessagingCenterData = {
-  viewer: MessagingViewer;
+  viewer: MessagingViewer | null;
   threads: ThreadListItem[];
   messagesByThread: Record<string, ThreadMessageItem[]>;
+  error?: string | null;
 };
 
 export type SupportTicketListItem = {

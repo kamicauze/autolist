@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, Plus, Search } from "lucide-react";
+import { Menu, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SellerUserChip } from "./seller-dashboard-ui";
@@ -56,14 +56,6 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <div className="hidden h-12 w-[260px] items-center gap-3 rounded-full border border-[#ededed] bg-white px-4 xl:flex">
-            <Search className="h-4 w-4 text-[#8c8c8c]" />
-            <input
-              className="h-full flex-1 border-0 bg-transparent text-[14px] text-[#202224] outline-none placeholder:text-[#9a9a9a]"
-              placeholder="Search here..."
-            />
-          </div>
-
           <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#6c6c6c] transition hover:text-[#202224]">
             <NotificationBell className="text-[#6c6c6c]" />
           </div>
@@ -81,10 +73,6 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
           <div className="hidden lg:flex">
             <SellerUserChip name={displayName} email={user.email} />
           </div>
-
-          <button className="hidden h-11 w-11 items-center justify-center rounded-full border border-[#ededed] bg-white text-[#818181] transition hover:text-[#202224] lg:flex">
-            <ChevronDown className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </header>

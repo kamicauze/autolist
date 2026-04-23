@@ -5,7 +5,7 @@ import { getMessagingCenterData } from "@/lib/data/messaging";
 export default async function BuyerMessagesPage() {
   const data = await getMessagingCenterData();
 
-  if (!data?.viewer) {
+  if (!data) {
     redirect("/login?next=/messages");
   }
 

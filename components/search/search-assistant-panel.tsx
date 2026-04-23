@@ -37,11 +37,27 @@ const USE_CASE_LABELS: Record<string, string> = {
   fuel_efficient: "fuel-efficient",
 };
 
+const INTENT_LABELS: Record<string, string> = {
+  reliable: "reliability",
+  comfortable: "comfort",
+  daily_driver: "daily-driving fit",
+  road_trip: "road-trip readiness",
+  value: "value-conscious picks",
+  spacious: "space and seating",
+};
+
 function buildFilterSummary(result: SmartSearchResponse) {
   const parts: string[] = [];
 
   if (result.params.origin) parts.push(`${result.params.origin} brands`);
   if (result.params.useCase) parts.push(USE_CASE_LABELS[result.params.useCase] || result.params.useCase);
+  if (result.params.intent) {
+    result.params.intent
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .forEach((value) => parts.push(INTENT_LABELS[value] || value));
+  }
   if (result.params.make) parts.push(result.params.make);
   if (result.params.model) parts.push(result.params.model);
   if (result.params.bodyType) parts.push(result.params.bodyType);
@@ -110,7 +126,7 @@ export function SearchAssistantPanel() {
       id: "assistant-intro",
       role: "assistant",
       content:
-        "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, and brand, then apply the result to this page.",
+        "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, brand, and abstract preferences like comfort or reliability, then apply the result to this page.",
     },
   ]);
   const [input, setInput] = React.useState("");
@@ -317,7 +333,7 @@ export function SearchAssistantPanel() {
                   id: "assistant-intro",
                   role: "assistant",
                   content:
-                    "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, and brand, then apply the result to this page.",
+                    "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, brand, and abstract preferences like comfort or reliability, then apply the result to this page.",
                 },
               ]);
               setLastResult(null);

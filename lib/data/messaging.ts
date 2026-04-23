@@ -109,10 +109,24 @@ function firstRelation<T>(value: T[] | null | undefined) {
 export const getMessagingCenterData = cache(async (): Promise<MessagingCenterData | null> => {
   const supabase = await createClient();
   const adminSupabase = createOptionalAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
   const viewer = await getViewer(supabase);
 
   if (!viewer) {
-    return null;
+    return {
+      viewer: null,
+      threads: [],
+      messagesByThread: {},
+      error:
+        "Your messaging profile could not be loaded. Confirm that your account record exists in profiles and try again.",
+    };
   }
 
   const threadClient = adminSupabase ?? supabase;
@@ -151,6 +165,8 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
       viewer,
       threads: [],
       messagesByThread: {},
+      error:
+        "Conversation threads could not be loaded right now. Check Supabase access and try again.",
     };
   }
 
@@ -181,6 +197,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
       viewer,
       threads,
       messagesByThread: {},
+      error: null,
     };
   }
 
@@ -207,6 +224,8 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
       viewer,
       threads,
       messagesByThread: {},
+      error:
+        "Thread messages could not be loaded right now. Conversation access is configured, but message retrieval failed.",
     };
   }
 
@@ -235,6 +254,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     viewer,
     threads,
     messagesByThread,
+    error: null,
   };
 });
 

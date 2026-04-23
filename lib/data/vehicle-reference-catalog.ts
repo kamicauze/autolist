@@ -1,4 +1,6 @@
+import type { ListingCategory } from "@/lib/constants/marketplace";
 import { CAR_MAKES_DATA } from "@/lib/constants/car-data";
+import { NON_CAR_REFERENCE_DATA } from "@/lib/constants/non-car-reference-data";
 
 export type VehicleTrimOption = {
   label: string;
@@ -6,11 +8,17 @@ export type VehicleTrimOption = {
   source: "shared" | "model";
 };
 
+export type VehicleReferenceInputMode = "select" | "manual";
+
 export type VehicleReferenceOptions = {
   makes: string[];
   models: string[];
   trimOptions: VehicleTrimOption[];
   variants: string[];
+  makeInputMode?: VehicleReferenceInputMode;
+  modelInputMode?: VehicleReferenceInputMode;
+  makeHelperText?: string | null;
+  modelHelperText?: string | null;
 };
 
 function normalizeValue(value: string) {
@@ -38,6 +46,8 @@ export function getVehicleReferenceOptionsFallback(
       models: [],
       trimOptions: [],
       variants: [],
+      makeInputMode: "select",
+      modelInputMode: "select",
     };
   }
 
@@ -65,5 +75,37 @@ export function getVehicleReferenceOptionsFallback(
     models,
     trimOptions: model ? [...modelTrims, ...sharedTrims] : [],
     variants: sortValues(model?.variants ?? []),
+    makeInputMode: "select",
+    modelInputMode: "select",
+  };
+}
+
+export function getNonCarVehicleReferenceOptions(
+  category?: ListingCategory | "" | null
+): VehicleReferenceOptions {
+  const reference = category ? NON_CAR_REFERENCE_DATA[category] : undefined;
+
+  if (!reference) {
+    return {
+      makes: [],
+      models: [],
+      trimOptions: [],
+      variants: [],
+      makeInputMode: "manual",
+      modelInputMode: "manual",
+      makeHelperText: null,
+      modelHelperText: null,
+    };
+  }
+
+  return {
+    makes: sortValues(reference.makes),
+    models: [],
+    trimOptions: [],
+    variants: [],
+    makeInputMode: reference.makes.length > 0 ? "select" : "manual",
+    modelInputMode: reference.modelInputMode,
+    makeHelperText: reference.makeHelperText,
+    modelHelperText: reference.modelHelperText,
   };
 }

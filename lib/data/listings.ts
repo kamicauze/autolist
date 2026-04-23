@@ -3,6 +3,7 @@ import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
 import {
+  getIntentScore,
   getMakesForOrigin,
   getMinimumUseCaseScore,
   getUseCaseScore,
@@ -33,6 +34,14 @@ function parseRequestedBodyTypes(value?: string | string[]) {
     .filter((item): item is string => Boolean(item));
 }
 
+function parseRequestedIntents(value?: string | string[]) {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function inferListingBodyTypes(listing: Listing) {
   const metadataBodyType = getListingMetadataString(listing, "bodyType") ?? getListingMetadataString(listing, "body_type");
   const explicit = [listing.body_type, metadataBodyType]
@@ -61,21 +70,36 @@ function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: 
   return requestedBodyTypes.some((type) => inferred.includes(type));
 }
 
-function rankListingsForUseCase(listings: Listing[], requestedUseCase?: string) {
-  if (!requestedUseCase) {
+function rankListingsForSemanticSearch(
+  listings: Listing[],
+  requestedUseCase?: string,
+  requestedIntents: string[] = []
+) {
+  if (!requestedUseCase && requestedIntents.length === 0) {
     return listings;
   }
 
-  const minimumScore = getMinimumUseCaseScore(requestedUseCase);
+  const minimumUseCaseScore = getMinimumUseCaseScore(requestedUseCase);
 
   return listings
-    .map((listing) => ({
-      listing,
-      score: getUseCaseScore(listing, requestedUseCase),
-    }))
-    .filter((entry) => entry.score >= minimumScore)
+    .map((listing) => {
+      const useCaseScore = requestedUseCase ? getUseCaseScore(listing, requestedUseCase) : 0;
+      const intentScore = requestedIntents.reduce(
+        (total, intent) => total + getIntentScore(listing, intent),
+        0
+      );
+
+      return {
+        listing,
+        useCaseScore,
+        intentScore,
+        score: useCaseScore + intentScore,
+      };
+    })
+    .filter((entry) => !requestedUseCase || entry.useCaseScore >= minimumUseCaseScore)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
+      if (b.intentScore !== a.intentScore) return b.intentScore - a.intentScore;
       return new Date(b.listing.created_at).getTime() - new Date(a.listing.created_at).getTime();
     })
     .map((entry) => entry.listing);
@@ -312,9 +336,15 @@ export async function searchListings({
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
-  const requiresDerivedFiltering = requestedUseCase || requestedBodyTypes.length > 0;
+  const requestedIntents = parseRequestedIntents(filters?.intent);
+  const requiresDerivedFiltering =
+    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0;
 
   if (requiresDerivedFiltering) {
+    const rankingWindow =
+      requestedIntents.length > 0 && !requestedUseCase
+        ? Math.max(limit * 14, 240)
+        : Math.max(limit * 10, 160);
     let rankingQuery = supabase
       .from("listings")
       .select(getListingSelect(Boolean(filters?.location)))
@@ -322,7 +352,7 @@ export async function searchListings({
 
     rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
     rankingQuery = rankingQuery.order(sort.field, { ascending: sort.direction === "asc" });
-    rankingQuery = rankingQuery.range(0, Math.max(limit * 10, 160) - 1);
+    rankingQuery = rankingQuery.range(0, rankingWindow - 1);
 
     const { data: rankingData, error: rankingError } = await rankingQuery;
 
@@ -337,9 +367,11 @@ export async function searchListings({
         listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
       );
     }
-    const ranked = requestedUseCase
-      ? rankListingsForUseCase(processedListings, requestedUseCase)
-      : processedListings;
+    const ranked = rankListingsForSemanticSearch(
+      processedListings,
+      requestedUseCase,
+      requestedIntents
+    );
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -383,16 +415,19 @@ export async function countMatchingListings(
   const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
-  const requiresDerivedFiltering = requestedUseCase || requestedBodyTypes.length > 0;
+  const requestedIntents = parseRequestedIntents(filters?.intent);
+  const requiresDerivedFiltering =
+    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0;
 
   if (requiresDerivedFiltering) {
+    const rankingWindow = requestedIntents.length > 0 && !requestedUseCase ? 800 : 500;
     let rankingQuery = supabase
       .from("listings")
       .select(getListingSelect(Boolean(filters?.location)))
       .eq("status", "active");
 
     rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
-    rankingQuery = rankingQuery.range(0, 499);
+    rankingQuery = rankingQuery.range(0, rankingWindow - 1);
 
     const { data: rankingData, error: rankingError } = await rankingQuery;
 
@@ -408,9 +443,11 @@ export async function countMatchingListings(
       );
     }
 
-    return requestedUseCase
-      ? rankListingsForUseCase(processedListings, requestedUseCase).length
-      : processedListings.length;
+    return rankListingsForSemanticSearch(
+      processedListings,
+      requestedUseCase,
+      requestedIntents
+    ).length;
   }
 
   let query = supabase

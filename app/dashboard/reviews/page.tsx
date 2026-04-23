@@ -1,5 +1,5 @@
-import { ReviewList } from "@/components/dashboard/reviews/review-list";
+import { redirect } from "next/navigation";
 
 export default function ReviewsPage() {
-  return <ReviewList />;
+  redirect("/dashboard");
 }

@@ -3,12 +3,11 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarDays, Eye, Pencil, Search } from "lucide-react";
+import { Eye, Pencil, Search } from "lucide-react";
 import type { Listing } from "@/lib/types/listing";
 import { getImageUrl } from "@/lib/utils/listings";
 import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 import {
-  SellerPagination,
   SellerStatusPill,
   SellerSurface,
   formatDashboardCurrency,
@@ -39,9 +38,9 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
     <SellerSurface className="overflow-hidden">
       <div className="flex flex-col gap-4 border-b border-[#ededed] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">New Listing</h2>
+          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">Recent Listings</h2>
           <p className="mt-1 text-[13px] text-[#7a7a7a]">
-            Monitor the latest inventory states, draft packages, and publishing activity.
+            Review the latest live inventory pulled from your seller account.
           </p>
         </div>
 
@@ -55,10 +54,6 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
               className="h-full flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-[#9a9a9a]"
             />
           </div>
-          <button className="inline-flex h-12 items-center gap-2 rounded-[14px] border border-[#ededed] bg-white px-4 text-[14px] text-[#6e6e6e]">
-            <CalendarDays className="h-4 w-4" />
-            Jan 01 - Jan 30
-          </button>
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
@@ -149,8 +144,6 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
           </tbody>
         </table>
       </div>
-
-      <SellerPagination />
     </SellerSurface>
   );
 }
