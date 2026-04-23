@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createAdminClient, createOptionalAdminClient } from "@/lib/supabase/admin";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import type { ListingStatus } from "@/lib/types/listing";
 
 type AdminProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
@@ -197,6 +197,41 @@ const EMPTY_ADMIN_DASHBOARD_DATA: AdminDashboardData = {
   recentUsers: [],
   recentTickets: [],
   pendingDealers: [],
+};
+
+const EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA: AdminListingsOverviewData = {
+  stats: {
+    draft: 0,
+    pending: 0,
+    active: 0,
+    rejected: 0,
+    sold: 0,
+    expired: 0,
+  },
+  total: 0,
+  listings: [],
+};
+
+const EMPTY_ADMIN_USERS_OVERVIEW_DATA: AdminUsersOverviewData = {
+  stats: {
+    total: 0,
+    buyers: 0,
+    sellers: 0,
+    dealers: 0,
+    staff: 0,
+    pendingDealers: 0,
+  },
+  users: [],
+};
+
+const EMPTY_ADMIN_AUDIT_LOGS_DATA: AdminAuditLogsData = {
+  stats: {
+    total: 0,
+    last24Hours: 0,
+    dealerEvents: 0,
+    listingEvents: 0,
+  },
+  logs: [],
 };
 
 function firstRelation<T>(value: T[] | null | undefined) {
@@ -467,7 +502,12 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
 
 export const getAdminListingsOverviewData = cache(
   async (limit = 80): Promise<AdminListingsOverviewData> => {
-    const adminSupabase = createAdminClient();
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin listings unavailable: Supabase service role environment variables are missing.");
+      return EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA;
+    }
+
     const statuses: ListingStatus[] = ["draft", "pending", "active", "rejected", "sold", "expired"];
 
     const countResults = await Promise.all(
@@ -509,7 +549,11 @@ export const getAdminListingsOverviewData = cache(
 );
 
 export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<AdminUsersOverviewData> => {
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
+  if (!adminSupabase) {
+    console.warn("Admin users unavailable: Supabase service role environment variables are missing.");
+    return EMPTY_ADMIN_USERS_OVERVIEW_DATA;
+  }
 
   const [
     total,
@@ -578,7 +622,12 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
 });
 
 export const getAdminAuditLogsData = cache(async (limit = 80): Promise<AdminAuditLogsData> => {
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
+  if (!adminSupabase) {
+    console.warn("Admin audit logs unavailable: Supabase service role environment variables are missing.");
+    return EMPTY_ADMIN_AUDIT_LOGS_DATA;
+  }
+
   const last24HoursCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   const [total, last24Hours, dealerEvents, listingEvents, logsResult] = await Promise.all([
