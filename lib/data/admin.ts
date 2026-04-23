@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, createOptionalAdminClient } from "@/lib/supabase/admin";
 import type { ListingStatus } from "@/lib/types/listing";
 
 type AdminProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
@@ -170,6 +170,35 @@ export type AdminAuditLogsData = {
 
 export type AdminNavBadgeCounts = Partial<Record<string, number>>;
 
+const EMPTY_ADMIN_DASHBOARD_DATA: AdminDashboardData = {
+  metrics: {
+    totalListings: {
+      label: "Total listings",
+      value: 0,
+      note: "Unavailable",
+    },
+    pendingListings: {
+      label: "Pending moderation",
+      value: 0,
+      note: "Unavailable",
+    },
+    totalUsers: {
+      label: "Registered users",
+      value: 0,
+      note: "Unavailable",
+    },
+    supportQueue: {
+      label: "Open support tickets",
+      value: 0,
+      note: "Unavailable",
+    },
+  },
+  recentListings: [],
+  recentUsers: [],
+  recentTickets: [],
+  pendingDealers: [],
+};
+
 function firstRelation<T>(value: T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : null;
 }
@@ -277,7 +306,12 @@ async function readCount(query: PromiseLike<{ count: number | null }>) {
 }
 
 export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCounts> => {
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
+  if (!adminSupabase) {
+    console.warn("Admin badge counts unavailable: Supabase service role environment variables are missing.");
+    return {};
+  }
+
   const [pendingListings, pendingDealers, openTickets] = await Promise.all([
     readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
     readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
@@ -297,7 +331,11 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
 });
 
 export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData> => {
-  const adminSupabase = createAdminClient();
+  const adminSupabase = createOptionalAdminClient();
+  if (!adminSupabase) {
+    console.warn("Admin dashboard data unavailable: Supabase service role environment variables are missing.");
+    return EMPTY_ADMIN_DASHBOARD_DATA;
+  }
 
   const [
     totalListings,

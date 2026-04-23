@@ -48,11 +48,11 @@ export async function resolvePostAuthPath(
       .eq("profile_id", userId)
       .maybeSingle<{ status: DealerStatus }>();
 
-    if (!dealerProfile || dealerProfile.status !== "APPROVED") {
+    if (!dealerProfile) {
       return "/register/dealer";
     }
 
-    return "/dashboard";
+    return dealerProfile.status === "APPROVED" ? "/dashboard" : "/dashboard/verification";
   }
 
   if (profile.role === "admin") {
