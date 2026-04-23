@@ -204,6 +204,7 @@ const EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA: AdminListingsOverviewData = {
     draft: 0,
     pending: 0,
     active: 0,
+    reserved: 0,
     rejected: 0,
     sold: 0,
     expired: 0,
@@ -233,6 +234,14 @@ const EMPTY_ADMIN_AUDIT_LOGS_DATA: AdminAuditLogsData = {
   },
   logs: [],
 };
+
+function describeError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unknown error";
+}
 
 function firstRelation<T>(value: T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : null;
@@ -341,341 +350,366 @@ async function readCount(query: PromiseLike<{ count: number | null }>) {
 }
 
 export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCounts> => {
-  const adminSupabase = createOptionalAdminClient();
-  if (!adminSupabase) {
-    console.warn("Admin badge counts unavailable: Supabase service role environment variables are missing.");
+  try {
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin badge counts unavailable: Supabase service role environment variables are missing.");
+      return {};
+    }
+
+    const [pendingListings, pendingDealers, openTickets] = await Promise.all([
+      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
+      readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
+      readCount(
+        adminSupabase
+          .from("support_tickets")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+      ),
+    ]);
+
+    return {
+      "/admin/review": pendingListings || undefined,
+      "/admin/verification": pendingDealers || undefined,
+      "/admin/car-inquiries": openTickets || undefined,
+    };
+  } catch (error) {
+    console.warn(`Admin badge counts unavailable: ${describeError(error)}`);
     return {};
   }
-
-  const [pendingListings, pendingDealers, openTickets] = await Promise.all([
-    readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
-    readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
-    readCount(
-      adminSupabase
-        .from("support_tickets")
-        .select("*", { count: "exact", head: true })
-        .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
-    ),
-  ]);
-
-  return {
-    "/admin/review": pendingListings || undefined,
-    "/admin/verification": pendingDealers || undefined,
-    "/admin/car-inquiries": openTickets || undefined,
-  };
 });
 
 export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData> => {
-  const adminSupabase = createOptionalAdminClient();
-  if (!adminSupabase) {
-    console.warn("Admin dashboard data unavailable: Supabase service role environment variables are missing.");
-    return EMPTY_ADMIN_DASHBOARD_DATA;
-  }
+  try {
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin dashboard data unavailable: Supabase service role environment variables are missing.");
+      return EMPTY_ADMIN_DASHBOARD_DATA;
+    }
 
-  const [
-    totalListings,
-    pendingListings,
-    totalUsers,
-    openTickets,
-    recentListingsResult,
-    recentProfilesResult,
-    dealerRowsResult,
-    listingCountRowsResult,
-    recentTicketsResult,
-    pendingDealersResult,
-  ] = await Promise.all([
-    readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true })),
-    readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
-    readCount(
+    const [
+      totalListings,
+      pendingListings,
+      totalUsers,
+      openTickets,
+      recentListingsResult,
+      recentProfilesResult,
+      dealerRowsResult,
+      listingCountRowsResult,
+      recentTicketsResult,
+      pendingDealersResult,
+    ] = await Promise.all([
+      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true })),
+      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
+      readCount(
+        adminSupabase
+          .from("support_tickets")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+      ),
+      adminSupabase
+        .from("listings")
+        .select(
+          `
+            id,
+            status,
+            make,
+            model,
+            year,
+            price,
+            currency,
+            body_type,
+            created_at,
+            metadata,
+            seller:profiles!seller_id(id, full_name, email),
+            dealer:dealers(id, name, city)
+          `
+        )
+        .order("created_at", { ascending: false })
+        .limit(8),
+      adminSupabase
+        .from("profiles")
+        .select("id, email, full_name, role, created_at")
+        .order("created_at", { ascending: false })
+        .limit(8),
+      adminSupabase
+        .from("dealers")
+        .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
+        .order("created_at", { ascending: false }),
+      adminSupabase.from("listings").select("seller_id, status"),
       adminSupabase
         .from("support_tickets")
-        .select("*", { count: "exact", head: true })
-        .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
-    ),
-    adminSupabase
-      .from("listings")
-      .select(
-        `
-          id,
-          status,
-          make,
-          model,
-          year,
-          price,
-          currency,
-          body_type,
-          created_at,
-          metadata,
-          seller:profiles!seller_id(id, full_name, email),
-          dealer:dealers(id, name, city)
-        `
-      )
-      .order("created_at", { ascending: false })
-      .limit(8),
-    adminSupabase
-      .from("profiles")
-      .select("id, email, full_name, role, created_at")
-      .order("created_at", { ascending: false })
-      .limit(8),
-    adminSupabase
-      .from("dealers")
-      .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
-      .order("created_at", { ascending: false }),
-    adminSupabase.from("listings").select("seller_id, status"),
-    adminSupabase
-      .from("support_tickets")
-      .select(
-        `
-          id,
-          subject,
-          priority,
-          status,
-          updated_at,
-          assigned_to_profile:profiles!assigned_to(full_name, email)
-        `
-      )
-      .order("updated_at", { ascending: false })
-      .limit(6),
-    adminSupabase
-      .from("dealers")
-      .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
-      .eq("status", "PENDING")
-      .order("created_at", { ascending: true })
-      .limit(5),
-  ]);
+        .select(
+          `
+            id,
+            subject,
+            priority,
+            status,
+            updated_at,
+            assigned_to_profile:profiles!assigned_to(full_name, email)
+          `
+        )
+        .order("updated_at", { ascending: false })
+        .limit(6),
+      adminSupabase
+        .from("dealers")
+        .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
+        .eq("status", "PENDING")
+        .order("created_at", { ascending: true })
+        .limit(5),
+    ]);
 
-  const dealerRows = (dealerRowsResult.data || []) as unknown as DealerRow[];
-  const listingCountRows = (listingCountRowsResult.data || []) as unknown as UserListingCountRow[];
-  const dealerByProfileId = new Map(dealerRows.map((dealer) => [dealer.profile_id, dealer]));
-  const listingCountsBySellerId = new Map<string, { total: number; active: number }>();
+    const dealerRows = (dealerRowsResult.data || []) as unknown as DealerRow[];
+    const listingCountRows = (listingCountRowsResult.data || []) as unknown as UserListingCountRow[];
+    const dealerByProfileId = new Map(dealerRows.map((dealer) => [dealer.profile_id, dealer]));
+    const listingCountsBySellerId = new Map<string, { total: number; active: number }>();
 
-  for (const row of listingCountRows) {
-    const existing = listingCountsBySellerId.get(row.seller_id) || { total: 0, active: 0 };
-    existing.total += 1;
-    if (row.status === "active") {
-      existing.active += 1;
+    for (const row of listingCountRows) {
+      const existing = listingCountsBySellerId.get(row.seller_id) || { total: 0, active: 0 };
+      existing.total += 1;
+      if (row.status === "active") {
+        existing.active += 1;
+      }
+      listingCountsBySellerId.set(row.seller_id, existing);
     }
-    listingCountsBySellerId.set(row.seller_id, existing);
-  }
 
-  return {
-    metrics: {
-      totalListings: {
-        label: "Total listings",
-        value: totalListings,
-        note: `${pendingListings} pending review`,
+    return {
+      metrics: {
+        totalListings: {
+          label: "Total listings",
+          value: totalListings,
+          note: `${pendingListings} pending review`,
+        },
+        pendingListings: {
+          label: "Pending moderation",
+          value: pendingListings,
+          note: "Review queue",
+        },
+        totalUsers: {
+          label: "Registered users",
+          value: totalUsers,
+        },
+        supportQueue: {
+          label: "Open support tickets",
+          value: openTickets,
+          note: "Buyer and seller issues",
+        },
       },
-      pendingListings: {
-        label: "Pending moderation",
-        value: pendingListings,
-        note: "Review queue",
-      },
-      totalUsers: {
-        label: "Registered users",
-        value: totalUsers,
-      },
-      supportQueue: {
-        label: "Open support tickets",
-        value: openTickets,
-        note: "Buyer and seller issues",
-      },
-    },
-    recentListings: ((recentListingsResult.data || []) as unknown as ListingRow[]).map(normalizeListing),
-    recentUsers: ((recentProfilesResult.data || []) as ProfileRow[]).map((profile) =>
-      normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)
-    ),
-    recentTickets: ((recentTicketsResult.data || []) as unknown as TicketRow[]).map(normalizeTicket),
-    pendingDealers: ((pendingDealersResult.data || []) as unknown as DealerRow[]).map((dealer) => {
-      const profile = firstRelation(dealer.profile);
-      return {
-        id: dealer.id,
-        name: dealer.name,
-        city: dealer.city,
-        contactName: profile?.full_name || profile?.email || "Unknown dealer",
-        contactEmail: profile?.email || null,
-        createdAt: dealer.created_at,
-      } satisfies AdminDashboardDealer;
-    }),
-  };
+      recentListings: ((recentListingsResult.data || []) as unknown as ListingRow[]).map(normalizeListing),
+      recentUsers: ((recentProfilesResult.data || []) as ProfileRow[]).map((profile) =>
+        normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)
+      ),
+      recentTickets: ((recentTicketsResult.data || []) as unknown as TicketRow[]).map(normalizeTicket),
+      pendingDealers: ((pendingDealersResult.data || []) as unknown as DealerRow[]).map((dealer) => {
+        const profile = firstRelation(dealer.profile);
+        return {
+          id: dealer.id,
+          name: dealer.name,
+          city: dealer.city,
+          contactName: profile?.full_name || profile?.email || "Unknown dealer",
+          contactEmail: profile?.email || null,
+          createdAt: dealer.created_at,
+        } satisfies AdminDashboardDealer;
+      }),
+    };
+  } catch (error) {
+    console.warn(`Admin dashboard data unavailable: ${describeError(error)}`);
+    return EMPTY_ADMIN_DASHBOARD_DATA;
+  }
 });
 
 export const getAdminListingsOverviewData = cache(
   async (limit = 80): Promise<AdminListingsOverviewData> => {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin listings unavailable: Supabase service role environment variables are missing.");
+    try {
+      const adminSupabase = createOptionalAdminClient();
+      if (!adminSupabase) {
+        console.warn("Admin listings unavailable: Supabase service role environment variables are missing.");
+        return EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA;
+      }
+
+      const statuses: ListingStatus[] = ["draft", "pending", "active", "reserved", "rejected", "sold", "expired"];
+
+      const countResults = await Promise.all(
+        statuses.map((status) =>
+          readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", status))
+        )
+      );
+
+      const { data } = await adminSupabase
+        .from("listings")
+        .select(
+          `
+            id,
+            status,
+            make,
+            model,
+            year,
+            price,
+            currency,
+            body_type,
+            created_at,
+            metadata,
+            seller:profiles!seller_id(id, full_name, email),
+            dealer:dealers(id, name, city)
+          `
+        )
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      return {
+        stats: Object.fromEntries(statuses.map((status, index) => [status, countResults[index]])) as Record<
+          ListingStatus,
+          number
+        >,
+        total: countResults.reduce((sum, count) => sum + count, 0),
+        listings: ((data || []) as unknown as ListingRow[]).map(normalizeListing),
+      };
+    } catch (error) {
+      console.warn(`Admin listings unavailable: ${describeError(error)}`);
       return EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA;
     }
-
-    const statuses: ListingStatus[] = ["draft", "pending", "active", "rejected", "sold", "expired"];
-
-    const countResults = await Promise.all(
-      statuses.map((status) =>
-        readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", status))
-      )
-    );
-
-    const { data } = await adminSupabase
-      .from("listings")
-      .select(
-        `
-          id,
-          status,
-          make,
-          model,
-          year,
-          price,
-          currency,
-          body_type,
-          created_at,
-          metadata,
-          seller:profiles!seller_id(id, full_name, email),
-          dealer:dealers(id, name, city)
-        `
-      )
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    return {
-      stats: Object.fromEntries(statuses.map((status, index) => [status, countResults[index]])) as Record<
-        ListingStatus,
-        number
-      >,
-      total: countResults.reduce((sum, count) => sum + count, 0),
-      listings: ((data || []) as unknown as ListingRow[]).map(normalizeListing),
-    };
   }
 );
 
 export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<AdminUsersOverviewData> => {
-  const adminSupabase = createOptionalAdminClient();
-  if (!adminSupabase) {
-    console.warn("Admin users unavailable: Supabase service role environment variables are missing.");
-    return EMPTY_ADMIN_USERS_OVERVIEW_DATA;
-  }
-
-  const [
-    total,
-    buyers,
-    sellers,
-    dealers,
-    admins,
-    supports,
-    pendingDealers,
-    profilesResult,
-  ] = await Promise.all([
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "buyer")),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "seller")),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "dealer")),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin")),
-    readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "support")),
-    readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
-    adminSupabase
-      .from("profiles")
-      .select("id, email, full_name, role, created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit),
-  ]);
-
-  const profiles = (profilesResult.data || []) as ProfileRow[];
-  const profileIds = profiles.map((profile) => profile.id);
-
-  const [dealerRowsResult, listingCountRowsResult] = await Promise.all([
-    profileIds.length > 0
-      ? adminSupabase
-          .from("dealers")
-          .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
-          .in("profile_id", profileIds)
-      : Promise.resolve({ data: [] }),
-    profileIds.length > 0
-      ? adminSupabase.from("listings").select("seller_id, status").in("seller_id", profileIds)
-      : Promise.resolve({ data: [] }),
-  ]);
-
-  const dealerRows = (dealerRowsResult.data || []) as unknown as DealerRow[];
-  const listingCountRows = (listingCountRowsResult.data || []) as unknown as UserListingCountRow[];
-  const dealerByProfileId = new Map(dealerRows.map((dealer) => [dealer.profile_id, dealer]));
-  const listingCountsBySellerId = new Map<string, { total: number; active: number }>();
-
-  for (const row of listingCountRows) {
-    const existing = listingCountsBySellerId.get(row.seller_id) || { total: 0, active: 0 };
-    existing.total += 1;
-    if (row.status === "active") {
-      existing.active += 1;
+  try {
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin users unavailable: Supabase service role environment variables are missing.");
+      return EMPTY_ADMIN_USERS_OVERVIEW_DATA;
     }
-    listingCountsBySellerId.set(row.seller_id, existing);
-  }
 
-  return {
-    stats: {
+    const [
       total,
       buyers,
       sellers,
       dealers,
-      staff: admins + supports,
+      admins,
+      supports,
       pendingDealers,
-    },
-    users: profiles.map((profile) => normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)),
-  };
+      profilesResult,
+    ] = await Promise.all([
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "buyer")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "seller")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "dealer")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "support")),
+      readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
+      adminSupabase
+        .from("profiles")
+        .select("id, email, full_name, role, created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    ]);
+
+    const profiles = (profilesResult.data || []) as ProfileRow[];
+    const profileIds = profiles.map((profile) => profile.id);
+
+    const [dealerRowsResult, listingCountRowsResult] = await Promise.all([
+      profileIds.length > 0
+        ? adminSupabase
+            .from("dealers")
+            .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
+            .in("profile_id", profileIds)
+        : Promise.resolve({ data: [] }),
+      profileIds.length > 0
+        ? adminSupabase.from("listings").select("seller_id, status").in("seller_id", profileIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const dealerRows = (dealerRowsResult.data || []) as unknown as DealerRow[];
+    const listingCountRows = (listingCountRowsResult.data || []) as unknown as UserListingCountRow[];
+    const dealerByProfileId = new Map(dealerRows.map((dealer) => [dealer.profile_id, dealer]));
+    const listingCountsBySellerId = new Map<string, { total: number; active: number }>();
+
+    for (const row of listingCountRows) {
+      const existing = listingCountsBySellerId.get(row.seller_id) || { total: 0, active: 0 };
+      existing.total += 1;
+      if (row.status === "active") {
+        existing.active += 1;
+      }
+      listingCountsBySellerId.set(row.seller_id, existing);
+    }
+
+    return {
+      stats: {
+        total,
+        buyers,
+        sellers,
+        dealers,
+        staff: admins + supports,
+        pendingDealers,
+      },
+      users: profiles.map((profile) => normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)),
+    };
+  } catch (error) {
+    console.warn(`Admin users unavailable: ${describeError(error)}`);
+    return EMPTY_ADMIN_USERS_OVERVIEW_DATA;
+  }
 });
 
 export const getAdminAuditLogsData = cache(async (limit = 80): Promise<AdminAuditLogsData> => {
-  const adminSupabase = createOptionalAdminClient();
-  if (!adminSupabase) {
-    console.warn("Admin audit logs unavailable: Supabase service role environment variables are missing.");
+  try {
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin audit logs unavailable: Supabase service role environment variables are missing.");
+      return EMPTY_ADMIN_AUDIT_LOGS_DATA;
+    }
+
+    const last24HoursCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const [total, last24Hours, dealerEvents, listingEvents, logsResult] = await Promise.all([
+      readCount(adminSupabase.from("audit_logs").select("*", { count: "exact", head: true })),
+      readCount(
+        adminSupabase
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", last24HoursCutoff)
+      ),
+      readCount(
+        adminSupabase
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("entity_type", "dealer")
+      ),
+      readCount(
+        adminSupabase
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("entity_type", "listing")
+      ),
+      adminSupabase
+        .from("audit_logs")
+        .select(
+          `
+            id,
+            user_id,
+            action,
+            entity_type,
+            entity_id,
+            details,
+            ip_address,
+            created_at,
+            actor:profiles!user_id(id, full_name, email)
+          `
+        )
+        .order("created_at", { ascending: false })
+        .limit(limit),
+    ]);
+
+    return {
+      stats: {
+        total,
+        last24Hours,
+        dealerEvents,
+        listingEvents,
+      },
+      logs: ((logsResult.data || []) as unknown as AuditLogRow[]).map(normalizeAuditLog),
+    };
+  } catch (error) {
+    console.warn(`Admin audit logs unavailable: ${describeError(error)}`);
     return EMPTY_ADMIN_AUDIT_LOGS_DATA;
   }
-
-  const last24HoursCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const [total, last24Hours, dealerEvents, listingEvents, logsResult] = await Promise.all([
-    readCount(adminSupabase.from("audit_logs").select("*", { count: "exact", head: true })),
-    readCount(
-      adminSupabase
-        .from("audit_logs")
-        .select("*", { count: "exact", head: true })
-        .gte("created_at", last24HoursCutoff)
-    ),
-    readCount(
-      adminSupabase
-        .from("audit_logs")
-        .select("*", { count: "exact", head: true })
-        .eq("entity_type", "dealer")
-    ),
-    readCount(
-      adminSupabase
-        .from("audit_logs")
-        .select("*", { count: "exact", head: true })
-        .eq("entity_type", "listing")
-    ),
-    adminSupabase
-      .from("audit_logs")
-      .select(
-        `
-          id,
-          user_id,
-          action,
-          entity_type,
-          entity_id,
-          details,
-          ip_address,
-          created_at,
-          actor:profiles!user_id(id, full_name, email)
-        `
-      )
-      .order("created_at", { ascending: false })
-      .limit(limit),
-  ]);
-
-  return {
-    stats: {
-      total,
-      last24Hours,
-      dealerEvents,
-      listingEvents,
-    },
-    logs: ((logsResult.data || []) as unknown as AuditLogRow[]).map(normalizeAuditLog),
-  };
 });
