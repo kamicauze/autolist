@@ -28,8 +28,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthModalShell
       title="Login"
-      imageAlt="Autolist login"
-      imageSrc="/sample-car-3.jpg"
+      imageAlt="Front view of a gold BMW X2"
+      imageSrc="/auth/login-bmw-x2-front.jpg"
     >
       <Suspense fallback={<div className="h-56 animate-pulse rounded-xl bg-gray-100" aria-hidden />}>
         <LoginForm />
