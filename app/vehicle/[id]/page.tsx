@@ -3,8 +3,12 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserFavoriteListingIds } from "@/lib/data/favorites";
 import { getListingById, getSimilarListings } from "@/lib/data/listings";
 import { getListingPricePositioning } from "@/lib/data/market-insights";
+import { getListingReviewsData } from "@/lib/data/reviews";
+import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
 import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
@@ -20,9 +24,33 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     notFound();
   }
 
-  const similarListings = await getSimilarListings(listing, 4);
-  const pricePositioning = await getListingPricePositioning(listing);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  const [similarListings, pricePositioning, listingReviewsData] = await Promise.all([
+    getSimilarListings(listing, 4),
+    getListingPricePositioning(listing),
+    getListingReviewsData(listing.id),
+  ]);
+
+  const favoriteListingIds = user
+    ? await getCurrentUserFavoriteListingIds([
+        listing.id,
+        ...similarListings.map((item) => item.id),
+      ])
+    : [];
+
+  const viewerProfile = user
+    ? await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("id", user.id)
+        .maybeSingle<{ id: string; full_name: string | null }>()
+    : { data: null, error: null };
+
+  const googleMapsApiKey = getGoogleMapsApiKey();
   const title = getListingDisplayTitle(listing);
   const location = getListingDisplayLocation(listing);
 
@@ -32,7 +60,6 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
       <main className="flex-1 bg-gray-50">
         <div className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
@@ -41,14 +68,26 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
             className="mb-4"
           />
 
-          {/* Page Content */}
           <Suspense fallback={<div className="h-[1200px] animate-pulse rounded-2xl bg-white" aria-hidden />}>
             <VehiclePageClient
               listing={listing}
               similarListings={similarListings}
               pricePositioning={pricePositioning}
+              listingReviewsData={listingReviewsData}
+              viewer={
+                user
+                  ? {
+                      id: user.id,
+                      email: user.email ?? null,
+                      fullName: viewerProfile.data?.full_name ?? null,
+                    }
+                  : null
+              }
+              initialIsFavorited={favoriteListingIds.includes(listing.id)}
+              favoriteListingIds={favoriteListingIds}
               title={title}
               location={location}
+              googleMapsApiKey={googleMapsApiKey}
             />
           </Suspense>
         </div>

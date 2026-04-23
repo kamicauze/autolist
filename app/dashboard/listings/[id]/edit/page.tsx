@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ListingWizardV2 } from "@/components/dashboard/wizard/listing-wizard-v2";
 import { getMyListingById } from "@/lib/actions/listings";
+import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 
 type EditListingPageProps = {
   params: Promise<{ id: string }>;
@@ -14,5 +15,10 @@ export default async function EditListingPage({ params }: EditListingPageProps) 
     notFound();
   }
 
-  return <ListingWizardV2 initialListing={result.data} />;
+  return (
+    <ListingWizardV2
+      initialListing={result.data}
+      googleMapsApiKey={getGoogleMapsApiKey()}
+    />
+  );
 }

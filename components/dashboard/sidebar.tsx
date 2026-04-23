@@ -4,25 +4,32 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BadgeCheck,
+  Heart,
   KeyRound,
   LayoutDashboard,
   ListOrdered,
   LogOut,
   MessageSquare,
   ShieldCheck,
+  Star,
   User,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import type { SellerPackageAccessState } from "@/lib/types/membership";
 import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 
 const sellerNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Listings", href: "/dashboard/listings", icon: ListOrdered },
+  { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Verification", href: "/dashboard/verification", icon: ShieldCheck },
+  { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+  { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
   { name: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
@@ -32,11 +39,38 @@ const accountNav = [
 
 interface SidebarProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
+  packageAccess: SellerPackageAccessState;
   open: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ user, open, onClose }: SidebarProps) {
+function buildPlanSummary(packageAccess: SellerPackageAccessState) {
+  if (!packageAccess.hasActivePlan || !packageAccess.currentPlan) {
+    return {
+      name: "No active plan",
+      detail: "Activate a seller package to publish listings.",
+    };
+  }
+
+  if (packageAccess.remainingListings === null) {
+    return {
+      name: packageAccess.currentPlan.name,
+      detail: packageAccess.renewalDateLabel
+        ? `Unlimited listing slots available. Renews ${packageAccess.renewalDateLabel}.`
+        : "Unlimited listing slots available.",
+    };
+  }
+
+  const slotLabel = packageAccess.remainingListings === 1 ? "slot" : "slots";
+  return {
+    name: packageAccess.currentPlan.name,
+    detail: packageAccess.renewalDateLabel
+      ? `${packageAccess.remainingListings} listing ${slotLabel} remaining. Renews ${packageAccess.renewalDateLabel}.`
+      : `${packageAccess.remainingListings} listing ${slotLabel} remaining.`,
+  };
+}
+
+export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -45,6 +79,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
     user.email?.split("@")[0] ||
     "Seller";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+  const planSummary = buildPlanSummary(packageAccess);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -158,6 +193,14 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 px-5 py-5">
+        <div className="mb-4 rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Current plan</p>
+          <p className="mt-2 text-[16px] font-semibold text-white">{planSummary.name}</p>
+          <p className="mt-1 text-[12px] leading-5 text-white/55">
+            {planSummary.detail}
+          </p>
+        </div>
+
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white"

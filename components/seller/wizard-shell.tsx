@@ -15,6 +15,10 @@ interface WizardShellProps {
   headerAction?: React.ReactNode;
   steps: readonly WizardStep[];
   activeStep: number;
+  stepMeta?: ReadonlyArray<{
+    complete?: boolean;
+  }>;
+  onStepSelect?: (stepIndex: number) => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
   footerMeta?: React.ReactNode;
@@ -29,6 +33,8 @@ export function WizardShell({
   headerAction,
   steps,
   activeStep,
+  stepMeta,
+  onStepSelect,
   children,
   footer,
   footerMeta,
@@ -75,7 +81,7 @@ export function WizardShell({
         <ol className="mt-9 space-y-1">
           {steps.map((step, index) => {
             const active = index === activeStep;
-            const done = index < activeStep;
+            const complete = stepMeta?.[index]?.complete ?? index < activeStep;
 
             return (
               <li key={step.id} className="relative pl-[52px]">
@@ -84,7 +90,7 @@ export function WizardShell({
                     aria-hidden
                     className={cn(
                       "absolute left-[20px] top-11 h-[calc(100%-12px)] w-px",
-                      done ? "bg-[#2563eb]/30" : "bg-[#e5e7eb]"
+                      complete ? "bg-[#2563eb]/30" : "bg-[#e5e7eb]"
                     )}
                   />
                 ) : null}
@@ -95,7 +101,7 @@ export function WizardShell({
                       "flex h-10 w-10 items-center justify-center rounded-full text-[14px] font-semibold transition",
                       active
                         ? "bg-[#2563eb] text-white shadow-[0_10px_24px_rgba(37,99,235,0.22)]"
-                        : done
+                        : complete
                           ? "bg-[#e6efff] text-[#2563eb]"
                           : "bg-white text-[#737780] ring-1 ring-[#e7e7e7]"
                     )}
@@ -104,7 +110,17 @@ export function WizardShell({
                   </div>
                 </div>
 
-                <div className="pb-8">
+                <button
+                  type="button"
+                  disabled={!onStepSelect}
+                  onClick={onStepSelect ? () => onStepSelect(index) : undefined}
+                  className={cn(
+                    "w-full rounded-[18px] pb-8 text-left transition",
+                    !onStepSelect && "cursor-default",
+                    onStepSelect &&
+                      "hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
+                  )}
+                >
                   <p
                     className={cn(
                       "text-[15px] font-semibold",
@@ -118,7 +134,7 @@ export function WizardShell({
                       {step.description}
                     </p>
                   ) : null}
-                </div>
+                </button>
               </li>
             );
           })}

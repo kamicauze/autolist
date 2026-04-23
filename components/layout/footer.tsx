@@ -22,7 +22,7 @@ const footerLinks = {
   About: [
     { name: "About Autolist", href: "/about" },
     { name: "Careers", href: "/careers" },
-    { name: "Blog", href: "/search?sortBy=newest" },
+    { name: "Blog", href: "/blog" },
     { name: "Contact us", href: "/about" },
     { name: "Privacy policy", href: "/privacy" },
     { name: "Terms & conditions", href: "/terms" },

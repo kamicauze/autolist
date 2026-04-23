@@ -2,18 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   Flag,
   GitCompare,
   Heart,
+  Loader2,
   MapPin,
   ShieldCheck,
   Share2,
 } from "lucide-react";
+import { setListingWishlistState } from "@/lib/actions/favorites";
 import { Listing } from "@/lib/types/listing";
 import type { PricePositioningResult } from "@/lib/types/market-insights";
+import type { VehicleListingReviewsData } from "@/lib/types/listing-review";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -37,13 +40,25 @@ import {
 } from "./price-adviser-panel";
 import { FinancingRequestDialog } from "./financing-request-dialog";
 import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
+import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
+import { buildGoogleMapsQuery, getGoogleMapsDirectionsUrl } from "@/lib/google-maps";
+import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
 
 interface VehiclePageClientProps {
   listing: Listing;
   similarListings: Listing[];
   pricePositioning: PricePositioningResult;
+  listingReviewsData: VehicleListingReviewsData;
+  viewer: {
+    id: string | null;
+    email: string | null;
+    fullName: string | null;
+  } | null;
+  initialIsFavorited: boolean;
+  favoriteListingIds: string[];
   title: string;
   location: string;
+  googleMapsApiKey: string;
 }
 
 type SectionKey =
@@ -147,22 +162,45 @@ function AccordionSection({
   );
 }
 
-function MapBlock({ location }: { location: string }) {
+function MapBlock({
+  googleMapsApiKey,
+  locationLabel,
+  mapQuery,
+}: {
+  googleMapsApiKey: string;
+  locationLabel: string;
+  mapQuery: string | null;
+}) {
+  const directionsUrl = getGoogleMapsDirectionsUrl(mapQuery);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm text-gray-600">
         <MapPin className="h-4 w-4 text-gray-400" />
-        <span>{location}, Kenya</span>
+        <span>{locationLabel}</span>
       </div>
       <div className="relative h-[260px] overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-sky-100 to-gray-100">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(59,130,246,0.2),transparent_35%),radial-gradient(circle_at_70%_70%,rgba(34,197,94,0.18),transparent_35%)]" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-            {location}
-          </div>
-        </div>
+        <GoogleMapEmbed
+          apiKey={googleMapsApiKey}
+          query={mapQuery}
+          title={`Map for ${locationLabel}`}
+          fallback={
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(59,130,246,0.2),transparent_35%),radial-gradient(circle_at_70%_70%,rgba(34,197,94,0.18),transparent_35%)]" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                  {locationLabel}
+                </div>
+              </div>
+            </>
+          }
+        />
       </div>
-      <Button className="w-full bg-primary text-white hover:bg-primary/90">Get Direction</Button>
+      <Button asChild className="w-full bg-primary text-white hover:bg-primary/90">
+        <a href={directionsUrl} target="_blank" rel="noreferrer">
+          Get Direction
+        </a>
+      </Button>
     </div>
   );
 }
@@ -176,9 +214,15 @@ export function VehiclePageClient({
   listing,
   similarListings,
   pricePositioning,
+  listingReviewsData,
+  viewer,
+  initialIsFavorited,
+  favoriteListingIds,
   title,
   location,
+  googleMapsApiKey,
 }: VehiclePageClientProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preset = useMemo(
     () => getPresetFromQuery(searchParams.get("state")),
@@ -202,7 +246,18 @@ export function VehiclePageClient({
   const [accordionState, setAccordionState] = useState<Record<SectionKey, boolean>>(
     PRESET_STATES[preset]
   );
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsFavorited);
+  const [isWishlistPending, setIsWishlistPending] = useState(false);
+  const {
+    feedback: enquiryFeedback,
+    isSubmitting: isEnquirySubmitting,
+    message: enquiryMessage,
+    setMessage: setEnquiryMessage,
+    submitEnquiry,
+  } = useListingEnquiry({
+    listingId: listing.id,
+    initialMessage: "Hi, I'm interested in this vehicle. Please contact me with more details.",
+  });
 
   useEffect(() => {
     setAccordionState(PRESET_STATES[preset]);
@@ -210,9 +265,19 @@ export function VehiclePageClient({
     setIsFinancingDialogOpen(preset === "most-open");
   }, [preset]);
 
+  useEffect(() => {
+    setIsLiked(initialIsFavorited);
+  }, [initialIsFavorited]);
+
   const formattedPrice = new Intl.NumberFormat("en-KE").format(listing.price);
   const inCompare = isInCompare(listing.id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
+  const locationLabel = buildGoogleMapsQuery([location, "Kenya"]) || "Kenya";
+  const mapQuery = buildGoogleMapsQuery([
+    listing.dealer?.address,
+    location,
+    "Kenya",
+  ]);
 
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
@@ -220,6 +285,29 @@ export function VehiclePageClient({
 
   const setSectionOpen = (key: SectionKey, open: boolean) => {
     setAccordionState((prev) => ({ ...prev, [key]: open }));
+  };
+
+  const handleWishlistToggle = async () => {
+    const nextValue = !isLiked;
+    setIsLiked(nextValue);
+    setIsWishlistPending(true);
+
+    const result = await setListingWishlistState(listing.id, nextValue);
+
+    if (result.error) {
+      setIsLiked(!nextValue);
+      setIsWishlistPending(false);
+
+      if (result.error === "AUTH_REQUIRED") {
+        router.push(`/login?next=${encodeURIComponent(`/vehicle/${listing.id}`)}`);
+        return;
+      }
+
+      console.error("Unable to update favorites:", result.error);
+      return;
+    }
+
+    setIsWishlistPending(false);
   };
 
   return (
@@ -273,7 +361,8 @@ export function VehiclePageClient({
                   variant="outline"
                   size="icon"
                   className="h-9 w-9 rounded-full border-gray-300"
-                  onClick={() => setIsLiked((prev) => !prev)}
+                  onClick={() => void handleWishlistToggle()}
+                  disabled={isWishlistPending}
                 >
                   <Heart
                     className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
@@ -337,7 +426,11 @@ export function VehiclePageClient({
                 <FeaturesList features={listing.features} />
               </TabsContent>
               <TabsContent value="location" className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
-                <MapBlock location={location} />
+                <MapBlock
+                  googleMapsApiKey={googleMapsApiKey}
+                  locationLabel={locationLabel}
+                  mapQuery={mapQuery}
+                />
               </TabsContent>
               <TabsContent value="loan" className="mt-5">
                 <VehicleLoanCalculator
@@ -430,7 +523,11 @@ export function VehiclePageClient({
                 open={accordionState.location}
                 onOpenChange={(open) => setSectionOpen("location", open)}
               >
-                <MapBlock location={location} />
+                <MapBlock
+                  googleMapsApiKey={googleMapsApiKey}
+                  locationLabel={locationLabel}
+                  mapQuery={mapQuery}
+                />
               </AccordionSection>
 
               <AccordionSection
@@ -500,8 +597,16 @@ export function VehiclePageClient({
                 onOpenChange={(open) => setSectionOpen("reviews", open)}
               >
                 <div className="space-y-7">
-                  <ReviewsSection />
-                  <ReplyForm />
+                  <ReviewsSection
+                    summary={listingReviewsData.summary}
+                    reviews={listingReviewsData.reviews}
+                  />
+                  <ReplyForm
+                    listingId={listing.id}
+                    sellerId={listing.seller_id}
+                    viewer={viewer}
+                    existingReview={listingReviewsData.viewerReview}
+                  />
                 </div>
               </AccordionSection>
             </div>
@@ -514,11 +619,30 @@ export function VehiclePageClient({
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>
                 <textarea
+                  value={enquiryMessage}
+                  onChange={(event) => setEnquiryMessage(event.target.value)}
                   className="mt-3 min-h-[96px] w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-primary focus:outline-none"
-                  defaultValue="Hi, I'm interested in this vehicle. Please contact me with more details."
+                  placeholder="Hi, I'm interested in this vehicle. Please contact me with more details."
                 />
-                <Button className="mt-3 w-full bg-primary text-white hover:bg-primary/90">
-                  Send Message
+                {enquiryFeedback ? (
+                  <div className="mt-3 rounded-[12px] border border-[#d0d5dd] bg-[#f8fafc] px-4 py-3 text-[13px] text-[#475467]">
+                    {enquiryFeedback}
+                  </div>
+                ) : null}
+                <Button
+                  type="button"
+                  className="mt-3 w-full bg-primary text-white hover:bg-primary/90"
+                  onClick={() => void submitEnquiry()}
+                  disabled={isEnquirySubmitting}
+                >
+                  {isEnquirySubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending
+                    </>
+                  ) : (
+                    "Send Message"
+                  )}
                 </Button>
               </div>
 
@@ -559,7 +683,11 @@ export function VehiclePageClient({
                 <p className="mb-3 text-xs text-gray-500">
                   Showing more cars you might like
                 </p>
-                <RecommendedCars listings={similarListings} sidebarMode />
+                <RecommendedCars
+                  listings={similarListings}
+                  sidebarMode
+                  favoriteListingIds={favoriteListingIds}
+                />
               </div>
             </div>
           </div>

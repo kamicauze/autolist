@@ -235,6 +235,18 @@ export async function submitDealerVerification(formData: FormData) {
     const compactSocialLinks = Object.fromEntries(
       Object.entries(socialLinks).filter(([, value]) => Boolean(value))
     );
+    const profilePayload = {
+      role: "dealer",
+      phone: normalizePhone(mobileNumber),
+      whatsapp: normalizePhone(whatsappNumber),
+      bio: optionalString(formData, "aboutDealership"),
+      city: cityTown,
+      address: dealershipAddress,
+      website: optionalString(formData, "websiteUrl"),
+      facebook_url: socialLinks.facebook ?? null,
+      twitter_url: socialLinks.x ?? null,
+      instagram_url: socialLinks.instagram ?? null,
+    };
 
     const baseDealerPayload = {
       profile_id: user.id,
@@ -375,7 +387,7 @@ export async function submitDealerVerification(formData: FormData) {
 
     const { error: roleError } = await adminSupabase
       .from("profiles")
-      .update({ role: "dealer" })
+      .update(profilePayload)
       .eq("id", user.id);
 
     if (roleError) {

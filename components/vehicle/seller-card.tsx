@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Star, Phone, ShieldCheck, BadgeCheck, Loader2, MessageSquareText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconWhatsapp } from "@/components/ui/icons";
+import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
 import {
   Dialog,
   DialogContent,
@@ -37,51 +37,13 @@ interface SellerCardProps {
 }
 
 export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
-  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { feedback, isSubmitting, message, setMessage, submitEnquiry } = useListingEnquiry({
+    listingId,
+  });
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
-
-  async function submitEnquiry() {
-    const trimmed = message.trim();
-    if (!trimmed) {
-      setFeedback("Write a message before sending.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFeedback(null);
-
-    try {
-      const response = await fetch(`/api/listings/${listingId}/enquiry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
-      });
-
-      const payload = (await response.json()) as { error?: string; success?: boolean };
-
-      if (response.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(`/vehicle/${listingId}`)}`);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to send enquiry.");
-      }
-
-      setFeedback("Message sent. You can continue this conversation in Messages.");
-      setMessage("");
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Unable to send enquiry.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   return (
     <>

@@ -1,12 +1,21 @@
 "use client";
 
+import { useDeferredValue } from "react";
 import { LISTING_AVAILABILITY_OPTIONS, LISTING_CATEGORY_OPTIONS, LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
 import { formatKES, formatPriceInput, MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass, sellerTextareaClass } from "../seller-dashboard-ui";
+import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
+import { buildGoogleMapsQuery } from "@/lib/google-maps";
 
-export function StepBasicInfo() {
+export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: string }) {
   const { draft, updateField, showValidationErrors } = useWizard();
+  const locationPreview = buildGoogleMapsQuery([
+    draft.locationArea,
+    draft.cityTown,
+    draft.country,
+  ]);
+  const deferredLocationPreview = useDeferredValue(locationPreview);
 
   return (
     <div className="space-y-6">
@@ -158,10 +167,29 @@ export function StepBasicInfo() {
 
         <div className="rounded-[20px] border border-[#ededed] bg-[#f6f8fb] p-5">
           <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#7b8190]">Location Preview</p>
-          <div className="mt-4 flex min-h-[180px] items-center justify-center rounded-[18px] border border-dashed border-[#d9dee8] bg-white text-center text-[14px] text-[#8a8fa0]">
-            {draft.locationArea || draft.cityTown
-              ? `${draft.locationArea || "Selected area"}, ${draft.cityTown || draft.country}`
-              : "Map preview will appear once the location is fully configured."}
+          <div className="mt-4 overflow-hidden rounded-[18px] border border-dashed border-[#d9dee8] bg-white">
+            {locationPreview ? (
+              <div className="space-y-3 p-4">
+                <p className="text-[14px] font-medium text-[#475467]">{locationPreview}</p>
+                <div className="min-h-[220px] overflow-hidden rounded-[14px] border border-[#e4e7ec] bg-[#f6f8fb]">
+                  <GoogleMapEmbed
+                    apiKey={googleMapsApiKey}
+                    query={deferredLocationPreview}
+                    title="Listing location preview"
+                    className="min-h-[220px]"
+                    fallback={
+                      <div className="flex min-h-[220px] items-center justify-center px-6 text-center text-[14px] text-[#8a8fa0]">
+                        {locationPreview}
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[180px] items-center justify-center px-6 text-center text-[14px] text-[#8a8fa0]">
+                Map preview will appear once the location is fully configured.
+              </div>
+            )}
           </div>
         </div>
       </section>

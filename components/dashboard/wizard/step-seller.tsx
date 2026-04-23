@@ -4,7 +4,16 @@ import { useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
 
 export function StepSeller() {
-  const { draft, updateField, applyDealerAutofill, sellerValidationError } = useWizard();
+  const {
+    draft,
+    updateField,
+    applyDealerAutofill,
+    sellerValidationError,
+    goToStep,
+  } = useWizard();
+  const sellerLocation = [draft.locationArea, draft.cityTown, draft.country]
+    .filter((value) => value.trim().length > 0)
+    .join(", ");
 
   return (
     <div className="space-y-6">
@@ -101,6 +110,31 @@ export function StepSeller() {
             />
             Hide Phone Number
           </label>
+        </div>
+
+        <div className="mt-5 rounded-[18px] border border-[#e7edf6] bg-[#f8fbff] px-4 py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Seller Location
+              </p>
+              <p className="mt-2 text-[15px] font-medium text-[#202224]">
+                {sellerLocation || "Seller location not set yet."}
+              </p>
+              <p className="mt-1 text-[13px] leading-6 text-[#667085]">
+                This location comes from Listing Basics and powers the map and buyer-facing
+                location context.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => goToStep(1, { showValidationErrors: true })}
+              className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#d6dce8] bg-white px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+            >
+              Edit Location
+            </button>
+          </div>
         </div>
       </div>
 

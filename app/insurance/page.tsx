@@ -4,6 +4,8 @@ import * as React from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/shared/page-hero";
+import { submitInsuranceRequest } from "@/lib/actions/insurance";
+import type { InsuranceCoverType, InsuranceRequestSubmissionInput } from "@/lib/types/insurance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,8 +50,50 @@ const premiumFactors = [
   "Type of cover",
 ];
 
+const INITIAL_FORM: InsuranceRequestSubmissionInput = {
+  fullName: "",
+  email: "",
+  vehicleMakeModel: "",
+  vehicleYear: "",
+  phoneCountryCode: "+254",
+  phone: "",
+  coverType: "comprehensive",
+  startDate: "",
+};
+
 export default function InsurancePage() {
-  const [coverType, setCoverType] = React.useState("comprehensive");
+  const [form, setForm] = React.useState<InsuranceRequestSubmissionInput>(INITIAL_FORM);
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
+  const [isPending, startTransition] = React.useTransition();
+
+  const updateField = <Key extends keyof InsuranceRequestSubmissionInput>(
+    key: Key,
+    value: InsuranceRequestSubmissionInput[Key]
+  ) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    startTransition(async () => {
+      const result = await submitInsuranceRequest(form);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      setSuccess(
+        `Request received. Reference ${result.reference}. Our insurance team will reach out with quote options shortly.`
+      );
+      setForm(INITIAL_FORM);
+    });
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -61,33 +105,74 @@ export default function InsurancePage() {
             <h3 className="text-base font-semibold text-gray-900">Get your quote</h3>
             <p className="mt-1 text-xs text-gray-500">Fill in your details and we&apos;ll match you with the right cover.</p>
 
-            <form className="mt-5 space-y-3">
+            <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
+              {error ? (
+                <div className="rounded-xl border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-sm text-[#d92d20]">
+                  {error}
+                </div>
+              ) : null}
+
+              {success ? (
+                <div className="rounded-xl border border-[#d1fadf] bg-[#ecfdf3] px-4 py-3 text-sm text-[#067647]">
+                  {success}
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-full-name">Full Name</Label>
-                  <Input id="insurance-full-name" placeholder="John Doe" className="h-10" />
+                  <Input
+                    id="insurance-full-name"
+                    placeholder="John Doe"
+                    className="h-10"
+                    value={form.fullName}
+                    onChange={(event) => updateField("fullName", event.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-email">Email</Label>
-                  <Input id="insurance-email" type="email" placeholder="you@email.com" className="h-10" />
+                  <Input
+                    id="insurance-email"
+                    type="email"
+                    placeholder="you@email.com"
+                    className="h-10"
+                    value={form.email}
+                    onChange={(event) => updateField("email", event.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-make-model">Car make & model</Label>
-                  <Input id="insurance-make-model" placeholder="e.g. Toyota Harrier" className="h-10" />
+                  <Input
+                    id="insurance-make-model"
+                    placeholder="e.g. Toyota Harrier"
+                    className="h-10"
+                    value={form.vehicleMakeModel}
+                    onChange={(event) => updateField("vehicleMakeModel", event.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-year">Year of manufacture</Label>
-                  <Input id="insurance-year" type="number" placeholder="e.g. 2020" className="h-10" />
+                  <Input
+                    id="insurance-year"
+                    type="number"
+                    placeholder="e.g. 2020"
+                    className="h-10"
+                    value={form.vehicleYear}
+                    onChange={(event) => updateField("vehicleYear", event.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-[110px_1fr] gap-3">
                 <div className="space-y-1.5">
                   <Label>Country</Label>
-                  <Select defaultValue="+254">
+                  <Select
+                    value={form.phoneCountryCode}
+                    onValueChange={(value) => updateField("phoneCountryCode", value)}
+                  >
                     <SelectTrigger className="h-10">
                       <SelectValue />
                     </SelectTrigger>
@@ -100,31 +185,49 @@ export default function InsurancePage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-phone">Phone</Label>
-                  <Input id="insurance-phone" type="tel" placeholder="7XX XXX XXX" className="h-10" />
+                  <Input
+                    id="insurance-phone"
+                    type="tel"
+                    placeholder="7XX XXX XXX"
+                    className="h-10"
+                    value={form.phone}
+                    onChange={(event) => updateField("phone", event.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Cover type</Label>
-                  <Select value={coverType} onValueChange={setCoverType}>
+                  <Select
+                    value={form.coverType}
+                    onValueChange={(value) => updateField("coverType", value as InsuranceCoverType)}
+                  >
                     <SelectTrigger className="h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                      <SelectItem value="third-party-fire-theft">Third party fire & theft</SelectItem>
-                      <SelectItem value="third-party">Third party only</SelectItem>
+                      <SelectItem value="third_party_fire_theft">Third party fire & theft</SelectItem>
+                      <SelectItem value="third_party">Third party only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="insurance-start-date">Start date</Label>
-                  <Input id="insurance-start-date" type="date" className="h-10" />
+                  <Input
+                    id="insurance-start-date"
+                    type="date"
+                    className="h-10"
+                    value={form.startDate}
+                    onChange={(event) => updateField("startDate", event.target.value)}
+                  />
                 </div>
               </div>
 
-              <Button type="submit" className="h-10 w-full">Get Quote</Button>
+              <Button type="submit" className="h-10 w-full" disabled={isPending}>
+                {isPending ? "Submitting..." : "Get Quote"}
+              </Button>
             </form>
           </div>
         </PageHero>

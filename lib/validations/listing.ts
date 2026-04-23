@@ -2,6 +2,16 @@
 import { z } from "zod";
 
 const LISTING_CONDITIONS = ["new", "locally_used", "foreign_used"] as const;
+const LISTING_CATEGORIES = [
+  "car",
+  "van",
+  "motorbike",
+  "truck",
+  "plant_construction",
+  "farm_agricultural",
+] as const;
+const LISTING_AVAILABILITY = ["available", "reserved", "sold"] as const;
+const LISTING_SELLER_TYPES = ["dealer", "individual"] as const;
 
 const normalizeCondition = (value: unknown) => {
   if (typeof value !== "string") return value;
@@ -36,6 +46,20 @@ export const listingSchema = z.object({
   doors: z.coerce.number().int().min(1).max(10).optional(),
   drive_type: z.string().trim().optional(),
   details: z.record(z.string(), z.string().trim()).optional(),
+  category: z.enum(LISTING_CATEGORIES).optional(),
+  country: z.string().trim().optional(),
+  cityTown: z.string().trim().optional(),
+  locationArea: z.string().trim().optional(),
+  availability: z.enum(LISTING_AVAILABILITY).optional(),
+  negotiable: z.boolean().optional(),
+  sellerType: z.enum(LISTING_SELLER_TYPES).optional(),
+  useDealerAutoFill: z.boolean().optional(),
+  contactName: z.string().trim().optional(),
+  phoneNumber: z.string().trim().optional(),
+  whatsappEnabled: z.boolean().optional(),
+  whatsappNumber: z.string().trim().optional(),
+  allowPhoneCalls: z.boolean().optional(),
+  hidePhoneNumber: z.boolean().optional(),
 });
 
 export type ListingFormData = z.infer<typeof listingSchema>;

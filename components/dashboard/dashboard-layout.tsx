@@ -1,21 +1,24 @@
 "use client";
 
 import * as React from "react";
+import type { SellerPackageAccessState } from "@/lib/types/membership";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./topnav";
 
 interface DashboardLayoutProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
+  packageAccess: SellerPackageAccessState;
   children: React.ReactNode;
 }
 
-export function DashboardLayout({ user, children }: DashboardLayoutProps) {
+export function DashboardLayout({ user, packageAccess, children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
     <div className="font-body min-h-screen bg-[#f6f4ef] text-[#202224]">
       <Sidebar
         user={user}
+        packageAccess={packageAccess}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

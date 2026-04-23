@@ -27,7 +27,7 @@ const STEP_COMPONENTS = [
   StepReview,
 ];
 
-function WizardContent() {
+function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
   const {
     isEditing,
     activeStep,
@@ -35,11 +35,16 @@ function WizardContent() {
     autoApproved,
     isSubmitting,
     submitError,
-    submitErrorDetails,
+    submitIssues,
+    stepCompletion,
     draft,
+    packageAccess,
+    isLoadingPackageAccess,
+    packageAccessError,
     resetDraft,
     handleContinue,
     handleBack,
+    goToStep,
   } = useWizard();
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
@@ -50,6 +55,70 @@ function WizardContent() {
       : activeStep === 4
         ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length} media files added`
         : `Step ${activeStep + 1} of ${LISTING_WIZARD_STEPS.length}`;
+
+  const packageBanner = isEditing
+    ? null
+    : isLoadingPackageAccess
+      ? {
+          title: "Checking your seller package",
+          description: "Loading plan access and listing capacity before this draft can be published.",
+          buttonLabel: "Checking...",
+          buttonHref: "/dashboard/membership",
+          buttonDisabled: true,
+          wrapperClass: "border border-[#dbe8ff] bg-[#f5f9ff]",
+          iconClass: "bg-[#eef4ff] text-[#2563eb]",
+          buttonClass: "bg-[#2563eb] text-white",
+        }
+      : packageAccessError
+        ? {
+            title: "Package access unavailable",
+            description: packageAccessError,
+            buttonLabel: "Open Membership",
+            buttonHref: "/dashboard/membership",
+            buttonDisabled: false,
+            wrapperClass: "border border-[#ffe2b8] bg-[#fff7ed]",
+            iconClass: "bg-[#ffedd5] text-[#ea580c]",
+            buttonClass: "bg-[#ea580c] text-white hover:bg-[#c2410c]",
+          }
+        : !packageAccess?.hasActivePlan
+          ? {
+              title: "You don't have any active package",
+              description:
+                "Finish the listing details first, then activate the seller package needed to publish this vehicle publicly.",
+              buttonLabel: "Get Package",
+              buttonHref: "/dashboard/membership",
+              buttonDisabled: false,
+              wrapperClass: "border border-[#ffd9d6] bg-[#fff3f2]",
+              iconClass: "bg-[#ffe4e2] text-[#f04438]",
+              buttonClass: "bg-[#f04438] text-white hover:bg-[#d92d20]",
+            }
+          : !packageAccess.canCreateListing
+            ? {
+                title: `${packageAccess.currentPlan?.name || "Current"} package limit reached`,
+                description:
+                  packageAccess.listingLimit === null
+                    ? "Manage your package details before publishing this listing."
+                    : `You are already using ${packageAccess.usedListings} of ${packageAccess.listingLimit} listing slots. Upgrade or switch package to publish another listing.`,
+                buttonLabel: "Upgrade Package",
+                buttonHref: "/dashboard/membership",
+                buttonDisabled: false,
+                wrapperClass: "border border-[#ffe2b8] bg-[#fff7ed]",
+                iconClass: "bg-[#ffedd5] text-[#ea580c]",
+                buttonClass: "bg-[#ea580c] text-white hover:bg-[#c2410c]",
+              }
+            : {
+                title: `${packageAccess.currentPlan?.name || "Seller"} package active`,
+                description:
+                  packageAccess.remainingListings === null
+                    ? "Unlimited listing access is active on this account. Finish the steps below and submit when ready."
+                    : `${packageAccess.remainingListings} listing slot${packageAccess.remainingListings === 1 ? "" : "s"} remaining on this account. Finish the steps below and submit when ready.`,
+                buttonLabel: "Manage Package",
+                buttonHref: "/dashboard/membership",
+                buttonDisabled: false,
+                wrapperClass: "border border-[#dbe8ff] bg-[#f5f9ff]",
+                iconClass: "bg-[#eef4ff] text-[#2563eb]",
+                buttonClass: "bg-[#2563eb] text-white hover:bg-[#1d4ed8]",
+              };
 
   if (submitted) {
     return (
@@ -92,29 +161,38 @@ function WizardContent() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[24px] border border-[#ffd9d6] bg-[#fff3f2] p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffe4e2] text-[#f04438]">
-              <PackageOpen className="h-5 w-5" />
+      {packageBanner ? (
+        <div className={`rounded-[24px] p-5 ${packageBanner.wrapperClass}`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-full ${packageBanner.iconClass}`}>
+                <PackageOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+                  {packageBanner.title}
+                </h2>
+                <p className="mt-2 text-[14px] leading-6 text-[#706c6a]">
+                  {packageBanner.description}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
-                You don&apos;t have any active package
-              </h2>
-              <p className="mt-2 text-[14px] leading-6 text-[#706c6a]">
-                Finish the listing details first, then attach or purchase the seller package needed
-                to publish it publicly.
-              </p>
-            </div>
-          </div>
 
-          <button className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-[#f04438] px-5 text-[14px] font-semibold text-white transition hover:bg-[#d92d20]">
-            Get Package
-            <ArrowRight className="h-4 w-4" />
-          </button>
+            <Link
+              href={packageBanner.buttonHref}
+              aria-disabled={packageBanner.buttonDisabled}
+              className={[
+                "inline-flex h-12 items-center gap-2 rounded-[14px] px-5 text-[14px] font-semibold transition",
+                packageBanner.buttonClass,
+                packageBanner.buttonDisabled ? "pointer-events-none opacity-60" : "",
+              ].join(" ")}
+            >
+              {packageBanner.buttonLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <WizardShell
         title={isEditing ? "Edit Listing" : "Add Listing"}
@@ -137,6 +215,12 @@ function WizardContent() {
         }
         steps={LISTING_WIZARD_STEPS}
         activeStep={activeStep}
+        stepMeta={stepCompletion.map((complete) => ({ complete }))}
+        onStepSelect={
+          isSubmitting
+            ? undefined
+            : (stepIndex) => goToStep(stepIndex, { showValidationErrors: false })
+        }
         footerMeta={footerMeta}
         footer={
           <>
@@ -164,26 +248,48 @@ function WizardContent() {
           <div className="mb-5 rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-4 text-[14px] text-[#d92d20]">
             <p className="font-semibold text-[#d92d20]">Submission Error</p>
             <p className="mt-1">{submitError}</p>
-            {submitErrorDetails.length > 0 ? (
+            {submitIssues.length > 0 ? (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] leading-6 text-[#b42318]">
-                {submitErrorDetails.map((detail) => (
-                  <li key={detail}>{detail}</li>
+                {submitIssues.map((issue) => (
+                  <li key={`${issue.stepIndex ?? "none"}-${issue.message}`}>
+                    {issue.stepIndex === null ? (
+                      issue.message
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => goToStep(issue.stepIndex!, { showValidationErrors: true })}
+                        className="text-left underline decoration-[#f04438]/45 underline-offset-2 hover:text-[#9f1239]"
+                      >
+                        {issue.message}
+                      </button>
+                    )}
+                  </li>
                 ))}
               </ul>
             ) : null}
           </div>
         ) : null}
 
-        {ActiveStep ? <ActiveStep /> : null}
+        {activeStep === 1 ? (
+          <StepBasicInfo googleMapsApiKey={googleMapsApiKey} />
+        ) : ActiveStep ? (
+          <ActiveStep />
+        ) : null}
       </WizardShell>
     </div>
   );
 }
 
-export function ListingWizardV2({ initialListing }: { initialListing?: Listing | null }) {
+export function ListingWizardV2({
+  initialListing,
+  googleMapsApiKey = "",
+}: {
+  initialListing?: Listing | null;
+  googleMapsApiKey?: string;
+}) {
   return (
     <WizardProvider initialListing={initialListing}>
-      <WizardContent />
+      <WizardContent googleMapsApiKey={googleMapsApiKey} />
     </WizardProvider>
   );
 }

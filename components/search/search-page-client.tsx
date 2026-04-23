@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquareText, Sparkles } from "lucide-react";
+import { MessageSquareText, PanelRightClose, PanelRightOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Listing } from "@/lib/types/listing";
 import { QuickFilterBar } from "./quick-filter-bar";
@@ -9,6 +9,10 @@ import { FilterSheet } from "./filter-sheet";
 import { SearchResults } from "./search-results";
 import { QuickSearchDialog } from "@/components/home/quick-search-dialog";
 import { SearchAssistantPanel } from "./search-assistant-panel";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
 
 interface SearchPageClientProps {
   listings: Listing[];
@@ -27,7 +31,8 @@ export function SearchPageClient({
 }: SearchPageClientProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isDesktopAssistantOpen, setIsDesktopAssistantOpen] = useState(false);
+  const [isMobileAssistantOpen, setIsMobileAssistantOpen] = useState(false);
 
   return (
     <>
@@ -49,11 +54,24 @@ export function SearchPageClient({
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-[14px] border-[#d9dfe8] bg-white px-4"
-            onClick={() => setIsAssistantOpen((prev) => !prev)}
+            className="h-11 rounded-[14px] border-[#d9dfe8] bg-white px-4 lg:hidden"
+            onClick={() => setIsMobileAssistantOpen(true)}
           >
             <MessageSquareText className="mr-2 h-4 w-4" />
-            {isAssistantOpen ? "Hide Assistant" : "Open Assistant"}
+            Assistant Chat
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="hidden h-11 rounded-[14px] border-[#d9dfe8] bg-white px-4 lg:inline-flex"
+            onClick={() => setIsDesktopAssistantOpen((prev) => !prev)}
+          >
+            {isDesktopAssistantOpen ? (
+              <PanelRightClose className="mr-2 h-4 w-4" />
+            ) : (
+              <PanelRightOpen className="mr-2 h-4 w-4" />
+            )}
+            {isDesktopAssistantOpen ? "Hide Assistant" : "Open Side Chat"}
           </Button>
           <Button
             type="button"
@@ -66,25 +84,40 @@ export function SearchPageClient({
         </div>
       </div>
 
-      {isAssistantOpen ? <div className="mb-6"><SearchAssistantPanel /></div> : null}
+      <div className={`grid gap-6 ${isDesktopAssistantOpen ? "lg:grid-cols-[minmax(0,1fr)_420px]" : ""}`}>
+        <div className="min-w-0">
+          {/* Quick Filter Bar */}
+          <QuickFilterBar
+            makes={makes}
+            onOpenFilters={() => setIsFilterSheetOpen(true)}
+          />
 
-      {/* Quick Filter Bar */}
-      <QuickFilterBar
-        makes={makes}
-        onOpenFilters={() => setIsFilterSheetOpen(true)}
-      />
+          {/* Results Count */}
+          <div className="mb-6 mt-4 text-sm text-gray-600">
+            Showing {listings.length} of {total} results
+          </div>
 
-      {/* Results Count */}
-      <div className="mt-4 mb-6 text-sm text-gray-600">
-        Showing {listings.length} of {total} results
+          {/* Results Grid */}
+          <SearchResults
+            listings={listings}
+            total={total}
+            totalPages={totalPages}
+            compact={isDesktopAssistantOpen}
+          />
+        </div>
+
+        {isDesktopAssistantOpen ? (
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 max-h-[calc(100vh-7rem)]">
+              <SearchAssistantPanel
+                className="h-[calc(100vh-7rem)] min-h-0"
+                onClose={() => setIsDesktopAssistantOpen(false)}
+                showCloseButton
+              />
+            </div>
+          </aside>
+        ) : null}
       </div>
-
-      {/* Results Grid */}
-      <SearchResults
-        listings={listings}
-        total={total}
-        totalPages={totalPages}
-      />
 
       {/* Filter Sheet (Slide-out Panel) */}
       <FilterSheet
@@ -98,6 +131,12 @@ export function SearchPageClient({
         open={isQuickSearchOpen}
         onOpenChange={setIsQuickSearchOpen}
       />
+
+      <Sheet open={isMobileAssistantOpen} onOpenChange={setIsMobileAssistantOpen}>
+        <SheetContent side="right" className="w-full border-l-0 p-0 sm:max-w-lg">
+          <SearchAssistantPanel className="h-full min-h-0 rounded-none border-0 shadow-none" />
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

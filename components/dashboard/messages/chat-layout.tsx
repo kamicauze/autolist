@@ -45,6 +45,7 @@ function formatClockTime(value: string) {
 
 export function ChatLayout({ initialData }: ChatLayoutProps) {
   const searchParams = useSearchParams();
+  const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
   const [query, setQuery] = React.useState("");
   const [threads, setThreads] = React.useState<ThreadListItem[]>(initialData?.threads || []);
   const [messagesByThread, setMessagesByThread] = React.useState<Record<string, ThreadMessageItem[]>>(
@@ -137,6 +138,19 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
     } finally {
       setIsAgentLoading(false);
     }
+  }
+
+  function applyReplyDraft() {
+    if (!agentResult) return;
+
+    setMessage(agentResult.suggestedReply);
+    setSendError(null);
+
+    requestAnimationFrame(() => {
+      composerRef.current?.focus();
+      const nextLength = agentResult.suggestedReply.length;
+      composerRef.current?.setSelectionRange(nextLength, nextLength);
+    });
   }
 
   async function sendMessage() {
@@ -417,12 +431,14 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                       {sendError}
                     </div>
                   ) : null}
-                  <div className="flex items-center gap-3 rounded-[20px] border border-[#ededed] bg-white px-4 py-3">
-                    <input
+                  <div className="flex items-end gap-3 rounded-[20px] border border-[#ededed] bg-white px-4 py-3">
+                    <textarea
+                      ref={composerRef}
                       value={message}
                       onChange={(event) => setMessage(event.target.value)}
                       placeholder="Write your message..."
-                      className="h-10 flex-1 border-0 bg-transparent text-[14px] outline-none placeholder:text-[#9a9a9a]"
+                      rows={message ? Math.min(Math.max(message.split("\n").length, 2), 6) : 2}
+                      className="min-h-[44px] flex-1 resize-none border-0 bg-transparent py-2 text-[14px] leading-6 outline-none placeholder:text-[#9a9a9a]"
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
@@ -487,7 +503,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     type="button"
                     variant="outline"
                     className="h-11 rounded-[14px]"
-                    onClick={() => setMessage(agentResult.suggestedReply)}
+                    onClick={applyReplyDraft}
                   >
                     Use Reply Draft
                   </Button>

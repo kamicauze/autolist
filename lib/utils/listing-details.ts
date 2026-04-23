@@ -44,6 +44,26 @@ export function getListingMetadataString(
   return nested?.trim() ? nested : null;
 }
 
+export function getListingMetadataBoolean(
+  listing: Pick<Listing, "metadata">,
+  key: string
+): boolean | null {
+  const metadata = getMetadataRecord(listing.metadata);
+  const direct = metadata[key];
+
+  if (typeof direct === "boolean") {
+    return direct;
+  }
+
+  if (typeof direct === "string") {
+    const normalized = direct.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+
+  return null;
+}
+
 export function buildListingDetailMetadata(details: Record<string, string | null | undefined>) {
   const cleanedEntries = Object.entries(details)
     .map(([key, value]) => [key, value == null ? "" : String(value).trim()] as const)

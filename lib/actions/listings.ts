@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
+import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { revalidatePath } from "next/cache";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
@@ -30,10 +31,42 @@ export type CreateListingInput = {
     doors?: number;
     drive_type?: string;
     details?: Record<string, string>;
+    category?: "car" | "van" | "motorbike" | "truck" | "plant_construction" | "farm_agricultural";
+    country?: string;
+    cityTown?: string;
+    locationArea?: string;
+    availability?: "available" | "reserved" | "sold";
+    negotiable?: boolean;
+    sellerType?: "dealer" | "individual";
+    useDealerAutoFill?: boolean;
+    contactName?: string;
+    phoneNumber?: string;
+    whatsappEnabled?: boolean;
+    whatsappNumber?: string;
+    allowPhoneCalls?: boolean;
+    hidePhoneNumber?: boolean;
 };
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const STRING_METADATA_FIELDS = [
+    "category",
+    "country",
+    "cityTown",
+    "locationArea",
+    "availability",
+    "sellerType",
+    "contactName",
+    "phoneNumber",
+    "whatsappNumber",
+] as const;
+const BOOLEAN_METADATA_FIELDS = [
+    "negotiable",
+    "useDealerAutoFill",
+    "whatsappEnabled",
+    "allowPhoneCalls",
+    "hidePhoneNumber",
+] as const;
 
 function extensionForFile(file: File) {
     if (file.name.includes(".")) {
@@ -66,10 +99,56 @@ async function uploadListingFile(
     });
 }
 
+function applySupplementalListingMetadata(
+    metadata: Record<string, unknown>,
+    input: Partial<CreateListingInput>,
+) {
+    for (const field of STRING_METADATA_FIELDS) {
+        const value = input[field];
+        if (typeof value !== "string") {
+            continue;
+        }
+
+        const normalized = value.trim();
+        if (normalized) {
+            metadata[field] = normalized;
+        } else {
+            delete metadata[field];
+        }
+    }
+
+    for (const field of BOOLEAN_METADATA_FIELDS) {
+        const value = input[field];
+        if (typeof value === "boolean") {
+            metadata[field] = value;
+        }
+    }
+
+    return metadata;
+}
+
 export async function createListing(input: ListingFormData) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
+
+    const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id);
+    if (packageAccessResult.error) {
+        return { error: packageAccessResult.error };
+    }
+
+    if (!packageAccessResult.access.hasActivePlan) {
+        return {
+            error: "Choose a seller package before creating a new listing.",
+        };
+    }
+
+    if (!packageAccessResult.access.canCreateListing) {
+        const currentPlanName = packageAccessResult.access.currentPlan?.name || "current";
+        return {
+            error: `Your ${currentPlanName} package has no listing slots left. Upgrade or switch package to add another listing.`,
+        };
+    }
 
     // Check if the user is a dealer and fetch their dealer record
     const { data: dealer } = await supabase
@@ -99,7 +178,29 @@ export async function insertListingInternal(
         return { error: result.error.flatten() };
     }
     const data = result.data;
-    const { trim, variant, details, seats, doors, drive_type, ...listingValues } = data;
+    const {
+        trim,
+        variant,
+        details,
+        seats,
+        doors,
+        drive_type,
+        category,
+        country,
+        cityTown,
+        locationArea,
+        availability,
+        negotiable,
+        sellerType,
+        useDealerAutoFill,
+        contactName,
+        phoneNumber,
+        whatsappEnabled,
+        whatsappNumber,
+        allowPhoneCalls,
+        hidePhoneNumber,
+        ...listingValues
+    } = data;
     const normalizedDetails = buildListingDetailMetadata({
         ...details,
         make: data.make,
@@ -116,11 +217,26 @@ export async function insertListingInternal(
         doors: doors != null ? String(doors) : undefined,
         driveType: drive_type,
     });
-    const vehicleReferenceMetadata = {
+    const vehicleReferenceMetadata = applySupplementalListingMetadata({
         ...(trim ? { trim } : {}),
         ...(variant ? { variant } : {}),
         ...(Object.keys(normalizedDetails).length > 0 ? { details: normalizedDetails } : {}),
-    };
+    }, {
+        category,
+        country,
+        cityTown,
+        locationArea,
+        availability,
+        negotiable,
+        sellerType,
+        useDealerAutoFill,
+        contactName,
+        phoneNumber,
+        whatsappEnabled,
+        whatsappNumber,
+        allowPhoneCalls,
+        hidePhoneNumber,
+    });
 
     // 2. Duplicate Detection (MVP)
     // Check if the user already has a listing for this exact vehicle (Make + Model + Year + Price within 1%)
@@ -198,6 +314,20 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         seats,
         doors,
         drive_type,
+        category,
+        country,
+        cityTown,
+        locationArea,
+        availability,
+        negotiable,
+        sellerType,
+        useDealerAutoFill,
+        contactName,
+        phoneNumber,
+        whatsappEnabled,
+        whatsappNumber,
+        allowPhoneCalls,
+        hidePhoneNumber,
         ...listingValues
     } = input;
 
@@ -276,6 +406,23 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
             delete nextMetadata.details;
         }
     }
+
+    applySupplementalListingMetadata(nextMetadata, {
+        category,
+        country,
+        cityTown,
+        locationArea,
+        availability,
+        negotiable,
+        sellerType,
+        useDealerAutoFill,
+        contactName,
+        phoneNumber,
+        whatsappEnabled,
+        whatsappNumber,
+        allowPhoneCalls,
+        hidePhoneNumber,
+    });
 
     const { error } = await supabase
         .from('listings')
@@ -483,6 +630,24 @@ export async function submitListingForReview(listingId: string) {
 
     if ((imageCount ?? 0) < 3) {
         return { error: "Minimum 3 listing images are required before submission." };
+    }
+
+    const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id, {
+        ignoreListingId: listingId,
+    });
+    if (packageAccessResult.error) {
+        return { error: packageAccessResult.error };
+    }
+
+    if (!packageAccessResult.access.hasActivePlan) {
+        return { error: "Choose a seller package before publishing this listing." };
+    }
+
+    if (!packageAccessResult.access.canCreateListing) {
+        const currentPlanName = packageAccessResult.access.currentPlan?.name || "current";
+        return {
+            error: `Your ${currentPlanName} package has reached its listing limit. Upgrade or remove another listing before publishing this one.`,
+        };
     }
 
     // Check if linked dealer is verified → auto-approve

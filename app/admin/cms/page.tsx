@@ -1,15 +1,7 @@
-import { AdminPlaceholderPage } from "@/components/admin/admin-placeholder-page";
+import { AdminCmsLive } from "@/components/admin/admin-cms-live";
+import { getAdminContentPagesData } from "@/lib/data/content-pages";
 
-export default function AdminCmsRoute() {
-  return (
-    <AdminPlaceholderPage
-      title="CMS"
-      description="The CMS route was a shell around mock content data. It now stays explicit about the missing backend integration."
-      nextSteps={[
-        "Define which pages and content blocks should be CMS-managed.",
-        "Implement storage and versioning for those blocks.",
-        "Add publish controls only after the content source is authoritative.",
-      ]}
-    />
-  );
+export default async function AdminCmsRoute() {
+  const data = await getAdminContentPagesData();
+  return <AdminCmsLive data={data} />;
 }

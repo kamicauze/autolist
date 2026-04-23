@@ -3,12 +3,15 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
+import { setListingWishlistState } from "@/lib/actions/favorites";
+import { useCompare } from "@/lib/hooks/use-compare";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "./badge";
-import { IconSpeedometer, IconFuel, IconGear, IconCamera } from "./icons";
-import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
-import { useCompare } from "@/lib/hooks/use-compare";
+import { IconCamera, IconFuel, IconGear, IconSpeedometer } from "./icons";
 
 export interface CarCardProps {
   id: string;
@@ -28,6 +31,7 @@ export interface CarCardProps {
     name: string;
     avatarUrl?: string;
   };
+  initialIsFavorited?: boolean;
   href?: string;
 }
 
@@ -46,12 +50,16 @@ export function CarCard({
   images,
   isFeatured = false,
   seller: _seller,
+  initialIsFavorited,
   href,
 }: CarCardProps) {
   void _seller;
+
+  const router = useRouter();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const [isLiked, setIsLiked] = React.useState(false);
+  const [isLiked, setIsLiked] = React.useState(Boolean(initialIsFavorited));
+  const [isWishlistPending, setIsWishlistPending] = React.useState(false);
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
 
   const formattedPrice = new Intl.NumberFormat("en-KE").format(price);
@@ -64,19 +72,63 @@ export function CarCard({
   const inCompare = isInCompare(id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
 
+  React.useEffect(() => {
+    if (typeof initialIsFavorited === "boolean") {
+      setIsLiked(initialIsFavorited);
+      return;
+    }
+
+    let active = true;
+
+    const run = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!active || !user) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("wishlists")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("listing_id", id)
+        .maybeSingle();
+
+      if (!active) {
+        return;
+      }
+
+      if (error) {
+        console.error("Unable to load favorite state:", error);
+        return;
+      }
+
+      setIsLiked(Boolean(data));
+    };
+
+    void run();
+
+    return () => {
+      active = false;
+    };
+  }, [id, initialIsFavorited]);
+
   const scrollPrev = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
       emblaApi?.scrollPrev();
     },
     [emblaApi]
   );
 
   const scrollNext = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
       emblaApi?.scrollNext();
     },
     [emblaApi]
@@ -110,23 +162,52 @@ export function CarCard({
     [compareLimitReached, id, isLoaded, toggleCompare]
   );
 
-  const onLikeClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsLiked((prev) => !prev);
-  }, []);
+  const onLikeClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isWishlistPending) {
+        return;
+      }
+
+      const nextValue = !isLiked;
+      setIsLiked(nextValue);
+      setIsWishlistPending(true);
+
+      void (async () => {
+        const result = await setListingWishlistState(id, nextValue);
+
+        if (result.error) {
+          setIsLiked(!nextValue);
+          setIsWishlistPending(false);
+
+          if (result.error === "AUTH_REQUIRED") {
+            const nextPath =
+              typeof window !== "undefined"
+                ? `${window.location.pathname}${window.location.search}`
+                : href || "/search";
+            router.push(`/login?next=${encodeURIComponent(nextPath)}`);
+            return;
+          }
+
+          console.error("Unable to update favorites:", result.error);
+          return;
+        }
+
+        setIsWishlistPending(false);
+      })();
+    },
+    [href, id, isLiked, isWishlistPending, router]
+  );
 
   const cardContent = (
-    <div className="group overflow-hidden rounded-xl bg-white shadow-sm border border-gray-4 hover:shadow-md transition-shadow">
-      {/* Image Section with Carousel */}
+    <div className="group overflow-hidden rounded-xl border border-gray-4 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="relative h-56 w-full overflow-hidden bg-gray-5">
-        <div className="overflow-hidden h-full" ref={emblaRef}>
+        <div className="h-full overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
             {displayImages.map((imageUrl, index) => (
-              <div
-                key={index}
-                className="flex-[0_0_100%] min-w-0 relative h-full"
-              >
+              <div key={index} className="relative h-full min-w-0 flex-[0_0_100%]">
                 <Image
                   src={imageUrl}
                   alt={`${title} - Image ${index + 1}`}
@@ -139,19 +220,18 @@ export function CarCard({
           </div>
         </div>
 
-        {/* Navigation Arrows */}
         {imageCount > 1 && (
           <>
             <button
               onClick={scrollPrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+              className="absolute left-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 transition-opacity hover:bg-white group-hover:opacity-100"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5 text-gray-1" />
             </button>
             <button
               onClick={scrollNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+              className="absolute right-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 transition-opacity hover:bg-white group-hover:opacity-100"
               aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5 text-gray-1" />
@@ -159,27 +239,24 @@ export function CarCard({
           </>
         )}
 
-        {/* Badges overlay */}
-        <div className="absolute left-2.5 top-2.5 flex items-center gap-2 z-30">
-          {isFeatured && (
+        <div className="absolute left-2.5 top-2.5 z-30 flex items-center gap-2">
+          {isFeatured ? (
             <Badge variant="primary" size="sm">
               Featured
             </Badge>
-          )}
+          ) : null}
           <Badge variant="default" size="sm" className="flex items-center gap-1">
             <IconCamera className="h-4 w-4" />
             <span>{imageCount}</span>
           </Badge>
         </div>
 
-        {/* Year badge */}
         <div className="absolute right-2.5 top-2.5 z-30">
           <Badge variant="default" size="sm">
             {year}
           </Badge>
         </div>
 
-        {/* Hover overlay actions (compare first, then favorite) */}
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
           <div className="flex items-center gap-2.5">
             <button
@@ -205,10 +282,12 @@ export function CarCard({
             <button
               type="button"
               onClick={onLikeClick}
+              disabled={isWishlistPending}
               aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
               className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-md transition-colors hover:text-red-500",
-                isLiked && "text-red-500"
+                isLiked && "text-red-500",
+                isWishlistPending && "cursor-wait opacity-80"
               )}
             >
               <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
@@ -216,44 +295,34 @@ export function CarCard({
           </div>
         </div>
 
-        {/* Image dots indicator */}
         {imageCount > 1 && (
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 z-30">
-            {Array.from({ length: Math.min(imageCount, 5) }).map((_, i) => (
+          <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-1.5">
+            {Array.from({ length: Math.min(imageCount, 5) }).map((_, index) => (
               <button
-                key={i}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  emblaApi?.scrollTo(i);
+                key={index}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  emblaApi?.scrollTo(index);
                 }}
                 className={cn(
                   "h-2 w-2 rounded-full transition-all",
-                  selectedIndex === i
-                    ? "bg-white w-4"
-                    : "bg-white/50 hover:bg-white/75"
+                  selectedIndex === index ? "w-4 bg-white" : "bg-white/50 hover:bg-white/75"
                 )}
-                aria-label={`Go to image ${i + 1}`}
+                aria-label={`Go to image ${index + 1}`}
               />
             ))}
-            {imageCount > 5 && (
-              <span className="text-xs text-white font-medium ml-1">
-                +{imageCount - 5}
-              </span>
-            )}
+            {imageCount > 5 ? (
+              <span className="ml-1 text-xs font-medium text-white">+{imageCount - 5}</span>
+            ) : null}
           </div>
         )}
       </div>
 
-      {/* Content Section */}
       <div className="p-4">
-        {/* Body type */}
-        <span className="text-[14px] font-normal leading-[19.6px] text-[#333333]">
-          {bodyType}
-        </span>
+        <span className="text-[14px] font-normal leading-[19.6px] text-[#333333]">{bodyType}</span>
 
-        {/* Title */}
-        <h3 className="mt-1 text-[18px] font-medium leading-[25.2px] text-[#242720] line-clamp-1">
+        <h3 className="mt-1 line-clamp-1 text-[18px] font-medium leading-[25.2px] text-[#242720]">
           {title}
         </h3>
         {subtitle ? (
@@ -262,7 +331,6 @@ export function CarCard({
           </p>
         ) : null}
 
-        {/* Specs */}
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-[#696665]">
           <div className="flex items-center gap-1.5">
             <IconSpeedometer className="h-4 w-4" />
@@ -278,18 +346,17 @@ export function CarCard({
           </div>
         </div>
 
-        {/* Price */}
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-[20px] font-bold leading-[28px] text-[#333333]">
             {currency}
             {formattedPrice}
           </span>
-          {formattedOriginalPrice && (
+          {formattedOriginalPrice ? (
             <span className="text-[13px] font-medium leading-[19.6px] text-[#B6B6B6] line-through">
               {currency}
               {formattedOriginalPrice}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

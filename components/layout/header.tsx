@@ -48,7 +48,7 @@ const desktopLinks = [
   { name: "Home", href: "/" },
   { name: "Buy a car", menu: buyMenu, key: "buy" },
   { name: "Sell a car", href: "/sell" },
-  { name: "News & reviews", href: "/search?sortBy=newest" },
+  { name: "News & reviews", href: "/blog" },
   { name: "Tools & Services", menu: toolsMenu, key: "tools" },
   { name: "Car alerts", href: "/alerts" },
   { name: "Pages", menu: pagesMenu, key: "pages" },

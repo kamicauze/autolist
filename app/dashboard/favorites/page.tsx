@@ -1,5 +1,8 @@
-import { redirect } from "next/navigation";
+import { FavoritesGrid } from "@/components/dashboard/favorites/favorites-grid";
+import { getDashboardFavoritesData } from "@/lib/data/favorites";
 
-export default function FavoritesPage() {
-  redirect("/dashboard");
+export default async function FavoritesPage() {
+  const favorites = await getDashboardFavoritesData();
+
+  return <FavoritesGrid favorites={favorites} />;
 }

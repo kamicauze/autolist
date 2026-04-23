@@ -8,6 +8,7 @@ import {
   getDealerInventory,
 } from "@/lib/data/dealers";
 import { getNewestListings } from "@/lib/data/listings";
+import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 
 interface DealerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -15,6 +16,7 @@ interface DealerDetailPageProps {
 
 export default async function DealerDetailPage({ params }: DealerDetailPageProps) {
   const { id } = await params;
+  const googleMapsApiKey = getGoogleMapsApiKey();
 
   const [dealer, inventory, newestListings] = await Promise.all([
     getDealerById(id),
@@ -50,6 +52,7 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
             dealer={dealer}
             inventory={inventory}
             recommendedListings={recommendedListings}
+            googleMapsApiKey={googleMapsApiKey}
           />
         </div>
       </main>

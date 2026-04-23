@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageSquareText, Sparkles } from "lucide-react";
+import { ArrowUp, Bot, Loader2, MessageSquareText, Sparkles, User2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Listing } from "@/lib/types/listing";
 import type { SmartSearchResult } from "@/lib/types/smart-search";
+import { cn } from "@/lib/utils";
 
 type SmartSearchResponse = SmartSearchResult & {
   searchUrl: string;
@@ -20,6 +21,12 @@ type AssistantMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+interface SearchAssistantPanelProps {
+  className?: string;
+  onClose?: () => void;
+  showCloseButton?: boolean;
+}
 
 const STARTER_PROMPTS = [
   "small car under 2m",
@@ -119,8 +126,13 @@ function buildAssistantReply(result: SmartSearchResponse) {
     .join(" ");
 }
 
-export function SearchAssistantPanel() {
+export function SearchAssistantPanel({
+  className,
+  onClose,
+  showCloseButton = false,
+}: SearchAssistantPanelProps) {
   const router = useRouter();
+  const transcriptEndRef = React.useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = React.useState<AssistantMessage[]>([
     {
       id: "assistant-intro",
@@ -132,6 +144,10 @@ export function SearchAssistantPanel() {
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [lastResult, setLastResult] = React.useState<SmartSearchResponse | null>(null);
+
+  React.useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [isLoading, lastResult, messages]);
 
   const runAssistantSearch = async (prompt: string) => {
     const trimmed = prompt.trim();
@@ -187,146 +203,178 @@ export function SearchAssistantPanel() {
   };
 
   return (
-    <section className="rounded-[24px] border border-[#e8ebf2] bg-[#f8fbff] p-5">
-      <div className="flex flex-col gap-3 border-b border-[#e3e8f1] pb-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-            <MessageSquareText className="h-4 w-4" />
-            Search Assistant
-          </p>
-          <h3 className="mt-2 text-[22px] font-semibold text-[#202224]">
-            Refine the search conversationally
-          </h3>
-          <p className="mt-1 max-w-2xl text-[14px] leading-6 text-[#6f7784]">
-            Ask naturally, then apply the interpreted filters to the live search results page.
-          </p>
+    <section
+      className={cn(
+        "flex h-full min-h-[640px] flex-col overflow-hidden rounded-[26px] border border-[#dfe7f2] bg-white shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)]",
+        className
+      )}
+    >
+      <div className="border-b border-[#e6ebf2] bg-[linear-gradient(180deg,#fbfdff_0%,#f5f8fd_100%)] px-5 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+              <MessageSquareText className="h-4 w-4" />
+              Search Assistant
+            </p>
+            <h3 className="mt-2 text-[22px] font-semibold text-[#202224]">
+              Search like a live chat
+            </h3>
+            <p className="mt-1 max-w-sm text-[14px] leading-6 text-[#667085]">
+              Describe the car you want in plain language. I&apos;ll interpret the request, keep the context, and update the search path for this page.
+            </p>
+          </div>
+
+          {showCloseButton && onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d8e0ec] bg-white text-[#344054] transition hover:border-primary hover:text-primary"
+              aria-label="Close assistant"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
 
-        {lastResult ? (
-          <Button
-            type="button"
-            className="h-11 rounded-[14px] bg-[#2563eb] px-4 text-white hover:bg-[#1d4ed8]"
-            onClick={() => router.push(lastResult.searchUrl)}
-          >
-            Apply To Results
-          </Button>
-        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {STARTER_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => void runAssistantSearch(prompt)}
+              className="rounded-full border border-[#d6e2ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {STARTER_PROMPTS.map((prompt) => (
-          <button
-            key={prompt}
-            type="button"
-            onClick={() => void runAssistantSearch(prompt)}
-            className="rounded-full border border-[#d6e2ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
+      <div className="flex-1 overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#fdfefe_100%)] px-4 py-5">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex gap-3",
+                message.role === "assistant" ? "justify-start" : "justify-end"
+              )}
+            >
+              {message.role === "assistant" ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-primary">
+                  <Bot className="h-4 w-4" />
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-[22px] px-4 py-3 text-[14px] leading-6 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]",
+                  message.role === "assistant"
+                    ? "rounded-bl-[10px] border border-[#dde5f0] bg-white text-[#243041]"
+                    : "rounded-br-[10px] bg-[#2563eb] text-white"
+                )}
+              >
+                {message.content}
+              </div>
+              {message.role === "user" ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dbeafe] text-[#1d4ed8]">
+                  <User2 className="h-4 w-4" />
+                </div>
+              ) : null}
+            </div>
+          ))}
 
-      <div className="mt-5 space-y-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={
-              message.role === "assistant"
-                ? "rounded-[18px] border border-[#dfe7f4] bg-white px-4 py-3 text-[14px] leading-6 text-[#30343a]"
-                : "ml-auto max-w-[85%] rounded-[18px] bg-[#2563eb] px-4 py-3 text-[14px] leading-6 text-white"
-            }
-          >
-            {message.content}
-          </div>
-        ))}
-
-        {isLoading ? (
-          <div className="flex items-center gap-2 rounded-[18px] border border-[#dfe7f4] bg-white px-4 py-3 text-[14px] text-[#5f6773]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Searching current inventory...
-          </div>
-        ) : null}
-      </div>
-
-      {lastResult ? (
-        <div className="mt-5 rounded-[18px] border border-[#dfe7f4] bg-white p-4">
-          <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6e7a8a]">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Interpreted Filters
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(lastResult.params).map(([key, value]) =>
-              value ? (
-                <span
-                  key={key}
-                  className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-3 py-1.5 text-[12px] font-medium text-[#3157c8]"
-                >
-                  {key}: {value}
-                </span>
-              ) : null
-            )}
-          </div>
-          <p className="mt-3 text-[13px] text-[#68707c]">
-            Assistant state updates with each follow-up, so short turns like
-            {" "}
-            <span className="font-medium text-[#30343a]">&quot;German only&quot;</span>,
-            {" "}
-            <span className="font-medium text-[#30343a]">&quot;actually SUV&quot;</span>,
-            {" "}
-            and
-            {" "}
-            <span className="font-medium text-[#30343a]">&quot;clear budget&quot;</span>
-            {" "}
-            now change the active filters directly.
-          </p>
-
-          {lastResult.clarification ? (
-            <div className="mt-4 rounded-[16px] border border-[#d6e2ff] bg-[#f6f9ff] p-4">
-              <p className="text-[13px] font-semibold text-[#274690]">
-                {lastResult.clarification.question}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {lastResult.clarification.options.map((option) => (
-                  <button
-                    key={`${option.label}-${option.query}`}
-                    type="button"
-                    onClick={() => void runAssistantSearch(option.query)}
-                    className="rounded-full border border-[#c9d9ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
-                  >
-                    {option.label}
-                  </button>
-                ))}
+          {isLoading ? (
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-primary">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="flex items-center gap-2 rounded-[22px] rounded-bl-[10px] border border-[#dde5f0] bg-white px-4 py-3 text-[14px] text-[#5f6773] shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Searching current inventory...
               </div>
             </div>
           ) : null}
-        </div>
-      ) : null}
 
-      <form
-        className="mt-5 flex flex-col gap-3 sm:flex-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void runAssistantSearch(input);
-        }}
-      >
-        <input
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Example: only in nakuru and automatic"
-          className="h-12 flex-1 rounded-[16px] border border-[#d7dce5] bg-white px-4 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-        />
-        <div className="flex gap-2">
-          <Button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="h-12 rounded-[14px] bg-[#202224] px-4 text-white hover:bg-[#111315]"
-          >
-            Ask Assistant
-          </Button>
+          {lastResult ? (
+            <div className="rounded-[22px] border border-[#dde5f0] bg-white p-4 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#617086]">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Active Filter State
+                </p>
+                {lastResult.preview.total > 0 ? (
+                  <span className="rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-semibold text-[#2753c7]">
+                    {lastResult.preview.total} match{lastResult.preview.total === 1 ? "" : "es"}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {Object.entries(lastResult.params).map(([key, value]) =>
+                  value ? (
+                    <span
+                      key={key}
+                      className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-3 py-1.5 text-[12px] font-medium text-[#3157c8]"
+                    >
+                      {key}: {value}
+                    </span>
+                  ) : null
+                )}
+              </div>
+              <p className="mt-3 text-[13px] leading-6 text-[#667085]">
+                Keep replying with short corrections like
+                {" "}
+                <span className="font-medium text-[#30343a]">&quot;German only&quot;</span>,
+                {" "}
+                <span className="font-medium text-[#30343a]">&quot;actually SUV&quot;</span>,
+                {" "}
+                or
+                {" "}
+                <span className="font-medium text-[#30343a]">&quot;remove price limit&quot;</span>
+                {" "}
+                and I&apos;ll adjust the active search interpretation.
+              </p>
+
+              {lastResult.clarification ? (
+                <div className="mt-4 rounded-[18px] border border-[#dbe6ff] bg-[#f7faff] p-4">
+                  <p className="text-[13px] font-semibold text-[#274690]">
+                    {lastResult.clarification.question}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {lastResult.clarification.options.map((option) => (
+                      <button
+                        key={`${option.label}-${option.query}`}
+                        type="button"
+                        onClick={() => void runAssistantSearch(option.query)}
+                        className="rounded-full border border-[#c9d9ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div ref={transcriptEndRef} />
+        </div>
+      </div>
+
+      <div className="border-t border-[#e6ebf2] bg-white px-4 py-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {lastResult ? (
+            <Button
+              type="button"
+              className="h-10 rounded-[14px] bg-[#2563eb] px-4 text-white hover:bg-[#1d4ed8]"
+              onClick={() => router.push(lastResult.searchUrl)}
+            >
+              Apply To Results
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
-            className="h-12 rounded-[14px]"
+            className="h-10 rounded-[14px]"
             onClick={() => {
               setMessages([
                 {
@@ -343,7 +391,37 @@ export function SearchAssistantPanel() {
             Reset
           </Button>
         </div>
-      </form>
+
+        <form
+          className="flex items-end gap-3 rounded-[20px] border border-[#d7dce5] bg-[#fbfcff] px-4 py-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runAssistantSearch(input);
+          }}
+        >
+          <textarea
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Example: only in nakuru and automatic"
+            rows={input ? Math.min(Math.max(input.split("\n").length, 2), 5) : 2}
+            className="min-h-[48px] flex-1 resize-none border-0 bg-transparent py-2 text-[14px] leading-6 outline-none placeholder:text-[#98a2b3]"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void runAssistantSearch(input);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#202224] text-white transition hover:bg-[#111315] disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Ask assistant"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

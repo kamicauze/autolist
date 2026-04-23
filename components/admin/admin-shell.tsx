@@ -34,6 +34,26 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  React.useEffect(() => {
+    if (!sidebarOpen) {
+      return;
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [sidebarOpen]);
+
   const displayName =
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
@@ -75,7 +95,9 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/5 bg-[#24272c] text-white transition-transform duration-300 lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full pointer-events-none lg:pointer-events-auto"
         )}
       >
         <div className="flex items-center justify-between border-b border-white/5 px-[18px] py-6">

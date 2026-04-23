@@ -56,6 +56,16 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
     npm run dev
     ```
 
+### Local Admin Access
+
+To create or reset a local admin account against the configured Supabase project:
+
+```bash
+npm run admin:ensure -- --email admin@autolist.local --password TempAdmin123! --name "Local Admin"
+```
+
+The script will create the auth user if it does not exist, reset the password if it does, and upsert the `profiles.role` to `admin`.
+
 ## 📂 Project Structure
 
 -   `app/`: Next.js App Router pages and layouts.

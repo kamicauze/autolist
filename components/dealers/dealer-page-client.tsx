@@ -20,11 +20,14 @@ import { ReplyForm } from "@/components/vehicle/reply-form";
 import { getImageUrl } from "@/lib/utils/listings";
 import { IconWhatsapp } from "@/components/ui/icons";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
+import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
+import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 
 interface DealerPageClientProps {
   dealer: DealerProfile;
   inventory: Listing[];
   recommendedListings: Listing[];
+  googleMapsApiKey: string;
 }
 
 function getListingImage(listing: Listing): string {
@@ -128,10 +131,17 @@ function ShareRow() {
 function DealerSidebar({
   dealer,
   recommendedListings,
+  googleMapsApiKey,
 }: {
   dealer: DealerProfile;
   recommendedListings: Listing[];
+  googleMapsApiKey: string;
 }) {
+  const locationLabel =
+    buildGoogleMapsQuery([dealer.address, dealer.location, dealer.city, "Kenya"]) ||
+    "Nairobi, Kenya";
+  const mapUrl = getGoogleMapsSearchUrl(locationLabel);
+
   return (
     <aside className="space-y-5">
       <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -201,16 +211,27 @@ function DealerSidebar({
         <h3 className="text-base font-semibold text-gray-900">Map to {dealer.name}</h3>
         <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
           <MapPin className="h-4 w-4 text-gray-400" />
-          <span>{dealer.address || `${dealer.city || "Nairobi"}, Kenya`}</span>
+          <span>{locationLabel}</span>
         </div>
         <div className="mt-3 h-80 overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-green-100 via-blue-100 to-gray-100">
-          <div className="flex h-full items-center justify-center">
-            <div className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">
-              {dealer.city || "Dealer location"}
-            </div>
-          </div>
+          <GoogleMapEmbed
+            apiKey={googleMapsApiKey}
+            query={locationLabel}
+            title={`Map to ${dealer.name}`}
+            fallback={
+              <div className="flex h-full items-center justify-center">
+                <div className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">
+                  {dealer.city || "Dealer location"}
+                </div>
+              </div>
+            }
+          />
         </div>
-        <Button className="mt-3 w-full">View map</Button>
+        <Button asChild className="mt-3 w-full">
+          <a href={mapUrl} target="_blank" rel="noreferrer">
+            View map
+          </a>
+        </Button>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -230,6 +251,7 @@ export function DealerPageClient({
   dealer,
   inventory,
   recommendedListings,
+  googleMapsApiKey,
 }: DealerPageClientProps) {
   return (
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
@@ -270,7 +292,11 @@ export function DealerPageClient({
         </section>
       </main>
 
-      <DealerSidebar dealer={dealer} recommendedListings={recommendedListings} />
+      <DealerSidebar
+        dealer={dealer}
+        recommendedListings={recommendedListings}
+        googleMapsApiKey={googleMapsApiKey}
+      />
     </div>
   );
 }

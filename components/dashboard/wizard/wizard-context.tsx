@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  LISTING_CATEGORY_OPTIONS,
   LISTING_AVAILABILITY_OPTIONS,
   LISTING_CONDITION_OPTIONS,
   LISTING_FEATURE_GROUPS_BY_CATEGORY,
@@ -11,8 +12,14 @@ import {
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
 import type { Listing } from "@/lib/types/listing";
-import { getListingMetadataDetails, getListingMetadataString } from "@/lib/utils/listing-details";
+import {
+  getListingMetadataBoolean,
+  getListingMetadataDetails,
+  getListingMetadataString,
+} from "@/lib/utils/listing-details";
+import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
+import type { SellerPackageAccessState } from "@/lib/types/membership";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -172,6 +179,18 @@ export const MAX_GALLERY_IMAGES = 10;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
+const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5] as const;
+const LISTING_CATEGORY_VALUE_SET = new Set(
+  LISTING_CATEGORY_OPTIONS.map((option) => option.value)
+);
+const LISTING_AVAILABILITY_VALUE_SET = new Set(
+  LISTING_AVAILABILITY_OPTIONS.map((option) => option.value)
+);
+
+export type WizardIssue = {
+  message: string;
+  stepIndex: number | null;
+};
 
 type AuthenticatedProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
 
@@ -224,10 +243,14 @@ interface WizardContextValue {
   showValidationErrors: boolean;
   isSubmitting: boolean;
   submitError: string | null;
-  submitErrorDetails: string[];
+  submitIssues: WizardIssue[];
   submitted: boolean;
   autoApproved: boolean;
   createdListingId: string | null;
+  stepCompletion: boolean[];
+  packageAccess: SellerPackageAccessState | null;
+  isLoadingPackageAccess: boolean;
+  packageAccessError: string | null;
 
   // Media file refs
   coverFile: File | null;
@@ -267,6 +290,7 @@ interface WizardContextValue {
   // Navigation
   handleContinue: () => Promise<void>;
   handleBack: () => void;
+  goToStep: (stepIndex: number, options?: { showValidationErrors?: boolean }) => void;
   setActiveStep: React.Dispatch<React.SetStateAction<number>>;
 
   // Computed
@@ -286,10 +310,39 @@ function extractFileName(pathLike: string | null | undefined) {
   return segments[segments.length - 1] || normalized;
 }
 
+function getDraftCategory(listing: Listing): ListingCategory {
+  const metadataCategory = getListingMetadataString(listing, "category");
+  if (
+    metadataCategory &&
+    LISTING_CATEGORY_VALUE_SET.has(metadataCategory as ListingCategory)
+  ) {
+    return metadataCategory as ListingCategory;
+  }
+
+  return "car";
+}
+
+function getDraftAvailability(
+  listing: Listing
+): ListingDraft["availability"] {
+  const metadataAvailability = getListingMetadataString(listing, "availability");
+  if (
+    metadataAvailability &&
+    LISTING_AVAILABILITY_VALUE_SET.has(
+      metadataAvailability as ListingDraft["availability"]
+    )
+  ) {
+    return metadataAvailability as ListingDraft["availability"];
+  }
+
+  return DEFAULT_DRAFT.availability;
+}
+
 function buildDraftFromListing(listing: Listing): ListingDraft {
   const detailMetadata = getListingMetadataDetails(listing);
   const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
   const [coverImage, ...galleryImages] = sortedImages;
+  const sellerTypeMetadata = getListingMetadataString(listing, "sellerType");
   const cityTown =
     getListingMetadataString(listing, "cityTown") ||
     listing.dealer?.city?.trim() ||
@@ -299,28 +352,40 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     listing.dealer?.address?.trim() ||
     "";
   const contactName =
+    getListingMetadataString(listing, "contactName") ||
     listing.dealer?.name?.trim() ||
     listing.seller?.full_name?.trim() ||
     "";
   const phoneNumber =
+    getListingMetadataString(listing, "phoneNumber") ||
     listing.dealer?.mobile?.trim() ||
     "";
   const whatsappNumber =
+    getListingMetadataString(listing, "whatsappNumber") ||
     listing.dealer?.whatsapp?.trim() ||
     phoneNumber;
+  const sellerType =
+    sellerTypeMetadata === "dealer" || sellerTypeMetadata === "individual"
+      ? sellerTypeMetadata
+      : listing.dealer_id
+        ? "dealer"
+        : "individual";
 
   return {
     ...DEFAULT_DRAFT,
-    category: "car",
+    category: getDraftCategory(listing),
     title: getListingDisplayTitle(listing),
     condition: (listing.condition === "new" || listing.condition === "foreign_used" || listing.condition === "locally_used")
       ? listing.condition
       : DEFAULT_DRAFT.condition,
     priceKes: String(listing.price ?? ""),
-    country: "Kenya",
+    negotiable:
+      getListingMetadataBoolean(listing, "negotiable") ?? DEFAULT_DRAFT.negotiable,
+    country: getListingMetadataString(listing, "country") || DEFAULT_DRAFT.country,
     cityTown,
     locationArea,
     description: listing.description ?? "",
+    availability: getDraftAvailability(listing),
     details: {
       ...DEFAULT_DRAFT.details,
       make: listing.make ?? "",
@@ -347,13 +412,18 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     selectedFeatureIds: Array.isArray(listing.features) ? listing.features : [],
     coverImageName: extractFileName(coverImage?.r2_key),
     galleryImageNames: galleryImages.map((image) => extractFileName(image.r2_key)).filter((name): name is string => Boolean(name)),
-    sellerType: listing.dealer_id ? "dealer" : "individual",
-    useDealerAutoFill: Boolean(listing.dealer_id),
+    sellerType,
+    useDealerAutoFill:
+      getListingMetadataBoolean(listing, "useDealerAutoFill") ?? Boolean(listing.dealer_id),
     contactName,
     phoneNumber,
-    whatsappEnabled: Boolean(whatsappNumber),
+    whatsappEnabled:
+      getListingMetadataBoolean(listing, "whatsappEnabled") ?? Boolean(whatsappNumber),
     whatsappNumber,
-    allowPhoneCalls: Boolean(phoneNumber),
+    allowPhoneCalls:
+      getListingMetadataBoolean(listing, "allowPhoneCalls") ?? Boolean(phoneNumber),
+    hidePhoneNumber:
+      getListingMetadataBoolean(listing, "hidePhoneNumber") ?? DEFAULT_DRAFT.hidePhoneNumber,
   };
 }
 
@@ -379,26 +449,30 @@ function buildFreshDraft(
 
 const SUBMISSION_FIELD_METADATA: Record<
   string,
-  { label: string; step: string }
+  { label: string; stepId: (typeof LISTING_WIZARD_STEPS)[number]["id"] }
 > = {
-  make: { label: "Make", step: "Vehicle / Equipment Details" },
-  model: { label: "Model", step: "Vehicle / Equipment Details" },
-  trim: { label: "Trim", step: "Vehicle / Equipment Details" },
-  variant: { label: "Variant / Engine", step: "Vehicle / Equipment Details" },
-  year: { label: "Year", step: "Vehicle / Equipment Details" },
-  mileage: { label: "Mileage", step: "Vehicle / Equipment Details" },
-  body_type: { label: "Body Type", step: "Vehicle / Equipment Details" },
-  transmission: { label: "Transmission", step: "Vehicle / Equipment Details" },
-  fuel_type: { label: "Fuel Type", step: "Vehicle / Equipment Details" },
-  color: { label: "Color", step: "Vehicle / Equipment Details" },
-  price: { label: "Price", step: "Listing Basics" },
-  condition: { label: "Condition", step: "Listing Basics" },
-  description: { label: "Description", step: "Listing Basics" },
-  features: { label: "Features", step: "Features & Specifications" },
-  currency: { label: "Currency", step: "Listing Basics" },
+  make: { label: "Make", stepId: "details" },
+  model: { label: "Model", stepId: "details" },
+  trim: { label: "Trim", stepId: "details" },
+  variant: { label: "Variant / Engine", stepId: "details" },
+  year: { label: "Year", stepId: "details" },
+  mileage: { label: "Mileage", stepId: "details" },
+  body_type: { label: "Body Type", stepId: "details" },
+  transmission: { label: "Transmission", stepId: "details" },
+  fuel_type: { label: "Fuel Type", stepId: "details" },
+  color: { label: "Color", stepId: "details" },
+  price: { label: "Price", stepId: "basics" },
+  condition: { label: "Condition", stepId: "basics" },
+  description: { label: "Description", stepId: "basics" },
+  features: { label: "Features", stepId: "features" },
+  currency: { label: "Currency", stepId: "basics" },
 };
 
-function formatSubmissionErrorDetails(error: unknown): string[] {
+const WIZARD_STEP_INDEX_BY_ID = Object.fromEntries(
+  LISTING_WIZARD_STEPS.map((step, index) => [step.id, index])
+) as Record<(typeof LISTING_WIZARD_STEPS)[number]["id"], number>;
+
+function formatSubmissionIssues(error: unknown): WizardIssue[] {
   if (!error || typeof error !== "object") {
     return [];
   }
@@ -408,12 +482,15 @@ function formatSubmissionErrorDetails(error: unknown): string[] {
     fieldErrors?: Record<string, unknown>;
   };
 
-  const details: string[] = [];
+  const issues: WizardIssue[] = [];
 
   if (Array.isArray(candidate.formErrors)) {
     for (const formError of candidate.formErrors) {
       if (typeof formError === "string" && formError.trim()) {
-        details.push(formError.trim());
+        issues.push({
+          message: formError.trim(),
+          stepIndex: null,
+        });
       }
     }
   }
@@ -424,15 +501,25 @@ function formatSubmissionErrorDetails(error: unknown): string[] {
       const metadata = SUBMISSION_FIELD_METADATA[field];
       for (const message of messages) {
         if (typeof message !== "string" || !message.trim()) continue;
+        const stepIndex = metadata ? WIZARD_STEP_INDEX_BY_ID[metadata.stepId] : null;
+        const stepTitle =
+          stepIndex === null ? null : LISTING_WIZARD_STEPS[stepIndex]?.title ?? null;
         const prefix = metadata
-          ? `${metadata.step}: ${metadata.label}`
+          ? `${stepTitle}: ${metadata.label}`
           : field.replace(/_/g, " ");
-        details.push(`${prefix} - ${message.trim()}`);
+        issues.push({
+          message: `${prefix} - ${message.trim()}`,
+          stepIndex,
+        });
       }
     }
   }
 
-  return Array.from(new Set(details));
+  return Array.from(
+    new Map(
+      issues.map((issue) => [`${issue.stepIndex ?? "none"}:${issue.message}`, issue])
+    ).values()
+  );
 }
 
 export function useWizard() {
@@ -461,10 +548,13 @@ export function WizardProvider({
   const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
-  const [submitErrorDetails, setSubmitErrorDetails] = React.useState<string[]>([]);
+  const [submitIssues, setSubmitIssues] = React.useState<WizardIssue[]>([]);
   const [createdListingId, setCreatedListingId] = React.useState<string | null>(editingListingId);
   const [draft, setDraft] = React.useState<ListingDraft>(initialDraft);
   const [mediaError, setMediaError] = React.useState<string | null>(null);
+  const [packageAccess, setPackageAccess] = React.useState<SellerPackageAccessState | null>(null);
+  const [isLoadingPackageAccess, setIsLoadingPackageAccess] = React.useState(!isEditing);
+  const [packageAccessError, setPackageAccessError] = React.useState<string | null>(null);
   const [featureQuery, setFeatureQuery] = React.useState("");
   const [showFeatureIds, setShowFeatureIds] = React.useState(false);
   const [expandedFeatureGroups, setExpandedFeatureGroups] = React.useState<Record<string, boolean>>({});
@@ -511,7 +601,14 @@ export function WizardProvider({
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError || !user || !isMounted) return;
+      if (authError || !user || !isMounted) {
+        if (isMounted) {
+          setPackageAccess(null);
+          setPackageAccessError(authError?.message ?? null);
+          setIsLoadingPackageAccess(false);
+        }
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -577,6 +674,26 @@ export function WizardProvider({
         };
       }
 
+      if (!isEditing) {
+        const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id);
+
+        if (!isMounted) return;
+
+        if (packageAccessResult.error) {
+          setPackageAccess(null);
+          setPackageAccessError(packageAccessResult.error);
+        } else {
+          setPackageAccess(packageAccessResult.access);
+          setPackageAccessError(null);
+        }
+
+        setIsLoadingPackageAccess(false);
+      } else if (isMounted) {
+        setPackageAccess(null);
+        setPackageAccessError(null);
+        setIsLoadingPackageAccess(false);
+      }
+
       if (!isMounted) return;
       setSellerAccountDefaults(defaults);
       setDraft((prev) => ({
@@ -601,10 +718,13 @@ export function WizardProvider({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isEditing]);
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
-  const selectedCategoryFields = draft.category ? DETAIL_FIELDS_BY_CATEGORY[draft.category] : [];
+  const selectedCategoryFields = React.useMemo(
+    () => (draft.category ? DETAIL_FIELDS_BY_CATEGORY[draft.category] : []),
+    [draft.category]
+  );
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const selectedFeatureGroupDefinition = draft.category ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category] : null;
   const selectedFeatureIdSet = React.useMemo(() => new Set(draft.selectedFeatureIds), [draft.selectedFeatureIds]);
@@ -633,7 +753,7 @@ export function WizardProvider({
   const updateField = <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) => {
     if (submitError) {
       setSubmitError(null);
-      setSubmitErrorDetails([]);
+      setSubmitIssues([]);
     }
     setDraft((prev) => {
       if (key !== "category") {
@@ -670,7 +790,7 @@ export function WizardProvider({
   const updateDetailField = (key: DetailFieldKey, value: string) => {
     if (submitError) {
       setSubmitError(null);
-      setSubmitErrorDetails([]);
+      setSubmitIssues([]);
     }
     setDraft((prev) => {
       const nextDetails = { ...prev.details, [key]: value };
@@ -845,7 +965,7 @@ export function WizardProvider({
     setAutoApproved(false);
     setIsSubmitting(false);
     setSubmitError(null);
-    setSubmitErrorDetails([]);
+    setSubmitIssues([]);
     setCreatedListingId(editingListingId);
     setMediaError(null);
     setFeatureQuery("");
@@ -895,11 +1015,119 @@ export function WizardProvider({
     return true;
   }, [activeStep, draft, mediaValidationError, sellerValidationError]);
 
+  const stepCompletion = React.useMemo(() => {
+    const completion = Array.from({ length: LISTING_WIZARD_STEPS.length }, () => false);
+
+    completion[0] = Boolean(draft.category);
+    completion[1] = Boolean(
+      draft.title.trim() &&
+      draft.title.trim().length <= MAX_TITLE_LENGTH &&
+      draft.priceKes &&
+      Number(draft.priceKes) > 0 &&
+      draft.country.trim() &&
+      draft.cityTown.trim() &&
+      draft.locationArea.trim() &&
+      draft.description.trim() &&
+      draft.description.trim().length <= MAX_DESCRIPTION_LENGTH
+    );
+    completion[2] = Boolean(
+      draft.category &&
+      selectedCategoryFields
+        .filter((field) => field.required)
+        .every((field) => draft.details[field.key].trim().length > 0)
+    );
+    completion[3] = draft.selectedFeatureIds.length > 0;
+    completion[4] = !mediaValidationError;
+    completion[5] = !sellerValidationError;
+    completion[6] = true;
+    completion[7] = SUBMITTABLE_STEP_INDICES.every((index) => completion[index]);
+
+    return completion;
+  }, [draft, mediaValidationError, selectedCategoryFields, sellerValidationError]);
+
+  const firstIncompleteRequiredStep = React.useMemo(
+    () => SUBMITTABLE_STEP_INDICES.find((index) => !stepCompletion[index]) ?? null,
+    [stepCompletion]
+  );
+
+  const goToStep = React.useCallback(
+    (stepIndex: number, options?: { showValidationErrors?: boolean }) => {
+      const nextStep = Math.max(0, Math.min(stepIndex, LISTING_WIZARD_STEPS.length - 1));
+      setActiveStep(nextStep);
+
+      if (typeof options?.showValidationErrors === "boolean") {
+        setShowValidationErrors(options.showValidationErrors);
+      }
+    },
+    []
+  );
+
   const handleContinue = async () => {
     if (!canContinue) { setShowValidationErrors(true); return; }
     setShowValidationErrors(false);
 
     if (isLastStep) {
+      if (firstIncompleteRequiredStep !== null) {
+        setSubmitError("Complete the missing required details before submitting this listing.");
+        setSubmitIssues([
+          {
+            message: `${LISTING_WIZARD_STEPS[firstIncompleteRequiredStep].title} still has required fields to complete.`,
+            stepIndex: firstIncompleteRequiredStep,
+          },
+        ]);
+        goToStep(firstIncompleteRequiredStep, { showValidationErrors: true });
+        return;
+      }
+
+      if (!isEditing) {
+        if (isLoadingPackageAccess) {
+          setSubmitError("Checking your seller package access. Please try again in a moment.");
+          setSubmitIssues([
+            {
+              message: "Seller package access is still loading.",
+              stepIndex: 7,
+            },
+          ]);
+          return;
+        }
+
+        if (packageAccessError) {
+          setSubmitError(packageAccessError);
+          setSubmitIssues([
+            {
+              message: packageAccessError,
+              stepIndex: 7,
+            },
+          ]);
+          return;
+        }
+
+        if (!packageAccess?.hasActivePlan) {
+          setSubmitError("Choose a seller package before publishing this listing.");
+          setSubmitIssues([
+            {
+              message: "Activate a seller package from Membership before you submit this listing.",
+              stepIndex: 7,
+            },
+          ]);
+          return;
+        }
+
+        if (!packageAccess.canCreateListing) {
+          const currentPlanName = packageAccess.currentPlan?.name || "current";
+          setSubmitError(
+            `Your ${currentPlanName} package has no listing slots left. Upgrade or switch package before publishing this listing.`
+          );
+          setSubmitIssues([
+            {
+              message: `Your ${currentPlanName} package has reached its listing limit.`,
+              stepIndex: 7,
+            },
+          ]);
+          return;
+        }
+      }
+
       const { createListing, submitListingForReview, updateListing, uploadListingImages } = await import("@/lib/actions/listings");
 
       const listingData = {
@@ -919,11 +1147,25 @@ export function WizardProvider({
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
         details: draft.details,
+        category: draft.category || undefined,
+        country: draft.country,
+        cityTown: draft.cityTown,
+        locationArea: draft.locationArea,
+        availability: draft.availability,
+        negotiable: draft.negotiable,
+        sellerType: draft.sellerType,
+        useDealerAutoFill: draft.useDealerAutoFill,
+        contactName: draft.contactName,
+        phoneNumber: draft.phoneNumber,
+        whatsappEnabled: draft.whatsappEnabled,
+        whatsappNumber: draft.whatsappNumber,
+        allowPhoneCalls: draft.allowPhoneCalls,
+        hidePhoneNumber: draft.hidePhoneNumber,
       };
 
       setIsSubmitting(true);
       setSubmitError(null);
-      setSubmitErrorDetails([]);
+      setSubmitIssues([]);
       try {
         let listingId = editingListingId;
 
@@ -931,7 +1173,7 @@ export function WizardProvider({
           const updateResult = await updateListing(listingId, listingData);
           if (updateResult.error) {
             setSubmitError(updateResult.error);
-            setSubmitErrorDetails([updateResult.error]);
+            setSubmitIssues([{ message: updateResult.error, stepIndex: null }]);
             setIsSubmitting(false);
             return;
           }
@@ -940,11 +1182,11 @@ export function WizardProvider({
           if (result.error) {
             if (typeof result.error === "string") {
               setSubmitError(result.error);
-              setSubmitErrorDetails([result.error]);
+              setSubmitIssues([{ message: result.error, stepIndex: null }]);
             } else {
-              const details = formatSubmissionErrorDetails(result.error);
+              const issues = formatSubmissionIssues(result.error);
               setSubmitError("Please fix the validation issues below before submitting.");
-              setSubmitErrorDetails(details);
+              setSubmitIssues(issues);
             }
             setIsSubmitting(false);
             return;
@@ -961,6 +1203,7 @@ export function WizardProvider({
 
         if (!listingId) {
           setSubmitError("Listing not found.");
+          setSubmitIssues([{ message: "Listing not found.", stepIndex: null }]);
           setIsSubmitting(false);
           return;
         }
@@ -990,7 +1233,11 @@ export function WizardProvider({
           const uploadResult = await uploadListingImages(uploadFormData);
           if ("error" in uploadResult) {
             setSubmitError(uploadResult.error || "Unable to upload listing images.");
-            setSubmitErrorDetails(uploadResult.error ? [uploadResult.error] : []);
+            setSubmitIssues(
+              uploadResult.error
+                ? [{ message: uploadResult.error, stepIndex: 4 }]
+                : []
+            );
             setIsSubmitting(false);
             return;
           }
@@ -1000,7 +1247,11 @@ export function WizardProvider({
           const submitResult = await submitListingForReview(listingId);
           if ("error" in submitResult) {
             setSubmitError(submitResult.error || "Unable to submit listing for review.");
-            setSubmitErrorDetails(submitResult.error ? [submitResult.error] : []);
+            setSubmitIssues(
+              submitResult.error
+                ? [{ message: submitResult.error, stepIndex: 7 }]
+                : []
+            );
             setIsSubmitting(false);
             return;
           }
@@ -1014,7 +1265,7 @@ export function WizardProvider({
         setSubmitted(true);
       } catch {
         setSubmitError("An unexpected error occurred. Please try again.");
-        setSubmitErrorDetails([]);
+        setSubmitIssues([]);
       } finally {
         setIsSubmitting(false);
       }
@@ -1030,14 +1281,15 @@ export function WizardProvider({
 
   const value: WizardContextValue = {
     isEditing, editingListingId,
-    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitErrorDetails, submitted, autoApproved, createdListingId,
+    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
+    packageAccess, isLoadingPackageAccess, packageAccessError,
     coverFile, galleryFiles, documentFiles,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
     handleCoverSelection, handleGallerySelection, removeGalleryFile, moveGalleryImage, handleDocumentSelection, removeDocumentFile,
     applyDealerAutofill, resetDraft,
-    handleContinue, handleBack, setActiveStep,
+    handleContinue, handleBack, goToStep, setActiveStep,
     canContinue, mediaValidationError, sellerValidationError, marketIndicator, selectedCategoryFields,
   };
 

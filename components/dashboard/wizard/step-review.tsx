@@ -195,6 +195,10 @@ export function StepReview() {
           label="Account Autofill"
           value={draft.useDealerAutoFill ? "Using saved account details" : "Manual entry"}
         />
+        <SummaryRow
+          label="Seller Location"
+          value={`${draft.locationArea || "-"}, ${draft.cityTown || "-"}, ${draft.country || "-"}`}
+        />
         <SummaryRow label="Contact Name" value={draft.contactName || "-"} />
         <SummaryRow label="Phone Number" value={draft.phoneNumber || "-"} />
         <SummaryRow

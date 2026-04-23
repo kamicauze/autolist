@@ -1,15 +1,10 @@
-import { AdminPlaceholderPage } from "@/components/admin/admin-placeholder-page";
+import { AdminSettingsLive } from "@/components/admin/admin-settings-live";
+import { requireAdminPage } from "@/lib/admin/guard";
+import { getPlatformSettingsData } from "@/lib/data/platform-settings";
 
-export default function AdminSettingsRoute() {
-  return (
-    <AdminPlaceholderPage
-      title="Settings"
-      description="System settings were previously rendered as static form controls. This placeholder prevents the admin from implying those values can be saved."
-      nextSteps={[
-        "Decide which configuration belongs in database-backed settings.",
-        "Implement read and write actions with validation and audit logging.",
-        "Expose save controls only after the persistence layer is complete.",
-      ]}
-    />
-  );
+export default async function AdminSettingsRoute() {
+  const { supabase } = await requireAdminPage("/admin/settings");
+  const { settings, schemaReady } = await getPlatformSettingsData(supabase);
+
+  return <AdminSettingsLive initialSettings={settings} schemaReady={schemaReady} />;
 }
