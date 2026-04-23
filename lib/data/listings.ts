@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
@@ -9,6 +10,27 @@ import {
   getMinimumUseCaseScore,
   getUseCaseScore,
 } from "@/lib/search/vehicle-ontology";
+
+const LISTING_CATEGORY_VALUES: readonly ListingCategory[] = [
+  "car",
+  "van",
+  "motorbike",
+  "truck",
+  "plant_construction",
+  "farm_agricultural",
+];
+
+const VAN_CATEGORY_BODY_TYPES = new Set(["Van", "Pickup", "Bus"]);
+const VAN_CATEGORY_PATTERN =
+  /\b(van|panel van|passenger van|minibus|pickup|pick up|pick-up|utility vehicle|hiace|serena|voxy|noah)\b/;
+const TRUCK_CATEGORY_PATTERN =
+  /\b(truck|lorry|canter|actros|scania|tractor unit|prime mover|tipper|rigid truck)\b/;
+const MOTORBIKE_CATEGORY_PATTERN =
+  /\b(motorbike|motorcycle|scooter|moped|boda|quad|atv|dirt bike|sport bike)\b/;
+const PLANT_CONSTRUCTION_CATEGORY_PATTERN =
+  /\b(excavator|loader|forklift|telehandler|construction|plant equipment|crane|dozer|grader|roller|compactor|compressor|generator|dumper)\b/;
+const FARM_AGRICULTURAL_CATEGORY_PATTERN =
+  /\b(farm|agricultural|harvester|plough|tractor\b|cultivator|sprayer|baler)\b/;
 
 function escapeLike(value: string) {
   return value.replace(/[,%]/g, "");
@@ -65,10 +87,69 @@ function inferListingBodyTypes(listing: Listing) {
   return Array.from(new Set([...explicit, ...inferred].filter(Boolean))) as string[];
 }
 
+function isListingCategory(value: string): value is ListingCategory {
+  return LISTING_CATEGORY_VALUES.includes(value as ListingCategory);
+}
+
+function buildListingCategorySearchText(listing: Listing) {
+  return [
+    listing.make,
+    listing.model,
+    listing.body_type,
+    getListingMetadataString(listing, "category"),
+    getListingMetadataString(listing, "vehicleType"),
+    getListingMetadataString(listing, "equipmentType"),
+    getListingMetadataString(listing, "bodyType"),
+    listing.description,
+    listing.features?.join(" "),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function inferListingCategory(listing: Listing): ListingCategory {
+  const metadataCategory = getListingMetadataString(listing, "category")?.toLowerCase();
+  if (metadataCategory && isListingCategory(metadataCategory)) {
+    return metadataCategory;
+  }
+
+  const inferredBodyTypes = inferListingBodyTypes(listing);
+  if (inferredBodyTypes.some((bodyType) => VAN_CATEGORY_BODY_TYPES.has(bodyType))) {
+    return "van";
+  }
+  if (inferredBodyTypes.includes("Truck")) {
+    return "truck";
+  }
+
+  const searchText = buildListingCategorySearchText(listing);
+
+  if (TRUCK_CATEGORY_PATTERN.test(searchText)) return "truck";
+  if (MOTORBIKE_CATEGORY_PATTERN.test(searchText)) return "motorbike";
+  if (PLANT_CONSTRUCTION_CATEGORY_PATTERN.test(searchText)) return "plant_construction";
+  if (FARM_AGRICULTURAL_CATEGORY_PATTERN.test(searchText)) return "farm_agricultural";
+  if (VAN_CATEGORY_PATTERN.test(searchText)) return "van";
+
+  return "car";
+}
+
 function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: string[]) {
   if (requestedBodyTypes.length === 0) return true;
   const inferred = inferListingBodyTypes(listing);
   return requestedBodyTypes.some((type) => inferred.includes(type));
+}
+
+function listingMatchesRequestedCategory(listing: Listing, requestedCategory?: ListingCategory) {
+  if (!requestedCategory) return true;
+  return inferListingCategory(listing) === requestedCategory;
+}
+
+function listingMatchesVerifiedOnly(listing: Listing, verifiedOnly?: boolean) {
+  if (!verifiedOnly) return true;
+
+  // Public dealer joins only resolve for approved/verified dealers, so a joined dealer row
+  // is the current trust signal for a verified marketplace listing.
+  return Boolean(listing.dealer?.id);
 }
 
 function listingMatchesRequestedLocation(listing: Listing, requestedLocation?: string) {
@@ -391,7 +472,12 @@ export async function searchListings({
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requiresDerivedFiltering =
-    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0 || Boolean(filters?.location);
+    requestedUseCase ||
+    requestedBodyTypes.length > 0 ||
+    requestedIntents.length > 0 ||
+    Boolean(filters?.location) ||
+    Boolean(filters?.category) ||
+    Boolean(filters?.verifiedOnly);
 
   if (requiresDerivedFiltering) {
     const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
@@ -400,9 +486,19 @@ export async function searchListings({
     }
 
     let processedListings = baseListings;
+    if (filters?.category) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedCategory(listing, filters.category)
+      );
+    }
     if (requestedBodyTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+    if (filters?.verifiedOnly) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
       );
     }
     if (filters?.location) {
@@ -460,7 +556,12 @@ export async function countMatchingListings(
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requiresDerivedFiltering =
-    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0 || Boolean(filters?.location);
+    requestedUseCase ||
+    requestedBodyTypes.length > 0 ||
+    requestedIntents.length > 0 ||
+    Boolean(filters?.location) ||
+    Boolean(filters?.category) ||
+    Boolean(filters?.verifiedOnly);
 
   if (requiresDerivedFiltering) {
     const baseListings = await fetchListingsForDerivedFiltering({
@@ -472,9 +573,19 @@ export async function countMatchingListings(
     }
 
     let processedListings = baseListings;
+    if (filters?.category) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedCategory(listing, filters.category)
+      );
+    }
     if (requestedBodyTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+    if (filters?.verifiedOnly) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
       );
     }
     if (filters?.location) {

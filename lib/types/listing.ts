@@ -1,4 +1,4 @@
-import type { ListingStatus } from "@/lib/constants/marketplace";
+import type { ListingCategory, ListingStatus } from "@/lib/constants/marketplace";
 
 export type { ListingStatus };
 
@@ -66,6 +66,7 @@ export interface Listing {
 
 export interface ListingFilters {
   q?: string;
+  category?: ListingCategory;
   make?: string;
   model?: string;
   origin?: string;

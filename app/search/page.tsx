@@ -24,6 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     categoryParam && categoryParam in LANDING_SEARCH_CATEGORY_CONFIG
       ? LANDING_SEARCH_CATEGORY_CONFIG[categoryParam]
       : null;
+  const normalizedCategory = categoryConfig ? categoryParam : undefined;
 
   // Parse array filters (comma-separated)
   const parseArrayParam = (value: string | string[] | undefined): string[] | undefined => {
@@ -35,6 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // Extract filters from params
   const filters: ListingFilters = {
     q: params.q as string,
+    category: normalizedCategory,
     make: params.make as string,
     model: params.model as string,
     origin: params.origin as string,
@@ -54,6 +56,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     doors: params.doors ? Number(params.doors) : undefined,
     driveType: params.driveType as string,
     sellerType: params.sellerType as ListingFilters["sellerType"],
+    verifiedOnly: params.verifiedOnly === "true",
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
   };
