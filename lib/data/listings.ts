@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import {
   getIntentScore,
   getMakesForOrigin,
@@ -70,6 +71,14 @@ function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: 
   return requestedBodyTypes.some((type) => inferred.includes(type));
 }
 
+function listingMatchesRequestedLocation(listing: Listing, requestedLocation?: string) {
+  const normalizedLocation = requestedLocation?.trim().toLowerCase();
+  if (!normalizedLocation) return true;
+
+  const displayLocation = getListingDisplayLocation(listing, { fallback: "" }).toLowerCase();
+  return displayLocation.includes(normalizedLocation);
+}
+
 function rankListingsForSemanticSearch(
   listings: Listing[],
   requestedUseCase?: string,
@@ -119,7 +128,7 @@ interface ListingQuery {
 function applyListingFilters<TQuery extends ListingQuery>(
   query: TQuery,
   filters?: ListingFilters,
-  options?: { skipBodyType?: boolean }
+  options?: { skipBodyType?: boolean; skipLocation?: boolean }
 ): TQuery {
   let nextQuery = query;
 
@@ -180,7 +189,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
   } else if (filters?.sellerType === "private") {
     nextQuery = nextQuery.is("dealer_id", null);
   }
-  if (filters?.location) {
+  if (!options?.skipLocation && filters?.location) {
     nextQuery = nextQuery.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
   }
   if (filters?.color) {
@@ -220,6 +229,51 @@ function applyCaseInsensitiveMultiValueFilter<TQuery extends { or(filters: strin
     .join(",");
 
   return query.or(filter);
+}
+
+async function fetchListingsForDerivedFiltering({
+  filters,
+  sort,
+}: {
+  filters?: ListingFilters;
+  sort: ListingSort;
+}) {
+  const supabase = await createClient();
+  const batchSize = 500;
+  const listings: Listing[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from("listings")
+      .select(getListingSelect(false))
+      .eq("status", "active");
+
+    query = applyListingFilters(query, filters, {
+      skipBodyType: true,
+      skipLocation: true,
+    });
+    query = query.order(sort.field, { ascending: sort.direction === "asc" });
+    query = query.range(from, from + batchSize - 1);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error searching listings with derived filtering:", error);
+      return null;
+    }
+
+    const batch = (data || []) as unknown as Listing[];
+    listings.push(...batch);
+
+    if (batch.length < batchSize) {
+      break;
+    }
+
+    from += batchSize;
+  }
+
+  return listings;
 }
 
 export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
@@ -333,38 +387,27 @@ export async function searchListings({
   page?: number;
   limit?: number;
 }): Promise<{ listings: Listing[]; total: number }> {
-  const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requiresDerivedFiltering =
-    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0;
+    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0 || Boolean(filters?.location);
 
   if (requiresDerivedFiltering) {
-    const rankingWindow =
-      requestedIntents.length > 0 && !requestedUseCase
-        ? Math.max(limit * 14, 240)
-        : Math.max(limit * 10, 160);
-    let rankingQuery = supabase
-      .from("listings")
-      .select(getListingSelect(Boolean(filters?.location)))
-      .eq("status", "active");
-
-    rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
-    rankingQuery = rankingQuery.order(sort.field, { ascending: sort.direction === "asc" });
-    rankingQuery = rankingQuery.range(0, rankingWindow - 1);
-
-    const { data: rankingData, error: rankingError } = await rankingQuery;
-
-    if (rankingError) {
-      console.error("Error searching listings with use-case ranking:", rankingError);
+    const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
+    if (!baseListings) {
       return { listings: [], total: 0 };
     }
 
-    let processedListings = (rankingData || []) as unknown as Listing[];
+    let processedListings = baseListings;
     if (requestedBodyTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+    if (filters?.location) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedLocation(listing, filters.location)
       );
     }
     const ranked = rankListingsForSemanticSearch(
@@ -381,6 +424,7 @@ export async function searchListings({
     };
   }
 
+  const supabase = await createClient();
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact" })
@@ -412,34 +456,30 @@ export async function searchListings({
 export async function countMatchingListings(
   filters?: ListingFilters
 ): Promise<number> {
-  const supabase = await createClient();
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requiresDerivedFiltering =
-    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0;
+    requestedUseCase || requestedBodyTypes.length > 0 || requestedIntents.length > 0 || Boolean(filters?.location);
 
   if (requiresDerivedFiltering) {
-    const rankingWindow = requestedIntents.length > 0 && !requestedUseCase ? 800 : 500;
-    let rankingQuery = supabase
-      .from("listings")
-      .select(getListingSelect(Boolean(filters?.location)))
-      .eq("status", "active");
-
-    rankingQuery = applyListingFilters(rankingQuery, filters, { skipBodyType: true });
-    rankingQuery = rankingQuery.range(0, rankingWindow - 1);
-
-    const { data: rankingData, error: rankingError } = await rankingQuery;
-
-    if (rankingError) {
-      console.error("Error counting listings with use-case ranking:", rankingError);
+    const baseListings = await fetchListingsForDerivedFiltering({
+      filters,
+      sort: { field: "created_at", direction: "desc" },
+    });
+    if (!baseListings) {
       return 0;
     }
 
-    let processedListings = (rankingData || []) as unknown as Listing[];
+    let processedListings = baseListings;
     if (requestedBodyTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
+      );
+    }
+    if (filters?.location) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedLocation(listing, filters.location)
       );
     }
 
@@ -450,6 +490,7 @@ export async function countMatchingListings(
     ).length;
   }
 
+  const supabase = await createClient();
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact", head: true })

@@ -10,17 +10,22 @@ import { fetchModelsForMake } from "@/lib/actions/car-data";
 export function useCarModels(makeName: string | null) {
   const [models, setModels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const selectedMake =
+    makeName && makeName !== "any" && makeName !== "all" ? makeName : null;
 
   useEffect(() => {
-    if (!makeName || makeName === "any" || makeName === "all") {
-      setModels([]);
+    if (!selectedMake) {
       return;
     }
 
     let cancelled = false;
-    setIsLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setIsLoading(true);
+      }
+    });
 
-    fetchModelsForMake(makeName)
+    fetchModelsForMake(selectedMake)
       .then((data) => {
         if (!cancelled) setModels(data);
       })
@@ -34,7 +39,10 @@ export function useCarModels(makeName: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [makeName]);
+  }, [selectedMake]);
 
-  return { models, isLoading };
+  return {
+    models: selectedMake ? models : [],
+    isLoading: selectedMake ? isLoading : false,
+  };
 }

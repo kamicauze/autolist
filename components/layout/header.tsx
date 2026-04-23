@@ -54,24 +54,34 @@ const desktopLinks = [
   { name: "Pages", menu: pagesMenu, key: "pages" },
 ] as const;
 
-export function Header() {
+function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory | null }) {
+  return (
+    <div className="hidden lg:block border-b border-gray-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <nav className="flex items-center gap-2 text-[12px]">
+          {vehicleTypes.map((type) => (
+            <Link
+              key={type.name}
+              href={type.href}
+              className={cn(
+                "border-b-2 px-2 py-2.5 font-medium text-gray-500 transition-colors hover:text-gray-900",
+                activeCategory === type.category
+                  ? "border-primary text-primary"
+                  : "border-transparent"
+              )}
+            >
+              {type.name}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+function HeaderVehicleTypeNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
-  const { ids } = useCompare();
-  const { user, loading } = useAuth();
-
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  };
-
-  const userLabel = user?.email?.split("@")[0] || "Account";
-  const userInitial = userLabel.charAt(0).toUpperCase();
 
   const activeVehicleCategory = React.useMemo<ListingCategory | null>(() => {
     if (pathname !== "/search") {
@@ -95,28 +105,32 @@ export function Header() {
     return "car";
   }, [pathname, searchParams]);
 
+  return <VehicleTypeLinks activeCategory={activeVehicleCategory} />;
+}
+
+export function Header() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const { ids } = useCompare();
+  const { user, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
+  const userLabel = user?.email?.split("@")[0] || "Account";
+  const userInitial = userLabel.charAt(0).toUpperCase();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur">
-      <div className="hidden lg:block border-b border-gray-100">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-2 text-[12px]">
-            {vehicleTypes.map((type) => (
-              <Link
-                key={type.name}
-                href={type.href}
-                className={cn(
-                  "border-b-2 px-2 py-2.5 font-medium text-gray-500 transition-colors hover:text-gray-900",
-                  activeVehicleCategory === type.category
-                    ? "border-primary text-primary"
-                    : "border-transparent"
-                )}
-              >
-                {type.name}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </div>
+      <React.Suspense fallback={<VehicleTypeLinks activeCategory={null} />}>
+        <HeaderVehicleTypeNav />
+      </React.Suspense>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">

@@ -61,8 +61,8 @@ export async function getUploadUrl(
 
         const url = await getSignedUrl(r2, command, { expiresIn: 3600 });
         return { success: true, url, key };
-    } catch (err: any) {
-        console.error("R2 Presign Error:", err);
+    } catch (err: unknown) {
+        console.error("R2 Presign Error:", err instanceof Error ? err.message : err);
         return { error: "Failed to generate upload URL." };
     }
 }

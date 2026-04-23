@@ -254,7 +254,7 @@ export async function getPendingDealerVerifications(): Promise<DealerVerificatio
 
   const adminSupabase = createAdminClient();
 
-  let query = adminSupabase
+  const query = adminSupabase
     .from("dealers")
     .select(DEALER_VERIFICATION_SELECT)
     .eq("status", "PENDING")

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -48,67 +48,105 @@ interface FilterSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   totalCount: number;
-  initialFilters?: Partial<{
-    make: string;
-    model: string;
-    minPrice: string;
-    maxPrice: string;
-    location: string;
-    condition: string;
-    bodyTypes: string[];
-    minYear: string;
-    maxYear: string;
-    minMileage: string;
-    maxMileage: string;
-    transmissions: string[];
-    fuelTypes: string[];
-    color: string;
-    seats: string;
-    doors: string;
-    driveType: string;
-    sellerTypes: string[];
-    verifiedOnly: boolean;
-    sortBy: string;
-  }>;
+  initialFilters?: Partial<FilterSheetState>;
 }
 
-export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilters }: FilterSheetProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+type FilterSheetState = {
+  make: string;
+  model: string;
+  minPrice: string;
+  maxPrice: string;
+  location: string;
+  condition: string;
+  bodyTypes: string[];
+  minYear: string;
+  maxYear: string;
+  minMileage: string;
+  maxMileage: string;
+  transmissions: string[];
+  fuelTypes: string[];
+  color: string;
+  seats: string;
+  doors: string;
+  driveType: string;
+  sellerTypes: string[];
+  verifiedOnly: boolean;
+  sortBy: string;
+};
 
-  const buildFiltersFromParams = useCallback(() => ({
-    make: initialFilters?.make || searchParams.get("make") || "",
-    model: initialFilters?.model || searchParams.get("model") || "",
-    minPrice: initialFilters?.minPrice || searchParams.get("minPrice") || "",
-    maxPrice: initialFilters?.maxPrice || searchParams.get("maxPrice") || "",
-    location: initialFilters?.location || searchParams.get("location") || "",
-    condition: initialFilters?.condition || searchParams.get("condition") || "",
-    bodyTypes: initialFilters?.bodyTypes || searchParams.get("bodyType")?.split(",").filter(Boolean) || [],
-    minYear: initialFilters?.minYear || searchParams.get("minYear") || "",
-    maxYear: initialFilters?.maxYear || searchParams.get("maxYear") || "",
-    minMileage: initialFilters?.minMileage || searchParams.get("minMileage") || "",
-    maxMileage: initialFilters?.maxMileage || searchParams.get("maxMileage") || "",
-    transmissions: initialFilters?.transmissions || searchParams.get("transmission")?.split(",").filter(Boolean) || [],
-    fuelTypes: initialFilters?.fuelTypes || searchParams.get("fuelType")?.split(",").filter(Boolean) || [],
-    color: initialFilters?.color || searchParams.get("color") || "",
-    seats: initialFilters?.seats || searchParams.get("seats") || "",
-    doors: initialFilters?.doors || searchParams.get("doors") || "",
-    driveType: initialFilters?.driveType || searchParams.get("driveType") || "",
-    sellerTypes: initialFilters?.sellerTypes || searchParams.get("sellerType")?.split(",").filter(Boolean) || [],
+function createEmptyFilterSheetState(): FilterSheetState {
+  return {
+    make: "",
+    model: "",
+    minPrice: "",
+    maxPrice: "",
+    location: "",
+    condition: "",
+    bodyTypes: [],
+    minYear: "",
+    maxYear: "",
+    minMileage: "",
+    maxMileage: "",
+    transmissions: [],
+    fuelTypes: [],
+    color: "",
+    seats: "",
+    doors: "",
+    driveType: "",
+    sellerTypes: [],
+    verifiedOnly: false,
+    sortBy: "newest",
+  };
+}
+
+function buildFilterSheetState(
+  searchParams: ReturnType<typeof useSearchParams>,
+  initialFilters?: FilterSheetProps["initialFilters"]
+): FilterSheetState {
+  const emptyState = createEmptyFilterSheetState();
+
+  return {
+    make: initialFilters?.make || searchParams.get("make") || emptyState.make,
+    model: initialFilters?.model || searchParams.get("model") || emptyState.model,
+    minPrice: initialFilters?.minPrice || searchParams.get("minPrice") || emptyState.minPrice,
+    maxPrice: initialFilters?.maxPrice || searchParams.get("maxPrice") || emptyState.maxPrice,
+    location: initialFilters?.location || searchParams.get("location") || emptyState.location,
+    condition: initialFilters?.condition || searchParams.get("condition") || emptyState.condition,
+    bodyTypes: initialFilters?.bodyTypes || searchParams.get("bodyType")?.split(",").filter(Boolean) || emptyState.bodyTypes,
+    minYear: initialFilters?.minYear || searchParams.get("minYear") || emptyState.minYear,
+    maxYear: initialFilters?.maxYear || searchParams.get("maxYear") || emptyState.maxYear,
+    minMileage: initialFilters?.minMileage || searchParams.get("minMileage") || emptyState.minMileage,
+    maxMileage: initialFilters?.maxMileage || searchParams.get("maxMileage") || emptyState.maxMileage,
+    transmissions: initialFilters?.transmissions || searchParams.get("transmission")?.split(",").filter(Boolean) || emptyState.transmissions,
+    fuelTypes: initialFilters?.fuelTypes || searchParams.get("fuelType")?.split(",").filter(Boolean) || emptyState.fuelTypes,
+    color: initialFilters?.color || searchParams.get("color") || emptyState.color,
+    seats: initialFilters?.seats || searchParams.get("seats") || emptyState.seats,
+    doors: initialFilters?.doors || searchParams.get("doors") || emptyState.doors,
+    driveType: initialFilters?.driveType || searchParams.get("driveType") || emptyState.driveType,
+    sellerTypes: initialFilters?.sellerTypes || searchParams.get("sellerType")?.split(",").filter(Boolean) || emptyState.sellerTypes,
     verifiedOnly: initialFilters?.verifiedOnly ?? (searchParams.get("verifiedOnly") === "true"),
-    sortBy: initialFilters?.sortBy || searchParams.get("sortBy") || "newest",
-  }), [searchParams, initialFilters]);
+    sortBy: initialFilters?.sortBy || searchParams.get("sortBy") || emptyState.sortBy,
+  };
+}
 
-  // Local state for filters (applied on "Search" click)
-  const [localFilters, setLocalFilters] = useState(buildFiltersFromParams);
+interface FilterSheetPanelProps {
+  makes: string[];
+  totalCount: number;
+  initialLocalFilters: FilterSheetState;
+  onOpenChange: (open: boolean) => void;
+  searchParamsString: string;
+}
 
-  // Sync local state with URL params or initialFilters when sheet opens
-  useEffect(() => {
-    if (open) {
-      setLocalFilters(buildFiltersFromParams());
-    }
-  }, [open, buildFiltersFromParams]);
+function FilterSheetPanel({
+  makes,
+  totalCount,
+  initialLocalFilters,
+  onOpenChange,
+  searchParamsString,
+}: FilterSheetPanelProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [localFilters, setLocalFilters] = useState(initialLocalFilters);
 
   const toggleArrayFilter = useCallback((
     key: "bodyTypes" | "transmissions" | "fuelTypes" | "sellerTypes",
@@ -123,7 +161,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
   }, []);
 
   const applyFilters = () => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsString);
     params.set("page", "1");
 
     // Make & Model
@@ -223,36 +261,14 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
   };
 
   const resetFilters = () => {
-    setLocalFilters({
-      make: "",
-      model: "",
-      minPrice: "",
-      maxPrice: "",
-      location: "",
-      condition: "",
-      bodyTypes: [],
-      minYear: "",
-      maxYear: "",
-      minMileage: "",
-      maxMileage: "",
-      transmissions: [],
-      fuelTypes: [],
-      color: "",
-      seats: "",
-      doors: "",
-      driveType: "",
-      sellerTypes: [],
-      verifiedOnly: false,
-      sortBy: "newest",
-    });
+    setLocalFilters(createEmptyFilterSheetState());
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
-        <SheetHeader className="px-6 py-4 border-b">
-          <SheetTitle>Filter search</SheetTitle>
-        </SheetHeader>
+    <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+      <SheetHeader className="px-6 py-4 border-b">
+        <SheetTitle>Filter search</SheetTitle>
+      </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {/* Make */}
@@ -674,15 +690,35 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
           </div>
         </div>
 
-        <SheetFooter>
-          <Button variant="ghost" onClick={resetFilters} className="text-gray-500">
-            Reset all
-          </Button>
-          <Button onClick={applyFilters} disabled={isPending} className="flex-1">
-            Search {totalCount.toLocaleString()} cars
-          </Button>
-        </SheetFooter>
-      </SheetContent>
+      <SheetFooter>
+        <Button variant="ghost" onClick={resetFilters} className="text-gray-500">
+          Reset all
+        </Button>
+        <Button onClick={applyFilters} disabled={isPending} className="flex-1">
+          Search {totalCount.toLocaleString()} cars
+        </Button>
+      </SheetFooter>
+    </SheetContent>
+  );
+}
+
+export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilters }: FilterSheetProps) {
+  const searchParams = useSearchParams();
+  const initialLocalFilters = buildFilterSheetState(searchParams, initialFilters);
+  const panelKey = `${searchParams.toString()}::${JSON.stringify(initialFilters || {})}`;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      {open ? (
+        <FilterSheetPanel
+          key={panelKey}
+          makes={makes}
+          totalCount={totalCount}
+          initialLocalFilters={initialLocalFilters}
+          onOpenChange={onOpenChange}
+          searchParamsString={searchParams.toString()}
+        />
+      ) : null}
     </Sheet>
   );
 }
