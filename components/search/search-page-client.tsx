@@ -71,7 +71,7 @@ export function SearchPageClient({
             ) : (
               <PanelRightOpen className="mr-2 h-4 w-4" />
             )}
-            {isDesktopAssistantOpen ? "Hide Assistant" : "Open Side Chat"}
+            {isDesktopAssistantOpen ? "Hide Assistant" : "Open Search Assistant"}
           </Button>
           <Button
             type="button"

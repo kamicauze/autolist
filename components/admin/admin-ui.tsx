@@ -97,7 +97,7 @@ export function AdminPageHeader({
 }) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <h1 className="font-heading text-[40px] font-semibold leading-[1.1] text-[#111827]">
+      <h1 className="font-heading text-[24px] font-semibold leading-[1.1] text-[#111827]">
         {title}
       </h1>
       {action}

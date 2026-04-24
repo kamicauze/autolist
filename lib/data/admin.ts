@@ -26,14 +26,23 @@ type DealerRow = {
 type ListingRow = {
   id: string;
   status: ListingStatus;
+  is_featured: boolean;
   make: string;
   model: string;
   year: number;
   price: number;
   currency: string;
+  mileage: number | null;
   body_type: string | null;
+  transmission: string | null;
+  fuel_type: string | null;
+  color: string | null;
+  condition: string | null;
+  description: string | null;
   created_at: string;
+  updated_at: string;
   metadata: Record<string, unknown> | null;
+  images: Array<{ id: string; r2_key: string; alt_text: string | null; image_order: number }> | null;
   seller: Array<{ id: string; full_name: string | null; email: string | null }> | null;
   dealer: Array<{ id: string; name: string; city: string | null }> | null;
 };
@@ -62,14 +71,29 @@ export type AdminDashboardListing = {
   id: string;
   title: string;
   subtitle: string | null;
+  make: string;
+  model: string;
+  year: number;
+  bodyType: string | null;
+  mileage: number | null;
+  transmission: string | null;
+  fuelType: string | null;
+  color: string | null;
+  condition: string | null;
+  description: string | null;
+  coverImageKey: string | null;
+  coverImageAlt: string | null;
+  imageCount: number;
   sellerName: string;
   sellerEmail: string | null;
   sellerType: "Dealer" | "Private";
   dealerName: string | null;
   status: ListingStatus;
+  isFeatured: boolean;
   price: number;
   currency: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type AdminDashboardUser = {
@@ -521,19 +545,36 @@ function buildListingSubtitle(
 function normalizeListing(listing: ListingRow): AdminDashboardListing {
   const seller = firstRelation(listing.seller);
   const dealer = firstRelation(listing.dealer);
+  const images = (listing.images || []).slice().sort((a, b) => a.image_order - b.image_order);
+  const coverImage = images[0] || null;
 
   return {
     id: listing.id,
     title: buildListingTitle(listing),
     subtitle: buildListingSubtitle(listing),
+    make: listing.make,
+    model: listing.model,
+    year: listing.year,
+    bodyType: listing.body_type,
+    mileage: listing.mileage,
+    transmission: listing.transmission,
+    fuelType: listing.fuel_type,
+    color: listing.color,
+    condition: listing.condition,
+    description: listing.description,
+    coverImageKey: coverImage?.r2_key || null,
+    coverImageAlt: coverImage?.alt_text || null,
+    imageCount: images.length,
     sellerName: seller?.full_name || dealer?.name || seller?.email || "Unknown seller",
     sellerEmail: seller?.email || null,
     sellerType: dealer ? "Dealer" : "Private",
     dealerName: dealer?.name || null,
     status: listing.status,
+    isFeatured: Boolean(listing.is_featured),
     price: Number(listing.price || 0),
     currency: listing.currency,
     createdAt: listing.created_at,
+    updatedAt: listing.updated_at,
   };
 }
 
@@ -877,14 +918,23 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
           `
             id,
             status,
+            is_featured,
             make,
             model,
             year,
             price,
             currency,
+            mileage,
             body_type,
+            transmission,
+            fuel_type,
+            color,
+            condition,
+            description,
             created_at,
+            updated_at,
             metadata,
+            images:listing_images(id, r2_key, alt_text, image_order),
             seller:profiles!seller_id(id, full_name, email),
             dealer:dealers(id, name, city)
           `
@@ -1005,14 +1055,23 @@ export const getAdminListingsOverviewData = cache(
           `
             id,
             status,
+            is_featured,
             make,
             model,
             year,
             price,
             currency,
+            mileage,
             body_type,
+            transmission,
+            fuel_type,
+            color,
+            condition,
+            description,
             created_at,
+            updated_at,
             metadata,
+            images:listing_images(id, r2_key, alt_text, image_order),
             seller:profiles!seller_id(id, full_name, email),
             dealer:dealers(id, name, city)
           `

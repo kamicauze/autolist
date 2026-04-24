@@ -60,11 +60,6 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
     "Admin";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
 
-  const currentSection =
-    ADMIN_NAV_SECTIONS.flatMap((section) => section.items).find((item) =>
-      pathname === item.href || pathname.startsWith(`${item.href}/`)
-    )?.name || "Dashboard";
-
   const primaryAction =
     pathname.startsWith("/admin/review")
       ? { href: "/admin/dashboard", label: "View dashboard" }
@@ -202,17 +197,7 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
           </div>
         </header>
 
-        <main className="px-[30px] py-10">
-          <div className="mb-6">
-            <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#94a3b8]">
-              Admin
-            </p>
-            <h1 className="mt-1 font-heading text-[18px] font-semibold text-[#111827]">
-              {currentSection}
-            </h1>
-          </div>
-          {children}
-        </main>
+        <main className="px-[30px] py-10">{children}</main>
       </div>
     </div>
   );

@@ -47,12 +47,7 @@ interface SearchAssistantPanelProps {
   showCloseButton?: boolean;
 }
 
-const STARTER_PROMPTS = [
-  "small car under 2m",
-  "european sedan",
-  "automatic suv in nairobi",
-  "dealer crossover under 4m",
-];
+const STARTER_PROMPTS = ["small car under 2m", "automatic suv in nairobi"];
 
 const USE_CASE_LABELS: Record<string, string> = {
   first_car: "first-car friendly",
@@ -499,25 +494,19 @@ export function SearchAssistantPanel({
   return (
     <section
       className={cn(
-        "flex h-full min-h-[640px] flex-col overflow-hidden rounded-[26px] border border-[#dfe7f2] bg-white shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)]",
+        "flex h-full min-h-[640px] flex-col overflow-hidden rounded-[18px] border border-[#dfe7f2] bg-white shadow-[0_18px_48px_-36px_rgba(15,23,42,0.35)]",
         className
       )}
     >
-      <div className="border-b border-[#e6ebf2] bg-[linear-gradient(180deg,#fbfdff_0%,#f5f8fd_100%)] px-5 py-5">
-        <div className="flex items-start justify-between gap-3">
+      <div className="border-b border-[#e6ebf2] bg-white px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
               <MessageSquareText className="h-4 w-4" />
               Search Assistant
             </p>
-            <h3 className="mt-2 text-[22px] font-semibold text-[#202224]">
-              Search like a live chat
-            </h3>
-            <p className="mt-1 max-w-sm text-[14px] leading-6 text-[#667085]">
-              Describe the car you want in plain language. I&apos;ll interpret the request, keep the context, and update the search path for this page.
-            </p>
-            <p className="mt-2 max-w-sm text-[12px] leading-5 text-[#93a2b8]">
-              Tip: typed messages <strong className="font-semibold text-[#667085]">replace</strong> context; tap a chip to <strong className="font-semibold text-[#667085]">narrow</strong>.
+            <p className="mt-1 text-[13px] text-[#667085]">
+              Ask in plain language or refine current filters.
             </p>
           </div>
 
@@ -525,7 +514,7 @@ export function SearchAssistantPanel({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d8e0ec] bg-white text-[#344054] transition hover:border-primary hover:text-primary"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d8e0ec] bg-white text-[#344054] transition hover:border-primary hover:text-primary"
               aria-label="Close assistant"
             >
               <X className="h-4 w-4" />
@@ -533,13 +522,16 @@ export function SearchAssistantPanel({
           ) : null}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
+            Try
+          </span>
           {STARTER_PROMPTS.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => void runAssistantSearch(prompt)}
-              className="rounded-full border border-[#d6e2ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+              className="shrink-0 rounded-full border border-[#d6e2ff] bg-[#f8fbff] px-2.5 py-1 text-[11px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
             >
               {prompt}
             </button>
@@ -632,11 +624,11 @@ export function SearchAssistantPanel({
           ) : null}
 
           {lastResult ? (
-            <div className="rounded-[22px] border border-[#dde5f0] bg-white p-4 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[18px] border border-[#dde5f0] bg-white p-3 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
               <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#617086]">
+                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#617086]">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  Active Filter State
+                  Filters
                 </p>
                 {lastResult.preview.total > 0 ? (
                   <span className="rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-semibold text-[#2753c7]">
@@ -644,7 +636,7 @@ export function SearchAssistantPanel({
                   </span>
                 ) : null}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {Object.values(lastResult.params).some(Boolean) ? (
                   (Object.entries(lastResult.params) as [
                     keyof SmartSearchParams,
@@ -653,7 +645,7 @@ export function SearchAssistantPanel({
                     value ? (
                       <span
                         key={key}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e2ff] bg-[#f6f9ff] py-1 pl-3 pr-1 text-[12px] font-medium text-[#3157c8]"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e2ff] bg-[#f6f9ff] py-1 pl-2.5 pr-1 text-[11px] font-medium text-[#3157c8]"
                       >
                         <span>
                           {FILTER_KEY_LABELS[key] || key}: {formatParamValue(key, value)}
@@ -670,27 +662,24 @@ export function SearchAssistantPanel({
                     ) : null
                   )
                 ) : (
-                  <span className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-3 py-1.5 text-[12px] font-medium text-[#3157c8]">
-                    Waiting for a city
+                  <span className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-2.5 py-1 text-[11px] font-medium text-[#3157c8]">
+                    No filters
                   </span>
                 )}
               </div>
-              <p className="mt-3 text-[13px] leading-6 text-[#667085]">
-                Tap × on a chip to drop it, or reply with a correction.
-              </p>
 
               {activeFollowUp ? (
-                <div className="mt-4 rounded-[18px] border border-[#dbe6ff] bg-[#f7faff] p-4">
+                <div className="mt-3 rounded-[14px] border border-[#dbe6ff] bg-[#f7faff] p-3">
                   <p className="text-[13px] font-semibold text-[#274690]">
                     {activeFollowUp.question}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {activeFollowUp.options.map((option) => (
                       <button
                         key={`${option.label}-${option.query}`}
                         type="button"
                         onClick={() => void runAssistantSearch(option.query)}
-                        className="rounded-full border border-[#c9d9ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+                        className="rounded-full border border-[#c9d9ff] bg-white px-2.5 py-1 text-[11px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
                       >
                         {option.label}
                       </button>

@@ -168,12 +168,6 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                 </p>
                 {!isSearching && searchResult && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {searchResult.provider === "openai"
-                      ? `OpenAI-assisted via ${searchResult.model}`
-                      : searchResult.provider === "local_llm"
-                        ? `AI-assisted via ${searchResult.model}`
-                        : "Rule-based match"}
-                    {" • "}
                     {searchResult.note}
                   </p>
                 )}

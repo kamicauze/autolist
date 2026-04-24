@@ -12,6 +12,7 @@ import { r2 } from "@/lib/r2";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { nanoid } from "nanoid";
 
+import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
 
@@ -555,6 +556,58 @@ export async function setListingFeatured(id: string, isFeatured: boolean) {
 
 export async function setOwnerListingFeatured(id: string, isFeatured: boolean) {
     return setListingFeatured(id, isFeatured);
+}
+
+export async function updateAdminListingStatus(id: string, status: ListingStatus) {
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return adminContext;
+
+    if (!(status in LISTING_STATUS_META)) {
+        return { error: "Invalid listing status." };
+    }
+
+    const { supabase } = adminContext;
+
+    const { error } = await supabase
+        .from("listings")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/listings");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${id}`);
+    return { success: true };
+}
+
+export async function deleteAdminListing(id: string) {
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return adminContext;
+
+    const { supabase } = adminContext;
+
+    const { error } = await supabase
+        .from("listings")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/listings");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${id}`);
+    return { success: true };
 }
 
 export async function duplicateOwnerListing(id: string) {
