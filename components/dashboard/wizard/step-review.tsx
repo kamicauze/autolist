@@ -1,14 +1,12 @@
 "use client";
 
 import {
-  LISTING_AVAILABILITY_OPTIONS,
   LISTING_CATEGORY_OPTIONS,
   LISTING_CONDITION_OPTIONS,
   LISTING_FEATURE_GROUPS_BY_CATEGORY,
   LISTING_FEATURES_BY_CATEGORY,
 } from "@/lib/constants/marketplace";
 import { formatKES, useWizard } from "./wizard-context";
-import { ListingCopyAssistant } from "./listing-copy-assistant";
 import { ListingQualityPanel } from "./listing-quality-panel";
 
 function formatOptionLabel(
@@ -29,9 +27,9 @@ function formatDetailValue(label: string, value: string) {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-2 py-3 md:grid-cols-[220px_minmax(0,1fr)] md:gap-4">
+    <div className="grid gap-2 py-2.5 md:grid-cols-[190px_minmax(0,1fr)] md:gap-3">
       <p className="text-[13px] font-medium text-[#7a7a7a]">{label}</p>
-      <p className="text-[14px] font-semibold leading-6 text-[#202224]">{value}</p>
+      <p className="text-[13px] font-semibold leading-5 text-[#202224]">{value}</p>
     </div>
   );
 }
@@ -46,10 +44,10 @@ function SummarySection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5 md:p-6">
-      <div className="border-b border-[#e7e7e7] pb-4">
-        <h3 className="font-heading text-[20px] font-semibold text-[#202224]">{title}</h3>
-        <p className="mt-1 text-[14px] leading-6 text-[#767676]">{description}</p>
+    <section className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
+      <div className="border-b border-[#e7e7e7] pb-3">
+        <h3 className="font-heading text-[18px] font-semibold text-[#202224]">{title}</h3>
+        <p className="mt-1 text-[13px] leading-5 text-[#767676]">{description}</p>
       </div>
       <div className="divide-y divide-[#ececec]">{children}</div>
     </section>
@@ -57,15 +55,11 @@ function SummarySection({
 }
 
 export function StepReview() {
-  const { draft, isEditing, selectedCategoryFields, marketIndicator } = useWizard();
+  const { draft, isEditing, selectedCategoryFields, marketIndicator, videoFile } = useWizard();
 
   const categoryLabel =
     LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "-";
   const conditionLabel = formatOptionLabel(draft.condition, LISTING_CONDITION_OPTIONS);
-  const availabilityLabel = formatOptionLabel(
-    draft.availability,
-    LISTING_AVAILABILITY_OPTIONS
-  );
   const hasCoverImage = Boolean(draft.coverImageName || draft.coverFromGalleryIndex !== null);
   const selectedFeatureGroups = draft.category
     ? LISTING_FEATURES_BY_CATEGORY[draft.category]
@@ -100,14 +94,14 @@ export function StepReview() {
     }`,
     `Gallery images: ${draft.galleryImageNames.length}`,
     `Documents: ${draft.documentNames.length}`,
-    `Video URL: ${draft.videoUrl || "Not provided"}`,
+    `Video: ${videoFile ? `Upload ready (${videoFile.name})` : draft.videoUrl || "Not provided"}`,
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">Review & Submit</h2>
-        <p className="mt-2 text-[14px] leading-6 text-[#767676]">
+        <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Review & Submit</h2>
+        <p className="mt-1 text-[13px] leading-5 text-[#767676]">
           Review the full listing package below. This summary mirrors what will be submitted for
           moderation and helps you catch gaps before the listing goes live.
         </p>
@@ -122,11 +116,11 @@ export function StepReview() {
         <SummaryRow label="Condition" value={conditionLabel} />
         <SummaryRow label="Price" value={formatKES(draft.priceKes)} />
         <SummaryRow label="Negotiable" value={draft.negotiable ? "Yes" : "No"} />
+        <SummaryRow label="Trade-In Accepted" value={draft.tradeInAccepted ? "Yes" : "No"} />
         <SummaryRow
           label="Location"
           value={`${draft.locationArea || "-"}, ${draft.cityTown || "-"}, ${draft.country || "-"}`}
         />
-        <SummaryRow label="Availability" value={availabilityLabel} />
         <SummaryRow
           label="Description"
           value={draft.description.trim() || "No description provided."}
@@ -179,7 +173,10 @@ export function StepReview() {
         <SummaryRow label="Cover Status" value={hasCoverImage ? "Cover ready" : "No cover selected"} />
         <SummaryRow label="Gallery Images" value={draft.galleryImageNames.join(", ") || "No gallery images uploaded"} />
         <SummaryRow label="Documents" value={draft.documentNames.join(", ") || "No documents attached"} />
-        <SummaryRow label="Video URL" value={draft.videoUrl || "No video attached"} />
+        <SummaryRow
+          label="Video"
+          value={videoFile ? `${videoFile.name} (will upload on submit)` : draft.videoUrl || "No video attached"}
+        />
         <SummaryRow label="Asset Summary" value={mediaSummary.join(" • ")} />
       </SummarySection>
 
@@ -230,8 +227,6 @@ export function StepReview() {
           }
         />
       </SummarySection>
-
-      <ListingCopyAssistant features={selectedFeatureLabels} />
       <ListingQualityPanel />
     </div>
   );

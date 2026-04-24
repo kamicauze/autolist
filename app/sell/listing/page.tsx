@@ -1,20 +1,15 @@
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
-import { Container } from "@/components/ui/container";
-import { ListingWizard } from "@/components/seller/listing-wizard";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-export default function SellerListingPage() {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+export default async function SellerListingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-      <main className="flex-1 bg-gray-50 py-8 md:py-12">
-        <Container size="xl">
-          <ListingWizard />
-        </Container>
-      </main>
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent("/dashboard/listings/new")}`);
+  }
 
-      <Footer />
-    </div>
-  );
+  redirect("/dashboard/listings/new");
 }

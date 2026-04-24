@@ -3,7 +3,23 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, Pencil, Search } from "lucide-react";
+import {
+  Clock3,
+  Eye,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Rocket,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  deleteListing,
+  duplicateOwnerListing,
+  submitListingForReview,
+  updateOwnerListingStatus,
+} from "@/lib/actions/listings";
 import type { Listing } from "@/lib/types/listing";
 import { getImageUrl } from "@/lib/utils/listings";
 import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
@@ -24,10 +40,46 @@ const tones = {
 };
 
 export function ListingsTable({ listings: initialListings = [] }: { listings?: Listing[] }) {
+  const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All status");
+  const [listingItems, setListingItems] = React.useState(initialListings);
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
 
-  const listings = initialListings.filter((listing) => {
+  React.useEffect(() => {
+    setListingItems(initialListings);
+  }, [initialListings]);
+
+  const runAction = async (
+    listing: Listing,
+    action: () => Promise<{ error?: string; success?: boolean }>
+  ) => {
+    setPendingId(listing.id);
+    const result = await action();
+    setPendingId(null);
+
+    if (result.error) {
+      window.alert(result.error);
+      return;
+    }
+
+    router.refresh();
+  };
+
+  const handleDelete = (listing: Listing) => {
+    const confirmed = window.confirm("Delete this listing?");
+    if (!confirmed) return;
+
+    void runAction(listing, async () => {
+      const result = await deleteListing(listing.id);
+      if (!result.error) {
+        setListingItems((current) => current.filter((item) => item.id !== listing.id));
+      }
+      return result;
+    });
+  };
+
+  const listings = listingItems.filter((listing) => {
     const title = getListingDisplayTitle(listing);
     const matchesQuery = title.toLowerCase().includes(query.toLowerCase());
     const matchesStatus = status === "All status" || listing.status === status.toLowerCase();
@@ -125,18 +177,80 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <Link
-                      href={`/vehicle/${listing.id}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                    <Link
-                      href={`/dashboard/listings/${listing.id}/edit`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Link>
+                    <details className="relative">
+                      <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb] [&::-webkit-details-marker]:hidden">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </summary>
+                      <div className="absolute right-0 top-12 z-20 w-48 rounded-[8px] border border-[#ededed] bg-white p-1 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+                        {["draft", "rejected", "expired"].includes(listing.status) ? (
+                          <button
+                            type="button"
+                            disabled={pendingId === listing.id}
+                            onClick={() => void runAction(listing, () => submitListingForReview(listing.id))}
+                            className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#2563eb] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Rocket className="h-4 w-4" />
+                            Go Live
+                          </button>
+                        ) : null}
+                        <Link
+                          href={`/vehicle/${listing.id}`}
+                          className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb]"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Link>
+                        <Link
+                          href={`/dashboard/listings/${listing.id}/edit`}
+                          className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb]"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={pendingId === listing.id}
+                          onClick={() =>
+                            void runAction(listing, async () => {
+                              const result = await duplicateOwnerListing(listing.id);
+                              if (!("error" in result)) {
+                                router.push(`/dashboard/listings/${result.id}/edit`);
+                              }
+                              return result;
+                            })
+                          }
+                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pendingId === listing.id}
+                          onClick={() =>
+                            void runAction(listing, () =>
+                              updateOwnerListingStatus(
+                                listing.id,
+                                listing.status === "reserved" ? "draft" : "reserved"
+                              )
+                            )
+                          }
+                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Clock3 className="h-4 w-4" />
+                          {listing.status === "reserved" ? "Resume listing" : "Suspend/Hold"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pendingId === listing.id}
+                          onClick={() => handleDelete(listing)}
+                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#dc2626] hover:bg-[#fff1f1] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </details>
                   </div>
                 </td>
               </tr>

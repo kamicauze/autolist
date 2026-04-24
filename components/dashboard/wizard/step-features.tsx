@@ -13,6 +13,7 @@ export function StepFeatures() {
     selectedFeatureIdSet,
     toggleFeature,
     clearFeatureSelection,
+    setFeatureSelection,
   } = useWizard();
 
   const groups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
@@ -44,21 +45,21 @@ export function StepFeatures() {
   }, [featureQuery, groupDef, groups]);
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="space-y-1">
         <div>
-          <h2 className="font-heading text-[28px] font-semibold text-[#202224]">
+          <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
             Features & Specifications
           </h2>
-          <p className="mt-2 text-[14px] leading-6 text-[#767676]">
+          <p className="mt-1 text-[13px] leading-5 text-[#767676]">
             Pick the exact equipment and options included in this listing package before it is
             reviewed.
           </p>
         </div>
       </div>
 
-      <div className="rounded-[24px] border border-[#ededed] bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1">
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
               Listing equipment
@@ -68,7 +69,7 @@ export function StepFeatures() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 md:flex-row">
+          <div className="flex flex-col gap-2 md:flex-row">
             <input
               value={featureQuery}
               onChange={(event) => setFeatureQuery(event.target.value)}
@@ -86,33 +87,49 @@ export function StepFeatures() {
         </div>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-3">
         {visibleGroups.map((group) => (
           <section
             key={group.key}
-            className="rounded-[24px] border border-[#ededed] bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.04)]"
+            className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
           >
-            <div className="mb-5 flex items-center justify-between gap-3 border-b border-[#efefef] pb-4">
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#efefef] pb-3">
               <div>
-                <h3 className="font-heading text-[22px] font-semibold text-[#202224]">
+                <h3 className="font-heading text-[18px] font-semibold text-[#202224]">
                   {group.label}
                 </h3>
                 <p className="mt-1 text-[13px] text-[#7d7d7d]">
                   Select all applicable items from this group.
                 </p>
               </div>
-              <div className="rounded-full bg-[#eef4ff] px-3 py-1.5 text-[12px] font-semibold text-[#2563eb]">
-                {group.features.filter((item) => selectedFeatureIdSet.has(item.id)).length} selected
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFeatureSelection(group.features.map((feature) => feature.id), "add")}
+                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2563eb] transition hover:bg-[#eef4ff]"
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeatureSelection(group.features.map((feature) => feature.id), "remove")}
+                  className="rounded-full border border-[#d9d9d9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#5d6678] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                >
+                  Clear group
+                </button>
+                <div className="rounded-full bg-[#eef4ff] px-3 py-1.5 text-[12px] font-semibold text-[#2563eb]">
+                  {group.features.filter((item) => selectedFeatureIdSet.has(item.id)).length} selected
+                </div>
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {group.features.map((feature) => {
                 const selected = selectedFeatureIdSet.has(feature.id);
                 return (
                   <label
                     key={feature.id}
-                    className={`flex items-start gap-3 rounded-[18px] border px-4 py-3.5 text-[14px] transition ${
+                    className={`flex items-start gap-3 rounded-[10px] border px-3 py-2.5 text-[13px] transition ${
                       selected
                         ? "border-[#2563eb] bg-[#eef4ff]"
                         : "border-[#ededed] bg-white hover:border-[#cfdaf7] hover:bg-[#fafcff]"

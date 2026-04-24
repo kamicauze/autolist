@@ -1,8 +1,28 @@
 "use client";
 
+import type { ListingReviewRecord } from "@/lib/types/listing-review";
 import { SellerReviewSnippet, SellerSurface, sellerReviews } from "./seller-dashboard-ui";
 
-export function RecentReviews() {
+function toDisplayReview(review: ListingReviewRecord) {
+  return {
+    id: review.id,
+    name: review.reviewer?.full_name || "Buyer",
+    rating: review.rating,
+    date: new Date(review.created_at).toLocaleDateString("en-KE", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    listing: review.listing
+      ? `${review.listing.year} ${review.listing.make} ${review.listing.model}`
+      : undefined,
+    review: review.body,
+  };
+}
+
+export function RecentReviews({ reviews = [] }: { reviews?: ListingReviewRecord[] }) {
+  const items = reviews.length > 0 ? reviews.map(toDisplayReview) : sellerReviews.slice(0, 3);
+
   return (
     <SellerSurface className="p-5">
       <div className="mb-5">
@@ -13,7 +33,7 @@ export function RecentReviews() {
       </div>
 
       <div className="space-y-4">
-        {sellerReviews.slice(0, 3).map((review) => (
+        {items.map((review) => (
           <SellerReviewSnippet key={review.id} review={review} />
         ))}
       </div>

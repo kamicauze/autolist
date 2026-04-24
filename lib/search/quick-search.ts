@@ -4,7 +4,6 @@ import {
   detectVehicleIntents,
   detectVehicleOrigin,
   detectVehicleUseCase,
-  getDefaultBodyTypesForUseCase,
 } from "@/lib/search/vehicle-ontology";
 
 const MAKE_ALIASES = [
@@ -63,11 +62,7 @@ const INTENT_BODY_TYPE_ALIASES = [
   ["compact car", ["Hatchback"]],
   ["city car", ["Hatchback"]],
   ["town car", ["Hatchback"]],
-  ["family car", ["Sedan", "SUV", "Wagon"]],
   ["family suv", ["SUV"]],
-  ["work car", ["Pickup", "Van"]],
-  ["work vehicle", ["Pickup", "Van"]],
-  ["daily car", ["Hatchback", "Sedan"]],
 ] as const satisfies ReadonlyArray<readonly [string, readonly string[]]>;
 
 const FUEL_TYPE_ALIASES = [
@@ -87,6 +82,29 @@ const TRANSMISSION_ALIASES = [
   ["stick", "Manual"],
 ] as const;
 
+const DRIVE_TYPE_ALIASES = [
+  ["all wheel drive", "AWD"],
+  ["all-wheel drive", "AWD"],
+  ["allwheel drive", "AWD"],
+  ["awd", "AWD"],
+  ["quattro", "AWD"],
+  ["xdrive", "AWD"],
+  ["x-drive", "AWD"],
+  ["4matic", "AWD"],
+  ["four wheel drive", "4WD"],
+  ["four-wheel drive", "4WD"],
+  ["4 wheel drive", "4WD"],
+  ["4-wheel drive", "4WD"],
+  ["4wd", "4WD"],
+  ["4x4", "4WD"],
+  ["front wheel drive", "FWD"],
+  ["front-wheel drive", "FWD"],
+  ["fwd", "FWD"],
+  ["rear wheel drive", "RWD"],
+  ["rear-wheel drive", "RWD"],
+  ["rwd", "RWD"],
+] as const;
+
 const LOCATION_ALIASES = [
   ["nairobi", "Nairobi"],
   ["mombasa", "Mombasa"],
@@ -98,6 +116,8 @@ const LOCATION_ALIASES = [
   ["malindi", "Malindi"],
   ["kiambu", "Kiambu"],
   ["ruiru", "Ruiru"],
+  ["kitale", "Kitale"],
+  ["garissa", "Garissa"],
 ] as const;
 
 const MODEL_STOPWORDS = new Set([
@@ -135,20 +155,41 @@ const MODEL_STOPWORDS = new Set([
   "daily",
   "spacious",
   "roomy",
+  "all",
+  "wheel",
+  "drive",
+  "awd",
+  "4wd",
+  "4x4",
+  "fwd",
+  "rwd",
 ]);
+
+const MAX_PRICE_INTENT_PATTERN = /\b(?:under|below|max(?:imum)?|budget|less than|cheaper than|up to|upto)\b/i;
+const MIN_PRICE_INTENT_PATTERN = /\b(?:above|over|from|min(?:imum)?|more than|starting at)\b/i;
+const PRICE_RANGE_INTENT_PATTERN =
+  /\b(?:between|range)\b|\bfrom\b.+\b(?:to|and|-)\b|\b\d[\d,.]*\s*(?:million|m|k)?\s*(?:-|to)\s*(?:ksh?|kes)?\s*\d[\d,.]*\s*(?:million|m|k)?\b/i;
+const NEAR_ME_INTENT_PATTERN = /\b(?:near me|nearby|around me|close to me|my area|where i am)\b/i;
 
 function compactWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function findAliasMatch(value: string, aliases: readonly (readonly [string, string])[]) {
+function findMakeMatches(value: string) {
   const padded = ` ${value} `;
-  for (const [alias, normalized] of aliases) {
-    if (padded.includes(` ${alias} `)) {
-      return normalized;
+  const matches: string[] = [];
+
+  for (const [alias, normalized] of MAKE_ALIASES) {
+    if (padded.includes(` ${alias} `) && !matches.includes(normalized)) {
+      matches.push(normalized);
     }
   }
-  return null;
+
+  return matches;
+}
+
+export function hasNearMeIntent(query: string) {
+  return NEAR_ME_INTENT_PATTERN.test(query);
 }
 
 function findAliasMatches(value: string, aliases: readonly (readonly [string, string])[]) {
@@ -164,11 +205,15 @@ function findAliasMatches(value: string, aliases: readonly (readonly [string, st
   return matches;
 }
 
+function joinMatches(matches: string[]) {
+  return matches.length > 0 ? matches.join(",") : undefined;
+}
+
 function parsePrice(lower: string, direction: "min" | "max") {
   const matcher =
     direction === "max"
-      ? /(?:under|below|max|budget|less than|cheaper than)\s*(?:ksh?|kes)?\s*([\d,.]+)\s*(million|m|k)?/i
-      : /(?:above|over|from|min|more than|starting at)\s*(?:ksh?|kes)?\s*([\d,.]+)\s*(million|m|k)?/i;
+      ? /(?:under|below|max(?:imum)?|budget|less than|cheaper than|up to|upto)\s*(?:ksh?|kes)?\s*([\d,.]+)\s*(million|m|k)?/i
+      : /(?:above|over|from|min(?:imum)?|more than|starting at)\s*(?:ksh?|kes)?\s*([\d,.]+)\s*(million|m|k)?/i;
   const match = lower.match(matcher);
   if (!match) return null;
 
@@ -234,7 +279,11 @@ function extractModel(query: string, make: string | undefined) {
 
   const cleaned = afterMake
     .replace(/\b(19\d{2}|20[0-3]\d)\b/g, " ")
-    .replace(/(?:under|below|max|budget|less than|cheaper than|above|over|from|min|in|with)\b.*$/i, " ")
+    .replace(NEAR_ME_INTENT_PATTERN, " ")
+    .replace(
+      /(?:under|below|max(?:imum)?|budget|less than|cheaper than|up to|upto|above|over|from|min(?:imum)?|more than|starting at|in|with)\b.*$/i,
+      " "
+    )
     .replace(/[^\p{L}\p{N}\- ]/gu, " ");
 
   const tokens = compactWhitespace(cleaned)
@@ -249,7 +298,7 @@ function extractModel(query: string, make: string | undefined) {
 
 function deriveConfidence(params: SmartSearchParams) {
   const populatedCount = Object.values(params).filter(Boolean).length;
-  if (params.make && (params.model || params.bodyType || params.maxPrice || params.location)) {
+  if (params.make && (params.model || params.bodyType || params.maxPrice || params.location || params.driveType)) {
     return "high" as const;
   }
   if (populatedCount >= 2) {
@@ -273,22 +322,16 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     };
   }
 
-  const make = findAliasMatch(lower, MAKE_ALIASES) || undefined;
+  const makeMatches = findMakeMatches(lower);
+  const make = joinMatches(makeMatches);
   const intents = detectVehicleIntents(lower);
   const origin = detectVehicleOrigin(lower);
   const useCase = detectVehicleUseCase(lower);
   const bodyTypeMatches = findAliasMatches(lower, BODY_TYPE_ALIASES);
   const intentBodyTypeMatches = findIntentBodyTypes(lower);
   const expandedBodyTypes = [...bodyTypeMatches];
-  const useCaseBodyTypes = getDefaultBodyTypesForUseCase(useCase);
 
   intentBodyTypeMatches.forEach((bodyType) => {
-    if (!expandedBodyTypes.includes(bodyType)) {
-      expandedBodyTypes.push(bodyType);
-    }
-  });
-
-  useCaseBodyTypes.forEach((bodyType) => {
     if (!expandedBodyTypes.includes(bodyType)) {
       expandedBodyTypes.push(bodyType);
     }
@@ -305,9 +348,10 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   const bodyType =
     expandedBodyTypes.length > 0 ? expandedBodyTypes.join(",") : undefined;
   const intent = intents.length > 0 ? intents.join(",") : undefined;
-  const fuelType = findAliasMatch(lower, FUEL_TYPE_ALIASES) || undefined;
-  const transmission = findAliasMatch(lower, TRANSMISSION_ALIASES) || undefined;
-  const location = findAliasMatch(lower, LOCATION_ALIASES) || undefined;
+  const fuelType = joinMatches(findAliasMatches(lower, FUEL_TYPE_ALIASES));
+  const transmission = joinMatches(findAliasMatches(lower, TRANSMISSION_ALIASES));
+  const driveType = joinMatches(findAliasMatches(lower, DRIVE_TYPE_ALIASES));
+  const location = joinMatches(findAliasMatches(lower, LOCATION_ALIASES));
   const { minYear, maxYear } = parseYearRange(normalizedQuery);
   const maxPrice = parsePrice(lower, "max") || undefined;
   const minPrice = parsePrice(lower, "min") || undefined;
@@ -331,15 +375,16 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
     bodyType,
     transmission,
     fuelType,
+    driveType,
     location,
     sellerType,
   };
 
-  if (!make && !model && !origin && !useCase && !intent && !fuelType && !transmission && !location && bodyType && maxPrice) {
+  if (!make && !model && !origin && !useCase && !intent && !fuelType && !transmission && !driveType && !location && bodyType && maxPrice) {
     delete params.q;
   }
 
-  if (Object.values(params).every((value) => !value)) {
+  if (Object.values(params).every((value) => !value) && !hasNearMeIntent(normalizedQuery)) {
     params.q = normalizedQuery;
   }
 
@@ -359,6 +404,7 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
 export function shouldUseSmartSearchFallback(query: string, result: SmartSearchResult) {
   if (!query.trim()) return false;
   if (result.confidence === "high") return false;
+  if (hasNearMeIntent(query) && !result.params.location) return false;
 
   const lower = query.toLowerCase();
   const intentWords = [
@@ -417,8 +463,58 @@ export function sanitizeSmartSearchParams(input: Partial<SmartSearchParams>): Sm
   assign("bodyType", input.bodyType);
   assign("transmission", input.transmission);
   assign("fuelType", input.fuelType);
+  assign("driveType", input.driveType);
   assign("location", input.location);
   assign("sellerType", input.sellerType);
+
+  return params;
+}
+
+function hasMaxPriceIntent(query: string) {
+  return MAX_PRICE_INTENT_PATTERN.test(query);
+}
+
+function hasMinPriceIntent(query: string) {
+  return MIN_PRICE_INTENT_PATTERN.test(query);
+}
+
+function hasPriceRangeIntent(query: string) {
+  return PRICE_RANGE_INTENT_PATTERN.test(query);
+}
+
+export function normalizeDirectionalBudgetParams(
+  query: string,
+  input: Partial<SmartSearchParams>
+): SmartSearchParams {
+  const params = sanitizeSmartSearchParams(input);
+  const isRangeQuery = hasPriceRangeIntent(query);
+
+  if (!isRangeQuery) {
+    if (params.maxPrice && hasMaxPriceIntent(query)) {
+      delete params.minPrice;
+    }
+    if (params.minPrice && hasMinPriceIntent(query)) {
+      delete params.maxPrice;
+    }
+  }
+
+  const minPrice = params.minPrice ? Number(params.minPrice) : null;
+  const maxPrice = params.maxPrice ? Number(params.maxPrice) : null;
+
+  if (
+    minPrice !== null &&
+    maxPrice !== null &&
+    Number.isFinite(minPrice) &&
+    Number.isFinite(maxPrice) &&
+    minPrice >= maxPrice &&
+    !isRangeQuery
+  ) {
+    if (hasMaxPriceIntent(query)) {
+      delete params.minPrice;
+    } else if (hasMinPriceIntent(query)) {
+      delete params.maxPrice;
+    }
+  }
 
   return params;
 }
@@ -445,6 +541,10 @@ function shouldClearTransmission(query: string) {
 
 function shouldClearFuelType(query: string) {
   return /\b(clear|remove|reset)\s+fuel\b|\bany\s+fuel\b/i.test(query);
+}
+
+function shouldClearDriveType(query: string) {
+  return /\b(clear|remove|reset)\s+drive(?:\s*type)?\b|\bany\s+drive(?:\s*type)?\b|\bany\s+drivetrain\b/i.test(query);
 }
 
 function shouldClearSellerType(query: string) {
@@ -480,17 +580,47 @@ function mergeCsvValues(currentValue?: string, nextValue?: string) {
   return merged.length > 0 ? Array.from(new Set(merged)).join(",") : undefined;
 }
 
+function countPopulatedParams(params: SmartSearchParams) {
+  return Object.values(params).filter(Boolean).length;
+}
+
+function isStandaloneCatalogueTurn(query: string, nextParams: SmartSearchParams) {
+  const normalized = compactWhitespace(query).toLowerCase();
+  if (!normalized) return false;
+  if (nextParams.location && countPopulatedParams(nextParams) === 1) return false;
+  if (/\b(actually|only|also|with|in|under|below|over|from|more than|less than|remove|clear|not|exclude)\b/i.test(query)) {
+    return false;
+  }
+
+  const catalogueKeys: (keyof SmartSearchParams)[] = [
+    "make",
+    "model",
+    "origin",
+    "bodyType",
+    "transmission",
+    "fuelType",
+    "driveType",
+    "sellerType",
+  ];
+  const populatedKeys = (Object.keys(nextParams) as (keyof SmartSearchParams)[]).filter((key) =>
+    Boolean(nextParams[key])
+  );
+
+  return populatedKeys.length > 0 && populatedKeys.every((key) => catalogueKeys.includes(key));
+}
+
 export function applyAssistantSearchTurn(
   currentParams: SmartSearchParams | undefined,
   turnQuery: string,
   nextParams: SmartSearchParams
 ) {
-  const merged: SmartSearchParams = { ...(currentParams || {}) };
   const query = turnQuery.trim();
   const excludedCurrentLocation = shouldExcludeCurrentLocation(query, currentParams?.location);
-  const sanitizedNextParams = sanitizeSmartSearchParams(nextParams);
+  const sanitizedNextParams = normalizeDirectionalBudgetParams(query, nextParams);
+  const shouldReplaceContext = isStandaloneCatalogueTurn(query, sanitizedNextParams);
+  const merged: SmartSearchParams = shouldReplaceContext ? {} : { ...(currentParams || {}) };
 
-  if (shouldClearBudget(query)) {
+  if (shouldClearBudget(query) || sanitizedNextParams.minPrice || sanitizedNextParams.maxPrice) {
     delete merged.minPrice;
     delete merged.maxPrice;
   }
@@ -505,6 +635,9 @@ export function applyAssistantSearchTurn(
   }
   if (shouldClearFuelType(query)) {
     delete merged.fuelType;
+  }
+  if (shouldClearDriveType(query)) {
+    delete merged.driveType;
   }
   if (shouldClearSellerType(query)) {
     delete merged.sellerType;
@@ -555,11 +688,14 @@ export function applyAssistantSearchTurn(
       delete sanitizedNextParams.location;
     }
   }
+  if (sanitizedNextParams.driveType) {
+    delete merged.q;
+  }
   if (sanitizedNextParams.intent) {
     sanitizedNextParams.intent = mergeCsvValues(merged.intent, sanitizedNextParams.intent);
   }
 
-  const combined = sanitizeSmartSearchParams({
+  const combined = normalizeDirectionalBudgetParams(query, {
     ...merged,
     ...sanitizedNextParams,
   });
@@ -568,7 +704,7 @@ export function applyAssistantSearchTurn(
     delete combined.q;
   }
 
-  if (!Object.values(combined).some(Boolean)) {
+  if (!Object.values(combined).some(Boolean) && !hasNearMeIntent(query)) {
     combined.q = compactWhitespace(query);
   }
 
@@ -599,8 +735,8 @@ function parseMaybeArray(value?: string) {
 export function smartSearchParamsToListingFilters(params: SmartSearchParams): ListingFilters {
   return {
     q: params.q,
-    make: params.make,
-    model: params.model,
+    make: parseMaybeArray(params.make),
+    model: parseMaybeArray(params.model),
     origin: params.origin,
     useCase: params.useCase,
     intent: parseMaybeArray(params.intent),
@@ -611,7 +747,8 @@ export function smartSearchParamsToListingFilters(params: SmartSearchParams): Li
     bodyType: parseMaybeArray(params.bodyType),
     transmission: parseMaybeArray(params.transmission),
     fuelType: parseMaybeArray(params.fuelType),
-    location: params.location,
+    driveType: parseMaybeArray(params.driveType),
+    location: parseMaybeArray(params.location),
     sellerType: params.sellerType,
   };
 }

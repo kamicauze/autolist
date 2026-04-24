@@ -4,9 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(
+        "x-autolist-pathname",
+        `${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+
     let response = NextResponse.next({
         request: {
-            headers: request.headers,
+            headers: requestHeaders,
         },
     });
 
@@ -35,7 +41,9 @@ export async function proxy(request: NextRequest) {
                         request.cookies.set(name, value)
                     );
                     response = NextResponse.next({
-                        request,
+                        request: {
+                            headers: requestHeaders,
+                        },
                     });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         response.cookies.set(name, value, options)

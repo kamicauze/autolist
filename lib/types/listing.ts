@@ -67,8 +67,8 @@ export interface Listing {
 export interface ListingFilters {
   q?: string;
   category?: ListingCategory;
-  make?: string;
-  model?: string;
+  make?: string | string[];
+  model?: string | string[];
   origin?: string;
   useCase?: string;
   intent?: string | string[];
@@ -81,11 +81,11 @@ export interface ListingFilters {
   fuelType?: string | string[];
   condition?: ListingCondition;
   city?: string;
-  location?: string;
+  location?: string | string[];
   color?: string;
   seats?: number;
   doors?: number;
-  driveType?: string;
+  driveType?: string | string[];
   sellerType?: 'dealer' | 'private';
   verifiedOnly?: boolean;
   minMileage?: number;

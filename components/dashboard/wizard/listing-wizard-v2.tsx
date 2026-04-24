@@ -18,8 +18,8 @@ import { StepVehicleDetails } from "./step-vehicle-details";
 
 const STEP_COMPONENTS = [
   StepCategory,
-  StepBasicInfo,
   StepVehicleDetails,
+  StepBasicInfo,
   StepFeatures,
   StepMedia,
   StepSeller,
@@ -38,6 +38,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
     submitIssues,
     stepCompletion,
     draft,
+    videoFile,
     packageAccess,
     isLoadingPackageAccess,
     packageAccessError,
@@ -50,10 +51,10 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
 
   const footerMeta =
-    activeStep === 3
+      activeStep === 3
       ? `${draft.selectedFeatureIds.length} features selected`
       : activeStep === 4
-        ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length} media files added`
+        ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length + draft.documentNames.length + (videoFile || draft.videoUrl ? 1 : 0)} media files added`
         : `Step ${activeStep + 1} of ${LISTING_WIZARD_STEPS.length}`;
 
   const packageBanner = isEditing
@@ -84,7 +85,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
           ? {
               title: "You don't have any active package",
               description:
-                "Finish the listing details first, then activate the seller package needed to publish this vehicle publicly.",
+                "Finish the listing details first, then activate the seller package needed to publish this vehicle publicly. The first package activation on a seller account runs free for 6 months.",
               buttonLabel: "Get Package",
               buttonHref: "/dashboard/membership",
               buttonDisabled: false,
@@ -160,19 +161,19 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
   const ActiveStep = STEP_COMPONENTS[activeStep];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {packageBanner ? (
-        <div className={`rounded-[24px] p-5 ${packageBanner.wrapperClass}`}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-full ${packageBanner.iconClass}`}>
+        <div className={`rounded-[14px] p-4 ${packageBanner.wrapperClass}`}>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${packageBanner.iconClass}`}>
                 <PackageOpen className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+                <h2 className="font-heading text-[20px] font-semibold text-[#202224]">
                   {packageBanner.title}
                 </h2>
-                <p className="mt-2 text-[14px] leading-6 text-[#706c6a]">
+                <p className="mt-1 text-[13px] leading-5 text-[#706c6a]">
                   {packageBanner.description}
                 </p>
               </div>
@@ -182,7 +183,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
               href={packageBanner.buttonHref}
               aria-disabled={packageBanner.buttonDisabled}
               className={[
-                "inline-flex h-12 items-center gap-2 rounded-[14px] px-5 text-[14px] font-semibold transition",
+                "inline-flex h-10 items-center gap-2 rounded-[10px] px-4 text-[13px] font-semibold transition",
                 packageBanner.buttonClass,
                 packageBanner.buttonDisabled ? "pointer-events-none opacity-60" : "",
               ].join(" ")}
@@ -202,7 +203,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-[12px] border-[#d9d9d9] px-4 text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
+              className="h-9 rounded-[10px] border-[#d9d9d9] px-3 text-[13px] text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
               onClick={() => {
                 if (window.confirm("Clear the saved draft and start this listing from scratch?")) {
                   resetDraft();
@@ -216,6 +217,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
         steps={LISTING_WIZARD_STEPS}
         activeStep={activeStep}
         stepMeta={stepCompletion.map((complete) => ({ complete }))}
+        compact
         onStepSelect={
           isSubmitting
             ? undefined
@@ -227,7 +229,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
             <Button
               type="button"
               variant="outline"
-              className="h-12 rounded-[14px] border-[#d9d9d9] px-5 text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
+              className="h-10 rounded-[10px] border-[#d9d9d9] px-4 text-[13px] text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
               disabled={activeStep === 0 || isSubmitting}
               onClick={handleBack}
             >
@@ -235,7 +237,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
             </Button>
             <Button
               type="button"
-              className="h-12 rounded-[14px] bg-[#2563eb] px-5 text-white hover:bg-[#1d4ed8]"
+              className="h-10 rounded-[10px] bg-[#2563eb] px-4 text-[13px] text-white hover:bg-[#1d4ed8]"
               onClick={handleContinue}
               disabled={isSubmitting}
             >
@@ -270,7 +272,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
           </div>
         ) : null}
 
-        {activeStep === 1 ? (
+        {activeStep === 2 ? (
           <StepBasicInfo googleMapsApiKey={googleMapsApiKey} />
         ) : ActiveStep ? (
           <ActiveStep />

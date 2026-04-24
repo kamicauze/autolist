@@ -38,6 +38,10 @@ type SmartSearchResponse = SmartSearchResult & {
   };
 };
 
+function hasActiveParams(result: SmartSearchResponse) {
+  return Object.values(result.params).some(Boolean);
+}
+
 export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
@@ -53,7 +57,10 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
     }
   }, [open]);
 
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = async (
+    searchQuery: string,
+    options?: { useCurrentParams?: boolean }
+  ) => {
     const q = searchQuery.trim();
     if (!q) return;
 
@@ -62,7 +69,10 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
       const response = await fetch("/api/ai/smart-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({
+          query: q,
+          currentParams: options?.useCurrentParams ? searchResult?.params || {} : {},
+        }),
       });
 
       if (!response.ok) {
@@ -152,7 +162,9 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                 <p className="mt-1 text-sm text-foreground">
                   {isSearching
                     ? "Searching listings..."
-                    : `${searchResult?.preview.total || 0} match${searchResult?.preview.total === 1 ? "" : "es"} found`}
+                    : searchResult?.clarification
+                      ? "Needs one more detail"
+                      : `${searchResult?.preview.total || 0} match${searchResult?.preview.total === 1 ? "" : "es"} found`}
                 </p>
                 {!isSearching && searchResult && (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -167,7 +179,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                 )}
               </div>
 
-              {searchResult && (
+              {searchResult && !searchResult.clarification && hasActiveParams(searchResult) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -176,7 +188,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                   }}
                   className="inline-flex items-center justify-center rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
-                  Open Full Results
+                  Show probable matches
                 </button>
               )}
             </div>
@@ -193,64 +205,109 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
                   </div>
                 ))}
               </div>
-            ) : searchResult && searchResult.preview.listings.length > 0 ? (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {searchResult.preview.listings.map((listing) => {
-                  const sortedImages = (listing.images || [])
-                    .slice()
-                    .sort((a, b) => a.image_order - b.image_order);
-                  const firstImage = sortedImages[0] ? getImageUrl(sortedImages[0].r2_key, "card") : "/placeholder-car.jpg";
-                  const sellerName =
-                    listing.dealer?.name ||
-                    listing.seller?.full_name ||
-                    "Private Seller";
-
-                  return (
-                    <Link
-                      key={listing.id}
-                      href={`/vehicle/${listing.id}`}
-                      onClick={() => onOpenChange(false)}
-                      className="overflow-hidden rounded-xl border border-border bg-white transition-colors hover:border-primary/30"
-                    >
-                      <div className="relative h-36 w-full bg-muted">
-                        <Image
-                          src={firstImage}
-                          alt={`${listing.year} ${listing.make} ${listing.model}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                      </div>
-                      <div className="space-y-2 p-3">
-                        <p className="line-clamp-1 text-sm font-semibold text-foreground">
-                          {listing.year} {listing.make} {listing.model}
-                        </p>
-                        <p className="text-sm font-medium text-primary">
-                          {new Intl.NumberFormat("en-KE", {
-                            style: "currency",
-                            currency: "KES",
-                            maximumFractionDigits: 0,
-                          }).format(listing.price)}
-                        </p>
-                        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                          <span>{listing.body_type || "Vehicle"}</span>
-                          <span>{getListingDisplayLocation(listing)}</span>
-                          {listing.transmission && <span>{listing.transmission}</span>}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">{sellerName}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
-                <p className="text-sm font-medium text-foreground">No listings matched this smart search.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Try a broader budget, a different location, or open the full results page to refine filters.
+            ) : searchResult?.clarification ? (
+              <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
+                <p className="text-sm font-semibold text-foreground">
+                  {searchResult.clarification.question}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pick one or type a correction.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {searchResult.clarification.options.map((option) => (
+                    <button
+                      key={`${option.label}-${option.query}`}
+                      type="button"
+                      onClick={() => void handleSearch(option.query, { useCurrentParams: true })}
+                      className="rounded-full border border-primary/20 bg-white px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/10"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
+            ) : searchResult ? (
+              <>
+                {searchResult.refinement ? (
+                  <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
+                    <p className="text-sm font-semibold text-foreground">
+                      {searchResult.refinement.question}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {searchResult.refinement.options.map((option) => (
+                        <button
+                          key={`${option.label}-${option.query}`}
+                          type="button"
+                          onClick={() => void handleSearch(option.query, { useCurrentParams: true })}
+                          className="rounded-full border border-primary/20 bg-white px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/10"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {searchResult.preview.listings.length > 0 ? (
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {searchResult.preview.listings.map((listing) => {
+                      const sortedImages = (listing.images || [])
+                        .slice()
+                        .sort((a, b) => a.image_order - b.image_order);
+                      const firstImage = sortedImages[0] ? getImageUrl(sortedImages[0].r2_key, "card") : "/placeholder-car.jpg";
+                      const sellerName =
+                        listing.dealer?.name ||
+                        listing.seller?.full_name ||
+                        "Private Seller";
+
+                      return (
+                        <Link
+                          key={listing.id}
+                          href={`/vehicle/${listing.id}`}
+                          onClick={() => onOpenChange(false)}
+                          className="overflow-hidden rounded-xl border border-border bg-white transition-colors hover:border-primary/30"
+                        >
+                          <div className="relative h-36 w-full bg-muted">
+                            <Image
+                              src={firstImage}
+                              alt={`${listing.year} ${listing.make} ${listing.model}`}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                            />
+                          </div>
+                          <div className="space-y-2 p-3">
+                            <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                              {listing.year} {listing.make} {listing.model}
+                            </p>
+                            <p className="text-sm font-medium text-primary">
+                              {new Intl.NumberFormat("en-KE", {
+                                style: "currency",
+                                currency: "KES",
+                                maximumFractionDigits: 0,
+                              }).format(listing.price)}
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                              <span>{listing.body_type || "Vehicle"}</span>
+                              <span>{getListingDisplayLocation(listing)}</span>
+                              {listing.transmission && <span>{listing.transmission}</span>}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">{sellerName}</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+                    <p className="text-sm font-medium text-foreground">No listings matched this smart search.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Try a broader budget, a different location, or open the full results page to refine filters.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : null}
           </div>
         )}
       </DialogContent>

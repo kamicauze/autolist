@@ -108,16 +108,16 @@ export function ListingQualityPanel() {
   ]);
 
   return (
-    <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
             Listing Quality Assistant
           </p>
-          <h3 className="mt-2 font-heading text-[24px] font-semibold text-[#202224]">
+          <h3 className="mt-1 font-heading text-[20px] font-semibold text-[#202224]">
             {isLoading ? "Refreshing quality feedback..." : result.headline}
           </h3>
-          <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[#6d6d6d]">{result.summary}</p>
+          <p className="mt-1 max-w-3xl text-[13px] leading-5 text-[#6d6d6d]">{result.summary}</p>
         </div>
 
         <div className="flex flex-col items-start gap-3">
@@ -134,13 +134,13 @@ export function ListingQualityPanel() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="rounded-[20px] border border-[#ededed] bg-white p-4">
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Top improvements</p>
           <div className="mt-3 space-y-3">
             {result.topImprovements.length > 0 ? (
               result.topImprovements.map((item) => (
-                <div key={item} className="rounded-[16px] bg-[#faf9f7] px-4 py-3 text-[13px] leading-6 text-[#5f5f5f]">
+                <div key={item} className="rounded-[10px] bg-[#faf9f7] px-3 py-2.5 text-[12px] leading-5 text-[#5f5f5f]">
                   {item}
                 </div>
               ))
@@ -152,12 +152,12 @@ export function ListingQualityPanel() {
           </div>
         </div>
 
-        <div className="rounded-[20px] border border-[#ededed] bg-white p-4">
+        <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Strengths</p>
           <div className="mt-3 space-y-3">
             {result.strengths.length > 0 ? (
               result.strengths.slice(0, 4).map((item) => (
-                <div key={item} className="rounded-[16px] bg-[#eefaf2] px-4 py-3 text-[13px] leading-6 text-[#2f6f4c]">
+                <div key={item} className="rounded-[10px] bg-[#eefaf2] px-3 py-2.5 text-[12px] leading-5 text-[#2f6f4c]">
                   {item}
                 </div>
               ))
@@ -170,7 +170,7 @@ export function ListingQualityPanel() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-[20px] border border-[#d4e4ff] bg-[#f4f8ff] px-4 py-4 text-[14px] leading-6 text-[#61708a]">
+      <div className="mt-3 rounded-[12px] border border-[#d4e4ff] bg-[#f4f8ff] px-4 py-3 text-[13px] leading-5 text-[#61708a]">
         {result.sellerTip}
       </div>
     </div>

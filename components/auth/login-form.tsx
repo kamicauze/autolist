@@ -16,6 +16,12 @@ import {
 
 type SocialProvider = "google" | "facebook";
 
+function inferRegisterRole(nextPath: string) {
+  if (nextPath.startsWith("/register/dealer")) return "dealer";
+  if (nextPath.startsWith("/dashboard/listings")) return "seller";
+  return null;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,8 +35,18 @@ export function LoginForm() {
   const safeNextPathForOAuth = requestedNextPath
     ? sanitizeNextPath(requestedNextPath, "")
     : "";
+  const inferredRole = safeNextPathForOAuth
+    ? inferRegisterRole(safeNextPathForOAuth)
+    : null;
+  const registerParams = new URLSearchParams();
+  if (safeNextPathForOAuth) {
+    registerParams.set("next", safeNextPathForOAuth);
+  }
+  if (inferredRole) {
+    registerParams.set("role", inferredRole);
+  }
   const registerHref = safeNextPathForOAuth
-    ? `/register?next=${encodeURIComponent(safeNextPathForOAuth)}`
+    ? `/register?${registerParams.toString()}`
     : "/register";
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {

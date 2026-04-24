@@ -12,6 +12,7 @@ export type SmartSearchParams = {
   bodyType?: string;
   transmission?: string;
   fuelType?: string;
+  driveType?: string;
   location?: string;
   sellerType?: "dealer" | "private";
 };
@@ -34,4 +35,5 @@ export type SmartSearchResult = {
   confidence: "low" | "medium" | "high";
   note: string;
   clarification?: SmartSearchClarification | null;
+  refinement?: SmartSearchClarification | null;
 };

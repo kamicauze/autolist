@@ -7,6 +7,10 @@ import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { revalidatePath } from "next/cache";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
+import { getStorageObjectUrl } from "@/lib/utils/listings";
+import { r2 } from "@/lib/r2";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { nanoid } from "nanoid";
 
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -37,6 +41,8 @@ export type CreateListingInput = {
     locationArea?: string;
     availability?: "available" | "reserved" | "sold";
     negotiable?: boolean;
+    tradeInAccepted?: boolean;
+    videoUrl?: string;
     sellerType?: "dealer" | "individual";
     useDealerAutoFill?: boolean;
     contactName?: string;
@@ -48,13 +54,21 @@ export type CreateListingInput = {
 };
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_UPLOAD_SIZE_BYTES = 200 * 1024 * 1024;
 const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const VIDEO_ACCEPTED_TYPES = new Set([
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "video/x-m4v",
+]);
 const STRING_METADATA_FIELDS = [
     "category",
     "country",
     "cityTown",
     "locationArea",
     "availability",
+    "videoUrl",
     "sellerType",
     "contactName",
     "phoneNumber",
@@ -62,6 +76,7 @@ const STRING_METADATA_FIELDS = [
 ] as const;
 const BOOLEAN_METADATA_FIELDS = [
     "negotiable",
+    "tradeInAccepted",
     "useDealerAutoFill",
     "whatsappEnabled",
     "allowPhoneCalls",
@@ -74,6 +89,10 @@ function extensionForFile(file: File) {
     }
     const subtype = file.type.split("/")[1];
     return subtype ? `.${subtype}` : "";
+}
+
+function sanitizeFileName(fileName: string) {
+    return fileName.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
 }
 
 async function uploadListingFile(
@@ -191,6 +210,8 @@ export async function insertListingInternal(
         locationArea,
         availability,
         negotiable,
+        tradeInAccepted,
+        videoUrl,
         sellerType,
         useDealerAutoFill,
         contactName,
@@ -228,6 +249,8 @@ export async function insertListingInternal(
         locationArea,
         availability,
         negotiable,
+        tradeInAccepted,
+        videoUrl,
         sellerType,
         useDealerAutoFill,
         contactName,
@@ -320,6 +343,8 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         locationArea,
         availability,
         negotiable,
+        tradeInAccepted,
+        videoUrl,
         sellerType,
         useDealerAutoFill,
         contactName,
@@ -414,6 +439,8 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         locationArea,
         availability,
         negotiable,
+        tradeInAccepted,
+        videoUrl,
         sellerType,
         useDealerAutoFill,
         contactName,
@@ -464,6 +491,155 @@ export async function deleteListing(id: string) {
     revalidatePath('/search');
     revalidatePath(`/vehicle/${id}`);
     return { success: true };
+}
+
+export async function updateOwnerListingStatus(
+    id: string,
+    status: "draft" | "reserved" | "sold" | "expired"
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id")
+        .eq("id", id)
+        .eq("seller_id", user.id)
+        .maybeSingle();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found." };
+    }
+
+    const adminSupabase = createAdminClient();
+    const { error } = await adminSupabase
+        .from("listings")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("seller_id", user.id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${id}`);
+    return { success: true };
+}
+
+export async function setListingFeatured(id: string, isFeatured: boolean) {
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return adminContext;
+
+    const { supabase } = adminContext;
+
+    const { error } = await supabase
+        .from("listings")
+        .update({ is_featured: isFeatured, updated_at: new Date().toISOString() })
+        .eq("id", id);
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    revalidatePath("/admin/listings");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${id}`);
+    return { success: true };
+}
+
+export async function setOwnerListingFeatured(id: string, isFeatured: boolean) {
+    return setListingFeatured(id, isFeatured);
+}
+
+export async function duplicateOwnerListing(id: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select(`
+            *,
+            images:listing_images(r2_key, alt_text, image_order, image_hash)
+        `)
+        .eq("id", id)
+        .eq("seller_id", user.id)
+        .maybeSingle();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found." };
+    }
+
+    const {
+        id: _id,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        images,
+        seller,
+        dealer,
+        status: _status,
+        is_featured: _isFeatured,
+        ...copyValues
+    } = listing as Record<string, unknown> & {
+        images?: Array<{
+            r2_key: string;
+            alt_text: string | null;
+            image_order: number;
+            image_hash?: string | null;
+        }>;
+    };
+    void _id;
+    void _createdAt;
+    void _updatedAt;
+    void seller;
+    void dealer;
+    void _status;
+    void _isFeatured;
+
+    const adminSupabase = createAdminClient();
+    const { data: duplicate, error: duplicateError } = await adminSupabase
+        .from("listings")
+        .insert({
+            ...copyValues,
+            seller_id: user.id,
+            status: "draft",
+            is_featured: false,
+            updated_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+    if (duplicateError || !duplicate) {
+        return { error: duplicateError?.message || "Unable to duplicate listing." };
+    }
+
+    const imageRows = (images ?? []).map((image) => ({
+        listing_id: duplicate.id,
+        r2_key: image.r2_key,
+        alt_text: image.alt_text,
+        image_order: image.image_order,
+        image_hash: image.image_hash ?? null,
+    }));
+
+    if (imageRows.length > 0) {
+        const { error: imageError } = await adminSupabase
+            .from("listing_images")
+            .insert(imageRows);
+
+        if (imageError) {
+            return { error: imageError.message };
+        }
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    return { success: true, id: duplicate.id as string };
 }
 
 // ─── Image Upload ────────────────────────────────────────────────────────────
@@ -591,6 +767,90 @@ export async function uploadListingImages(formData: FormData) {
     }
 
     return { success: true, uploadedCount };
+}
+
+export async function uploadListingVideo(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const listingId = formData.get("listingId");
+    const videoFile = formData.get("videoFile");
+    if (typeof listingId !== "string" || !listingId.trim()) {
+        return { error: "Listing id is required." };
+    }
+
+    if (!(videoFile instanceof File) || videoFile.size === 0) {
+        return { error: "A video file is required." };
+    }
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id, metadata")
+        .eq("id", listingId)
+        .eq("seller_id", user.id)
+        .single();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found or not editable." };
+    }
+
+    if (!VIDEO_ACCEPTED_TYPES.has(videoFile.type)) {
+        return { error: "Video must be an MP4, WEBM, or MOV file." };
+    }
+
+    if (videoFile.size > MAX_VIDEO_UPLOAD_SIZE_BYTES) {
+        return { error: "Video exceeds the 200MB upload limit." };
+    }
+
+    if (!process.env.R2_BUCKET_NAME) {
+        return { error: "R2 bucket configuration is missing." };
+    }
+
+    const extension = extensionForFile(videoFile) || ".mp4";
+    const baseName = extension ? videoFile.name.slice(0, -extension.length) : videoFile.name;
+    const key = `listings/${listingId}/video/${Date.now()}-${nanoid(10)}-${sanitizeFileName(`${baseName}${extension}`)}`;
+    const publicUrl = getStorageObjectUrl(key);
+
+    if (!publicUrl.startsWith("http")) {
+        return { error: "Public asset URL configuration is missing." };
+    }
+
+    try {
+        await r2.send(
+            new PutObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME,
+                Key: key,
+                Body: Buffer.from(await videoFile.arrayBuffer()),
+                ContentType: videoFile.type || "application/octet-stream",
+            })
+        );
+    } catch (error) {
+        console.error("Listing video upload error:", error);
+        return { error: "Unable to upload the video file." };
+    }
+
+    const nextMetadata = {
+        ...((listing.metadata && typeof listing.metadata === "object") ? listing.metadata : {}),
+        videoUrl: publicUrl,
+    } as Record<string, unknown>;
+
+    const { error: updateError } = await supabase
+        .from("listings")
+        .update({
+            metadata: nextMetadata,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", listingId)
+        .eq("seller_id", user.id);
+
+    if (updateError) {
+        return { error: updateError.message };
+    }
+
+    revalidatePath(`/vehicle/${listingId}`);
+    revalidatePath("/dashboard/listings");
+    return { success: true, videoUrl: publicUrl };
 }
 
 // ─── Status Transitions ──────────────────────────────────────────────────────

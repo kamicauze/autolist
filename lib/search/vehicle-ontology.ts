@@ -1,4 +1,5 @@
 import type { Listing } from "@/lib/types/listing";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 
 export const SEARCH_ORIGINS = [
   "European",
@@ -32,6 +33,10 @@ export const SEARCH_INTENTS = [
 ] as const;
 
 export type SearchIntent = (typeof SEARCH_INTENTS)[number];
+
+export const SEARCH_DRIVE_TYPES = ["FWD", "RWD", "AWD", "4WD"] as const;
+
+export type SearchDriveType = (typeof SEARCH_DRIVE_TYPES)[number];
 
 const ORIGIN_ALIASES: ReadonlyArray<readonly [string, SearchOrigin]> = [
   ["european", "European"],
@@ -209,6 +214,52 @@ const COMFORT_FEATURES = ["360 camera", "adaptive cruise", "armrest", "climate c
 const ROAD_TRIP_MODELS = ["alphard", "cx-5", "cx5", "cx-8", "fortuner", "harrier", "land cruiser", "outback", "prado", "sorento", "x-trail", "xtrail"];
 const SPACIOUS_MODELS = ["alphard", "cx-8", "highlander", "outback", "prado", "serena", "sienta", "sorento", "voxy"];
 
+const DRIVE_TYPE_PATTERNS: Record<SearchDriveType, RegExp[]> = {
+  FWD: [/\bfwd\b/, /\bfront[-\s]?wheel drive\b/],
+  RWD: [/\brwd\b/, /\brear[-\s]?wheel drive\b/],
+  AWD: [
+    /\bawd\b/,
+    /\ball[-\s]?wheel drive\b/,
+    /\bsymmetrical awd\b/,
+    /\bquattro\b/,
+    /\bx[-\s]?drive\b/,
+    /\b4matic\b/,
+    /\bs[-\s]?awc\b/,
+  ],
+  "4WD": [
+    /\b4wd\b/,
+    /\b4x4\b/,
+    /\bfour[-\s]?wheel drive\b/,
+    /\bfour by four\b/,
+  ],
+};
+
+const AWD_MODEL_PATTERNS = [
+  /\bwrx\b/,
+  /\bwrx s4\b/,
+  /\bforester\b/,
+  /\boutback\b/,
+  /\blegacy\b/,
+  /\blevorg\b/,
+  /\bimpreza\b/,
+  /\bcrosstrek\b/,
+  /\bxv\b/,
+];
+
+const FOUR_WHEEL_DRIVE_MODEL_PATTERNS = [
+  /\bland cruiser\b/,
+  /\bprado\b/,
+  /\bpajero\b/,
+  /\bshogun\b/,
+  /\bwrangler\b/,
+  /\bdefender\b/,
+  /\bdiscovery\b/,
+  /\brange rover\b/,
+  /\bjimny\b/,
+  /\bhilux\b/,
+  /\bx[-\s]?trail\b/,
+];
+
 function padded(value: string) {
   return ` ${value.trim().toLowerCase()} `;
 }
@@ -218,9 +269,22 @@ function listingText(listing: Listing) {
     listing.make,
     listing.model,
     listing.body_type,
+    listing.drive_type,
+    getListingMetadataString(listing, "trim"),
+    getListingMetadataString(listing, "variant"),
+    getListingMetadataString(listing, "driveType"),
+    getListingMetadataString(listing, "drive_type"),
+    getListingMetadataString(listing, "drivetrain"),
     listing.description,
     listing.features?.join(" "),
   ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function listingModelText(listing: Listing) {
+  return [listing.make, listing.model, getListingMetadataString(listing, "trim"), getListingMetadataString(listing, "variant")]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -275,6 +339,49 @@ export function detectVehicleUseCase(query: string): SearchUseCase | undefined {
 
 export function detectVehicleIntents(query: string) {
   return detectAliasMatches(query, INTENT_ALIASES);
+}
+
+export function normalizeDriveTypeValue(value?: string | null): SearchDriveType | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+
+  for (const driveType of SEARCH_DRIVE_TYPES) {
+    if (DRIVE_TYPE_PATTERNS[driveType].some((pattern) => pattern.test(normalized))) {
+      return driveType;
+    }
+  }
+
+  return null;
+}
+
+export function inferListingDriveTypes(listing: Listing): SearchDriveType[] {
+  const text = listingText(listing);
+  const modelText = listingModelText(listing);
+  const inferred = new Set<SearchDriveType>();
+
+  for (const driveType of SEARCH_DRIVE_TYPES) {
+    if (DRIVE_TYPE_PATTERNS[driveType].some((pattern) => pattern.test(text))) {
+      inferred.add(driveType);
+    }
+  }
+
+  const make = listing.make.trim().toLowerCase();
+  const model = listing.model.trim().toLowerCase();
+  const isSubaruAwdModel =
+    make === "subaru" &&
+    !/\bbrz\b/.test(modelText) &&
+    (AWD_MODEL_PATTERNS.some((pattern) => pattern.test(modelText)) || model.length > 0);
+
+  if (isSubaruAwdModel || AWD_MODEL_PATTERNS.some((pattern) => pattern.test(modelText))) {
+    inferred.add("AWD");
+  }
+
+  if (FOUR_WHEEL_DRIVE_MODEL_PATTERNS.some((pattern) => pattern.test(modelText))) {
+    inferred.add("4WD");
+  }
+
+  return Array.from(inferred);
 }
 
 export function getMakesForOrigin(origin?: string | null) {

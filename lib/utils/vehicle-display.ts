@@ -10,11 +10,13 @@ export function getListingVariant(listing: Listing) {
 }
 
 export function getListingDisplayTitle(listing: Listing) {
+  const trimValue = getListingTrim(listing);
   const parts = [
     String(listing.year),
     listing.make,
     listing.model,
-    getListingTrim(listing),
+    trimValue,
+    trimValue ? null : getListingVariant(listing),
   ].filter(Boolean);
 
   return parts.join(" ");

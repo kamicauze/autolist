@@ -38,12 +38,22 @@ export type DetailField = {
   options?: Array<{ value: string; label: string }>;
 };
 
+// When editing an existing listing we keep the original image metadata
+// (r2_key + alt text) alongside the filename so the media step can render
+// real thumbnails instead of a grey "Existing image" placeholder.
+export type ExistingImageRef = {
+  name: string;
+  r2_key: string;
+  alt_text: string | null;
+};
+
 export type ListingDraft = {
   category: ListingCategory | "";
   title: string;
   condition: (typeof LISTING_CONDITION_OPTIONS)[number]["value"];
   priceKes: string;
   negotiable: boolean;
+  tradeInAccepted: boolean;
   country: string;
   cityTown: string;
   locationArea: string;
@@ -53,6 +63,8 @@ export type ListingDraft = {
   selectedFeatureIds: string[];
   coverImageName: string | null;
   galleryImageNames: string[];
+  coverImageRef: ExistingImageRef | null;
+  galleryImageRefs: ExistingImageRef[];
   coverFromGalleryIndex: number | null;
   documentNames: string[];
   videoUrl: string;
@@ -72,6 +84,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
   condition: "locally_used",
   priceKes: "",
   negotiable: true,
+  tradeInAccepted: false,
   country: "Kenya",
   cityTown: "",
   locationArea: "",
@@ -87,6 +100,8 @@ export const DEFAULT_DRAFT: ListingDraft = {
   selectedFeatureIds: [],
   coverImageName: null,
   galleryImageNames: [],
+  coverImageRef: null,
+  galleryImageRefs: [],
   coverFromGalleryIndex: null,
   documentNames: [],
   videoUrl: "",
@@ -111,7 +126,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "fwd", label: "FWD" }, { value: "rwd", label: "RWD" }, { value: "awd", label: "AWD" }, { value: "4wd", label: "4WD" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
-    { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "sedan", label: "Sedan" }, { value: "suv", label: "SUV" }, { value: "hatchback", label: "Hatchback" }, { value: "wagon", label: "Wagon" }, { value: "coupe", label: "Coupe" }] },
+    { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "saloon", label: "Saloon" }, { value: "hatchback", label: "Hatchback" }, { value: "coupe", label: "Coupe" }, { value: "wagon", label: "Station Wagon" }, { value: "convertible", label: "Convertible" }, { value: "pickup", label: "Pick Up" }, { value: "suv", label: "SUV" }] },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Pearl White" },
     { key: "seats", label: "Number of Seats", type: "number", required: true, placeholder: "5" },
   ],
@@ -175,11 +190,18 @@ export const MARKET_BENCHMARKS: Record<ListingCategory, [number, number]> = {
 export const MAX_DESCRIPTION_LENGTH = 800;
 export const MAX_TITLE_LENGTH = 120;
 export const MIN_TOTAL_IMAGES = 3;
-export const MAX_GALLERY_IMAGES = 10;
+export const MAX_GALLERY_IMAGES = 100;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_VIDEO_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 export const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
 const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5] as const;
+const VIDEO_ACCEPTED_TYPES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-m4v",
+]);
 const LISTING_CATEGORY_VALUE_SET = new Set(
   LISTING_CATEGORY_OPTIONS.map((option) => option.value)
 );
@@ -224,6 +246,29 @@ export function isValidPhone(value: string) {
   return PHONE_REGEX.test(value.replace(/\s+/g, ""));
 }
 
+function buildTrimTokens(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function buildAutoListingTitle(details: ListingDraft["details"]) {
+  const trimValue = buildTrimTokens(details.trim).join(", ");
+  const parts = [
+    details.year.trim(),
+    details.make.trim(),
+    details.model.trim(),
+    trimValue || details.variant.trim(),
+  ].filter(Boolean);
+
+  return parts.join(" ").slice(0, MAX_TITLE_LENGTH);
+}
+
 export function getMarketIndicator(category: ListingCategory | "", priceKes: string) {
   if (!category) return { label: "Select a category", tone: "outline" as const, note: "Category required." };
   const amount = Number(priceKes);
@@ -256,6 +301,7 @@ interface WizardContextValue {
   coverFile: File | null;
   galleryFiles: File[];
   documentFiles: File[];
+  videoFile: File | null;
 
   // Feature state
   featureQuery: string;
@@ -280,8 +326,11 @@ interface WizardContextValue {
   handleGallerySelection: (newFiles: File[]) => void;
   removeGalleryFile: (file: File) => void;
   moveGalleryImage: (index: number, direction: "up" | "down") => void;
+  reorderGalleryImages: (fromIndex: number, toIndex: number) => void;
   handleDocumentSelection: (newFiles: File[]) => void;
   removeDocumentFile: (file: File) => void;
+  handleVideoSelection: (files: File[]) => void;
+  removeVideoFile: () => void;
 
   // Seller
   applyDealerAutofill: (enabled: boolean) => void;
@@ -381,11 +430,14 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     priceKes: String(listing.price ?? ""),
     negotiable:
       getListingMetadataBoolean(listing, "negotiable") ?? DEFAULT_DRAFT.negotiable,
+    tradeInAccepted:
+      getListingMetadataBoolean(listing, "tradeInAccepted") ?? DEFAULT_DRAFT.tradeInAccepted,
     country: getListingMetadataString(listing, "country") || DEFAULT_DRAFT.country,
     cityTown,
     locationArea,
     description: listing.description ?? "",
     availability: getDraftAvailability(listing),
+    videoUrl: getListingMetadataString(listing, "videoUrl") || "",
     details: {
       ...DEFAULT_DRAFT.details,
       make: listing.make ?? "",
@@ -412,6 +464,24 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     selectedFeatureIds: Array.isArray(listing.features) ? listing.features : [],
     coverImageName: extractFileName(coverImage?.r2_key),
     galleryImageNames: galleryImages.map((image) => extractFileName(image.r2_key)).filter((name): name is string => Boolean(name)),
+    coverImageRef: coverImage
+      ? {
+          name: extractFileName(coverImage.r2_key) || coverImage.r2_key,
+          r2_key: coverImage.r2_key,
+          alt_text: coverImage.alt_text,
+        }
+      : null,
+    galleryImageRefs: galleryImages
+      .map<ExistingImageRef | null>((image) =>
+        image.r2_key
+          ? {
+              name: extractFileName(image.r2_key) || image.r2_key,
+              r2_key: image.r2_key,
+              alt_text: image.alt_text,
+            }
+          : null
+      )
+      .filter((ref): ref is ExistingImageRef => Boolean(ref)),
     sellerType,
     useDealerAutoFill:
       getListingMetadataBoolean(listing, "useDealerAutoFill") ?? Boolean(listing.dealer_id),
@@ -565,6 +635,7 @@ export function WizardProvider({
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = React.useState<File[]>([]);
   const [documentFiles, setDocumentFiles] = React.useState<File[]>([]);
+  const [videoFile, setVideoFile] = React.useState<File | null>(null);
 
   // Auto-save draft
   React.useEffect(() => {
@@ -580,11 +651,15 @@ export function WizardProvider({
       try {
         const parsed = JSON.parse(savedDraft) as Partial<ListingDraft>;
         if (parsed.category) {
-          setDraft({
+          const restoredDraft = {
             ...initialDraft,
             ...parsed,
             country: parsed.country?.trim() || initialDraft.country,
             details: { ...initialDraft.details, ...(parsed.details || {}) },
+          };
+          setDraft({
+            ...restoredDraft,
+            title: buildAutoListingTitle(restoredDraft.details),
           });
         }
       } catch { /* ignore */ }
@@ -772,14 +847,18 @@ export function WizardProvider({
       setCoverFile(null);
       setGalleryFiles([]);
       setDocumentFiles([]);
+      setVideoFile(null);
 
       return {
         ...prev,
         category: nextCategory,
+        title: "",
         details: { ...DEFAULT_DRAFT.details },
         selectedFeatureIds: [],
         coverImageName: null,
         galleryImageNames: [],
+        coverImageRef: null,
+        galleryImageRefs: [],
         coverFromGalleryIndex: null,
         documentNames: [],
         videoUrl: "",
@@ -806,7 +885,11 @@ export function WizardProvider({
         nextDetails.variant = "";
       }
 
-      return { ...prev, details: nextDetails };
+      return {
+        ...prev,
+        details: nextDetails,
+        title: buildAutoListingTitle(nextDetails),
+      };
     });
   };
 
@@ -908,20 +991,34 @@ export function WizardProvider({
     });
   };
 
-  const moveGalleryImage = (index: number, direction: "up" | "down") => {
+  const reorderGalleryImages = (fromIndex: number, toIndex: number) => {
     setDraft((prev) => {
-      const toIndex = direction === "up" ? index - 1 : index + 1;
       if (toIndex < 0 || toIndex >= prev.galleryImageNames.length) return prev;
+      if (fromIndex < 0 || fromIndex >= prev.galleryImageNames.length) return prev;
+      if (fromIndex === toIndex) return prev;
       const reorderedNames = [...prev.galleryImageNames];
-      [reorderedNames[index], reorderedNames[toIndex]] = [reorderedNames[toIndex], reorderedNames[index]];
+      const [movedName] = reorderedNames.splice(fromIndex, 1);
+      reorderedNames.splice(toIndex, 0, movedName);
       const reorderedFiles = [...galleryFiles];
-      [reorderedFiles[index], reorderedFiles[toIndex]] = [reorderedFiles[toIndex], reorderedFiles[index]];
+      const [movedFile] = reorderedFiles.splice(fromIndex, 1);
+      reorderedFiles.splice(toIndex, 0, movedFile);
       setGalleryFiles(reorderedFiles);
       let coverIdx = prev.coverFromGalleryIndex;
-      if (coverIdx === index) coverIdx = toIndex;
-      else if (coverIdx === toIndex) coverIdx = index;
+      if (coverIdx === fromIndex) {
+        coverIdx = toIndex;
+      } else if (coverIdx !== null) {
+        const direction = fromIndex < toIndex ? -1 : 1;
+        if (coverIdx > Math.min(fromIndex, toIndex) && coverIdx < Math.max(fromIndex, toIndex)) {
+          coverIdx += direction;
+        }
+      }
       return { ...prev, galleryImageNames: reorderedNames, coverFromGalleryIndex: coverIdx };
     });
+  };
+
+  const moveGalleryImage = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    reorderGalleryImages(index, targetIndex);
   };
 
   const handleDocumentSelection = (newFiles: File[]) => {
@@ -931,6 +1028,28 @@ export function WizardProvider({
     const updated = [...documentFiles, ...newFiles];
     setDocumentFiles(updated);
     setDraft((prev) => ({ ...prev, documentNames: updated.map((f) => f.name) }));
+  };
+
+  const handleVideoSelection = (files: File[]) => {
+    const file = files[0];
+    if (!file) {
+      setVideoFile(null);
+      return;
+    }
+    if (!VIDEO_ACCEPTED_TYPES.has(file.type)) {
+      setMediaError("Video must be an MP4, WEBM, or MOV file.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_FILE_SIZE_BYTES) {
+      setMediaError("Video exceeds the 200MB upload limit.");
+      return;
+    }
+    setMediaError(null);
+    setVideoFile(file);
+  };
+
+  const removeVideoFile = () => {
+    setVideoFile(null);
   };
 
   const removeDocumentFile = (fileToRemove: File) => {
@@ -976,6 +1095,7 @@ export function WizardProvider({
     setCoverFile(null);
     setGalleryFiles([]);
     setDocumentFiles([]);
+    setVideoFile(null);
   };
 
   // Validation
@@ -1004,11 +1124,11 @@ export function WizardProvider({
 
   const canContinue = React.useMemo(() => {
     if (activeStep === 0) return Boolean(draft.category);
-    if (activeStep === 1) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim() && draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
-    if (activeStep === 2) {
+    if (activeStep === 1) {
       if (!draft.category) return false;
       return DETAIL_FIELDS_BY_CATEGORY[draft.category].filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
     }
+    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim() && draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
     if (activeStep === 3) return draft.selectedFeatureIds.length > 0;
     if (activeStep === 4) return !mediaValidationError;
     if (activeStep === 5) return !sellerValidationError;
@@ -1020,6 +1140,12 @@ export function WizardProvider({
 
     completion[0] = Boolean(draft.category);
     completion[1] = Boolean(
+      draft.category &&
+      selectedCategoryFields
+        .filter((field) => field.required)
+        .every((field) => draft.details[field.key].trim().length > 0)
+    );
+    completion[2] = Boolean(
       draft.title.trim() &&
       draft.title.trim().length <= MAX_TITLE_LENGTH &&
       draft.priceKes &&
@@ -1029,12 +1155,6 @@ export function WizardProvider({
       draft.locationArea.trim() &&
       draft.description.trim() &&
       draft.description.trim().length <= MAX_DESCRIPTION_LENGTH
-    );
-    completion[2] = Boolean(
-      draft.category &&
-      selectedCategoryFields
-        .filter((field) => field.required)
-        .every((field) => draft.details[field.key].trim().length > 0)
     );
     completion[3] = draft.selectedFeatureIds.length > 0;
     completion[4] = !mediaValidationError;
@@ -1128,7 +1248,13 @@ export function WizardProvider({
         }
       }
 
-      const { createListing, submitListingForReview, updateListing, uploadListingImages } = await import("@/lib/actions/listings");
+      const {
+        createListing,
+        submitListingForReview,
+        updateListing,
+        uploadListingImages,
+        uploadListingVideo,
+      } = await import("@/lib/actions/listings");
 
       const listingData = {
         make: draft.details.make || "",
@@ -1153,6 +1279,8 @@ export function WizardProvider({
         locationArea: draft.locationArea,
         availability: draft.availability,
         negotiable: draft.negotiable,
+        tradeInAccepted: draft.tradeInAccepted,
+        videoUrl: draft.videoUrl,
         sellerType: draft.sellerType,
         useDealerAutoFill: draft.useDealerAutoFill,
         contactName: draft.contactName,
@@ -1206,6 +1334,25 @@ export function WizardProvider({
           setSubmitIssues([{ message: "Listing not found.", stepIndex: null }]);
           setIsSubmitting(false);
           return;
+        }
+
+        if (videoFile) {
+          const videoFormData = new FormData();
+          videoFormData.set("listingId", listingId);
+          videoFormData.set("videoFile", videoFile);
+
+          const videoUploadResult = await uploadListingVideo(videoFormData);
+
+          if ("error" in videoUploadResult) {
+            setSubmitError(videoUploadResult.error || "Unable to upload the video file.");
+            setSubmitIssues(
+              videoUploadResult.error
+                ? [{ message: videoUploadResult.error, stepIndex: 4 }]
+                : []
+            );
+            setIsSubmitting(false);
+            return;
+          }
         }
 
         const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
@@ -1283,11 +1430,11 @@ export function WizardProvider({
     isEditing, editingListingId,
     draft, activeStep, showValidationErrors, isSubmitting, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
-    coverFile, galleryFiles, documentFiles,
+    coverFile, galleryFiles, documentFiles, videoFile,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
-    handleCoverSelection, handleGallerySelection, removeGalleryFile, moveGalleryImage, handleDocumentSelection, removeDocumentFile,
+    handleCoverSelection, handleGallerySelection, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
     applyDealerAutofill, resetDraft,
     handleContinue, handleBack, goToStep, setActiveStep,
     canContinue, mediaValidationError, sellerValidationError, marketIndicator, selectedCategoryFields,

@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types/membership";
 
 export const SELLER_PACKAGE_BILLING_DAYS = 30;
+export const SELLER_PACKAGE_FREE_TRIAL_DAYS = 180;
 
 export const SELLER_PACKAGE_USAGE_STATUSES = [
   "draft",

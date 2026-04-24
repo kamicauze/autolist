@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
+import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getMyDealerVerification } from "@/lib/data/dealers";
+import { createClient } from "@/lib/supabase/server";
 import { SellerSurface } from "./seller-dashboard-ui";
 
 export async function VerificationBanner() {
-  const dealer = await getMyDealerVerification();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [accountContext, dealer] = await Promise.all([
+    user ? getDashboardAccountContext(supabase, user.id) : null,
+    getMyDealerVerification(),
+  ]);
+
+  if (accountContext?.kind === "seller" && !dealer) {
+    return null;
+  }
 
   if (!dealer) {
     return (
@@ -16,11 +29,11 @@ export async function VerificationBanner() {
             </div>
             <div className="space-y-2">
               <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
-                Verify your account!
+                Verify your dealership
               </h2>
               <p className="max-w-2xl text-[14px] leading-6 text-[#6d6d6d]">
-                Complete dealership verification to unlock premium visibility, trust signals, and
-                faster listing approvals on the seller dashboard.
+                Complete dealership verification to unlock dealer trust signals, team tools, and
+                faster inventory approvals.
               </p>
             </div>
           </div>

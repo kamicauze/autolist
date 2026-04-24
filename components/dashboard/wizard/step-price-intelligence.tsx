@@ -105,34 +105,34 @@ export function StepPriceIntelligence() {
           : ("neutral" as const);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">Price Intelligence</h2>
-        <p className="mt-2 text-[14px] leading-6 text-[#767676]">
+        <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Price Intelligence</h2>
+        <p className="mt-1 text-[13px] leading-5 text-[#767676]">
           Review how the entered seller price compares with the current benchmark range for this category.
         </p>
       </div>
 
-      <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
+      <div className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
         <div className="flex flex-wrap items-center gap-3">
           <SellerStatusPill label={isLoading ? "Calculating..." : insight.label} tone={tone} />
           <p className="text-[14px] text-[#6e6e6e]">{insight.note}</p>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
-          <div className="rounded-[20px] border border-[#ededed] bg-white p-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Current listing price</p>
-            <p className="mt-3 font-heading text-[30px] font-semibold text-[#202224]">
+            <p className="mt-2 font-heading text-[22px] font-semibold text-[#202224]">
               {formatKES(draft.priceKes)}
             </p>
           </div>
-          <div className="rounded-[20px] border border-[#ededed] bg-white p-4">
+          <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Market median</p>
-            <p className="mt-3 font-heading text-[30px] font-semibold text-[#202224]">
+            <p className="mt-2 font-heading text-[22px] font-semibold text-[#202224]">
               {formatKES(String(insight.marketMedian || 0))}
             </p>
           </div>
-          <div className="rounded-[20px] border border-[#ededed] bg-white p-4">
+          <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Confidence</p>
             <p className="mt-3 text-[14px] leading-6 text-[#6e6e6e]">
               {insight.confidenceLabel} based on {insight.sampleSize} comparable listings using{" "}
@@ -142,7 +142,7 @@ export function StepPriceIntelligence() {
         </div>
 
         {insight.comparables.length > 0 ? (
-          <div className="mt-5 rounded-[20px] border border-[#ededed] bg-white p-4">
+          <div className="mt-4 rounded-[12px] border border-[#ededed] bg-white p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Comparable listings</p>
             <div className="mt-3 space-y-3">
               {insight.comparables.map((item) => (

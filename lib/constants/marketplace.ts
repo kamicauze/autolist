@@ -48,14 +48,14 @@ export const LISTING_WIZARD_STEPS = [
     description: "Choose one category before entering details.",
   },
   {
-    id: "basics",
-    title: "Listing Basics",
-    description: "Core listing information shared across all categories.",
-  },
-  {
     id: "details",
     title: "Vehicle / Equipment Details",
     description: "Dynamic fields based on selected category.",
+  },
+  {
+    id: "basics",
+    title: "Listing Basics",
+    description: "Core listing information shared across all categories.",
   },
   {
     id: "features",
@@ -65,7 +65,7 @@ export const LISTING_WIZARD_STEPS = [
   {
     id: "media",
     title: "Media Uploads",
-    description: "Cover image, gallery management, and optional video.",
+    description: "Cover image, gallery management, documents, and optional video.",
   },
   {
     id: "seller",

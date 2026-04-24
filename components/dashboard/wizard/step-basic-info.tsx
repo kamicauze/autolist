@@ -1,12 +1,13 @@
 "use client";
 
 import { useDeferredValue } from "react";
-import { LISTING_AVAILABILITY_OPTIONS, LISTING_CATEGORY_OPTIONS, LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
+import { LISTING_CATEGORY_OPTIONS, LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
 import { formatKES, formatPriceInput, MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass, sellerTextareaClass } from "../seller-dashboard-ui";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery } from "@/lib/google-maps";
+import { ListingCopyAssistant } from "./listing-copy-assistant";
 
 export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: string }) {
   const { draft, updateField, showValidationErrors } = useWizard();
@@ -18,30 +19,30 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
   const deferredLocationPreview = useDeferredValue(locationPreview);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
-        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">Listing Basics</h2>
-        <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[#767676]">
+    <div className="space-y-4">
+      <div className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
+        <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Listing Basics</h2>
+        <p className="mt-1 max-w-3xl text-[13px] leading-5 text-[#767676]">
           Add the headline information buyers need to identify and compare your vehicle quickly.
         </p>
       </div>
 
-      <section className="space-y-5 rounded-[24px] border border-[#ededed] bg-white p-5">
-        <div className="grid gap-5 md:grid-cols-2">
+      <section className="space-y-4 rounded-[14px] border border-[#ededed] bg-white p-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <label className={sellerLabelClass}>Listing Title</label>
             <input
               value={draft.title}
               maxLength={MAX_TITLE_LENGTH}
-              onChange={(event) => updateField("title", event.target.value)}
-              placeholder="2019 Toyota Fielder TX"
+              readOnly
+              placeholder="Generated from year, make, model, and trim"
               className={cn(
-                sellerInputClass,
+                `${sellerInputClass} bg-[#f7f8fb]`,
                 showValidationErrors && !draft.title.trim() && "border-[#f04438]"
               )}
             />
             <p className="mt-2 text-[12px] text-[#8a8a8a]">
-              {draft.title.length}/{MAX_TITLE_LENGTH}
+              Auto-filled from the vehicle details step. {draft.title.length}/{MAX_TITLE_LENGTH}
             </p>
           </div>
 
@@ -84,24 +85,10 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             ) : null}
           </div>
 
-          <div>
-            <label className={sellerLabelClass}>Availability</label>
-            <select
-              value={draft.availability}
-              onChange={(event) => updateField("availability", event.target.value as typeof draft.availability)}
-              className={sellerSelectClass}
-            >
-              {LISTING_AVAILABILITY_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <label className="flex items-center gap-3 rounded-[16px] border border-[#ededed] bg-[#faf9f7] px-4 py-4 text-[14px] text-[#202224]">
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-3 rounded-[12px] border border-[#ededed] bg-[#faf9f7] px-4 py-3 text-[13px] text-[#202224]">
             <input
               type="checkbox"
               checked={draft.negotiable}
@@ -109,17 +96,39 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             />
             Negotiable
           </label>
-          <div className="flex items-center rounded-[16px] border border-dashed border-[#dadada] px-4 py-4 text-[14px] text-[#8a8a8a]">
-            Trade-in coming soon
-          </div>
-          <div className="flex items-center rounded-[16px] border border-dashed border-[#dadada] px-4 py-4 text-[14px] text-[#8a8a8a]">
-            Bidding coming soon
+          <div className="rounded-[12px] border border-[#ededed] bg-[#faf9f7] px-4 py-3">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+              Trade-In Accepted
+            </p>
+            <div className="mt-3 flex gap-3">
+              {[
+                { label: "Yes", value: true },
+                { label: "No", value: false },
+              ].map((option) => {
+                const active = draft.tradeInAccepted === option.value;
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => updateField("tradeInAccepted", option.value)}
+                    className={cn(
+                    "inline-flex h-9 min-w-[78px] items-center justify-center rounded-[10px] border px-3 text-[13px] font-semibold transition",
+                      active
+                        ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
+                        : "border-[#d9d9d9] bg-white text-[#202224] hover:border-[#2563eb]"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="space-y-5 rounded-[24px] border border-[#ededed] bg-white p-5">
-        <div className="grid gap-5 md:grid-cols-2">
+      <section className="space-y-4 rounded-[14px] border border-[#ededed] bg-white p-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={sellerLabelClass}>Country</label>
             <select
@@ -165,20 +174,20 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           </div>
         </div>
 
-        <div className="rounded-[20px] border border-[#ededed] bg-[#f6f8fb] p-5">
+        <div className="rounded-[14px] border border-[#ededed] bg-[#f6f8fb] p-4">
           <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#7b8190]">Location Preview</p>
-          <div className="mt-4 overflow-hidden rounded-[18px] border border-dashed border-[#d9dee8] bg-white">
+          <div className="mt-3 overflow-hidden rounded-[12px] border border-dashed border-[#d9dee8] bg-white">
             {locationPreview ? (
               <div className="space-y-3 p-4">
                 <p className="text-[14px] font-medium text-[#475467]">{locationPreview}</p>
-                <div className="min-h-[220px] overflow-hidden rounded-[14px] border border-[#e4e7ec] bg-[#f6f8fb]">
+                <div className="min-h-[160px] overflow-hidden rounded-[10px] border border-[#e4e7ec] bg-[#f6f8fb]">
                   <GoogleMapEmbed
                     apiKey={googleMapsApiKey}
                     query={deferredLocationPreview}
                     title="Listing location preview"
-                    className="min-h-[220px]"
+                    className="min-h-[160px]"
                     fallback={
-                      <div className="flex min-h-[220px] items-center justify-center px-6 text-center text-[14px] text-[#8a8fa0]">
+                      <div className="flex min-h-[160px] items-center justify-center px-6 text-center text-[13px] text-[#8a8fa0]">
                         {locationPreview}
                       </div>
                     }
@@ -186,7 +195,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-[180px] items-center justify-center px-6 text-center text-[14px] text-[#8a8fa0]">
+              <div className="flex min-h-[140px] items-center justify-center px-6 text-center text-[13px] text-[#8a8fa0]">
                 Map preview will appear once the location is fully configured.
               </div>
             )}
@@ -194,7 +203,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
         </div>
       </section>
 
-      <section className="space-y-4 rounded-[24px] border border-[#ededed] bg-white p-5">
+      <section className="space-y-3 rounded-[14px] border border-[#ededed] bg-white p-4">
         <div>
           <label className={sellerLabelClass}>Description</label>
           <textarea
@@ -211,6 +220,8 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             {draft.description.length}/{MAX_DESCRIPTION_LENGTH}
           </p>
         </div>
+
+        <ListingCopyAssistant />
       </section>
     </div>
   );

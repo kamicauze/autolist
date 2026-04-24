@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   FileText,
+  ExternalLink,
   Link2,
   LockKeyhole,
   MapPin,
@@ -15,6 +16,8 @@ import {
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
+import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import type { SellerProfileRecord } from "@/lib/types/profile";
 import {
@@ -35,6 +38,7 @@ interface ProfileFormProps {
   };
   profile?: SellerProfileRecord | null;
   verification?: DealerVerificationRecord | null;
+  googleMapsApiKey?: string | null;
 }
 
 type SellerProfileFormState = {
@@ -112,9 +116,19 @@ function verificationLabel(verification: DealerVerificationRecord | null | undef
 }
 
 function verificationSummary(
-  verification: DealerVerificationRecord | null | undefined
+  verification: DealerVerificationRecord | null | undefined,
+  role: SellerProfileRecord["role"]
 ) {
   if (!verification) {
+    if (role === "seller") {
+      return {
+        icon: <ShieldCheck className="h-5 w-5 text-[#2563eb]" />,
+        title: "Individual seller account",
+        description:
+          "Dealer verification is not required for individual sellers. Keep your profile details current so buyers can contact you confidently.",
+      };
+    }
+
     return {
       icon: <ShieldCheck className="h-5 w-5 text-[#f79009]" />,
       title: "Verification not started",
@@ -178,6 +192,7 @@ export function ProfileForm({
   user,
   profile = null,
   verification = null,
+  googleMapsApiKey = null,
 }: ProfileFormProps) {
   const router = useRouter();
   const avatarUrl = profile?.avatar_url || undefined;
@@ -203,7 +218,9 @@ export function ProfileForm({
 
   const displayName = form.fullName.trim() || "Seller";
   const locationLabel = form.city.trim() || "Location not set";
-  const verificationState = verificationSummary(verification);
+  const mapQuery = buildGoogleMapsQuery([form.address, form.city, "Kenya"]);
+  const mapUrl = getGoogleMapsSearchUrl(mapQuery);
+  const verificationState = verificationSummary(verification, profile?.role ?? null);
   const verificationStatusTone = verificationTone(verification);
 
   const update = <Key extends keyof SellerProfileFormState>(
@@ -450,17 +467,47 @@ export function ProfileForm({
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[24px] border border-[#ededed]">
-                <div className="flex min-h-[220px] items-end justify-start bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.16),_transparent_32%),linear-gradient(135deg,#f6f6f6,#ece6dc)] p-5">
-                  <div className="rounded-[18px] bg-white/85 px-4 py-3 backdrop-blur">
-                    <p className="text-[13px] font-semibold text-[#202224]">
-                      Seller Location
-                    </p>
+              <div className="overflow-hidden rounded-[24px] border border-[#ededed] bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ededed] px-5 py-4">
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#202224]">Seller Location</p>
                     <p className="mt-1 text-[12px] text-[#7d7d7d]">
-                      {[form.address.trim(), form.city.trim(), "Kenya"].filter(Boolean).join(", ") ||
-                        "Location not set"}
+                      {mapQuery || "Add a city or street address to preview your map location."}
                     </p>
                   </div>
+                  {mapQuery ? (
+                    <a
+                      href={mapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[12px] font-semibold text-[#24272c] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                    >
+                      Open in Maps
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+                <div className="h-[260px] bg-[linear-gradient(135deg,#f6f6f6,#ece6dc)]">
+                  <GoogleMapEmbed
+                    apiKey={googleMapsApiKey}
+                    query={mapQuery}
+                    title="Seller location map"
+                    fallback={
+                      <div className="flex h-full items-center justify-center p-6 text-center">
+                        <div>
+                          <MapPin className="mx-auto h-8 w-8 text-[#2563eb]" />
+                          <p className="mt-3 text-[14px] font-semibold text-[#202224]">
+                            {mapQuery || "Location not set"}
+                          </p>
+                          <p className="mt-1 text-[12px] leading-5 text-[#7d7d7d]">
+                            {mapQuery
+                              ? "Google Maps preview needs a configured API key. Use the maps link above for now."
+                              : "Save a city or street address to show a Google Maps preview."}
+                          </p>
+                        </div>
+                      </div>
+                    }
+                  />
                 </div>
               </div>
             </div>

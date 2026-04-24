@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
   CalendarRange,
@@ -104,6 +105,7 @@ export function MembershipPage() {
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+  const router = useRouter();
 
   React.useEffect(() => {
     let isMounted = true;
@@ -200,9 +202,10 @@ export function MembershipPage() {
         const refreshed = await loadMembershipForCurrentUser();
         setDashboardData(refreshed.data);
         setLoadError(refreshed.error);
+        router.refresh();
         setActionSuccess(
           result.renewalDate
-            ? `${result.planName} activated. Renewal due ${new Date(result.renewalDate).toLocaleDateString("en-KE", {
+            ? `${result.planName} ${result.trialApplied ? "intro trial" : "package"} activated. ${result.trialApplied ? "Access runs through" : "Renewal due"} ${new Date(result.renewalDate).toLocaleDateString("en-KE", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
@@ -245,6 +248,12 @@ export function MembershipPage() {
               {actionSuccess}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {dashboardData.entitlements.length === 0 ? (
+        <div className="rounded-[18px] border border-[#dbe8ff] bg-[#f5f9ff] px-4 py-3 text-[14px] text-[#1d4ed8]">
+          First activation on a seller account runs as a free 6-month intro membership.
         </div>
       ) : null}
 

@@ -1,11 +1,29 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { ArrowUp, Bot, Loader2, MessageSquareText, Sparkles, User2, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowUp,
+  Bot,
+  Loader2,
+  MessageSquareText,
+  Sparkles,
+  User2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Listing } from "@/lib/types/listing";
-import type { SmartSearchResult } from "@/lib/types/smart-search";
+import type {
+  SmartSearchParams,
+  SmartSearchResult,
+} from "@/lib/types/smart-search";
+import { getImageUrl } from "@/lib/utils/listings";
+import {
+  getListingDisplayLocation,
+  getListingDisplayTitle,
+} from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
 
 type SmartSearchResponse = SmartSearchResult & {
@@ -20,6 +38,7 @@ type AssistantMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  result?: SmartSearchResponse;
 };
 
 interface SearchAssistantPanelProps {
@@ -53,77 +72,245 @@ const INTENT_LABELS: Record<string, string> = {
   spacious: "space and seating",
 };
 
-function buildFilterSummary(result: SmartSearchResponse) {
-  const parts: string[] = [];
+const DRIVE_TYPE_LABELS: Record<string, string> = {
+  FWD: "front-wheel drive",
+  RWD: "rear-wheel drive",
+  AWD: "all-wheel drive",
+  "4WD": "four-wheel drive",
+};
 
-  if (result.params.origin) parts.push(`${result.params.origin} brands`);
-  if (result.params.useCase) parts.push(USE_CASE_LABELS[result.params.useCase] || result.params.useCase);
-  if (result.params.intent) {
-    result.params.intent
+// Keys that appear in the "Active filter state" chip strip and can be removed.
+const REMOVABLE_FILTER_KEYS: (keyof SmartSearchParams)[] = [
+  "q",
+  "make",
+  "model",
+  "origin",
+  "useCase",
+  "intent",
+  "minPrice",
+  "maxPrice",
+  "minYear",
+  "maxYear",
+  "bodyType",
+  "transmission",
+  "fuelType",
+  "driveType",
+  "location",
+  "sellerType",
+];
+
+const FILTER_KEY_LABELS: Record<string, string> = {
+  q: "keyword",
+  make: "make",
+  model: "model",
+  origin: "origin",
+  useCase: "use case",
+  intent: "intent",
+  minPrice: "min price",
+  maxPrice: "max price",
+  minYear: "min year",
+  maxYear: "max year",
+  bodyType: "body",
+  transmission: "transmission",
+  fuelType: "fuel",
+  driveType: "drive",
+  location: "location",
+  sellerType: "seller",
+};
+
+const currencyFormatter = new Intl.NumberFormat("en-KE", {
+  style: "currency",
+  currency: "KES",
+  maximumFractionDigits: 0,
+});
+
+function formatCurrency(value: string | number | undefined | null) {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return "";
+  return currencyFormatter.format(n);
+}
+
+function formatParamValue(key: string, value: string) {
+  if (key === "intent") {
+    return value
+      .split(",")
+      .map((v) => INTENT_LABELS[v.trim()] || v.trim())
+      .join(", ");
+  }
+  if (key === "useCase") {
+    return USE_CASE_LABELS[value] || value;
+  }
+  if (key === "driveType") {
+    return value
+      .split(",")
+      .map((v) => DRIVE_TYPE_LABELS[v.trim()] || v.trim())
+      .join(", ");
+  }
+  if (key === "minPrice" || key === "maxPrice") {
+    return formatCurrency(value);
+  }
+  return value;
+}
+
+function appendCsvLabels(
+  value: string | undefined,
+  parts: string[],
+  labels?: Record<string, string>
+) {
+  value
+    ?.split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => parts.push(labels?.[item] || item));
+}
+
+function buildFilterSummary(params: SmartSearchParams) {
+  const parts: string[] = [];
+  const minPrice = params.minPrice ? Number(params.minPrice) : null;
+  const maxPrice = params.maxPrice ? Number(params.maxPrice) : null;
+
+  if (params.origin) parts.push(`${params.origin} brands`);
+  if (params.useCase)
+    parts.push(USE_CASE_LABELS[params.useCase] || params.useCase);
+  if (params.intent) {
+    params.intent
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean)
       .forEach((value) => parts.push(INTENT_LABELS[value] || value));
   }
-  if (result.params.make) parts.push(result.params.make);
-  if (result.params.model) parts.push(result.params.model);
-  if (result.params.bodyType) parts.push(result.params.bodyType);
-  if (result.params.location) parts.push(result.params.location);
-  if (result.params.maxPrice) {
+  appendCsvLabels(params.make, parts);
+  appendCsvLabels(params.model, parts);
+  appendCsvLabels(params.bodyType, parts);
+  appendCsvLabels(params.location, parts);
+  if (
+    params.minPrice &&
+    params.maxPrice &&
+    minPrice !== null &&
+    maxPrice !== null &&
+    minPrice < maxPrice
+  ) {
     parts.push(
-      `under ${new Intl.NumberFormat("en-KE", {
-        style: "currency",
-        currency: "KES",
-        maximumFractionDigits: 0,
-      }).format(Number(result.params.maxPrice))}`
+      `between ${formatCurrency(params.minPrice)} and ${formatCurrency(
+        params.maxPrice
+      )}`
     );
+  } else {
+    if (params.maxPrice) parts.push(`under ${formatCurrency(params.maxPrice)}`);
+    if (params.minPrice) parts.push(`from ${formatCurrency(params.minPrice)}`);
   }
-  if (result.params.minPrice) {
-    parts.push(
-      `from ${new Intl.NumberFormat("en-KE", {
-        style: "currency",
-        currency: "KES",
-        maximumFractionDigits: 0,
-      }).format(Number(result.params.minPrice))}`
-    );
-  }
-  if (result.params.transmission) parts.push(result.params.transmission);
-  if (result.params.fuelType) parts.push(result.params.fuelType);
-  if (result.params.sellerType) parts.push(result.params.sellerType === "dealer" ? "dealer only" : "private seller");
+  appendCsvLabels(params.transmission, parts);
+  appendCsvLabels(params.fuelType, parts);
+  appendCsvLabels(params.driveType, parts, DRIVE_TYPE_LABELS);
+  if (params.sellerType)
+    parts.push(params.sellerType === "dealer" ? "dealer only" : "private seller");
 
   return parts;
 }
 
 function buildAssistantReply(result: SmartSearchResponse) {
-  const filters = buildFilterSummary(result);
+  const filters = buildFilterSummary(result.params);
   const previewNames = result.preview.listings
     .slice(0, 3)
     .map((listing) => `${listing.make} ${listing.model}`);
-  const interpretation =
-    filters.length > 0 ? `I interpreted this as ${filters.join(", ")}.` : "";
+  const filterLabel = filters.length > 0 ? filters.join(", ") : "your request";
+
+  if (result.clarification) {
+    return result.clarification.question;
+  }
 
   if (result.preview.total === 0) {
-    return [
-      interpretation,
-      filters.length > 0
-        ? `There are no active matches for that interpretation right now.`
-        : "I could not find active matches for that search right now.",
-      "Try broadening the budget, changing the location, or removing one constraint.",
-    ].filter(Boolean).join(" ");
+    return `No active matches for ${filterLabel}. Try removing one constraint.`;
   }
 
-  const intro =
-    filters.length > 0
-      ? `I found ${result.preview.total} match${result.preview.total === 1 ? "" : "es"} for that interpretation.`
-      : `I found ${result.preview.total} matching listing${result.preview.total === 1 ? "" : "s"}.`;
+  const intro = `Found ${result.preview.total} probable match${
+    result.preview.total === 1 ? "" : "es"
+  } for ${filterLabel}.`;
 
   if (previewNames.length === 0) {
-    return [interpretation, intro].filter(Boolean).join(" ");
+    return intro;
   }
 
-  return [interpretation, `${intro} Top result${previewNames.length === 1 ? "" : "s"}: ${previewNames.join(", ")}.`]
-    .filter(Boolean)
-    .join(" ");
+  return `${intro} Top: ${previewNames.join(", ")}.`;
+}
+
+// Pull the current page's filters out of the URL so the assistant can
+// start grounded in what the user is already looking at.
+function readParamsFromSearchParams(
+  searchParams: URLSearchParams
+): SmartSearchParams {
+  const params: SmartSearchParams = {};
+  const copyString = (key: keyof SmartSearchParams) => {
+    const v = searchParams.get(key);
+    if (v) (params as Record<string, string>)[key] = v;
+  };
+  REMOVABLE_FILTER_KEYS.forEach((key) => copyString(key));
+  if (params.sellerType && !["dealer", "private"].includes(params.sellerType)) {
+    delete params.sellerType;
+  }
+  return params;
+}
+
+function hasAnyParam(params: SmartSearchParams) {
+  return Object.values(params).some(Boolean);
+}
+
+// Compact, horizontally-scrollable listing strip rendered inside assistant bubbles.
+function ChatResultStrip({ listings }: { listings: Listing[] }) {
+  if (!listings || listings.length === 0) return null;
+
+  return (
+    <div className="-mx-3 mt-3 overflow-x-auto pb-1">
+      <div className="flex snap-x snap-mandatory gap-2.5 px-3">
+        {listings.map((listing) => {
+          const firstImage = (listing.images || [])
+            .slice()
+            .sort((a, b) => a.image_order - b.image_order)[0];
+          const src = firstImage
+            ? getImageUrl(firstImage.r2_key, "card")
+            : "/placeholder-car.jpg";
+          const title = getListingDisplayTitle(listing);
+          const location = getListingDisplayLocation(listing, { fallback: "" });
+
+          return (
+            <Link
+              key={listing.id}
+              href={`/vehicle/${listing.id}`}
+              prefetch={false}
+              className="group flex w-[168px] shrink-0 snap-start flex-col gap-2 rounded-[14px] border border-[#e4eaf3] bg-white p-2 shadow-[0_6px_18px_-14px_rgba(15,23,42,0.45)] transition hover:border-primary hover:shadow-[0_10px_22px_-14px_rgba(15,23,42,0.55)]"
+            >
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[10px] bg-gray-100">
+                <Image
+                  src={src}
+                  alt={listing.images?.[0]?.alt_text || title}
+                  fill
+                  sizes="168px"
+                  className="object-cover transition group-hover:scale-[1.03]"
+                />
+                {listing.is_featured ? (
+                  <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                    Featured
+                  </span>
+                ) : null}
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <p className="truncate text-[12px] font-semibold text-[#1f2937]">
+                  {title}
+                </p>
+                <p className="truncate text-[11px] text-[#6b7280]">
+                  {listing.body_type || "Vehicle"}
+                  {location ? ` • ${location}` : ""}
+                </p>
+                <p className="pt-0.5 text-[12px] font-semibold text-primary">
+                  {formatCurrency(listing.price)}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export function SearchAssistantPanel({
@@ -132,24 +319,96 @@ export function SearchAssistantPanel({
   showCloseButton = false,
 }: SearchAssistantPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const transcriptEndRef = React.useRef<HTMLDivElement | null>(null);
-  const [messages, setMessages] = React.useState<AssistantMessage[]>([
+
+  // Snapshot current URL filters once; we don't auto-sync subsequent URL
+  // changes back into the chat because the chat drives URL updates itself.
+  const initialUrlParams = React.useMemo(
+    () =>
+      readParamsFromSearchParams(
+        new URLSearchParams(
+          Array.from((searchParams || new URLSearchParams()).entries())
+        )
+      ),
+    [searchParams]
+  );
+  const hasInitialFilters = hasAnyParam(initialUrlParams);
+
+  const welcomeText = React.useMemo(() => {
+    if (!hasInitialFilters) {
+      return "Tell me what you want. I’ll show likely matches and ask useful follow-ups.";
+    }
+    const summary = buildFilterSummary(initialUrlParams);
+    const context = summary.length > 0 ? summary.join(", ") : "your current filters";
+    return `You’re looking at ${context}. Tell me how to refine — or say “reset” to start fresh.`;
+  }, [hasInitialFilters, initialUrlParams]);
+
+  const [messages, setMessages] = React.useState<AssistantMessage[]>(() => [
     {
       id: "assistant-intro",
       role: "assistant",
-      content:
-        "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, brand, and abstract preferences like comfort or reliability, then apply the result to this page.",
+      content: welcomeText,
     },
   ]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
-  const [lastResult, setLastResult] = React.useState<SmartSearchResponse | null>(null);
+  const [lastResult, setLastResult] = React.useState<SmartSearchResponse | null>(
+    null
+  );
+  const [didPrimeFromUrl, setDidPrimeFromUrl] = React.useState(false);
+  const activeFollowUp =
+    lastResult?.clarification ?? lastResult?.refinement ?? null;
 
   React.useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    transcriptEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
   }, [isLoading, lastResult, messages]);
 
-  const runAssistantSearch = async (prompt: string) => {
+  // Prime `lastResult` from the URL on first mount so the filter chips and
+  // preview strip reflect the page the user is already looking at.
+  React.useEffect(() => {
+    if (didPrimeFromUrl) return;
+    setDidPrimeFromUrl(true);
+    if (!hasInitialFilters) return;
+    void primeFromCurrentUrl(initialUrlParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const postSearchTurn = async (
+    query: string,
+    currentParams: SmartSearchParams
+  ): Promise<SmartSearchResponse> => {
+    const response = await fetch("/api/ai/smart-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, currentParams }),
+    });
+    if (!response.ok) throw new Error("Assistant search failed.");
+    return (await response.json()) as SmartSearchResponse;
+  };
+
+  const primeFromCurrentUrl = async (params: SmartSearchParams) => {
+    setIsLoading(true);
+    try {
+      // Empty query + currentParams returns the preview for the current state
+      // without introducing a new user turn in the transcript.
+      const result = await postSearchTurn("", params);
+      setLastResult(result);
+    } catch {
+      // Silent: the welcome message is already context-aware; failure is
+      // non-fatal — user can still start a new turn manually.
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const runAssistantSearch = async (
+    prompt: string,
+    options?: { currentParams?: SmartSearchResponse["params"] }
+  ) => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
 
@@ -165,20 +424,10 @@ export function SearchAssistantPanel({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai/smart-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: trimmed,
-          currentParams: lastResult?.params || {},
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Assistant search failed.");
-      }
-
-      const result = (await response.json()) as SmartSearchResponse;
+      const result = await postSearchTurn(
+        trimmed,
+        options?.currentParams || lastResult?.params || initialUrlParams
+      );
       setLastResult(result);
       setMessages((prev) => [
         ...prev,
@@ -186,6 +435,7 @@ export function SearchAssistantPanel({
           id: `assistant-${Date.now()}`,
           role: "assistant",
           content: buildAssistantReply(result),
+          result,
         },
       ]);
     } catch {
@@ -195,6 +445,50 @@ export function SearchAssistantPanel({
           id: `assistant-${Date.now()}`,
           role: "assistant",
           content: "I could not run that search. Try again or use the quick search dialog.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Remove a single filter: rebuild params without that key, re-query with an
+  // empty turn query (so the server just recomputes the preview/refinement).
+  const removeFilter = async (key: keyof SmartSearchParams) => {
+    if (!lastResult) return;
+    const nextParams: SmartSearchParams = { ...lastResult.params };
+    if (key === "minPrice" || key === "maxPrice") {
+      delete nextParams.minPrice;
+      delete nextParams.maxPrice;
+    } else if (key === "minYear" || key === "maxYear") {
+      delete nextParams.minYear;
+      delete nextParams.maxYear;
+    } else {
+      delete nextParams[key];
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await postSearchTurn("", nextParams);
+      setLastResult(result);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: `Removed ${FILTER_KEY_LABELS[key] || key}. ${buildAssistantReply(
+            result
+          )}`,
+          result,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: "Could not remove that filter. Try again.",
         },
       ]);
     } finally {
@@ -221,6 +515,9 @@ export function SearchAssistantPanel({
             </h3>
             <p className="mt-1 max-w-sm text-[14px] leading-6 text-[#667085]">
               Describe the car you want in plain language. I&apos;ll interpret the request, keep the context, and update the search path for this page.
+            </p>
+            <p className="mt-2 max-w-sm text-[12px] leading-5 text-[#93a2b8]">
+              Tip: typed messages <strong className="font-semibold text-[#667085]">replace</strong> context; tap a chip to <strong className="font-semibold text-[#667085]">narrow</strong>.
             </p>
           </div>
 
@@ -273,7 +570,46 @@ export function SearchAssistantPanel({
                     : "rounded-br-[10px] bg-[#2563eb] text-white"
                 )}
               >
-                {message.content}
+                <p>{message.content}</p>
+
+                {message.role === "assistant" &&
+                message.result &&
+                message.result.preview.listings.length > 0 ? (
+                  <ChatResultStrip listings={message.result.preview.listings} />
+                ) : null}
+
+                {message.role === "assistant" && message.result ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {message.result.preview.total > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(message.result?.searchUrl || "/search")
+                        }
+                        className="rounded-full bg-[#2563eb] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                      >
+                        Show probable matches
+                      </button>
+                    ) : null}
+
+                    {(message.result.clarification ?? message.result.refinement)?.options.map(
+                      (option) => (
+                        <button
+                          key={`${message.id}-${option.label}-${option.query}`}
+                          type="button"
+                          onClick={() =>
+                            void runAssistantSearch(option.query, {
+                              currentParams: message.result?.params,
+                            })
+                          }
+                          className="rounded-full border border-[#c9d9ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+                        >
+                          {option.label}
+                        </button>
+                      )
+                    )}
+                  </div>
+                ) : null}
               </div>
               {message.role === "user" ? (
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dbeafe] text-[#1d4ed8]">
@@ -309,38 +645,47 @@ export function SearchAssistantPanel({
                 ) : null}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {Object.entries(lastResult.params).map(([key, value]) =>
-                  value ? (
-                    <span
-                      key={key}
-                      className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-3 py-1.5 text-[12px] font-medium text-[#3157c8]"
-                    >
-                      {key}: {value}
-                    </span>
-                  ) : null
+                {Object.values(lastResult.params).some(Boolean) ? (
+                  (Object.entries(lastResult.params) as [
+                    keyof SmartSearchParams,
+                    string | undefined
+                  ][]).map(([key, value]) =>
+                    value ? (
+                      <span
+                        key={key}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e2ff] bg-[#f6f9ff] py-1 pl-3 pr-1 text-[12px] font-medium text-[#3157c8]"
+                      >
+                        <span>
+                          {FILTER_KEY_LABELS[key] || key}: {formatParamValue(key, value)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void removeFilter(key)}
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[#3157c8] transition hover:bg-[#dbe6ff]"
+                          aria-label={`Remove ${FILTER_KEY_LABELS[key] || key} filter`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ) : null
+                  )
+                ) : (
+                  <span className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-3 py-1.5 text-[12px] font-medium text-[#3157c8]">
+                    Waiting for a city
+                  </span>
                 )}
               </div>
               <p className="mt-3 text-[13px] leading-6 text-[#667085]">
-                Keep replying with short corrections like
-                {" "}
-                <span className="font-medium text-[#30343a]">&quot;German only&quot;</span>,
-                {" "}
-                <span className="font-medium text-[#30343a]">&quot;actually SUV&quot;</span>,
-                {" "}
-                or
-                {" "}
-                <span className="font-medium text-[#30343a]">&quot;remove price limit&quot;</span>
-                {" "}
-                and I&apos;ll adjust the active search interpretation.
+                Tap × on a chip to drop it, or reply with a correction.
               </p>
 
-              {lastResult.clarification ? (
+              {activeFollowUp ? (
                 <div className="mt-4 rounded-[18px] border border-[#dbe6ff] bg-[#f7faff] p-4">
                   <p className="text-[13px] font-semibold text-[#274690]">
-                    {lastResult.clarification.question}
+                    {activeFollowUp.question}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {lastResult.clarification.options.map((option) => (
+                    {activeFollowUp.options.map((option) => (
                       <button
                         key={`${option.label}-${option.query}`}
                         type="button"
@@ -381,7 +726,7 @@ export function SearchAssistantPanel({
                   id: "assistant-intro",
                   role: "assistant",
                   content:
-                    "Ask for vehicles naturally. I can narrow by body type, budget, location, seller type, brand, and abstract preferences like comfort or reliability, then apply the result to this page.",
+                    "Tell me what you want. I’ll show likely matches and ask useful follow-ups.",
                 },
               ]);
               setLastResult(null);
@@ -402,7 +747,7 @@ export function SearchAssistantPanel({
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="Example: only in nakuru and automatic"
+            placeholder="Example: only in Nakuru and automatic"
             rows={input ? Math.min(Math.max(input.split("\n").length, 2), 5) : 2}
             className="min-h-[48px] flex-1 resize-none border-0 bg-transparent py-2 text-[14px] leading-6 outline-none placeholder:text-[#98a2b3]"
             onKeyDown={(event) => {

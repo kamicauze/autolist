@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { CheckCircle2, Clock3, FileText, ListOrdered } from "lucide-react";
+import { Clock3, Heart, ListOrdered, Star, UploadCloud } from "lucide-react";
+import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { ListingsTable } from "@/components/dashboard/listings-table";
+import { RecentReviews } from "@/components/dashboard/recent-reviews";
 import { VerificationBanner } from "@/components/dashboard/verification-banner";
 import { getMyListings } from "@/lib/actions/listings";
+import { createClient } from "@/lib/supabase/server";
+import { getSellerPackageAccessForUser } from "@/lib/data/membership";
+import { getSellerDashboardReviewsData } from "@/lib/data/reviews";
 import {
   SellerPageHeader,
   SellerSurface,
@@ -10,34 +15,74 @@ import {
 } from "@/components/dashboard/seller-dashboard-ui";
 
 export default async function DashboardPage() {
-  const { data: listings } = await getMyListings();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [listingsResult, packageAccessResult, favoritesResult, reviewsData] = await Promise.all([
+    getMyListings(),
+    user
+      ? getSellerPackageAccessForUser(supabase, user.id)
+      : Promise.resolve({ error: "Unauthorized", access: null }),
+    user
+      ? supabase
+          .from("wishlists")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+      : Promise.resolve({ count: 0 }),
+    getSellerDashboardReviewsData(),
+  ]);
+
+  const { data: listings } = listingsResult;
   const listingItems = listings || [];
   const recentListings = listingItems.slice(0, 5);
+  const packageAccess = packageAccessResult.access;
+  const activeOrPendingListings = listingItems.filter((listing) =>
+    ["active", "pending", "reserved"].includes(listing.status)
+  ).length;
+  const quotaValue =
+    packageAccess?.remainingListings === null
+      ? `${activeOrPendingListings}/unlimited`
+      : packageAccess?.listingLimit
+        ? `${packageAccess.remainingListings}/${packageAccess.listingLimit} remaining`
+        : "0/0 remaining";
 
   const dashboardStats = [
     {
-      label: "Total listings",
-      value: String(listingItems.length),
+      label: "Your listing",
+      value: quotaValue,
       icon: <ListOrdered className="h-5 w-5 text-[#2563eb]" />,
       accentClass: "bg-[#eef4ff]",
+      note: packageAccess?.currentPlan ? packageAccess.currentPlan.name : "No active package",
     },
     {
-      label: "Active",
-      value: String(listingItems.filter((listing) => listing.status === "active").length),
-      icon: <CheckCircle2 className="h-5 w-5 text-[#2f9e63]" />,
-      accentClass: "bg-[#eaf7ef]",
-    },
-    {
-      label: "Pending review",
+      label: "Pending",
       value: String(listingItems.filter((listing) => listing.status === "pending").length),
       icon: <Clock3 className="h-5 w-5 text-[#f79009]" />,
       accentClass: "bg-[#fff3e4]",
     },
     {
-      label: "Drafts",
-      value: String(listingItems.filter((listing) => listing.status === "draft").length),
-      icon: <FileText className="h-5 w-5 text-[#7c3aed]" />,
-      accentClass: "bg-[#f4efff]",
+      label: "Favorites",
+      value: String(favoritesResult.count ?? 0).padStart(2, "0"),
+      icon: <Heart className="h-5 w-5 text-[#2563eb]" />,
+      accentClass: "bg-[#eef4ff]",
+    },
+    {
+      label: "Reviews",
+      value:
+        reviewsData.summary.totalReviews > 0
+          ? reviewsData.summary.averageRating.toLocaleString("en-KE", {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })
+          : "0",
+      icon: <Star className="h-5 w-5 text-[#2563eb]" />,
+      accentClass: "bg-[#eef4ff]",
+      note:
+        reviewsData.summary.totalReviews === 1
+          ? "1 review"
+          : `${reviewsData.summary.totalReviews} reviews`,
     },
   ];
 
@@ -45,7 +90,16 @@ export default async function DashboardPage() {
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
         title="Dashboard"
-        description="Track listing activity, monitor buyer engagement, and keep your seller account in good standing."
+        description="Track seller listings, package capacity, buyer engagement, and account verification."
+        action={
+          <Link
+            href="/dashboard/listings/new"
+            className="inline-flex h-11 items-center gap-2 rounded-[8px] bg-[#2563eb] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+          >
+            <UploadCloud className="h-4 w-4" />
+            Add listing
+          </Link>
+        }
       />
 
       <VerificationBanner />
@@ -58,16 +112,21 @@ export default async function DashboardPage() {
 
       <ListingsTable listings={recentListings} />
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <PageInsightsChart />
+        <RecentReviews reviews={reviewsData.reviews.slice(0, 4)} />
+      </div>
+
       <SellerSurface className="p-5 lg:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
-              Available Now
+              Seller workspace
             </h2>
             <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6b7280]">
-              This dashboard now shows live listing totals only. Messaging, verification, and
-              account security stay available through their dedicated pages while the remaining
-              seller dashboard modules are being wired to real data.
+              Seller tools stay focused on listing publishing, messages, reviews, favorites,
+              profile, membership, and account verification. Dealer team tools are only shown to
+              dealer accounts.
             </p>
           </div>
 

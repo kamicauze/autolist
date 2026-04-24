@@ -6,10 +6,10 @@ import type { ListingCopySuggestion } from "@/lib/types/listing-copy";
 import { useWizard } from "./wizard-context";
 
 type ListingCopyAssistantProps = {
-  features: string[];
+  features?: string[];
 };
 
-export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
+export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProps) {
   const { draft, updateField } = useWizard();
   const [isLoading, setIsLoading] = React.useState(false);
   const [result, setResult] = React.useState<ListingCopySuggestion | null>(null);
@@ -57,18 +57,18 @@ export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
   }
 
   return (
-    <div className="rounded-[24px] border border-[#e4edff] bg-[#f7faff] p-5">
+    <div className="rounded-[14px] border border-[#e4edff] bg-[#f7faff] p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
             Copy Assistant
           </p>
-          <h3 className="mt-2 font-heading text-[22px] font-semibold text-[#202224]">
-            Improve title and description
+          <h3 className="mt-1 font-heading text-[18px] font-semibold text-[#202224]">
+            Generate the AI description
           </h3>
-          <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#61708a]">
-            Generate cleaner marketplace copy from the full draft you have entered so far, then
-            apply the title or description separately before submission.
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#61708a]">
+            Use the vehicle details you already entered to draft a cleaner marketplace description.
+            The listing title is generated automatically from the vehicle data.
           </p>
         </div>
 
@@ -76,10 +76,10 @@ export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
           type="button"
           onClick={handleGenerate}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-[#2563eb] px-4 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-[#1d4fd8] disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d4fd8] disabled:opacity-60"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {isLoading ? "Generating..." : "Generate Suggestions"}
+          {isLoading ? "Generating..." : "Generate AI Description"}
         </button>
       </div>
 
@@ -101,28 +101,11 @@ export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
             </span>
           </div>
 
-          <div className="rounded-[20px] border border-[#e5ecf6] bg-white p-4">
+          <div className="rounded-[12px] border border-[#e5ecf6] bg-white p-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Suggested title</p>
-                <p className="mt-2 text-[15px] font-semibold text-[#202224]">{result.title}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => updateField("title", result.title)}
-                className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-[#d9e6ff] bg-[#f7faff] px-3 py-2 text-[13px] font-semibold text-[#2563eb] hover:bg-[#eef4ff]"
-              >
-                <Wand2 className="h-4 w-4" />
-                Apply Title
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-[20px] border border-[#e5ecf6] bg-white p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Suggested description</p>
-                <p className="mt-2 text-[14px] leading-7 text-[#4b5565]">{result.description}</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">AI description</p>
+                <p className="mt-2 text-[13px] leading-6 text-[#4b5565]">{result.description}</p>
               </div>
               <button
                 type="button"
@@ -130,7 +113,7 @@ export function ListingCopyAssistant({ features }: ListingCopyAssistantProps) {
                 className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-[#d9e6ff] bg-[#f7faff] px-3 py-2 text-[13px] font-semibold text-[#2563eb] hover:bg-[#eef4ff]"
               >
                 <Wand2 className="h-4 w-4" />
-                Apply Description
+                Apply AI Description
               </button>
             </div>
           </div>

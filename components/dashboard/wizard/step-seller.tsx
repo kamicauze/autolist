@@ -3,6 +3,14 @@
 import { useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
 
+function normalizePhoneInput(value: string) {
+  const trimmed = value.replace(/[^\d+]/g, "");
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "").slice(0, 15);
+  return `${hasPlus ? "+" : ""}${digits}`;
+}
+
 export function StepSeller() {
   const {
     draft,
@@ -16,16 +24,16 @@ export function StepSeller() {
     .join(", ");
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">Seller Information</h2>
-        <p className="mt-2 text-[14px] leading-6 text-[#767676]">
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Seller Information</h2>
+        <p className="mt-1 text-[13px] leading-5 text-[#767676]">
           Confirm the contact details buyers should use once this listing package is published.
         </p>
       </div>
 
-      <div className="rounded-[24px] border border-[#ededed] bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.04)]">
-        <label className="mb-5 flex items-center gap-3 text-[15px] text-[#202224]">
+      <div className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <label className="mb-4 flex items-center gap-3 text-[13px] text-[#202224]">
           <input
             type="checkbox"
             checked={draft.useDealerAutoFill}
@@ -34,8 +42,13 @@ export function StepSeller() {
           />
           Use my saved account details (auto-fill for logged-in dealers or individuals)
         </label>
+        {draft.useDealerAutoFill ? (
+          <p className="-mt-2 mb-5 text-[13px] text-[#667085]">
+            Saved account details are currently applied to the contact fields below.
+          </p>
+        ) : null}
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={sellerLabelClass}>Seller Type</label>
             <select
@@ -65,7 +78,8 @@ export function StepSeller() {
             <label className={sellerLabelClass}>Phone Number</label>
             <input
               value={draft.phoneNumber}
-              onChange={(event) => updateField("phoneNumber", event.target.value)}
+              maxLength={16}
+              onChange={(event) => updateField("phoneNumber", normalizePhoneInput(event.target.value))}
               className={sellerInputClass}
               placeholder="e.g., +254 712 345 678"
             />
@@ -75,14 +89,24 @@ export function StepSeller() {
             <input
               value={draft.whatsappNumber}
               disabled={!draft.whatsappEnabled}
-              onChange={(event) => updateField("whatsappNumber", event.target.value)}
+              maxLength={16}
+              onChange={(event) => updateField("whatsappNumber", normalizePhoneInput(event.target.value))}
               className={`${sellerInputClass} ${!draft.whatsappEnabled ? "bg-[#f6f6f6]" : ""}`}
               placeholder="e.g., +254 712 345 678"
             />
+            {draft.whatsappEnabled ? (
+              <button
+                type="button"
+                onClick={() => updateField("whatsappNumber", draft.phoneNumber)}
+                className="mt-2 text-[13px] font-semibold text-[#2563eb] transition hover:text-[#1d4ed8]"
+              >
+                Use the same number as phone
+              </button>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3 border-t border-[#efefef] pt-5">
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#efefef] pt-4">
           <label className="flex items-center gap-2 text-[14px] text-[#202224]">
             <input
               type="checkbox"
@@ -112,16 +136,16 @@ export function StepSeller() {
           </label>
         </div>
 
-        <div className="mt-5 rounded-[18px] border border-[#e7edf6] bg-[#f8fbff] px-4 py-4">
+        <div className="mt-4 rounded-[12px] border border-[#e7edf6] bg-[#f8fbff] px-4 py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                 Seller Location
               </p>
-              <p className="mt-2 text-[15px] font-medium text-[#202224]">
+              <p className="mt-1 text-[14px] font-medium text-[#202224]">
                 {sellerLocation || "Seller location not set yet."}
               </p>
-              <p className="mt-1 text-[13px] leading-6 text-[#667085]">
+              <p className="mt-1 text-[12px] leading-5 text-[#667085]">
                 This location comes from Listing Basics and powers the map and buyer-facing
                 location context.
               </p>
@@ -129,7 +153,7 @@ export function StepSeller() {
 
             <button
               type="button"
-              onClick={() => goToStep(1, { showValidationErrors: true })}
+              onClick={() => goToStep(2, { showValidationErrors: true })}
               className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#d6dce8] bg-white px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#2563eb] hover:text-[#2563eb]"
             >
               Edit Location

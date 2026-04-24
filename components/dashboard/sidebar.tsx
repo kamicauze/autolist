@@ -14,23 +14,29 @@ import {
   ShieldCheck,
   Star,
   User,
+  UsersRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import type { DashboardAccountKind } from "@/lib/data/dashboard-account";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
 import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 
 const sellerNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Listings", href: "/dashboard/listings", icon: ListOrdered },
-  { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
+  { name: "My listings", href: "/dashboard/listings", icon: ListOrdered },
+  { name: "My favorite", href: "/dashboard/favorites", icon: Heart },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { name: "Verification", href: "/dashboard/verification", icon: ShieldCheck },
   { name: "Reviews", href: "/dashboard/reviews", icon: Star },
-  { name: "Favorites", href: "/dashboard/favorites", icon: Heart },
   { name: "Profile", href: "/dashboard/profile", icon: User },
+  { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
+  { name: "Account Verification", href: "/dashboard/verification", icon: ShieldCheck },
+];
+
+const dealerOnlyNav = [
+  { name: "Sales Agents", href: "/dashboard/sales-agents", icon: UsersRound },
 ];
 
 const accountNav = [
@@ -39,38 +45,13 @@ const accountNav = [
 
 interface SidebarProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
+  accountKind: DashboardAccountKind;
   packageAccess: SellerPackageAccessState;
   open: boolean;
   onClose: () => void;
 }
 
-function buildPlanSummary(packageAccess: SellerPackageAccessState) {
-  if (!packageAccess.hasActivePlan || !packageAccess.currentPlan) {
-    return {
-      name: "No active plan",
-      detail: "Activate a seller package to publish listings.",
-    };
-  }
-
-  if (packageAccess.remainingListings === null) {
-    return {
-      name: packageAccess.currentPlan.name,
-      detail: packageAccess.renewalDateLabel
-        ? `Unlimited listing slots available. Renews ${packageAccess.renewalDateLabel}.`
-        : "Unlimited listing slots available.",
-    };
-  }
-
-  const slotLabel = packageAccess.remainingListings === 1 ? "slot" : "slots";
-  return {
-    name: packageAccess.currentPlan.name,
-    detail: packageAccess.renewalDateLabel
-      ? `${packageAccess.remainingListings} listing ${slotLabel} remaining. Renews ${packageAccess.renewalDateLabel}.`
-      : `${packageAccess.remainingListings} listing ${slotLabel} remaining.`,
-  };
-}
-
-export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
+export function Sidebar({ user, accountKind, packageAccess, open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -79,7 +60,9 @@ export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
     user.email?.split("@")[0] ||
     "Seller";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-  const planSummary = buildPlanSummary(packageAccess);
+  const navItems = accountKind === "dealer" ? [...sellerNav, ...dealerOnlyNav] : sellerNav;
+  const menuLabel = accountKind === "dealer" ? "Dealer Menu" : "Seller Menu";
+  void packageAccess;
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -126,7 +109,7 @@ export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
           />
         </div>
 
-        <div className="mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
+        <div className="mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-2 flex flex-row items-center gap-4">
           <Avatar
             src={avatarUrl}
             alt={displayName}
@@ -142,10 +125,10 @@ export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
 
         <nav className="flex-1 overflow-y-auto px-5 py-7">
           <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
-            Seller Menu
+            {menuLabel}
           </p>
           <div className="mt-4 space-y-1.5">
-            {sellerNav.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link
@@ -193,14 +176,6 @@ export function Sidebar({ user, packageAccess, open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 px-5 py-5">
-        <div className="mb-4 rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">Current plan</p>
-          <p className="mt-2 text-[16px] font-semibold text-white">{planSummary.name}</p>
-          <p className="mt-1 text-[12px] leading-5 text-white/55">
-            {planSummary.detail}
-          </p>
-        </div>
-
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white"

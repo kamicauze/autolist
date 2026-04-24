@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SELLER_PACKAGE_BILLING_DAYS,
+  SELLER_PACKAGE_FREE_TRIAL_DAYS,
   getSellerPackagePlan,
 } from "@/lib/data/membership";
 import type { SellerPackagePlanId } from "@/lib/types/membership";
@@ -68,7 +69,7 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
 
   const { data: activeEntitlement, error: activeEntitlementError } = await adminSupabase
     .from("seller_package_entitlements")
-    .select("id, plan_id")
+    .select("id, plan_id, ends_at, metadata")
     .eq("user_id", user.id)
     .eq("status", "active")
     .gt("ends_at", nowIso)
@@ -76,6 +77,8 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
     .maybeSingle<{
       id: string;
       plan_id: string;
+      ends_at: string;
+      metadata: Record<string, unknown> | null;
     }>();
 
   if (activeEntitlementError) {
@@ -85,6 +88,38 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
   if (activeEntitlement?.plan_id === planId) {
     return { error: `${plan.name} is already active on this seller account.` };
   }
+
+  const { data: priorEntitlements, error: priorEntitlementsError } = await adminSupabase
+    .from("seller_package_entitlements")
+    .select("id, metadata")
+    .eq("user_id", user.id)
+    .limit(50);
+
+  if (priorEntitlementsError) {
+    return { error: priorEntitlementsError.message };
+  }
+
+  const hasUsedIntroTrial = (priorEntitlements ?? []).some((row) => {
+    const metadata =
+      row && typeof row === "object" && "metadata" in row && row.metadata && typeof row.metadata === "object"
+        ? (row.metadata as Record<string, unknown>)
+        : null;
+    return metadata?.intro_trial === true;
+  });
+
+  const activeEntitlementMetadata =
+    activeEntitlement?.metadata && typeof activeEntitlement.metadata === "object"
+      ? activeEntitlement.metadata
+      : null;
+  const shouldApplyIntroTrial =
+    !hasUsedIntroTrial || activeEntitlementMetadata?.intro_trial === true;
+  const entitlementEndsAtIso =
+    shouldApplyIntroTrial && activeEntitlementMetadata?.intro_trial === true
+      ? activeEntitlement?.ends_at ?? addBillingDays(now, SELLER_PACKAGE_FREE_TRIAL_DAYS).toISOString()
+      : shouldApplyIntroTrial
+        ? addBillingDays(now, SELLER_PACKAGE_FREE_TRIAL_DAYS).toISOString()
+        : endsAtIso;
+  const chargeAmountKes = shouldApplyIntroTrial ? 0 : plan.priceKes;
 
   if (activeEntitlement?.id) {
     const { error: cancelExistingError } = await adminSupabase
@@ -108,7 +143,7 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
       user_id: user.id,
       reference: paymentReference,
       provider: "manual",
-      amount: plan.priceKes,
+      amount: chargeAmountKes,
       currency: "KES",
       status: "succeeded",
       purpose: "subscription",
@@ -117,7 +152,10 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
         plan_id: plan.id,
         plan_name: plan.name,
         listing_limit: plan.listingLimit,
-        billing_days: SELLER_PACKAGE_BILLING_DAYS,
+        billing_days: shouldApplyIntroTrial
+          ? SELLER_PACKAGE_FREE_TRIAL_DAYS
+          : SELLER_PACKAGE_BILLING_DAYS,
+        intro_trial: shouldApplyIntroTrial,
       },
     })
     .select("id")
@@ -135,13 +173,16 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
       status: "active",
       listing_limit: plan.listingLimit,
       starts_at: nowIso,
-      ends_at: endsAtIso,
+      ends_at: entitlementEndsAtIso,
       auto_renew: false,
       payment_id: paymentRecord.id,
       metadata: {
         plan_name: plan.name,
-        price_kes: plan.priceKes,
-        period_days: SELLER_PACKAGE_BILLING_DAYS,
+        price_kes: chargeAmountKes,
+        period_days: shouldApplyIntroTrial
+          ? SELLER_PACKAGE_FREE_TRIAL_DAYS
+          : SELLER_PACKAGE_BILLING_DAYS,
+        intro_trial: shouldApplyIntroTrial,
       },
       updated_at: nowIso,
     });
@@ -160,6 +201,7 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
     success: true,
     planId: plan.id,
     planName: plan.name,
-    renewalDate: endsAtIso,
+    renewalDate: entitlementEndsAtIso,
+    trialApplied: shouldApplyIntroTrial,
   };
 }

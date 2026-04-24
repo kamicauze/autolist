@@ -1,12 +1,18 @@
 import { generateAiJson, getAiProviderConfig } from "@/lib/ai/provider";
 import {
   buildSearchParams,
+  normalizeDirectionalBudgetParams,
   parseQuickSearchRules,
   sanitizeSmartSearchParams,
   shouldUseSmartSearchFallback,
 } from "@/lib/search/quick-search";
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
-import { SEARCH_INTENTS, SEARCH_ORIGINS, SEARCH_USE_CASES } from "@/lib/search/vehicle-ontology";
+import {
+  SEARCH_INTENTS,
+  SEARCH_ORIGINS,
+  SEARCH_USE_CASES,
+  detectVehicleIntents,
+} from "@/lib/search/vehicle-ontology";
 
 const ALLOWED_BODY_TYPES = new Set([
   "Sedan",
@@ -23,6 +29,7 @@ const ALLOWED_BODY_TYPES = new Set([
 
 const ALLOWED_FUEL_TYPES = new Set(["Petrol", "Diesel", "Hybrid", "Electric"]);
 const ALLOWED_TRANSMISSIONS = new Set(["Automatic", "Manual"]);
+const ALLOWED_DRIVE_TYPES = new Set(["FWD", "RWD", "AWD", "4WD"]);
 const ALLOWED_SELLER_TYPES = new Set(["dealer", "private"]);
 const ALLOWED_ORIGINS = new Set(SEARCH_ORIGINS);
 const ALLOWED_USE_CASES = new Set(SEARCH_USE_CASES);
@@ -48,6 +55,16 @@ const SMART_SEARCH_TIMEOUT_MS = Number(process.env.OPENAI_SMART_SEARCH_TIMEOUT_M
 function normalizeLocalResponse(input: Partial<SmartSearchParams>) {
   const params = sanitizeSmartSearchParams(input);
 
+  const normalizeCsv = (value: string | undefined, allowedValues: Set<string>) => {
+    const values = (value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .filter((item) => allowedValues.has(item));
+
+    return values.length > 0 ? Array.from(new Set(values)).join(",") : undefined;
+  };
+
   if (params.bodyType) {
     const bodyTypes = params.bodyType
       .split(",")
@@ -61,11 +78,17 @@ function normalizeLocalResponse(input: Partial<SmartSearchParams>) {
       params.bodyType = Array.from(new Set(bodyTypes)).join(",");
     }
   }
-  if (params.fuelType && !ALLOWED_FUEL_TYPES.has(params.fuelType)) {
-    delete params.fuelType;
+  if (params.fuelType) {
+    params.fuelType = normalizeCsv(params.fuelType, ALLOWED_FUEL_TYPES);
+    if (!params.fuelType) delete params.fuelType;
   }
-  if (params.transmission && !ALLOWED_TRANSMISSIONS.has(params.transmission)) {
-    delete params.transmission;
+  if (params.transmission) {
+    params.transmission = normalizeCsv(params.transmission, ALLOWED_TRANSMISSIONS);
+    if (!params.transmission) delete params.transmission;
+  }
+  if (params.driveType) {
+    params.driveType = normalizeCsv(params.driveType, ALLOWED_DRIVE_TYPES);
+    if (!params.driveType) delete params.driveType;
   }
   if (params.sellerType && !ALLOWED_SELLER_TYPES.has(params.sellerType)) {
     delete params.sellerType;
@@ -95,7 +118,7 @@ function normalizeLocalResponse(input: Partial<SmartSearchParams>) {
 
 function deriveConfidence(params: SmartSearchParams): SmartSearchResult["confidence"] {
   const count = Object.values(params).filter(Boolean).length;
-  if (params.make && (params.model || params.bodyType || params.maxPrice || params.location)) {
+  if (params.make && (params.model || params.bodyType || params.maxPrice || params.location || params.driveType)) {
     return "high";
   }
   if (count >= 2) {
@@ -180,6 +203,7 @@ function mergeSmartSearchParams(
   assignIfMissing("maxYear");
   assignIfMissing("transmission");
   assignIfMissing("fuelType");
+  assignIfMissing("driveType");
   assignIfMissing("location");
   assignIfMissing("sellerType");
 
@@ -216,7 +240,7 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
   try {
     const prompt = [
       "Extract vehicle marketplace search filters from the query.",
-      "Return strict JSON only with keys: q, make, model, origin, useCase, intent, minPrice, maxPrice, minYear, maxYear, bodyType, transmission, fuelType, location, sellerType.",
+      "Return strict JSON only with keys: q, make, model, origin, useCase, intent, minPrice, maxPrice, minYear, maxYear, bodyType, transmission, fuelType, driveType, location, sellerType.",
       `Use origin only from: ${SEARCH_ORIGINS.join(", ")}.`,
       `Use useCase only from: ${SEARCH_USE_CASES.join(", ")}.`,
       `Use intent only from: ${SEARCH_INTENTS.join(", ")}.`,
@@ -224,6 +248,8 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
       "Use bodyType only from: Sedan, SUV, Hatchback, Pickup, Truck, Van, Coupe, Convertible, Wagon, Crossover.",
       "Use fuelType only from: Petrol, Diesel, Hybrid, Electric.",
       "Use transmission only from: Automatic, Manual.",
+      "Use driveType only from: FWD, RWD, AWD, 4WD. all wheel drive means AWD; four wheel drive or 4x4 means 4WD.",
+      "For multiple brands, locations, body types, fuel types, transmissions, or drive types, return comma-separated values instead of choosing one.",
       "Use Kenyan city names when present.",
       "Use intent for abstract preferences that should guide ranking without hard-filtering everything out.",
       "If the query says something is expensive or affordable without a precise number, prefer intent=value instead of inventing a budget.",
@@ -245,9 +271,24 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
       return ruleResult;
     }
 
-    const llmParams = normalizeLocalResponse(response.data);
+    const llmParams = normalizeDirectionalBudgetParams(query, normalizeLocalResponse(response.data));
+
+    // Guard: LLM sometimes hallucinates intent=value from vague phrasing
+    // ("actually show me X instead"). Only keep LLM-supplied intent if the
+    // query has an intent signal the rule-based detector recognises, or if
+    // the rules already independently picked up the same intent.
+    if (llmParams.intent && !ruleResult.params.intent) {
+      const detectedIntents = detectVehicleIntents(query);
+      if (detectedIntents.length === 0) {
+        delete llmParams.intent;
+      }
+    }
+
     const mergedParams = pruneBroadTextQuery(
-      mergeSmartSearchParams(ruleResult.params, llmParams, ruleResult.confidence)
+      normalizeDirectionalBudgetParams(
+        query,
+        mergeSmartSearchParams(ruleResult.params, llmParams, ruleResult.confidence)
+      )
     );
 
     if (Object.keys(mergedParams).length === 0) {
@@ -272,5 +313,6 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
 
 export function buildSmartSearchUrl(result: SmartSearchResult) {
   const params = buildSearchParams(result.params);
-  return `/search?${params.toString()}`;
+  const queryString = params.toString();
+  return queryString ? `/search?${queryString}` : "/search";
 }

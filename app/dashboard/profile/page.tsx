@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/dashboard/profile/profile-form";
 import { getMyDealerVerification } from "@/lib/data/dealers";
+import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 import type { SellerProfileRecord } from "@/lib/types/profile";
 
 const PROFILE_SELECT = `
@@ -40,6 +41,7 @@ export default async function ProfilePage() {
       }}
       profile={(profileResult.data ?? null) as SellerProfileRecord | null}
       verification={verification}
+      googleMapsApiKey={getGoogleMapsApiKey()}
     />
   );
 }

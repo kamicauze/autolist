@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { COLORS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils";
 import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
 import type { VehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
@@ -16,6 +17,24 @@ const EMPTY_REFERENCE_OPTIONS: VehicleReferenceOptions = {
   models: [],
   trimOptions: [],
   variants: [],
+};
+
+const COLOR_SWATCHES: Record<string, string> = {
+  White: "#f8fafc",
+  Black: "#111827",
+  Silver: "#cbd5e1",
+  Grey: "#6b7280",
+  Blue: "#2563eb",
+  Red: "#dc2626",
+  Green: "#16a34a",
+  Brown: "#92400e",
+  Beige: "#d6c4a8",
+  Orange: "#ea580c",
+  Yellow: "#facc15",
+  Gold: "#d4af37",
+  Maroon: "#7f1d1d",
+  Navy: "#1e3a8a",
+  Bronze: "#b45309",
 };
 
 export function StepVehicleDetails() {
@@ -81,21 +100,23 @@ export function StepVehicleDetails() {
         );
       }
 
-      if (!isCarCategory) return null;
-
       return (
-        <select
+        <>
+          <input
+            list={`detail-make-options-${draft.category || "car"}`}
           value={draft.details.make}
           onChange={(event) => updateDetailField("make", event.target.value)}
-          className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
-        >
-          <option value="">Select make</option>
+            placeholder={field.placeholder}
+            className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+          />
+          <datalist id={`detail-make-options-${draft.category || "car"}`}>
           {referenceOptions.makes.map((make) => (
             <option key={make} value={make}>
               {make}
             </option>
           ))}
-        </select>
+          </datalist>
+        </>
       );
     }
 
@@ -118,64 +139,57 @@ export function StepVehicleDetails() {
         );
       }
 
-      if (!isCarCategory) return null;
-
       return (
-        <select
+        <>
+          <input
+            list={`detail-model-options-${draft.category || "car"}`}
           value={draft.details.model}
           onChange={(event) => updateDetailField("model", event.target.value)}
           disabled={!draft.details.make}
-          className={cn(
-            sellerSelectClass,
+            placeholder={draft.details.make ? field.placeholder : "Select make first"}
+            className={cn(
+            sellerInputClass,
             !draft.details.make && "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
             hasError && "border-[#f04438]"
           )}
-        >
-          <option value="">{draft.details.make ? "Select model" : "Select make first"}</option>
+          />
+          <datalist id={`detail-model-options-${draft.category || "car"}`}>
           {referenceOptions.models.map((model) => (
             <option key={model} value={model}>
               {model}
             </option>
           ))}
-        </select>
+          </datalist>
+        </>
       );
     }
 
     if (field.key === "trim") {
-      if (!isCarCategory) return null;
-
       return (
         <>
-          <select
+          <input
+            list={`detail-trim-options-${draft.category || "car"}`}
             value={draft.details.trim}
             onChange={(event) => updateDetailField("trim", event.target.value)}
             disabled={!draft.details.model || referenceOptions.trimOptions.length === 0}
+            placeholder={!draft.details.model ? "Select model first" : "Add one or more trims, separated by commas"}
             className={cn(
-              sellerSelectClass,
+              sellerInputClass,
               (!draft.details.model || referenceOptions.trimOptions.length === 0) &&
                 "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
               hasError && "border-[#f04438]"
             )}
-          >
-            <option value="">
-              {!draft.details.model
-                ? "Select model first"
-                : referenceOptions.trimOptions.length > 0
-                  ? "Select trim"
-                  : "No trim catalog for this model"}
-            </option>
+          />
+          <datalist id={`detail-trim-options-${draft.category || "car"}`}>
             {referenceOptions.trimOptions.map((trim) => (
               <option key={`${trim.source}-${trim.value}`} value={trim.value}>
                 {trim.label}
-                {trim.source === "model" ? " (model-specific)" : " (shared)"}
               </option>
             ))}
-          </select>
+          </datalist>
           {draft.details.model ? (
             <p className="mt-2 text-[12px] text-[#767676]">
-              {referenceOptions.trimOptions.some((trim) => trim.source === "model")
-                ? "Model-specific trims are shown first. Shared make trims for this model remain available below."
-                : "This model is currently using inherited make trims that were attached directly to the selected model."}
+              Add multiple trims by separating them with commas. Model-specific trims are suggested first.
             </p>
           ) : null}
         </>
@@ -183,34 +197,28 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "variant") {
-      if (!isCarCategory) return null;
-
       return (
         <>
-          <select
+          <input
+            list={`detail-variant-options-${draft.category || "car"}`}
             value={draft.details.variant}
             onChange={(event) => updateDetailField("variant", event.target.value)}
             disabled={!draft.details.model || referenceOptions.variants.length === 0}
+            placeholder={!draft.details.model ? "Select model first" : field.placeholder}
             className={cn(
-              sellerSelectClass,
+              sellerInputClass,
               (!draft.details.model || referenceOptions.variants.length === 0) &&
                 "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
               hasError && "border-[#f04438]"
             )}
-          >
-            <option value="">
-              {!draft.details.model
-                ? "Select model first"
-                : referenceOptions.variants.length > 0
-                  ? "Select variant / engine"
-                  : "No engine variants cataloged"}
-            </option>
+          />
+          <datalist id={`detail-variant-options-${draft.category || "car"}`}>
             {referenceOptions.variants.map((variant) => (
               <option key={variant} value={variant}>
                 {variant}
               </option>
             ))}
-          </select>
+          </datalist>
           {referenceOptions.variants.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
               Use this field for engine or drivetrain naming such as BMW `xDrive30d` or Mercedes
@@ -221,16 +229,50 @@ export function StepVehicleDetails() {
       );
     }
 
+    if (field.key === "color") {
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {COLORS.map((color) => {
+              const isSelected = draft.details.color === color;
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => updateDetailField("color", color)}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition",
+                    isSelected
+                      ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
+                      : "border-[#e4e7ec] bg-white text-[#202224] hover:border-[#2563eb]"
+                  )}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-black/10"
+                    style={{ backgroundColor: COLOR_SWATCHES[color] ?? color.toLowerCase() }}
+                  />
+                  {color}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[12px] text-[#767676]">
+            Pick the exterior color buyers should see on the listing card and filters.
+          </p>
+        </div>
+      );
+    }
+
     return null;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
-        <h2 className="font-heading text-[28px] font-semibold text-[#202224]">
+    <div className="space-y-4">
+      <div className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
+        <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
           Vehicle / Equipment Details
         </h2>
-        <p className="mt-2 max-w-3xl text-[14px] leading-6 text-[#767676]">
+        <p className="mt-1 max-w-3xl text-[13px] leading-5 text-[#767676]">
           Fill in the technical fields required for the selected seller category.
         </p>
       </div>
@@ -242,20 +284,20 @@ export function StepVehicleDetails() {
       ) : null}
 
       {isCarCategory ? (
-        <div className="rounded-[18px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[13px] leading-6 text-[#3157c8]">
+        <div className="rounded-[12px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[12px] leading-5 text-[#3157c8]">
           Step 3 now uses a structured vehicle catalog: make leads to model, then trim and
           engine-specific variants. Every trim is loaded against the selected model, with inherited
           shared trims clearly labeled.
         </div>
       ) : hasStructuredMakeSuggestions ? (
-        <div className="rounded-[18px] border border-[#dcefe0] bg-[#f4fbf6] px-4 py-3 text-[13px] leading-6 text-[#25653b]">
+        <div className="rounded-[12px] border border-[#dcefe0] bg-[#f4fbf6] px-4 py-3 text-[12px] leading-5 text-[#25653b]">
           Suggested make options are now loaded for this category. Models still stay manual where
           the catalog does not define a reliable model list.
         </div>
       ) : null}
 
-      <section className="rounded-[24px] border border-[#ededed] bg-white p-5">
-        <div className="grid gap-5 md:grid-cols-2">
+      <section className="rounded-[14px] border border-[#ededed] bg-white p-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {selectedCategoryFields.map((field) => {
             const hasError = showValidationErrors && field.required && !draft.details[field.key].trim();
             const referenceField = renderReferenceField(field, hasError);
@@ -299,15 +341,15 @@ export function StepVehicleDetails() {
         </div>
       </section>
 
-      <section className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
+      <section className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
         <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#7b8190]">
           Details Summary
         </p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {selectedCategoryFields.map((field) => (
-            <div key={field.key} className="rounded-[18px] border border-[#ededed] bg-white p-4">
+            <div key={field.key} className="rounded-[12px] border border-[#ededed] bg-white p-3">
               <p className="text-[12px] uppercase tracking-[0.14em] text-[#9a9a9a]">{field.label}</p>
-              <p className="mt-2 text-[14px] font-semibold text-[#202224]">
+              <p className="mt-1 text-[13px] font-semibold text-[#202224]">
                 {draft.details[field.key] || "Not entered"}
               </p>
             </div>

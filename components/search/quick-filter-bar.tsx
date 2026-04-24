@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { SlidersHorizontal, MapPin } from "lucide-react";
+import { Banknote, CarFront, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -23,7 +23,7 @@ interface QuickFilterBarProps {
 export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Get current filter values
   const currentMake = searchParams.get("make") || "";
@@ -93,19 +93,22 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
     });
   };
 
+  const triggerClass =
+    "h-11 w-full rounded-[14px] border-[#d8dde6] bg-white pl-9 pr-8 text-[14px] text-[#202224] shadow-sm";
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+    <div className="rounded-[22px] border border-[#e7ebf1] bg-white p-3.5 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
+      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         {/* Filter Dropdowns */}
-        <div className="flex flex-wrap gap-3 flex-1">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
           {/* County / Location */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+          <div className="relative min-w-0">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Select
               value={currentLocation || "all"}
               onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}
             >
-              <SelectTrigger className="w-[160px] pl-9">
+              <SelectTrigger className={triggerClass}>
                 <SelectValue placeholder="County" />
               </SelectTrigger>
               <SelectContent>
@@ -120,73 +123,85 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
           </div>
 
           {/* Make */}
-          <Select
-            value={currentMake || "all"}
-            onValueChange={(val) => updateFilter("make", val === "all" ? null : val)}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Make" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Makes</SelectItem>
-              {makes.map((make) => (
-                <SelectItem key={make} value={make}>
-                  {make}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative min-w-0">
+            <CarFront className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Select
+              value={currentMake || "all"}
+              onValueChange={(val) => updateFilter("make", val === "all" ? null : val)}
+            >
+              <SelectTrigger className={triggerClass}>
+                <SelectValue placeholder="Make" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Makes</SelectItem>
+                {makes.map((make) => (
+                  <SelectItem key={make} value={make}>
+                    {make}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Model */}
-          <Select
-            value={currentModel || "all"}
-            onValueChange={(val) => updateFilter("model", val === "all" ? null : val)}
-            disabled={!currentMake || modelsLoading}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={modelsLoading ? "Loading…" : "Model"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Models</SelectItem>
-              {availableModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Select
+              value={currentModel || "all"}
+              onValueChange={(val) => updateFilter("model", val === "all" ? null : val)}
+              disabled={!currentMake || modelsLoading}
+            >
+              <SelectTrigger className={triggerClass}>
+                <SelectValue placeholder={modelsLoading ? "Loading…" : "Model"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Models</SelectItem>
+                {availableModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Price Range */}
-          <Select value={getPriceRangeValue()} onValueChange={updatePriceRange}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Price" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any Price</SelectItem>
-              {PRICE_RANGES.map((range) => (
-                <SelectItem
-                  key={`${range.min}-${range.max}`}
-                  value={`${range.min}-${range.max || ""}`}
-                >
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative min-w-0">
+            <Banknote className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Select value={getPriceRangeValue()} onValueChange={updatePriceRange}>
+              <SelectTrigger className={triggerClass}>
+                <SelectValue placeholder="Price" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Price</SelectItem>
+                {PRICE_RANGES.map((range) => (
+                  <SelectItem
+                    key={`${range.min}-${range.max}`}
+                    value={`${range.min}-${range.max || ""}`}
+                  >
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center lg:justify-end">
           <Button
             variant="outline"
             onClick={onOpenFilters}
-            className="gap-2"
+            className="h-11 gap-2 rounded-[14px] border-[#d8dde6] px-4"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
           </Button>
 
-          <Button onClick={handleSearch} className="gap-2 bg-primary hover:bg-primary/90">
+          <Button
+            onClick={handleSearch}
+            className="h-11 gap-2 rounded-[14px] bg-primary px-4 hover:bg-primary/90"
+          >
             Search
             <IconSearch className="h-4 w-4" />
           </Button>

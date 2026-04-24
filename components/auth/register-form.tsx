@@ -7,6 +7,7 @@ import { Lock, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import { USER_ROLE_OPTIONS, type UserRole } from "@/lib/constants/marketplace";
 import {
   FacebookIcon,
@@ -21,6 +22,12 @@ function resolveRole(rawRole: string | null): UserRole {
   return isKnownRole ? (rawRole as UserRole) : "buyer";
 }
 
+function inferRoleFromNextPath(nextPath: string): UserRole | null {
+  if (nextPath.startsWith("/register/dealer")) return "dealer";
+  if (nextPath.startsWith("/dashboard/listings")) return "seller";
+  return null;
+}
+
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,15 +40,17 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
 
-  const selectedRole = React.useMemo(
-    () => resolveRole(searchParams.get("role")),
-    [searchParams]
-  );
+  const requestedNextPath = sanitizeNextPath(searchParams.get("next"), "");
+  const selectedRole = React.useMemo(() => {
+    const explicitRole = searchParams.get("role");
+    if (explicitRole) return resolveRole(explicitRole);
+    return inferRoleFromNextPath(requestedNextPath) || "buyer";
+  }, [requestedNextPath, searchParams]);
 
   const nextPath =
     selectedRole === "dealer"
       ? "/register/dealer"
-      : `/register/onboarding?role=${selectedRole}`;
+      : requestedNextPath || `/register/onboarding?role=${selectedRole}`;
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -66,7 +75,10 @@ export function RegisterForm() {
       email,
       password,
       options: {
-        data: { full_name: fullName.trim() },
+        data: {
+          full_name: fullName.trim(),
+          intended_role: selectedRole,
+        },
       },
     });
 

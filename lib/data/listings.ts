@@ -6,9 +6,11 @@ import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import {
   getIntentScore,
+  inferListingDriveTypes,
+  normalizeDriveTypeValue,
   getMakesForOrigin,
-  getMinimumUseCaseScore,
   getUseCaseScore,
+  type SearchDriveType,
 } from "@/lib/search/vehicle-ontology";
 
 const LISTING_CATEGORY_VALUES: readonly ListingCategory[] = [
@@ -63,6 +65,22 @@ function parseRequestedIntents(value?: string | string[]) {
     .flatMap((item) => item.split(","))
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parseRequestedValues(value?: string | string[]) {
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+  return values
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseRequestedDriveTypes(value?: string | string[]) {
+  return parseRequestedValues(value)
+    .map((item) => normalizeDriveTypeValue(item) ?? item.trim().toUpperCase())
+    .filter((item): item is SearchDriveType =>
+      item === "FWD" || item === "RWD" || item === "AWD" || item === "4WD"
+    );
 }
 
 function inferListingBodyTypes(listing: Listing) {
@@ -152,12 +170,18 @@ function listingMatchesVerifiedOnly(listing: Listing, verifiedOnly?: boolean) {
   return Boolean(listing.dealer?.id);
 }
 
-function listingMatchesRequestedLocation(listing: Listing, requestedLocation?: string) {
-  const normalizedLocation = requestedLocation?.trim().toLowerCase();
-  if (!normalizedLocation) return true;
+function listingMatchesRequestedLocation(listing: Listing, requestedLocations: string[]) {
+  if (requestedLocations.length === 0) return true;
 
   const displayLocation = getListingDisplayLocation(listing, { fallback: "" }).toLowerCase();
-  return displayLocation.includes(normalizedLocation);
+  return requestedLocations.some((location) => displayLocation.includes(location.toLowerCase()));
+}
+
+function listingMatchesRequestedDriveTypes(listing: Listing, requestedDriveTypes: SearchDriveType[]) {
+  if (requestedDriveTypes.length === 0) return true;
+
+  const inferredDriveTypes = inferListingDriveTypes(listing);
+  return requestedDriveTypes.some((driveType) => inferredDriveTypes.includes(driveType));
 }
 
 function rankListingsForSemanticSearch(
@@ -168,8 +192,6 @@ function rankListingsForSemanticSearch(
   if (!requestedUseCase && requestedIntents.length === 0) {
     return listings;
   }
-
-  const minimumUseCaseScore = getMinimumUseCaseScore(requestedUseCase);
 
   return listings
     .map((listing) => {
@@ -186,7 +208,6 @@ function rankListingsForSemanticSearch(
         score: useCaseScore + intentScore,
       };
     })
-    .filter((entry) => !requestedUseCase || entry.useCaseScore >= minimumUseCaseScore)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (b.intentScore !== a.intentScore) return b.intentScore - a.intentScore;
@@ -209,7 +230,7 @@ interface ListingQuery {
 function applyListingFilters<TQuery extends ListingQuery>(
   query: TQuery,
   filters?: ListingFilters,
-  options?: { skipBodyType?: boolean; skipLocation?: boolean }
+  options?: { skipBodyType?: boolean; skipLocation?: boolean; skipDriveType?: boolean }
 ): TQuery {
   let nextQuery = query;
 
@@ -220,7 +241,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
     );
   }
   if (filters?.make) {
-    nextQuery = nextQuery.ilike("make", `%${filters.make}%`);
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "make", filters.make);
   }
   if (filters?.origin) {
     const originMakes = getMakesForOrigin(filters.origin);
@@ -229,7 +250,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
     }
   }
   if (filters?.model) {
-    nextQuery = nextQuery.ilike("model", `%${filters.model}%`);
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "model", filters.model);
   }
   if (filters?.minPrice) {
     nextQuery = nextQuery.gte("price", filters.minPrice);
@@ -271,7 +292,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
     nextQuery = nextQuery.is("dealer_id", null);
   }
   if (!options?.skipLocation && filters?.location) {
-    nextQuery = nextQuery.ilike("dealer.city", `%${escapeLike(filters.location)}%`);
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "dealer.city", filters.location);
   }
   if (filters?.color) {
     nextQuery = nextQuery.ilike("color", `%${filters.color}%`);
@@ -286,8 +307,8 @@ function applyListingFilters<TQuery extends ListingQuery>(
   if (filters?.doors) {
     nextQuery = nextQuery.eq("doors", filters.doors);
   }
-  if (filters?.driveType) {
-    nextQuery = nextQuery.eq("drive_type", filters.driveType);
+  if (!options?.skipDriveType && filters?.driveType) {
+    nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "drive_type", filters.driveType);
   }
 
   return nextQuery;
@@ -306,7 +327,7 @@ function applyCaseInsensitiveMultiValueFilter<TQuery extends { or(filters: strin
   }
 
   const filter = normalized
-    .map((item) => `${column}.ilike.${escapeLike(item)}`)
+    .map((item) => `${column}.ilike.%${escapeLike(item)}%`)
     .join(",");
 
   return query.or(filter);
@@ -333,6 +354,7 @@ async function fetchListingsForDerivedFiltering({
     query = applyListingFilters(query, filters, {
       skipBodyType: true,
       skipLocation: true,
+      skipDriveType: true,
     });
     query = query.order(sort.field, { ascending: sort.direction === "asc" });
     query = query.range(from, from + batchSize - 1);
@@ -471,10 +493,13 @@ export async function searchListings({
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
+  const requestedLocations = parseRequestedValues(filters?.location);
+  const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
     requestedIntents.length > 0 ||
+    requestedDriveTypes.length > 0 ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -503,7 +528,12 @@ export async function searchListings({
     }
     if (filters?.location) {
       processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedLocation(listing, filters.location)
+        listingMatchesRequestedLocation(listing, requestedLocations)
+      );
+    }
+    if (requestedDriveTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
       );
     }
     const ranked = rankListingsForSemanticSearch(
@@ -555,10 +585,13 @@ export async function countMatchingListings(
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
+  const requestedLocations = parseRequestedValues(filters?.location);
+  const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
     requestedIntents.length > 0 ||
+    requestedDriveTypes.length > 0 ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -590,7 +623,12 @@ export async function countMatchingListings(
     }
     if (filters?.location) {
       processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedLocation(listing, filters.location)
+        listingMatchesRequestedLocation(listing, requestedLocations)
+      );
+    }
+    if (requestedDriveTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
       );
     }
 
