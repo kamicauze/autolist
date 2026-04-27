@@ -1,5 +1,6 @@
 import { buildDuplicateReviewSuggestion } from "@/lib/ai/duplicate-review";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { DuplicateReviewSuggestion } from "@/lib/types/duplicate-review";
 import type { Listing } from "@/lib/types/listing";
 
@@ -10,7 +11,7 @@ export async function getDuplicateReviewSuggestions(
     return {};
   }
 
-  const supabase = createAdminClient();
+  const supabase = createOptionalAdminClient() ?? (await createClient());
   const suggestions = await Promise.all(
     pendingListings.map(async (listing) => {
       const { data, error } = await supabase
