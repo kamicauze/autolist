@@ -50,8 +50,8 @@ async function getViewer(supabase: Awaited<ReturnType<typeof createClient>>): Pr
   };
 }
 
-function firstRelation<T>(value: T[] | null | undefined) {
-  return Array.isArray(value) ? value[0] || null : null;
+function firstRelation<T>(value: T | T[] | null | undefined) {
+  return Array.isArray(value) ? value[0] || null : value || null;
 }
 
 export async function getNotificationCenterData(limit = 40): Promise<NotificationCenterData | null> {

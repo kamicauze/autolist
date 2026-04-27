@@ -564,8 +564,8 @@ export function getAdminDataAccessNotice() {
     : "Admin data is using the signed-in admin session because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If records are missing, set the service role key in Vercel staging or confirm the admin RLS migrations are applied.";
 }
 
-function firstRelation<T>(value: T[] | null | undefined) {
-  return Array.isArray(value) ? value[0] || null : null;
+function firstRelation<T>(value: T | T[] | null | undefined) {
+  return Array.isArray(value) ? value[0] || null : value || null;
 }
 
 function readMetadataString(metadata: Record<string, unknown> | null, key: string) {

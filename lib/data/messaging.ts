@@ -102,8 +102,8 @@ function threadListingTitle(listing: ThreadRow["listing"]) {
   return [item.year, item.make, item.model].filter(Boolean).join(" ");
 }
 
-function firstRelation<T>(value: T[] | null | undefined) {
-  return Array.isArray(value) ? value[0] || null : null;
+function firstRelation<T>(value: T | T[] | null | undefined) {
+  return Array.isArray(value) ? value[0] || null : value || null;
 }
 
 export const getMessagingCenterData = cache(async (): Promise<MessagingCenterData | null> => {
