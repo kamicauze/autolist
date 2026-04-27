@@ -26,10 +26,11 @@ import {
 interface AdminShellProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
   badgeCounts?: Partial<Record<string, number>>;
+  dataAccessNotice?: string | null;
   children: React.ReactNode;
 }
 
-export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
+export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -197,7 +198,14 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
           </div>
         </header>
 
-        <main className="px-[30px] py-10">{children}</main>
+        <main className="px-[30px] py-10">
+          {dataAccessNotice ? (
+            <div className="mb-6 rounded-[14px] border border-amber-200 bg-amber-50 px-5 py-4 text-[13px] leading-6 text-amber-900">
+              {dataAccessNotice}
+            </div>
+          ) : null}
+          {children}
+        </main>
       </div>
     </div>
   );

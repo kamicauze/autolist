@@ -5,6 +5,7 @@ import {
 } from "@/lib/insurance/support-ticket-fallback";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { createClient } from "@/lib/supabase/server";
 import type {
   InsuranceCoverType,
   InsuranceRequestAccountRole,
@@ -107,6 +108,10 @@ const EMPTY_ADMIN_INSURANCE_REQUESTS_DATA: AdminInsuranceRequestsData = {
 
 function describeError(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
+}
+
+async function createAdminDataClient() {
+  return createOptionalAdminClient() ?? (await createClient());
 }
 
 function formatPhone(countryCode: string, phoneNumber: string) {
@@ -223,12 +228,9 @@ export function calculateInsuranceRequestStats(
 }
 
 async function getFallbackInsuranceRequestsData(limit: number) {
-  const adminSupabase = createOptionalAdminClient();
-  if (!adminSupabase) {
-    return [] as AdminInsuranceRequestItem[];
-  }
+  const supabase = await createAdminDataClient();
 
-  const { data, error } = await adminSupabase
+  const { data, error } = await supabase
     .from("support_tickets")
     .select(
       `
@@ -258,15 +260,9 @@ async function getFallbackInsuranceRequestsData(limit: number) {
 export const getAdminInsuranceRequestsData = cache(
   async (limit = 80): Promise<AdminInsuranceRequestsData> => {
     try {
-      const adminSupabase = createOptionalAdminClient();
-      if (!adminSupabase) {
-        console.warn(
-          "Admin insurance requests unavailable: Supabase service role environment variables are missing."
-        );
-        return EMPTY_ADMIN_INSURANCE_REQUESTS_DATA;
-      }
+      const supabase = await createAdminDataClient();
 
-      const { data, error } = await adminSupabase
+      const { data, error } = await supabase
         .from("insurance_requests")
         .select(
           `

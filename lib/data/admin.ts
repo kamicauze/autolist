@@ -554,6 +554,16 @@ function describeError(error: unknown) {
   return "Unknown error";
 }
 
+async function createAdminDataClient() {
+  return createOptionalAdminClient() ?? (await createClient());
+}
+
+export function getAdminDataAccessNotice() {
+  return createOptionalAdminClient()
+    ? null
+    : "Admin data is using the signed-in admin session because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If records are missing, set the service role key in Vercel staging or confirm the admin RLS migrations are applied.";
+}
+
 function firstRelation<T>(value: T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : null;
 }
@@ -851,11 +861,7 @@ async function readCount(query: PromiseLike<{ count: number | null }>) {
 
 export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCounts> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin badge counts unavailable: Supabase service role environment variables are missing.");
-      return {};
-    }
+    const supabase = await createAdminDataClient();
 
     const [
       pendingListings,
@@ -865,28 +871,28 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
       pendingPayments,
       insuranceCountResult,
     ] = await Promise.all([
-      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
-      readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
+      readCount(supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
+      readCount(supabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
       readCount(
-        adminSupabase
+        supabase
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
           .in("priority", ["high", "urgent"])
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("payments")
           .select("*", { count: "exact", head: true })
           .eq("status", "pending")
       ),
-      adminSupabase
+      supabase
         .from("insurance_requests")
         .select("*", { count: "exact", head: true })
         .in("status", ["new", "quoted", "blocked"]),
@@ -898,7 +904,7 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
         throw new Error(insuranceCountResult.error.message);
       }
 
-      const fallbackResult = await adminSupabase
+      const fallbackResult = await supabase
         .from("support_tickets")
         .select("*", { count: "exact", head: true })
         .eq("category", "insurance_request")
@@ -927,11 +933,7 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
 
 export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin dashboard data unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_DASHBOARD_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const [
       totalListings,
@@ -945,16 +947,16 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
       recentTicketsResult,
       pendingDealersResult,
     ] = await Promise.all([
-      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true })),
-      readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
+      readCount(supabase.from("listings").select("*", { count: "exact", head: true })),
+      readCount(supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true })),
       readCount(
-        adminSupabase
+        supabase
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
       ),
-      adminSupabase
+      supabase
         .from("listings")
         .select(
           `
@@ -983,17 +985,17 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
         )
         .order("created_at", { ascending: false })
         .limit(8),
-      adminSupabase
+      supabase
         .from("profiles")
         .select("id, email, full_name, role, created_at")
         .order("created_at", { ascending: false })
         .limit(8),
-      adminSupabase
+      supabase
         .from("dealers")
         .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
         .order("created_at", { ascending: false }),
-      adminSupabase.from("listings").select("seller_id, status"),
-      adminSupabase
+      supabase.from("listings").select("seller_id, status"),
+      supabase
         .from("support_tickets")
         .select(
           `
@@ -1007,7 +1009,7 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
         )
         .order("updated_at", { ascending: false })
         .limit(6),
-      adminSupabase
+      supabase
         .from("dealers")
         .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
         .eq("status", "PENDING")
@@ -1140,7 +1142,7 @@ export const getAdminListingsOverviewData = cache(
         total: countResults.reduce((sum, count) => sum + count, 0),
         listings: ((data || []) as unknown as ListingRow[]).map(normalizeListing),
         notice: usingSessionFallback
-          ? "Using session-scoped admin access because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If listings are missing, check Vercel env vars and admin listing RLS policies."
+          ? "Using session-scoped admin access because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If admin records are missing, check Vercel env vars and admin RLS policies."
           : null,
         error: null,
       };
@@ -1157,11 +1159,7 @@ export const getAdminListingsOverviewData = cache(
 
 export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<AdminUsersOverviewData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin users unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_USERS_OVERVIEW_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const [
       total,
@@ -1175,16 +1173,16 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
       pendingDealers,
       profilesResult,
     ] = await Promise.all([
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true })),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "buyer")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "seller")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "dealer")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "sales_agent")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "super_admin")),
-      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "support")),
-      readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
-      adminSupabase
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true })),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "buyer")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "seller")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "dealer")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "sales_agent")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "super_admin")),
+      readCount(supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "support")),
+      readCount(supabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
+      supabase
         .from("profiles")
         .select("id, email, full_name, role, created_at")
         .order("created_at", { ascending: false })
@@ -1196,13 +1194,13 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
 
     const [dealerRowsResult, listingCountRowsResult] = await Promise.all([
       profileIds.length > 0
-        ? adminSupabase
+        ? supabase
             .from("dealers")
             .select("id, profile_id, name, status, city, created_at, profile:profiles!profile_id(full_name, email)")
             .in("profile_id", profileIds)
         : Promise.resolve({ data: [] }),
       profileIds.length > 0
-        ? adminSupabase.from("listings").select("seller_id, status").in("seller_id", profileIds)
+        ? supabase.from("listings").select("seller_id, status").in("seller_id", profileIds)
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -1243,16 +1241,12 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
 
 export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<AdminRolesPermissionsData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin roles unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_ROLES_PERMISSIONS_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const [usersOverview, permissionsResult, rolePermissionsResult] = await Promise.all([
       getAdminUsersOverviewData(limit),
-      adminSupabase.from("permissions").select("key, label, description, category").order("category").order("key"),
-      adminSupabase.from("role_permissions").select("role, permission_key").order("role").order("permission_key"),
+      supabase.from("permissions").select("key, label, description, category").order("category").order("key"),
+      supabase.from("role_permissions").select("role, permission_key").order("role").order("permission_key"),
     ]);
 
     const rolePermissions: Record<AdminProfileRole, string[]> = {
@@ -1347,35 +1341,31 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
 
 export const getAdminAuditLogsData = cache(async (limit = 80): Promise<AdminAuditLogsData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin audit logs unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_AUDIT_LOGS_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const last24HoursCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const [total, last24Hours, dealerEvents, listingEvents, logsResult] = await Promise.all([
-      readCount(adminSupabase.from("audit_logs").select("*", { count: "exact", head: true })),
+      readCount(supabase.from("audit_logs").select("*", { count: "exact", head: true })),
       readCount(
-        adminSupabase
+        supabase
           .from("audit_logs")
           .select("*", { count: "exact", head: true })
           .gte("created_at", last24HoursCutoff)
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("audit_logs")
           .select("*", { count: "exact", head: true })
           .eq("entity_type", "dealer")
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("audit_logs")
           .select("*", { count: "exact", head: true })
           .eq("entity_type", "listing")
       ),
-      adminSupabase
+      supabase
         .from("audit_logs")
         .select(
           `
@@ -1411,14 +1401,10 @@ export const getAdminAuditLogsData = cache(async (limit = 80): Promise<AdminAudi
 
 export const getAdminPaymentsData = cache(async (limit = 80): Promise<AdminPaymentsData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin payments unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_PAYMENTS_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const [paymentsResult, paymentSummaryResult] = await Promise.all([
-      adminSupabase
+      supabase
         .from("payments")
         .select(
           `
@@ -1436,7 +1422,7 @@ export const getAdminPaymentsData = cache(async (limit = 80): Promise<AdminPayme
         )
         .order("created_at", { ascending: false })
         .limit(limit),
-      adminSupabase
+      supabase
         .from("payments")
         .select(
           `
@@ -1468,7 +1454,7 @@ export const getAdminPaymentsData = cache(async (limit = 80): Promise<AdminPayme
       new Set([...payments, ...summaryRows].map((payment) => payment.user_id).filter(Boolean))
     );
     const { data: paymentProfiles, error: paymentProfilesError } = profileIds.length
-      ? await adminSupabase
+      ? await supabase
           .from("profiles")
           .select("id, full_name, email, role")
           .in("id", profileIds)
@@ -1508,14 +1494,10 @@ export const getAdminPaymentsData = cache(async (limit = 80): Promise<AdminPayme
 export const getAdminReportsData = cache(
   async (ticketLimit = 80, eventLimit = 16): Promise<AdminReportsData> => {
     try {
-      const adminSupabase = createOptionalAdminClient();
-      if (!adminSupabase) {
-        console.warn("Admin reports unavailable: Supabase service role environment variables are missing.");
-        return EMPTY_ADMIN_REPORTS_DATA;
-      }
+      const supabase = await createAdminDataClient();
 
       const [ticketsResult, eventsResult] = await Promise.all([
-        adminSupabase
+        supabase
           .from("support_tickets")
           .select(
             `
@@ -1536,7 +1518,7 @@ export const getAdminReportsData = cache(
           )
           .order("updated_at", { ascending: false })
           .limit(ticketLimit),
-        adminSupabase
+        supabase
           .from("ticket_events")
           .select(
             `
@@ -1584,11 +1566,7 @@ export const getAdminReportsData = cache(
 
 export const getAdminAnalyticsData = cache(async (): Promise<AdminAnalyticsData> => {
   try {
-    const adminSupabase = createOptionalAdminClient();
-    if (!adminSupabase) {
-      console.warn("Admin analytics unavailable: Supabase service role environment variables are missing.");
-      return EMPTY_ADMIN_ANALYTICS_DATA;
-    }
+    const supabase = await createAdminDataClient();
 
     const activityDays = 14;
     const today = new Date();
@@ -1611,35 +1589,35 @@ export const getAdminAnalyticsData = cache(async (): Promise<AdminAnalyticsData>
       usersOverview,
     ] = await Promise.all([
       readCount(
-        adminSupabase
+        supabase
           .from("profiles")
           .select("*", { count: "exact", head: true })
           .gte("created_at", thirtyDayCutoff)
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("listings")
           .select("*", { count: "exact", head: true })
           .gte("created_at", thirtyDayCutoff)
       ),
       readCount(
-        adminSupabase
+        supabase
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
       ),
-      adminSupabase
+      supabase
         .from("profiles")
         .select("created_at")
         .gte("created_at", activityCutoff),
-      adminSupabase
+      supabase
         .from("listings")
         .select("created_at")
         .gte("created_at", activityCutoff),
-      adminSupabase
+      supabase
         .from("support_tickets")
         .select("created_at, status, priority"),
-      adminSupabase
+      supabase
         .from("payments")
         .select("amount, currency, status, purpose, provider, created_at"),
       getAdminListingsOverviewData(0),

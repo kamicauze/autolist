@@ -267,20 +267,9 @@ export const getSupportQueueData = cache(async (): Promise<SupportQueueData | nu
     return null;
   }
 
-  if (!adminSupabase) {
-    return {
-      viewer,
-      tickets: [],
-      stats: {
-        open: 0,
-        escalated: 0,
-        waitingOnSeller: 0,
-        resolvedToday: 0,
-      },
-    };
-  }
+  const ticketClient = adminSupabase ?? supabase;
 
-  const { data, error } = await adminSupabase
+  const { data, error } = await ticketClient
     .from("support_tickets")
     .select(
       `
