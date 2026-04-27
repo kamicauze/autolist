@@ -2,10 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdminAction } from "@/lib/admin/guard";
+import { requireSuperAdminAction } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const ALLOWED_ADMIN_ROLES = ["buyer", "seller", "dealer", "admin", "support"] as const;
+const ALLOWED_ADMIN_ROLES = [
+  "buyer",
+  "seller",
+  "dealer",
+  "sales_agent",
+  "support",
+  "admin",
+  "super_admin",
+] as const;
 
 type AllowedAdminRole = (typeof ALLOWED_ADMIN_ROLES)[number];
 
@@ -26,7 +34,7 @@ export async function updateAdminUserRoleAction(formData: FormData) {
   const targetUserId = String(formData.get("userId") || "").trim();
   const nextRole = String(formData.get("nextRole") || "").trim() as AllowedAdminRole;
 
-  const adminContext = await requireAdminAction();
+  const adminContext = await requireSuperAdminAction();
   if ("error" in adminContext) {
     redirectWithFeedback("error", adminContext.error);
   }
@@ -98,6 +106,98 @@ export async function updateAdminUserRoleAction(formData: FormData) {
     redirectWithFeedback(
       "success",
       `Updated ${targetName} from ${formatRole(currentRole)} to ${formatRole(nextRole)}.`
+    );
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof error.digest === "string" &&
+      error.digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
+
+    const message = error instanceof Error && error.message ? error.message : "Unknown error";
+    redirectWithFeedback("error", message);
+  }
+}
+
+export async function updateRolePermissionAction(formData: FormData) {
+  const role = String(formData.get("role") || "").trim() as AllowedAdminRole;
+  const permissionKey = String(formData.get("permissionKey") || "").trim();
+  const enabled = String(formData.get("enabled") || "") === "true";
+
+  const adminContext = await requireSuperAdminAction();
+  if ("error" in adminContext) {
+    redirectWithFeedback("error", adminContext.error);
+  }
+
+  if (!ALLOWED_ADMIN_ROLES.includes(role)) {
+    redirectWithFeedback("error", "Select a valid role.");
+  }
+
+  if (!permissionKey) {
+    redirectWithFeedback("error", "Missing permission.");
+  }
+
+  try {
+    const adminSupabase = createAdminClient();
+    const { data: permission, error: permissionError } = await adminSupabase
+      .from("permissions")
+      .select("key")
+      .eq("key", permissionKey)
+      .maybeSingle<{ key: string }>();
+
+    if (permissionError || !permission) {
+      redirectWithFeedback("error", "Permission was not found.");
+    }
+
+    if (enabled) {
+      const { error } = await adminSupabase
+        .from("role_permissions")
+        .upsert(
+          {
+            role,
+            permission_key: permissionKey,
+          },
+          { onConflict: "role,permission_key" }
+        );
+
+      if (error) {
+        redirectWithFeedback("error", error.message);
+      }
+    } else {
+      if (role === "super_admin") {
+        redirectWithFeedback("error", "Super admin permissions cannot be removed.");
+      }
+
+      const { error } = await adminSupabase
+        .from("role_permissions")
+        .delete()
+        .eq("role", role)
+        .eq("permission_key", permissionKey);
+
+      if (error) {
+        redirectWithFeedback("error", error.message);
+      }
+    }
+
+    await adminSupabase.from("audit_logs").insert({
+      user_id: adminContext.user.id,
+      action: enabled ? "role_permission_enabled" : "role_permission_disabled",
+      entity_type: "role_permission",
+      entity_id: null,
+      details: {
+        role,
+        permission_key: permissionKey,
+      },
+    });
+
+    revalidatePath("/admin/roles-permissions");
+    redirectWithFeedback(
+      "success",
+      `${enabled ? "Enabled" : "Disabled"} ${permissionKey} for ${formatRole(role)}.`
     );
   } catch (error) {
     if (

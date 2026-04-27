@@ -63,7 +63,7 @@ export async function getMySalesAgents(): Promise<{
   const { data, error } = await supabase
     .from("dealer_sales_agents")
     .select(
-      "id, dealer_id, profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, created_at, updated_at"
+      "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at"
     )
     .eq("dealer_id", dealer.id)
     .eq("profile_id", user.id)

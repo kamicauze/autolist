@@ -52,7 +52,9 @@ export async function POST(
   }
 
   const visibility =
-    ["admin", "support"].includes(profile?.role || "") && user.id !== thread.buyer_id && user.id !== thread.seller_id
+    ["admin", "super_admin", "support"].includes(profile?.role || "") &&
+    user.id !== thread.buyer_id &&
+    user.id !== thread.seller_id
       ? "staff_only"
       : "participants";
 

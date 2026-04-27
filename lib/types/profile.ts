@@ -1,4 +1,11 @@
-export type SellerProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
+export type SellerProfileRole =
+  | "buyer"
+  | "seller"
+  | "dealer"
+  | "sales_agent"
+  | "support"
+  | "admin"
+  | "super_admin";
 
 export interface SellerProfileRecord {
   full_name: string | null;

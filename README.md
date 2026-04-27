@@ -10,7 +10,7 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
 
 ### ✅ In Scope
 -   **Vehicle Listings**: Cars, Motorbikes, Vans, Trucks, Plant & Farm Vehicles.
--   **User Roles**: Buyer, Individual Seller, Dealer, Admin.
+-   **User Roles**: Buyer, Individual Seller, Dealer, Sales Agent, Support, Admin, Super Admin.
 -   **Listing Lifecycle**: Draft → Pending Approval → Active → Reserved → Sold.
 -   **Trust**: Mandatory dealer verification, progressive seller verification (phone), admin moderation.
 -   **Payments**: M-Pesa & Stripe for **platform services only** (Featured listings, Dealer subscriptions).
@@ -51,6 +51,31 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
 3.  **Environment Setup:**
     Create a `.env.local` file with Supabase and Cloudflare credentials.
 
+    Optional provider integrations used by staging/QA:
+
+    ```bash
+    # Email delivery via Resend
+    RESEND_API_KEY=
+    EMAIL_FROM="Autolist <notifications@your-domain.com>"
+
+    # WhatsApp Cloud API delivery
+    WHATSAPP_ACCESS_TOKEN=
+    WHATSAPP_PHONE_NUMBER_ID=
+    WHATSAPP_API_VERSION=v21.0
+
+    # Protected endpoint for queued notification delivery
+    NOTIFICATION_PROCESS_SECRET=
+
+    # Public URL used in invite links and notification deep links
+    NEXT_PUBLIC_SITE_URL=http://localhost:3000
+    ```
+
+    Check provider readiness without printing secret values:
+
+    ```bash
+    npm run integrations:check
+    ```
+
 4.  **Run the development server:**
     ```bash
     npm run dev
@@ -64,7 +89,15 @@ To create or reset a local admin account against the configured Supabase project
 npm run admin:ensure -- --email admin@autolist.local --password TempAdmin123! --name "Local Admin"
 ```
 
-The script will create the auth user if it does not exist, reset the password if it does, and upsert the `profiles.role` to `admin`.
+The script will create the auth user if it does not exist, reset the password if it does, and upsert the `profiles.role`. Use `--role super_admin` for the first owner account so that account can manage role-permission mappings:
+
+```bash
+npm run admin:ensure -- --email owner@example.com --password "TempAdmin123!" --name "Owner Admin" --role super_admin
+```
+
+### Sales Agent Invites
+
+Dealer owners add sales reps from `/dashboard/sales-agents`. The app generates a one-time invite link; the rep signs in or creates their own account with the invited email address, then accepts the invite at `/join/sales-agent/[token]`. Dealers should not assign or share sales-rep passwords.
 
 ## 📂 Project Structure
 

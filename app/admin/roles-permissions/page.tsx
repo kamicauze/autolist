@@ -13,7 +13,7 @@ export default async function AdminRolesPermissionsRoute({
   searchParams,
 }: AdminRolesPermissionsPageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const { user } = await requireAdminPage("/admin/roles-permissions");
+  const { user, role } = await requireAdminPage("/admin/roles-permissions");
   const data = await getAdminRolesPermissionsData();
 
   const status = typeof params?.status === "string" ? params.status : null;
@@ -26,5 +26,12 @@ export default async function AdminRolesPermissionsRoute({
         }
       : null;
 
-  return <AdminRolesPermissionsLive data={data} currentUserId={user.id} feedback={feedback} />;
+  return (
+    <AdminRolesPermissionsLive
+      data={data}
+      currentUserId={user.id}
+      currentUserRole={role}
+      feedback={feedback}
+    />
+  );
 }

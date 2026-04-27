@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type AdminRole = "admin" | "super_admin";
 
 async function getUserRole(supabase: ServerSupabaseClient, userId: string) {
   const { data: profile } = await supabase
@@ -12,6 +13,10 @@ async function getUserRole(supabase: ServerSupabaseClient, userId: string) {
     .maybeSingle();
 
   return profile?.role ?? null;
+}
+
+function isAdminRole(role: string | null): role is AdminRole {
+  return role === "admin" || role === "super_admin";
 }
 
 export async function requireAdminPage(nextPath = "/admin") {
@@ -27,16 +32,16 @@ export async function requireAdminPage(nextPath = "/admin") {
 
   const role = await getUserRole(supabase, user.id);
 
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     redirect("/dashboard");
   }
 
-  return { supabase, user };
+  return { supabase, user, role };
 }
 
 type AdminActionContext =
   | { error: "Unauthorized" | "Forbidden: Admin only." }
-  | { supabase: ServerSupabaseClient; user: User };
+  | { supabase: ServerSupabaseClient; user: User; role: AdminRole };
 
 export async function requireAdminAction(): Promise<AdminActionContext> {
   const supabase = await createClient();
@@ -51,9 +56,33 @@ export async function requireAdminAction(): Promise<AdminActionContext> {
 
   const role = await getUserRole(supabase, user.id);
 
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     return { error: "Forbidden: Admin only." };
   }
 
-  return { supabase, user };
+  return { supabase, user, role };
+}
+
+type SuperAdminActionContext =
+  | { error: "Unauthorized" | "Forbidden: Super admin only." }
+  | { supabase: ServerSupabaseClient; user: User; role: "super_admin" };
+
+export async function requireSuperAdminAction(): Promise<SuperAdminActionContext> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized" };
+  }
+
+  const role = await getUserRole(supabase, user.id);
+
+  if (role !== "super_admin") {
+    return { error: "Forbidden: Super admin only." };
+  }
+
+  return { supabase, user, role };
 }

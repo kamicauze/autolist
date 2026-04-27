@@ -131,6 +131,16 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
     <div className="space-y-8">
       <AdminPageHeader title="All Listings" />
 
+      {data.error ? (
+        <div className="rounded-[16px] border border-[#fecaca] bg-[#fef2f2] px-5 py-4 text-[13px] leading-6 text-[#991b1b]">
+          Admin listings could not be loaded: {data.error}
+        </div>
+      ) : data.notice ? (
+        <div className="rounded-[16px] border border-[#fed7aa] bg-[#fff7ed] px-5 py-4 text-[13px] leading-6 text-[#9a3412]">
+          {data.notice}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
           label="All listings"

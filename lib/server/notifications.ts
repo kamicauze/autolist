@@ -23,7 +23,7 @@ type EmitNotificationEventInput = {
 
 type StaffRecipient = {
   id: string;
-  role: "admin" | "support";
+  role: "admin" | "super_admin" | "support";
 };
 
 export function buildListingTitle(listing: {
@@ -39,7 +39,9 @@ export function getMessagingHref(role: string, threadId: string) {
 }
 
 export function getTicketHref(role: string, ticketId: string) {
-  return role === "admin" ? `/admin/car-inquiries?ticket=${ticketId}` : `/support/tickets?ticket=${ticketId}`;
+  return role === "admin" || role === "super_admin"
+    ? `/admin/car-inquiries?ticket=${ticketId}`
+    : `/support/tickets?ticket=${ticketId}`;
 }
 
 export async function getStaffRecipients(excludeIds: string[] = []): Promise<StaffRecipient[]> {
@@ -47,7 +49,7 @@ export async function getStaffRecipients(excludeIds: string[] = []): Promise<Sta
   const { data, error } = await supabase
     .from("profiles")
     .select("id, role")
-    .in("role", ["admin", "support"]);
+    .in("role", ["admin", "super_admin", "support"]);
 
   if (error || !data) {
     return [];
@@ -57,7 +59,7 @@ export async function getStaffRecipients(excludeIds: string[] = []): Promise<Sta
     .filter(
       (profile): profile is StaffRecipient =>
         Boolean(profile.id) &&
-        (profile.role === "admin" || profile.role === "support") &&
+        (profile.role === "admin" || profile.role === "super_admin" || profile.role === "support") &&
         !excludeIds.includes(profile.id)
     );
 }

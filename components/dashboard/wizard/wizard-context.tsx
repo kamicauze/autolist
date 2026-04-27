@@ -214,7 +214,14 @@ export type WizardIssue = {
   stepIndex: number | null;
 };
 
-type AuthenticatedProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
+type AuthenticatedProfileRole =
+  | "buyer"
+  | "seller"
+  | "dealer"
+  | "sales_agent"
+  | "support"
+  | "admin"
+  | "super_admin";
 
 type SellerAccountDefaults = {
   sellerType: ListingDraft["sellerType"];

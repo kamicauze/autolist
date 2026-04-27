@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "admin:ensure": "tsx scripts/ensure-admin.ts",
+    "integrations:check": "tsx scripts/check-integrations.ts",
     "dev": "NEXT_DIST_DIR=.next-dev next dev --webpack",
     "build": "next build",
     "start": "next start",

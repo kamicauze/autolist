@@ -1,4 +1,11 @@
-export type ProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
+export type ProfileRole =
+  | "buyer"
+  | "seller"
+  | "dealer"
+  | "sales_agent"
+  | "support"
+  | "admin"
+  | "super_admin";
 
 export type MessagingViewer = {
   id: string;

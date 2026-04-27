@@ -4,11 +4,14 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  Copy,
   Edit3,
   EyeOff,
+  Link2,
   MessageCircle,
   Plus,
   Search,
+  Send,
   Settings2,
   UserX,
   UsersRound,
@@ -16,6 +19,7 @@ import {
 import {
   createSalesAgent,
   deactivateSalesAgent,
+  resendSalesAgentInvite,
   updateSalesAgent,
 } from "@/lib/actions/sales-agents";
 import type {
@@ -51,6 +55,37 @@ interface SalesAgentsManagerProps {
 }
 
 type ModalMode = "create" | "edit";
+type SavedSalesAgentPayload = { agent: SalesAgent; inviteUrl?: string };
+type InviteNotice = {
+  name: string;
+  email: string;
+  inviteUrl: string;
+} | null;
+
+function getInviteStatus(agent: SalesAgent) {
+  const isExpired =
+    agent.invite_status === "pending" &&
+    agent.invite_expires_at &&
+    new Date(agent.invite_expires_at).getTime() <= Date.now();
+
+  if (agent.invite_status === "accepted") {
+    return { label: "Account linked", tone: "green" as const };
+  }
+
+  if (isExpired || agent.invite_status === "expired") {
+    return { label: "Invite expired", tone: "red" as const };
+  }
+
+  if (agent.invite_status === "pending") {
+    return { label: "Invite pending", tone: "amber" as const };
+  }
+
+  if (agent.invite_status === "revoked") {
+    return { label: "Invite revoked", tone: "neutral" as const };
+  }
+
+  return { label: "Invite not sent", tone: "neutral" as const };
+}
 
 function SalesAgentForm({
   mode,
@@ -61,7 +96,7 @@ function SalesAgentForm({
   mode: ModalMode;
   agent?: SalesAgent;
   onCancel: () => void;
-  onSaved: (agent: SalesAgent) => void;
+  onSaved: (payload: SavedSalesAgentPayload) => void;
 }) {
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
@@ -85,7 +120,7 @@ function SalesAgentForm({
       }
 
       if (result.agent) {
-        onSaved(result.agent);
+        onSaved({ agent: result.agent, inviteUrl: result.inviteUrl });
       }
     });
   };
@@ -210,15 +245,18 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
   const [status, setStatus] = React.useState<"all" | SalesAgentStatus>("all");
   const [modal, setModal] = React.useState<{ mode: ModalMode; agent?: SalesAgent } | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(error ?? null);
+  const [inviteNotice, setInviteNotice] = React.useState<InviteNotice>(null);
   const [deactivatingId, setDeactivatingId] = React.useState<string | null>(null);
   const [isDeactivating, startDeactivateTransition] = React.useTransition();
+  const [resendingId, setResendingId] = React.useState<string | null>(null);
+  const [isResending, startResendTransition] = React.useTransition();
 
   React.useEffect(() => {
     setItems(agents);
   }, [agents]);
 
   const filteredAgents = items.filter((agent) => {
-    const searchText = `${agent.name} ${agent.email} ${agent.phone}`.toLowerCase();
+    const searchText = `${agent.name} ${agent.email} ${agent.phone} ${getInviteStatus(agent).label}`.toLowerCase();
     const matchesQuery = searchText.includes(query.trim().toLowerCase());
     const matchesStatus = status === "all" || agent.status === status;
     return matchesQuery && matchesStatus;
@@ -226,8 +264,9 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
 
   const activeCount = items.filter((agent) => agent.status === "active").length;
   const verifiedCount = items.filter((agent) => agent.is_verified).length;
+  const pendingInviteCount = items.filter((agent) => getInviteStatus(agent).label === "Invite pending").length;
 
-  const handleSaved = (savedAgent: SalesAgent) => {
+  const handleSaved = ({ agent: savedAgent, inviteUrl }: SavedSalesAgentPayload) => {
     setItems((current) => {
       const exists = current.some((agent) => agent.id === savedAgent.id);
       return exists
@@ -236,7 +275,51 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
     });
     setModal(null);
     setActionError(null);
+    if (inviteUrl) {
+      setInviteNotice({
+        name: savedAgent.name,
+        email: savedAgent.email,
+        inviteUrl,
+      });
+    }
     router.refresh();
+  };
+
+  const copyInviteUrl = async () => {
+    if (!inviteNotice?.inviteUrl) return;
+    await navigator.clipboard?.writeText(inviteNotice.inviteUrl);
+  };
+
+  const handleResendInvite = (agent: SalesAgent) => {
+    setResendingId(agent.id);
+    setActionError(null);
+    setInviteNotice(null);
+
+    startResendTransition(async () => {
+      const result = await resendSalesAgentInvite(agent.id);
+      setResendingId(null);
+
+      if ("error" in result) {
+        setActionError(result.error);
+        return;
+      }
+
+      if (result.agent) {
+        setItems((current) =>
+          current.map((item) => (item.id === result.agent?.id ? result.agent : item))
+        );
+      }
+
+      if (result.agent && result.inviteUrl) {
+        setInviteNotice({
+          name: result.agent.name,
+          email: result.agent.email,
+          inviteUrl: result.inviteUrl,
+        });
+      }
+
+      router.refresh();
+    });
   };
 
   const handleDeactivate = (agent: SalesAgent) => {
@@ -293,7 +376,11 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
         action={
           <button
             type="button"
-            onClick={() => setModal({ mode: "create" })}
+            onClick={() => {
+              setInviteNotice(null);
+              setActionError(null);
+              setModal({ mode: "create" });
+            }}
             className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
           >
             <Plus className="h-4 w-4" />
@@ -302,11 +389,30 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <SellerSurface className="p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-[14px] font-semibold text-[#202224]">Sales rep account setup</p>
+            <p className="mt-2 text-[13px] leading-6 text-[#6b7280]">
+              Add the rep with their real email address. Autolist generates an invite link; the rep
+              signs in or creates their own account with that email, then accepts the invite. Dealers
+              never need to assign or share passwords.
+            </p>
+          </div>
+          <div className="rounded-[14px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-[12px] leading-5 text-[#1d4ed8]">
+            Email sending uses <span className="font-semibold">RESEND_API_KEY</span>. If it is not
+            configured, copy the invite link here and send it manually. WhatsApp delivery uses the
+            Meta Cloud API env vars when the rep has WhatsApp enabled.
+          </div>
+        </div>
+      </SellerSurface>
+
+      <div className="grid gap-4 md:grid-cols-4">
         {[
           { label: "Total reps", value: String(items.length), note: dealer.status },
           { label: "Active", value: String(activeCount), note: "Ready for buyer contact" },
           { label: "Verified", value: String(verifiedCount), note: "Identity checked" },
+          { label: "Pending invites", value: String(pendingInviteCount), note: "Waiting for setup" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -361,6 +467,34 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
           </div>
         ) : null}
 
+        {inviteNotice ? (
+          <div className="border-b border-[#dbeafe] bg-[#eff6ff] px-5 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-[#1d4ed8]">
+                  Invite ready for {inviteNotice.name}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-[#315db5]">
+                  Send this link to {inviteNotice.email}. They should sign in or create an account
+                  with that email, then accept the invite.
+                </p>
+                <div className="mt-3 flex min-w-0 items-center gap-2 rounded-[12px] border border-[#bfdbfe] bg-white px-3 py-2 text-[12px] text-[#1e3a8a]">
+                  <Link2 className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{inviteNotice.inviteUrl}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={copyInviteUrl}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+              >
+                <Copy className="h-4 w-4" />
+                Copy link
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left">
             <thead>
@@ -387,7 +521,10 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                   </td>
                 </tr>
               ) : (
-                filteredAgents.map((agent) => (
+                filteredAgents.map((agent) => {
+                  const invite = getInviteStatus(agent);
+
+                  return (
                   <tr key={agent.id} className="text-[14px] text-[#202224]">
                     <td className="px-5 py-4">
                       <div className="flex min-w-0 items-center gap-3">
@@ -422,10 +559,13 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                       />
                     </td>
                     <td className="px-4 py-4">
-                      <SellerStatusPill
-                        label={agent.is_verified ? "Verified" : "Unverified"}
-                        tone={agent.is_verified ? "green" : "amber"}
-                      />
+                      <div className="space-y-2">
+                        <SellerStatusPill
+                          label={agent.is_verified ? "Verified" : "Unverified"}
+                          tone={agent.is_verified ? "green" : "amber"}
+                        />
+                        <SellerStatusPill label={invite.label} tone={invite.tone} />
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[#f4f4f4] px-3 text-[13px] font-semibold text-[#5f6368]">
@@ -443,6 +583,17 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                           <Edit3 className="h-4 w-4" />
                           Edit
                         </button>
+                        {agent.invite_status !== "accepted" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleResendInvite(agent)}
+                            disabled={isResending && resendingId === agent.id}
+                            className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[#dbe3f5] bg-white px-3 text-[13px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Send className="h-4 w-4" />
+                            {isResending && resendingId === agent.id ? "Sending..." : "Invite"}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => handleDeactivate(agent)}
@@ -468,7 +619,8 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

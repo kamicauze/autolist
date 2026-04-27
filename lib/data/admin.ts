@@ -1,9 +1,17 @@
 import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import type { ListingStatus } from "@/lib/types/listing";
 
-export type AdminProfileRole = "buyer" | "seller" | "dealer" | "admin" | "support";
+export type AdminProfileRole =
+  | "buyer"
+  | "seller"
+  | "dealer"
+  | "sales_agent"
+  | "support"
+  | "admin"
+  | "super_admin";
 
 type ProfileRow = {
   id: string;
@@ -59,6 +67,18 @@ type TicketRow = {
 type UserListingCountRow = {
   seller_id: string;
   status: ListingStatus;
+};
+
+type PermissionRow = {
+  key: string;
+  label: string;
+  description: string | null;
+  category: string;
+};
+
+type RolePermissionRow = {
+  role: AdminProfileRole;
+  permission_key: string;
 };
 
 export type AdminDashboardMetric = {
@@ -142,6 +162,8 @@ export type AdminListingsOverviewData = {
   stats: Record<ListingStatus, number>;
   total: number;
   listings: AdminDashboardListing[];
+  notice?: string | null;
+  error?: string | null;
 };
 
 export type AdminUsersOverviewData = {
@@ -150,7 +172,9 @@ export type AdminUsersOverviewData = {
     buyers: number;
     sellers: number;
     dealers: number;
+    salesAgents: number;
     admins: number;
+    superAdmins: number;
     supports: number;
     staff: number;
     pendingDealers: number;
@@ -171,11 +195,14 @@ export type AdminRolesPermissionsData = {
   stats: {
     total: number;
     admins: number;
+    superAdmins: number;
     supports: number;
     staff: number;
     pendingDealers: number;
   };
   roles: AdminRoleSummary[];
+  permissions: PermissionRow[];
+  rolePermissions: Record<AdminProfileRole, string[]>;
   users: AdminDashboardUser[];
 };
 
@@ -409,6 +436,8 @@ const EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA: AdminListingsOverviewData = {
   },
   total: 0,
   listings: [],
+  notice: null,
+  error: null,
 };
 
 const EMPTY_ADMIN_USERS_OVERVIEW_DATA: AdminUsersOverviewData = {
@@ -417,7 +446,9 @@ const EMPTY_ADMIN_USERS_OVERVIEW_DATA: AdminUsersOverviewData = {
     buyers: 0,
     sellers: 0,
     dealers: 0,
+    salesAgents: 0,
     admins: 0,
+    superAdmins: 0,
     supports: 0,
     staff: 0,
     pendingDealers: 0,
@@ -429,11 +460,22 @@ const EMPTY_ADMIN_ROLES_PERMISSIONS_DATA: AdminRolesPermissionsData = {
   stats: {
     total: 0,
     admins: 0,
+    superAdmins: 0,
     supports: 0,
     staff: 0,
     pendingDealers: 0,
   },
   roles: [],
+  permissions: [],
+  rolePermissions: {
+    buyer: [],
+    seller: [],
+    dealer: [],
+    sales_agent: [],
+    support: [],
+    admin: [],
+    super_admin: [],
+  },
   users: [],
 };
 
@@ -1036,20 +1078,27 @@ export const getAdminListingsOverviewData = cache(
   async (limit = 80): Promise<AdminListingsOverviewData> => {
     try {
       const adminSupabase = createOptionalAdminClient();
-      if (!adminSupabase) {
-        console.warn("Admin listings unavailable: Supabase service role environment variables are missing.");
-        return EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA;
-      }
+      const supabase = adminSupabase ?? (await createClient());
+      const usingSessionFallback = !adminSupabase;
 
       const statuses: ListingStatus[] = ["draft", "pending", "active", "reserved", "rejected", "sold", "expired"];
 
       const countResults = await Promise.all(
-        statuses.map((status) =>
-          readCount(adminSupabase.from("listings").select("*", { count: "exact", head: true }).eq("status", status))
-        )
+        statuses.map(async (status) => {
+          const { count, error } = await supabase
+            .from("listings")
+            .select("*", { count: "exact", head: true })
+            .eq("status", status);
+
+          if (error) {
+            throw new Error(`Unable to count ${status} listings: ${error.message}`);
+          }
+
+          return count ?? 0;
+        })
       );
 
-      const { data } = await adminSupabase
+      const { data, error: listingsError } = await supabase
         .from("listings")
         .select(
           `
@@ -1079,6 +1128,10 @@ export const getAdminListingsOverviewData = cache(
         .order("created_at", { ascending: false })
         .limit(limit);
 
+      if (listingsError) {
+        throw new Error(`Unable to load listings: ${listingsError.message}`);
+      }
+
       return {
         stats: Object.fromEntries(statuses.map((status, index) => [status, countResults[index]])) as Record<
           ListingStatus,
@@ -1086,10 +1139,18 @@ export const getAdminListingsOverviewData = cache(
         >,
         total: countResults.reduce((sum, count) => sum + count, 0),
         listings: ((data || []) as unknown as ListingRow[]).map(normalizeListing),
+        notice: usingSessionFallback
+          ? "Using session-scoped admin access because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If listings are missing, check Vercel env vars and admin listing RLS policies."
+          : null,
+        error: null,
       };
     } catch (error) {
-      console.warn(`Admin listings unavailable: ${describeError(error)}`);
-      return EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA;
+      const message = describeError(error);
+      console.warn(`Admin listings unavailable: ${message}`);
+      return {
+        ...EMPTY_ADMIN_LISTINGS_OVERVIEW_DATA,
+        error: message,
+      };
     }
   }
 );
@@ -1107,7 +1168,9 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
       buyers,
       sellers,
       dealers,
+      salesAgents,
       admins,
+      superAdmins,
       supports,
       pendingDealers,
       profilesResult,
@@ -1116,7 +1179,9 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
       readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "buyer")),
       readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "seller")),
       readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "dealer")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "sales_agent")),
       readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin")),
+      readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "super_admin")),
       readCount(adminSupabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "support")),
       readCount(adminSupabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
       adminSupabase
@@ -1161,9 +1226,11 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
         buyers,
         sellers,
         dealers,
+        salesAgents,
         admins,
+        superAdmins,
         supports,
-        staff: admins + supports,
+        staff: admins + superAdmins + supports,
         pendingDealers,
       },
       users: profiles.map((profile) => normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)),
@@ -1176,12 +1243,39 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
 
 export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<AdminRolesPermissionsData> => {
   try {
-    const usersOverview = await getAdminUsersOverviewData(limit);
+    const adminSupabase = createOptionalAdminClient();
+    if (!adminSupabase) {
+      console.warn("Admin roles unavailable: Supabase service role environment variables are missing.");
+      return EMPTY_ADMIN_ROLES_PERMISSIONS_DATA;
+    }
+
+    const [usersOverview, permissionsResult, rolePermissionsResult] = await Promise.all([
+      getAdminUsersOverviewData(limit),
+      adminSupabase.from("permissions").select("key, label, description, category").order("category").order("key"),
+      adminSupabase.from("role_permissions").select("role, permission_key").order("role").order("permission_key"),
+    ]);
+
+    const rolePermissions: Record<AdminProfileRole, string[]> = {
+      buyer: [],
+      seller: [],
+      dealer: [],
+      sales_agent: [],
+      support: [],
+      admin: [],
+      super_admin: [],
+    };
+
+    for (const row of (rolePermissionsResult.data || []) as RolePermissionRow[]) {
+      if (row.role in rolePermissions) {
+        rolePermissions[row.role].push(row.permission_key);
+      }
+    }
 
     return {
       stats: {
         total: usersOverview.stats.total,
         admins: usersOverview.stats.admins,
+        superAdmins: usersOverview.stats.superAdmins,
         supports: usersOverview.stats.supports,
         staff: usersOverview.stats.staff,
         pendingDealers: usersOverview.stats.pendingDealers,
@@ -1213,6 +1307,13 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
               : undefined,
         },
         {
+          key: "sales_agent",
+          label: "Sales Agent",
+          description: "Dealer-invited sales rep account linked to a dealership.",
+          count: usersOverview.stats.salesAgents,
+          tone: "blue",
+        },
+        {
           key: "support",
           label: "Support",
           description: "Support queue, escalated conversations, and ticket handling access.",
@@ -1226,7 +1327,16 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
           count: usersOverview.stats.admins,
           tone: "amber",
         },
+        {
+          key: "super_admin",
+          label: "Super Admin",
+          description: "Owner-level access to roles, permissions, provider settings, and all admin tools.",
+          count: usersOverview.stats.superAdmins,
+          tone: "red",
+        },
       ],
+      permissions: ((permissionsResult.data || []) as PermissionRow[]),
+      rolePermissions,
       users: usersOverview.users,
     };
   } catch (error) {

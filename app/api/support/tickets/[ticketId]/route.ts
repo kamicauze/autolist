@@ -31,7 +31,7 @@ export async function PATCH(
     .eq("id", user.id)
     .maybeSingle<{ role: string }>();
 
-  if (!profile || !["admin", "support"].includes(profile.role)) {
+  if (!profile || !["admin", "super_admin", "support"].includes(profile.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -98,7 +98,7 @@ export async function PATCH(
       .from("profiles")
       .select("role")
       .eq("id", updatedTicket.assigned_to)
-      .maybeSingle<{ role: "admin" | "support" }>();
+      .maybeSingle<{ role: "admin" | "super_admin" | "support" }>();
 
     try {
       await emitNotificationEvent({

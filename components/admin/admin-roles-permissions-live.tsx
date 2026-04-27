@@ -1,5 +1,8 @@
 import { Headset, ShieldCheck, UserCog, Users } from "lucide-react";
-import { updateAdminUserRoleAction } from "@/lib/actions/admin-roles";
+import {
+  updateAdminUserRoleAction,
+  updateRolePermissionAction,
+} from "@/lib/actions/admin-roles";
 import {
   AdminDataTable,
   AdminPageHeader,
@@ -20,8 +23,10 @@ const ROLE_OPTIONS: Array<{ value: AdminProfileRole; label: string }> = [
   { value: "buyer", label: "Buyer" },
   { value: "seller", label: "Seller" },
   { value: "dealer", label: "Dealer" },
+  { value: "sales_agent", label: "Sales Agent" },
   { value: "support", label: "Support" },
   { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super Admin" },
 ];
 
 type FeedbackState =
@@ -42,9 +47,10 @@ function formatDate(value: string) {
 }
 
 function roleTone(role: AdminProfileRole) {
+  if (role === "super_admin") return "red" as const;
   if (role === "admin" || role === "support") return "amber" as const;
   if (role === "dealer") return "green" as const;
-  if (role === "seller") return "blue" as const;
+  if (role === "seller" || role === "sales_agent") return "blue" as const;
   return "slate" as const;
 }
 
@@ -58,19 +64,25 @@ function dealerTone(status: string | null) {
 export function AdminRolesPermissionsLive({
   data,
   currentUserId,
+  currentUserRole,
   feedback,
 }: {
   data: AdminRolesPermissionsData;
   currentUserId: string;
+  currentUserRole: AdminProfileRole;
   feedback: FeedbackState;
 }) {
+  const canManageRoles = currentUserRole === "super_admin";
+
   return (
     <div className="space-y-8">
       <AdminPageHeader
         title="Roles & Permissions"
         action={
           <div className="rounded-[10px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-2 text-[12px] text-[#1d4ed8]">
-            Stage 1 uses live <span className="font-mono">profiles.role</span> only.
+            {canManageRoles
+              ? "Super admin mode: role and permission changes are enabled."
+              : "Read-only mode: super admin is required for role and permission changes."}
           </div>
         }
       />
@@ -119,7 +131,7 @@ export function AdminRolesPermissionsLive({
 
       <AdminSectionCard
         title="Live Role Coverage"
-        description="Current account split across the five role values already supported by the backend."
+        description="Current account split across the role values supported by the backend."
       >
         <div className="grid gap-4 xl:grid-cols-5">
           {data.roles.map((role) => (
@@ -144,12 +156,13 @@ export function AdminRolesPermissionsLive({
 
       <AdminSectionCard
         title="Role Assignments"
-        description="Update the role directly on public.profiles. This does not create a dealer record or a permissions matrix."
+        description="Update the role directly on public.profiles. Super admins are protected from editing their own role."
       >
         <AdminDataTable columns={["User", "Current role", "Dealer status", "Listings", "Change role", "Joined"]}>
           {data.users.length > 0 ? (
             data.users.map((user) => {
               const isProtected = user.id === currentUserId;
+              const disableRoleChange = isProtected || !canManageRoles;
 
               return (
                 <tr key={user.id} className="border-b border-[#f1f5f9] last:border-b-0">
@@ -183,7 +196,7 @@ export function AdminRolesPermissionsLive({
                         <select
                           name="nextRole"
                           defaultValue={user.role}
-                          disabled={isProtected}
+                          disabled={disableRoleChange}
                           className={cn(adminSelectClass, "min-w-[148px] xl:w-[148px]")}
                         >
                           {ROLE_OPTIONS.map((role) => (
@@ -194,11 +207,11 @@ export function AdminRolesPermissionsLive({
                         </select>
                         <button
                           type="submit"
-                          disabled={isProtected}
+                          disabled={disableRoleChange}
                           className={cn(
                             adminPrimaryButtonClass,
                             "h-10 px-3 whitespace-nowrap",
-                            isProtected && "cursor-not-allowed opacity-60"
+                            disableRoleChange && "cursor-not-allowed opacity-60"
                           )}
                         >
                           Update role
@@ -206,6 +219,8 @@ export function AdminRolesPermissionsLive({
                       </div>
                       {isProtected ? (
                         <p className="text-[11px] text-[#94a3b8]">Current admin session is protected.</p>
+                      ) : !canManageRoles ? (
+                        <p className="text-[11px] text-[#94a3b8]">Super admin required.</p>
                       ) : null}
                     </form>
                   </td>
@@ -223,12 +238,69 @@ export function AdminRolesPermissionsLive({
         </AdminDataTable>
       </AdminSectionCard>
 
+      <AdminSectionCard
+        title="Permission Matrix"
+        description="Map platform permissions to each role. Super admin always keeps every permission."
+      >
+        <div className="overflow-x-auto">
+          <table className="min-w-[1040px] w-full text-left">
+            <thead>
+              <tr className="border-b border-[#e5e7eb] text-[12px] uppercase tracking-[0.14em] text-[#6b7280]">
+                <th className="px-4 py-3 font-semibold">Permission</th>
+                {ROLE_OPTIONS.map((role) => (
+                  <th key={role.value} className="px-3 py-3 text-center font-semibold">
+                    {role.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#eef2f7]">
+              {data.permissions.map((permission) => (
+                <tr key={permission.key}>
+                  <td className="px-4 py-4">
+                    <p className="text-[13px] font-semibold text-[#111827]">{permission.label}</p>
+                    <p className="mt-1 text-[12px] text-[#6b7280]">{permission.description}</p>
+                    <p className="mt-1 font-mono text-[11px] text-[#94a3b8]">{permission.key}</p>
+                  </td>
+                  {ROLE_OPTIONS.map((role) => {
+                    const checked = data.rolePermissions[role.value]?.includes(permission.key) ?? false;
+                    const locked = role.value === "super_admin" || !canManageRoles;
+
+                    return (
+                      <td key={`${role.value}-${permission.key}`} className="px-3 py-4 text-center">
+                        <form action={updateRolePermissionAction}>
+                          <input type="hidden" name="role" value={role.value} />
+                          <input type="hidden" name="permissionKey" value={permission.key} />
+                          <input type="hidden" name="enabled" value={checked ? "false" : "true"} />
+                          <button
+                            type="submit"
+                            disabled={locked}
+                            className={cn(
+                              "mx-auto flex h-8 w-8 items-center justify-center rounded-[8px] border text-[13px] font-semibold transition",
+                              checked
+                                ? "border-[#2563eb] bg-[#2563eb] text-white"
+                                : "border-[#d1d5db] bg-white text-[#94a3b8]",
+                              locked ? "cursor-not-allowed opacity-70" : "hover:border-[#2563eb] hover:text-[#2563eb]"
+                            )}
+                            aria-label={`${checked ? "Disable" : "Enable"} ${permission.label} for ${role.label}`}
+                          >
+                            {checked ? "✓" : "-"}
+                          </button>
+                        </form>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminSectionCard>
+
       <div className="rounded-[14px] border border-dashed border-[#d1d5db] bg-[#f8fafc] px-5 py-4 text-[12px] leading-6 text-[#6b7280]">
-        Dealer and support access still depends on the rest of the existing app flows. Changing a user to
+        Dealer access still depends on the dealer application record. Changing a user to
         <span className="font-medium text-[#111827]"> dealer </span>
-        does not create a dealer application, and changing a user to
-        <span className="font-medium text-[#111827]"> support </span>
-        does not create a separate permissions matrix.
+        does not create a dealer profile; sales-agent access is completed through the invite acceptance flow.
       </div>
     </div>
   );

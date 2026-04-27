@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { createAdminClient } from "../lib/supabase/admin";
 
-type Role = "admin" | "support";
+type Role = "admin" | "super_admin" | "support";
 
 type Options = {
   email: string;
@@ -37,7 +37,7 @@ function parseArgs(argv: string[]): Partial<Options> {
 
     if (token === "--role") {
       const role = argv[index + 1];
-      if (role === "admin" || role === "support") {
+      if (role === "admin" || role === "super_admin" || role === "support") {
         options.role = role;
       }
       index += 1;

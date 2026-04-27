@@ -18,7 +18,7 @@ export async function requireSupportPage(nextPath = "/support/tickets") {
     .eq("id", user.id)
     .maybeSingle<{ role: string }>();
 
-  if (!profile || !["admin", "support"].includes(profile.role)) {
+  if (!profile || !["admin", "super_admin", "support"].includes(profile.role)) {
     redirect("/dashboard");
   }
 

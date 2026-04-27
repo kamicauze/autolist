@@ -1,6 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { sendProviderEmail, sendProviderWhatsApp } from "@/lib/server/delivery-providers";
+import {
+  createSalesAgentInviteToken,
+  getSalesAgentInviteExpiry,
+  getSalesAgentInviteUrl,
+  hashSalesAgentInviteToken,
+  SALES_AGENT_SELECT,
+} from "@/lib/server/sales-agent-invites";
 import { createClient } from "@/lib/supabase/server";
 import type {
   DealerSalesAgentOwner,
@@ -43,6 +52,27 @@ function normalizePhone(value: string) {
 
 function normalizeStatus(value: string): SalesAgentStatus {
   return value === "inactive" ? "inactive" : "active";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function getRequestOrigin() {
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+  if (origin) return origin;
+
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+  if (!host) return null;
+
+  const protocol = requestHeaders.get("x-forwarded-proto") || "http";
+  return `${protocol}://${host}`;
 }
 
 function validateAgentForm(formData: FormData): AgentFormResult {
@@ -105,6 +135,84 @@ function mapAgent(row: SalesAgentRow): SalesAgent {
   return { ...row, listing_count: 0 };
 }
 
+function buildInviteDraft(origin: string | null) {
+  const token = createSalesAgentInviteToken();
+  return {
+    token,
+    tokenHash: hashSalesAgentInviteToken(token),
+    expiresAt: getSalesAgentInviteExpiry().toISOString(),
+    sentAt: new Date().toISOString(),
+    inviteUrl: getSalesAgentInviteUrl(token, origin),
+  };
+}
+
+async function sendSalesAgentInviteNotifications({
+  agent,
+  dealer,
+  inviteUrl,
+}: {
+  agent: Pick<SalesAgentRow, "name" | "email" | "phone" | "whatsapp_enabled">;
+  dealer: DealerSalesAgentOwner;
+  inviteUrl: string;
+}) {
+  const dealerName = dealer.name || "your dealership";
+  const text = [
+    `Hi ${agent.name},`,
+    "",
+    `${dealerName} invited you to join Autolist as a sales rep.`,
+    "Create an account or sign in with this email address, then accept the invite:",
+    inviteUrl,
+    "",
+    "This link expires in 14 days.",
+  ].join("\n");
+
+  try {
+    const result = await sendProviderEmail({
+      to: agent.email,
+      subject: `${dealerName} invited you to Autolist`,
+      text,
+      html: `
+        <p>Hi ${escapeHtml(agent.name)},</p>
+        <p>${escapeHtml(dealerName)} invited you to join Autolist as a sales rep.</p>
+        <p>Create an account or sign in with this email address, then accept the invite:</p>
+        <p><a href="${escapeHtml(inviteUrl)}">${escapeHtml(inviteUrl)}</a></p>
+        <p>This link expires in 14 days.</p>
+      `,
+    });
+
+    if (!result.success && !result.skipped) {
+      console.warn(`Sales agent invite email failed: ${result.error || "Unknown provider error"}`);
+    }
+  } catch (error) {
+    console.warn(
+      `Sales agent invite email failed: ${
+        error instanceof Error && error.message ? error.message : "Unknown provider error"
+      }`
+    );
+  }
+
+  if (!agent.whatsapp_enabled || !agent.phone) {
+    return;
+  }
+
+  try {
+    const result = await sendProviderWhatsApp({
+      to: agent.phone,
+      body: `${dealerName} invited you to join Autolist as a sales rep.\n\nAccept invite: ${inviteUrl}`,
+    });
+
+    if (!result.success && !result.skipped) {
+      console.warn(`Sales agent invite WhatsApp failed: ${result.error || "Unknown provider error"}`);
+    }
+  } catch (error) {
+    console.warn(
+      `Sales agent invite WhatsApp failed: ${
+        error instanceof Error && error.message ? error.message : "Unknown provider error"
+      }`
+    );
+  }
+}
+
 export async function createSalesAgent(formData: FormData): Promise<SalesAgentActionResult> {
   const supabase = await createClient();
   const owner = await getDealerOwner(supabase);
@@ -113,16 +221,20 @@ export async function createSalesAgent(formData: FormData): Promise<SalesAgentAc
   const parsed = validateAgentForm(formData);
   if ("error" in parsed) return { error: parsed.error };
 
+  const invite = buildInviteDraft(await getRequestOrigin());
   const { data, error } = await supabase
     .from("dealer_sales_agents")
     .insert({
       ...parsed.data,
       dealer_id: owner.dealer.id,
       profile_id: owner.userId,
+      invite_status: "pending",
+      invite_token_hash: invite.tokenHash,
+      invite_expires_at: invite.expiresAt,
+      invite_sent_at: invite.sentAt,
+      invited_by: owner.userId,
     })
-    .select(
-      "id, dealer_id, profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, created_at, updated_at"
-    )
+    .select(SALES_AGENT_SELECT)
     .single<SalesAgentRow>();
 
   if (error) {
@@ -131,8 +243,14 @@ export async function createSalesAgent(formData: FormData): Promise<SalesAgentAc
     };
   }
 
+  await sendSalesAgentInviteNotifications({
+    agent: data,
+    dealer: owner.dealer,
+    inviteUrl: invite.inviteUrl,
+  });
+
   revalidatePath("/dashboard/sales-agents");
-  return { success: true, agent: mapAgent(data) };
+  return { success: true, agent: mapAgent(data), inviteUrl: invite.inviteUrl };
 }
 
 export async function updateSalesAgent(
@@ -152,9 +270,7 @@ export async function updateSalesAgent(
     .eq("id", agentId)
     .eq("dealer_id", owner.dealer.id)
     .eq("profile_id", owner.userId)
-    .select(
-      "id, dealer_id, profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, created_at, updated_at"
-    )
+    .select(SALES_AGENT_SELECT)
     .single<SalesAgentRow>();
 
   if (error) {
@@ -178,9 +294,7 @@ export async function deactivateSalesAgent(agentId: string): Promise<SalesAgentA
     .eq("id", agentId)
     .eq("dealer_id", owner.dealer.id)
     .eq("profile_id", owner.userId)
-    .select(
-      "id, dealer_id, profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, created_at, updated_at"
-    )
+    .select(SALES_AGENT_SELECT)
     .single<SalesAgentRow>();
 
   if (error) {
@@ -189,4 +303,40 @@ export async function deactivateSalesAgent(agentId: string): Promise<SalesAgentA
 
   revalidatePath("/dashboard/sales-agents");
   return { success: true, agent: mapAgent(data) };
+}
+
+export async function resendSalesAgentInvite(agentId: string): Promise<SalesAgentActionResult> {
+  const supabase = await createClient();
+  const owner = await getDealerOwner(supabase);
+  if ("error" in owner) return { error: owner.error };
+
+  const invite = buildInviteDraft(await getRequestOrigin());
+  const { data, error } = await supabase
+    .from("dealer_sales_agents")
+    .update({
+      invite_status: "pending",
+      invite_token_hash: invite.tokenHash,
+      invite_expires_at: invite.expiresAt,
+      invite_sent_at: invite.sentAt,
+      invited_by: owner.userId,
+    })
+    .eq("id", agentId)
+    .eq("dealer_id", owner.dealer.id)
+    .eq("profile_id", owner.userId)
+    .neq("invite_status", "accepted")
+    .select(SALES_AGENT_SELECT)
+    .single<SalesAgentRow>();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await sendSalesAgentInviteNotifications({
+    agent: data,
+    dealer: owner.dealer,
+    inviteUrl: invite.inviteUrl,
+  });
+
+  revalidatePath("/dashboard/sales-agents");
+  return { success: true, agent: mapAgent(data), inviteUrl: invite.inviteUrl };
 }
