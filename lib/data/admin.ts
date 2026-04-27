@@ -1081,7 +1081,6 @@ export const getAdminListingsOverviewData = cache(
     try {
       const adminSupabase = createOptionalAdminClient();
       const supabase = adminSupabase ?? (await createClient());
-      const usingSessionFallback = !adminSupabase;
 
       const statuses: ListingStatus[] = ["draft", "pending", "active", "reserved", "rejected", "sold", "expired"];
 
@@ -1141,9 +1140,7 @@ export const getAdminListingsOverviewData = cache(
         >,
         total: countResults.reduce((sum, count) => sum + count, 0),
         listings: ((data || []) as unknown as ListingRow[]).map(normalizeListing),
-        notice: usingSessionFallback
-          ? "Using session-scoped admin access because SUPABASE_SERVICE_ROLE_KEY is not configured in this environment. If admin records are missing, check Vercel env vars and admin RLS policies."
-          : null,
+        notice: null,
         error: null,
       };
     } catch (error) {
