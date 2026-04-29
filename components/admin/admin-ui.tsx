@@ -48,6 +48,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       { name: "Users", href: "/admin/users", icon: Users },
       { name: "All Listings", href: "/admin/listings", icon: SquarePen },
+      { name: "Featured Listings", href: "/admin/featured-listings", icon: CarFront },
       { name: "Review", href: "/admin/review", icon: FileWarning },
       { name: "Reports", href: "/admin/reports", icon: ScrollText },
       { name: "Verification (KYC)", href: "/admin/verification", icon: ShieldCheck },

@@ -13,9 +13,9 @@ import { NewsSection } from "@/components/home/news-section";
 import { SocialMediaSection } from "@/components/home/social-media-section";
 import {
   countMatchingListings,
-  getFeaturedListings,
   getNewestListings,
 } from "@/lib/data/listings";
+import { getHomepageFeaturedListings } from "@/lib/data/featured-listing-pins";
 import { getAllMakeNames } from "@/lib/data/car-data";
 import { getHomepageCmsContent } from "@/lib/data/cms";
 import type { HomepageCmsContent } from "@/lib/types/cms";
@@ -26,7 +26,7 @@ async function RecentActivitiesData({
   content: HomepageCmsContent["featuredListings"];
 }) {
   const [featuredListings, newestListings] = await Promise.all([
-    getFeaturedListings(content.featuredLimit),
+    getHomepageFeaturedListings(content.featuredLimit),
     getNewestListings(content.recentLimit),
   ]);
 
