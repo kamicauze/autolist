@@ -12,8 +12,9 @@ import {
   LayoutTemplate,
   Save,
   Settings2,
+  Upload,
 } from "lucide-react";
-import { saveCmsBlock } from "@/lib/actions/cms";
+import { saveCmsBlock, uploadCmsImage } from "@/lib/actions/cms";
 import { saveContentPage } from "@/lib/actions/content-pages";
 import {
   CMS_BLOCK_DEFINITIONS,
@@ -225,6 +226,7 @@ export function AdminCmsLive({
   const [pageFeedback, setPageFeedback] = React.useState<FeedbackState>(null);
   const [blockFeedback, setBlockFeedback] = React.useState<FeedbackState>(null);
   const [blockPendingAction, setBlockPendingAction] = React.useState<BlockPendingAction>(null);
+  const [isUploadingHeroImage, setIsUploadingHeroImage] = React.useState(false);
   const [isSavingPage, startPageTransition] = React.useTransition();
   const [isSavingBlock, startBlockTransition] = React.useTransition();
   const [blockEditors, setBlockEditors] = React.useState<BlockEditorMap>(() =>
@@ -342,6 +344,40 @@ export function AdminCmsLive({
     });
   };
 
+  const handleHeroImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const image = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!image) return;
+
+    setIsUploadingHeroImage(true);
+    setBlockFeedback(null);
+
+    const formData = new FormData();
+    formData.set("blockKey", "home_hero");
+    formData.set("image", image);
+
+    try {
+      const result = await uploadCmsImage(formData);
+
+      if (!result.success) {
+        setBlockFeedback({
+          status: "error",
+          message: result.error,
+        });
+        return;
+      }
+
+      updateBlockEditor("home_hero", { backgroundImageUrl: result.url });
+      setBlockFeedback({
+        status: "success",
+        message: result.message,
+      });
+    } finally {
+      setIsUploadingHeroImage(false);
+    }
+  };
+
   const renderSchemaWarning = () => {
     if (activeArea === "homepage" && !homepageData.schemaReady) {
       return (
@@ -407,17 +443,40 @@ export function AdminCmsLive({
               placeholder="Find your perfect vehicle."
             />
           </label>
-          <label className="space-y-2">
-            <span className="text-[13px] font-medium text-[#111827]">Background image URL</span>
-            <input
-              value={editor.backgroundImageUrl}
-              onChange={(event) =>
-                updateBlockEditor("home_hero", { backgroundImageUrl: event.target.value })
-              }
-              className={adminInputClass}
-              placeholder="/hero-car.jpg"
-            />
-          </label>
+          <div className="space-y-2">
+            <span className="text-[13px] font-medium text-[#111827]">Background image</span>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={editor.backgroundImageUrl}
+                onChange={(event) =>
+                  updateBlockEditor("home_hero", { backgroundImageUrl: event.target.value })
+                }
+                className={adminInputClass}
+                placeholder="/hero-car.jpg"
+              />
+              <label
+                className={cn(
+                  adminGhostButtonClass,
+                  "shrink-0 cursor-pointer gap-2",
+                  isUploadingHeroImage && "pointer-events-none opacity-60"
+                )}
+              >
+                <Upload className="h-4 w-4" />
+                {isUploadingHeroImage ? "Uploading..." : "Upload"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleHeroImageUpload}
+                  disabled={isUploadingHeroImage}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+            <p className="text-[12px] leading-5 text-[#6b7280]">
+              Upload a JPG, PNG, or WebP up to 10MB. The upload fills this field, then save draft
+              or publish.
+            </p>
+          </div>
         </div>
 
         <label className="space-y-2">

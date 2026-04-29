@@ -1,9 +1,13 @@
 "use server";
 
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { mapCmsBlockRow } from "@/lib/data/cms";
+import { r2 } from "@/lib/r2";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
   CMS_BLOCK_DEFINITIONS,
@@ -13,6 +17,7 @@ import {
   type CmsBlockStatus,
   type SaveCmsBlockInput,
   type SaveCmsBlockResult,
+  type UploadCmsImageResult,
 } from "@/lib/types/cms";
 
 type ExistingCmsBlockRow = {
@@ -46,6 +51,10 @@ const CMS_BLOCK_SELECT = `
   created_at,
   updated_at
 `;
+
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const CMS_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const CMS_IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const heroBlockSchema = z.object({
   headline: z.string().trim().min(1, "Hero headline is required.").max(90),
@@ -94,6 +103,30 @@ const saveCmsBlockSchema = z.object({
   publish: z.boolean(),
 });
 
+function sanitizeCmsImageBaseName(fileName: string) {
+  const withoutExtension = fileName.replace(/\.[a-z0-9]+$/i, "");
+  const baseName = withoutExtension
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return baseName || "image";
+}
+
+function buildCmsImageKey(blockKey: CmsBlockKey, fileName: string) {
+  return `cms/${blockKey}/${Date.now()}-${nanoid(10)}-${sanitizeCmsImageBaseName(fileName)}.webp`;
+}
+
+function buildCmsImageUrl(key: string) {
+  const params = new URLSearchParams({
+    key,
+    variant: "original",
+  });
+
+  return `/api/listing-image?${params.toString()}`;
+}
+
 function validateBlockContent(
   blockKey: CmsBlockKey,
   content: unknown
@@ -116,6 +149,72 @@ function validateBlockContent(
   return {
     success: true,
     content: parsed.data,
+  };
+}
+
+export async function uploadCmsImage(formData: FormData): Promise<UploadCmsImageResult> {
+  const adminContext = await requireAdminAction();
+  if ("error" in adminContext) {
+    return { success: false, error: adminContext.error };
+  }
+
+  if (!R2_BUCKET_NAME) {
+    return {
+      success: false,
+      error: "CMS image storage is not configured. Add the R2 environment variables first.",
+    };
+  }
+
+  const blockKey = z.enum(CMS_BLOCK_KEYS).safeParse(formData.get("blockKey"));
+  if (!blockKey.success) {
+    return { success: false, error: "Select a valid CMS block before uploading an image." };
+  }
+
+  const image = formData.get("image");
+  if (!(image instanceof File) || image.size === 0) {
+    return { success: false, error: "Choose a JPG, PNG, or WebP image to upload." };
+  }
+
+  if (image.size > CMS_IMAGE_MAX_BYTES) {
+    return { success: false, error: "CMS images must be 10MB or smaller." };
+  }
+
+  if (!CMS_IMAGE_ACCEPTED_TYPES.has(image.type)) {
+    return { success: false, error: "CMS images must be JPG, PNG, or WebP files." };
+  }
+
+  let optimizedImage: Buffer;
+  try {
+    const bytes = Buffer.from(await image.arrayBuffer());
+    optimizedImage = await sharp(bytes)
+      .rotate()
+      .resize({ width: 2400, withoutEnlargement: true })
+      .webp({ quality: 84 })
+      .toBuffer();
+  } catch {
+    return { success: false, error: "Upload a valid JPG, PNG, or WebP image." };
+  }
+
+  const key = buildCmsImageKey(blockKey.data, image.name);
+
+  try {
+    await r2.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        Body: optimizedImage,
+        ContentType: "image/webp",
+      })
+    );
+  } catch {
+    return { success: false, error: "The CMS image could not be uploaded. Check R2 storage." };
+  }
+
+  return {
+    success: true,
+    key,
+    url: buildCmsImageUrl(key),
+    message: "Image uploaded. Save draft or publish the block to use it.",
   };
 }
 
