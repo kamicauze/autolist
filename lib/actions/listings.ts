@@ -655,8 +655,7 @@ export async function duplicateOwnerListing(id: string) {
     void _status;
     void _isFeatured;
 
-    const adminSupabase = createAdminClient();
-    const { data: duplicate, error: duplicateError } = await adminSupabase
+    const { data: duplicate, error: duplicateError } = await supabase
         .from("listings")
         .insert({
             ...copyValues,
@@ -681,7 +680,7 @@ export async function duplicateOwnerListing(id: string) {
     }));
 
     if (imageRows.length > 0) {
-        const { error: imageError } = await adminSupabase
+        const { error: imageError } = await supabase
             .from("listing_images")
             .insert(imageRows);
 

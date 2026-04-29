@@ -176,7 +176,7 @@ function buildBaseSuggestion(
       status: "clear",
       severity: "low",
       headline: "No strong duplicate signal",
-      summary: "No nearby active or pending listing crossed the duplicate review threshold.",
+      summary: "No matching marketplace listing crossed the duplicate review threshold.",
       reviewerNote: "Proceed with normal moderation checks unless there is off-platform evidence of reposting.",
       candidates: [],
       provider: "rules",
