@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive,
   BadgeCheck,
@@ -286,63 +287,75 @@ function ListingRowActions({
   const canGoLive = listing.status === "draft" || listing.status === "rejected" || listing.status === "expired";
   const holdLabel = listing.status === "reserved" ? "Resume listing" : "Suspend/Hold";
   const itemClass =
-    "flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60";
+    "flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#374151] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <details className="relative">
-      <summary className="flex h-[40px] w-[104px] cursor-pointer list-none items-center justify-center gap-1 rounded-[8px] border border-[#2563eb] bg-white text-[13px] font-medium text-[#2563eb] transition hover:bg-[#eff6ff] [&::-webkit-details-marker]:hidden">
-        Actions
-        <ChevronDown className="h-4 w-4" />
-      </summary>
-      <div className="absolute right-0 top-[46px] z-40 w-[190px] rounded-[8px] border border-[#ededed] bg-white p-1 shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="flex h-[40px] w-[104px] cursor-pointer items-center justify-center gap-1 rounded-[8px] border border-[#2563eb] bg-white text-[13px] font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+        >
+          Actions
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={8}
+          collisionPadding={16}
+          className="z-[100] w-[190px] rounded-[8px] border border-[#ededed] bg-white p-1 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+        >
         {canGoLive ? (
-          <button
-            type="button"
-            onClick={() => onGoLive(listing)}
+          <DropdownMenu.Item
+            onSelect={() => onGoLive(listing)}
             disabled={isPending}
-            className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#2563eb] hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#2563eb] outline-none hover:bg-[#eff6ff] focus:bg-[#eff6ff] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
           >
             <Rocket className="h-4 w-4" />
             Submit for review
-          </button>
+          </DropdownMenu.Item>
         ) : null}
-        <Link href={`/vehicle/${listing.id}`} className={itemClass}>
-          <Eye className="h-4 w-4" />
-          View listing
-        </Link>
-        <Link href={`/dashboard/listings/${listing.id}/edit`} className={itemClass}>
-          <Pencil className="h-4 w-4" />
-          Edit listing
-        </Link>
-        <button
-          type="button"
-          onClick={() => onHold(listing)}
+        <DropdownMenu.Item asChild>
+          <Link href={`/vehicle/${listing.id}`} className={itemClass}>
+            <Eye className="h-4 w-4" />
+            View listing
+          </Link>
+        </DropdownMenu.Item>
+        <DropdownMenu.Item asChild>
+          <Link href={`/dashboard/listings/${listing.id}/edit`} className={itemClass}>
+            <Pencil className="h-4 w-4" />
+            Edit listing
+          </Link>
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          onSelect={() => onHold(listing)}
           disabled={isPending}
           className={itemClass}
         >
           <Clock3 className="h-4 w-4" />
           {holdLabel}
-        </button>
-        <button
-          type="button"
-          onClick={() => onDuplicate(listing)}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          onSelect={() => onDuplicate(listing)}
           disabled={isPending}
           className={itemClass}
         >
           <Copy className="h-4 w-4" />
           Duplicate
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(listing)}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          onSelect={() => onDelete(listing)}
           disabled={isDeleting}
-          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] hover:bg-[#fff1f1] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] outline-none hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
         >
           <Trash2 className="h-4 w-4" />
           {isDeleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </details>
+        </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 

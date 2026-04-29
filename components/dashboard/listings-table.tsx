@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Clock3,
   Eye,
@@ -177,40 +178,54 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <details className="relative">
-                      <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb] [&::-webkit-details-marker]:hidden">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </summary>
-                      <div className="absolute right-0 top-12 z-20 w-48 rounded-[8px] border border-[#ededed] bg-white p-1 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)]">
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                          aria-label="Listing actions"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          align="end"
+                          sideOffset={8}
+                          collisionPadding={16}
+                          className="z-[100] w-48 rounded-[8px] border border-[#ededed] bg-white p-1 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+                        >
                         {["draft", "rejected", "expired"].includes(listing.status) ? (
-                          <button
-                            type="button"
+                          <DropdownMenu.Item
                             disabled={pendingId === listing.id}
-                            onClick={() => void runAction(listing, () => submitListingForReview(listing.id))}
-                            className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#2563eb] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                            onSelect={() => void runAction(listing, () => submitListingForReview(listing.id))}
+                            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#2563eb] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
                           >
                             <Rocket className="h-4 w-4" />
                             Go Live
-                          </button>
+                          </DropdownMenu.Item>
                         ) : null}
-                        <Link
-                          href={`/vehicle/${listing.id}`}
-                          className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb]"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Link>
-                        <Link
-                          href={`/dashboard/listings/${listing.id}/edit`}
-                          className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb]"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
+                        <DropdownMenu.Item asChild>
+                          <Link
+                            href={`/vehicle/${listing.id}`}
+                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb]"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Link>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item asChild>
+                          <Link
+                            href={`/dashboard/listings/${listing.id}/edit`}
+                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb]"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </Link>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
                           disabled={pendingId === listing.id}
-                          onClick={() =>
+                          onSelect={() =>
                             void runAction(listing, async () => {
                               const result = await duplicateOwnerListing(listing.id);
                               if (!("error" in result)) {
@@ -219,15 +234,14 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                               return result;
                             })
                           }
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
                         >
                           <Plus className="h-4 w-4" />
                           Duplicate
-                        </button>
-                        <button
-                          type="button"
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
                           disabled={pendingId === listing.id}
-                          onClick={() =>
+                          onSelect={() =>
                             void runAction(listing, () =>
                               updateOwnerListingStatus(
                                 listing.id,
@@ -235,22 +249,22 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                               )
                             )
                           }
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#374151] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
                         >
                           <Clock3 className="h-4 w-4" />
                           {listing.status === "reserved" ? "Resume listing" : "Suspend/Hold"}
-                        </button>
-                        <button
-                          type="button"
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
                           disabled={pendingId === listing.id}
-                          onClick={() => handleDelete(listing)}
-                          className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#dc2626] hover:bg-[#fff1f1] disabled:cursor-not-allowed disabled:opacity-60"
+                          onSelect={() => handleDelete(listing)}
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#dc2626] outline-none hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete
-                        </button>
-                      </div>
-                    </details>
+                        </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                   </div>
                 </td>
               </tr>
