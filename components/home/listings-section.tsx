@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
 import type { Listing } from "@/lib/types/listing";
+import {
+  DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT,
+  type HomepageFeaturedListingsCmsContent,
+} from "@/lib/types/cms";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
   getListingDisplayTitle,
@@ -15,6 +19,7 @@ interface ListingsSectionProps {
   featuredListings: Listing[];
   newestListings: Listing[];
   showTabs?: boolean;
+  content?: HomepageFeaturedListingsCmsContent;
 }
 
 /**
@@ -47,12 +52,14 @@ export function ListingsSection({
   featuredListings,
   newestListings,
   showTabs = true,
+  content,
 }: ListingsSectionProps) {
+  const sectionContent = content ?? DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT;
   const displayListings =
     featuredListings.length > 0 ? featuredListings : newestListings;
 
-  // Show all 8 featured listings, shuffled for the current 8-hour window
-  const rotatedFeatured = getRotatedFeatured(featuredListings, 8);
+  const rotatedFeatured = getRotatedFeatured(featuredListings, sectionContent.featuredLimit);
+  const tabsEnabled = showTabs && sectionContent.showTabs;
 
   return (
     <section className="py-12 md:py-16">
@@ -62,33 +69,35 @@ export function ListingsSection({
           <h2 className="h4">{title}</h2>
           <Link href="/search">
             <Button variant="ghost" className="gap-2">
-              View all
+              {sectionContent.viewAllLabel}
               <IconChevronRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
 
-        {showTabs ? (
+        {tabsEnabled ? (
           <Tabs defaultValue="featured" className="w-full">
             <TabsList className="mb-6 bg-transparent p-0 gap-2">
               <TabsTrigger
                 value="featured"
                 className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
               >
-                Featured
+                {sectionContent.featuredTabLabel}
               </TabsTrigger>
               <TabsTrigger
                 value="recent"
                 className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
               >
-                Recent Viewed
+                {sectionContent.recentTabLabel}
               </TabsTrigger>
-              <TabsTrigger
-                value="favorites"
-                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
-              >
-                Favorites
-              </TabsTrigger>
+              {sectionContent.showFavoritesTab ? (
+                <TabsTrigger
+                  value="favorites"
+                  className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+                >
+                  {sectionContent.favoritesTabLabel}
+                </TabsTrigger>
+              ) : null}
             </TabsList>
 
             {/* Featured — shows 4, rotates every 8 hours server-side */}
@@ -98,13 +107,15 @@ export function ListingsSection({
 
             {/* Recent — shows 4 */}
             <TabsContent value="recent">
-              <ListingsGrid listings={newestListings.slice(0, 4)} />
+              <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
             </TabsContent>
 
             {/* Favorites — shows 4 */}
-            <TabsContent value="favorites">
-              <ListingsGrid listings={newestListings.slice(0, 4)} />
-            </TabsContent>
+            {sectionContent.showFavoritesTab ? (
+              <TabsContent value="favorites">
+                <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
+              </TabsContent>
+            ) : null}
           </Tabs>
         ) : (
           <ListingsGrid listings={displayListings} />

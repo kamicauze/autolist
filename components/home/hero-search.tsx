@@ -11,6 +11,10 @@ import {
   LANDING_YEAR_OPTIONS,
 } from "@/lib/constants/landing-search";
 import { NON_CAR_REFERENCE_DATA } from "@/lib/constants/non-car-reference-data";
+import {
+  DEFAULT_HOME_HERO_CMS_CONTENT,
+  type HomepageHeroCmsContent,
+} from "@/lib/types/cms";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { QuickSearchDialog } from "./quick-search-dialog";
@@ -97,10 +101,18 @@ const PANEL_CHEVRON_CLASS =
 interface HeroSearchProps {
   makes: string[];
   totalCount: number;
+  content?: HomepageHeroCmsContent;
 }
 
-export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
+function getBackgroundImageStyle(imageUrl: string): React.CSSProperties {
+  return {
+    backgroundImage: `url("${imageUrl.replace(/"/g, '\\"')}")`,
+  };
+}
+
+export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
   const router = useRouter();
+  const heroContent = content ?? DEFAULT_HOME_HERO_CMS_CONTENT;
   const [activeCategory, setActiveCategory] = React.useState<ListingCategory>("car");
   const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
@@ -447,17 +459,17 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
         <div className="relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]">
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: "url('/hero-car.jpg')" }}
+            style={getBackgroundImageStyle(heroContent.backgroundImageUrl)}
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,12,16,0.22)_0%,rgba(12,12,16,0.74)_100%)]" />
 
           <div className="absolute inset-0 z-10 flex flex-col px-4 pb-6 pt-14 sm:px-6 sm:pt-16 md:pb-8 lg:px-8">
             <div className="flex flex-1 flex-col items-center text-center">
               <h1 className="max-w-4xl text-3xl font-bold italic text-white sm:text-4xl md:text-5xl lg:text-6xl">
-                Find your perfect vehicle.
+                {heroContent.headline}
               </h1>
               <p className="mt-3 max-w-2xl text-base text-white/86 sm:text-lg">
-                Search cars, vans, bikes, trucks, plant and farm equipment from one marketplace.
+                {heroContent.subheading}
               </p>
             </div>
           </div>
@@ -466,14 +478,16 @@ export function HeroSearch({ makes, totalCount }: HeroSearchProps) {
         <div className="relative z-10 -mt-20 sm:-mt-24 md:-mt-28">
           <div className="mx-auto mb-3 flex max-w-[980px] justify-end">
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsQuickSearchOpen(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-full border border-[#d7dbe3] bg-white px-3.5 text-[13px] font-medium text-[#202224] transition hover:border-[#c8cfda] hover:bg-[#f7f9fc]"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Quick search
-              </button>
+              {heroContent.quickSearchEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSearchOpen(true)}
+                  className="inline-flex h-9 items-center gap-2 rounded-full border border-[#d7dbe3] bg-white px-3.5 text-[13px] font-medium text-[#202224] transition hover:border-[#c8cfda] hover:bg-[#f7f9fc]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Quick search
+                </button>
+              ) : null}
             </div>
           </div>
 

@@ -17,31 +17,40 @@ import {
   getNewestListings,
 } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
+import { getHomepageCmsContent } from "@/lib/data/cms";
+import type { HomepageCmsContent } from "@/lib/types/cms";
 
-async function RecentActivitiesData() {
+async function RecentActivitiesData({
+  content,
+}: {
+  content: HomepageCmsContent["featuredListings"];
+}) {
   const [featuredListings, newestListings] = await Promise.all([
-    getFeaturedListings(8),
-    getNewestListings(4),
+    getFeaturedListings(content.featuredLimit),
+    getNewestListings(content.recentLimit),
   ]);
 
   return (
     <ListingsSection
-      title="Your recent activities"
+      title={content.title}
       featuredListings={featuredListings}
       newestListings={newestListings}
+      content={content}
     />
   );
 }
 
-async function HeroSearchWithData() {
+async function HeroSearchWithData({ content }: { content: HomepageCmsContent["hero"] }) {
   const [makes, totalCount] = await Promise.all([
     getAllMakeNames(),
     countMatchingListings(),
   ]);
-  return <HeroSearch makes={makes} totalCount={totalCount} />;
+  return <HeroSearch makes={makes} totalCount={totalCount} content={content} />;
 }
 
-export default function Home() {
+export default async function Home() {
+  const cmsContent = await getHomepageCmsContent();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -49,37 +58,37 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section with Search */}
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
-          <HeroSearchWithData />
+          <HeroSearchWithData content={cmsContent.hero} />
         </Suspense>
 
         {/* Recent Activities Section */}
         <Suspense fallback={<ListingsSectionSkeleton />}>
-          <RecentActivitiesData />
+          <RecentActivitiesData content={cmsContent.featuredListings} />
         </Suspense>
 
         {/* How Autolist Works */}
-        <HowItWorks />
+        {cmsContent.sections.showHowItWorks ? <HowItWorks /> : null}
 
         {/* Discover More from Autolist */}
-        <DiscoverMore />
+        {cmsContent.sections.showDiscoverMore ? <DiscoverMore /> : null}
 
         {/* Sell Your Vehicle Section */}
-        <SellVehicleSection />
+        {cmsContent.sections.showSellVehicle ? <SellVehicleSection /> : null}
 
         {/* Video/Reviews Section */}
-        <VideoSection />
+        {cmsContent.sections.showVideoReviews ? <VideoSection /> : null}
 
         {/* Services Section */}
-        <ServicesSection />
+        {cmsContent.sections.showServices ? <ServicesSection /> : null}
 
         {/* News Section */}
-        <NewsSection />
+        {cmsContent.sections.showNews ? <NewsSection /> : null}
 
         {/* What would you like to find? */}
-        <BrandLogos />
+        {cmsContent.sections.showBrandLogos ? <BrandLogos /> : null}
 
         {/* Follow us on social media */}
-        <SocialMediaSection />
+        {cmsContent.sections.showSocialMedia ? <SocialMediaSection /> : null}
       </main>
 
       <Footer />
