@@ -85,18 +85,6 @@ export type SaveCmsBlockResult =
       error: string;
     };
 
-export type UploadCmsImageResult =
-  | {
-      success: true;
-      key: string;
-      url: string;
-      message: string;
-    }
-  | {
-      success: false;
-      error: string;
-    };
-
 export const DEFAULT_HOME_HERO_CMS_CONTENT: HomepageHeroCmsContent = {
   headline: "Find your perfect vehicle.",
   subheading:

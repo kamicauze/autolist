@@ -17,6 +17,8 @@ import {
   unpublishContentPost,
   updateContentPost,
 } from "@/lib/actions/content-posts";
+import { AdminCmsMediaField } from "@/components/admin/admin-cms-media-library";
+import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
 import type { AdminContentPostsData, ContentPost } from "@/lib/types/content-posts";
 import { cn } from "@/lib/utils";
 import {
@@ -111,8 +113,15 @@ function getPostSummary(post: ContentPost) {
   return firstParagraph || "No excerpt yet. Open the editor to add a summary.";
 }
 
-export function AdminBlogsContentLive({ data }: { data: AdminContentPostsData }) {
+export function AdminBlogsContentLive({
+  data,
+  mediaData,
+}: {
+  data: AdminContentPostsData;
+  mediaData: AdminCmsMediaData;
+}) {
   const [posts, setPosts] = React.useState(() => sortPosts(data.posts));
+  const [mediaAssets, setMediaAssets] = React.useState(mediaData.assets);
   const [selectedId, setSelectedId] = React.useState(data.posts[0]?.id ?? "");
   const [editor, setEditor] = React.useState(() => createEditorState(data.posts[0] ?? null));
   const [feedback, setFeedback] = React.useState<FeedbackState>(null);
@@ -142,6 +151,16 @@ export function AdminBlogsContentLive({ data }: { data: AdminContentPostsData })
 
     setSelectedId(post.id);
     setEditor(createEditorState(post));
+  }
+
+  function addMediaAsset(asset: CmsMediaAsset) {
+    setMediaAssets((current) => {
+      if (current.some((item) => item.id === asset.id)) {
+        return current.map((item) => (item.id === asset.id ? asset : item));
+      }
+
+      return [asset, ...current];
+    });
   }
 
   async function saveCurrentPost(successMessage: string) {
@@ -461,17 +480,20 @@ export function AdminBlogsContentLive({ data }: { data: AdminContentPostsData })
                   />
                 </label>
 
-                <label className="space-y-2">
-                  <span className="text-[13px] font-medium text-[#374151]">Cover image URL</span>
-                  <input
-                    value={editor.coverImageUrl}
-                    onChange={(event) =>
-                      setEditor((current) => ({ ...current, coverImageUrl: event.target.value }))
-                    }
-                    className={adminInputClass}
-                    placeholder="https://images.unsplash.com/..."
-                  />
-                </label>
+                <AdminCmsMediaField
+                  assets={mediaAssets}
+                  schemaReady={mediaData.schemaReady}
+                  value={editor.coverImageUrl}
+                  label="Cover image"
+                  description="Upload or select a reusable blog image."
+                  placeholder="/api/listing-image?key=..."
+                  usageContext="blog_cover"
+                  onChange={(coverImageUrl) =>
+                    setEditor((current) => ({ ...current, coverImageUrl }))
+                  }
+                  onAssetUploaded={addMediaAsset}
+                  onFeedback={setFeedback}
+                />
               </div>
 
               <label className="block space-y-2">

@@ -9,13 +9,17 @@ import {
   FileText,
   Globe,
   Home,
+  ImageIcon,
   LayoutTemplate,
   Save,
   Settings2,
-  Upload,
 } from "lucide-react";
-import { saveCmsBlock, uploadCmsImage } from "@/lib/actions/cms";
+import { saveCmsBlock } from "@/lib/actions/cms";
 import { saveContentPage } from "@/lib/actions/content-pages";
+import {
+  AdminCmsMediaField,
+  AdminCmsMediaLibrary,
+} from "@/components/admin/admin-cms-media-library";
 import {
   CMS_BLOCK_DEFINITIONS,
   type AdminHomepageCmsData,
@@ -31,6 +35,7 @@ import {
   type ContentPageRecord,
   type ContentPageStatus,
 } from "@/lib/types/content-pages";
+import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
 import { cn } from "@/lib/utils";
 import {
   AdminPageHeader,
@@ -61,7 +66,7 @@ type ContentEditorState = {
   seoDescription: string;
 };
 
-type CmsArea = "homepage" | "pages";
+type CmsArea = "homepage" | "pages" | "media";
 type BlockPendingAction = "draft" | "publish" | null;
 
 type BlockEditorMap = {
@@ -214,19 +219,21 @@ function getBackgroundPreviewStyle(imageUrl: string): React.CSSProperties {
 export function AdminCmsLive({
   pagesData,
   homepageData,
+  mediaData,
 }: {
   pagesData: AdminContentPagesData;
   homepageData: AdminHomepageCmsData;
+  mediaData: AdminCmsMediaData;
 }) {
   const [activeArea, setActiveArea] = React.useState<CmsArea>("homepage");
   const [pages, setPages] = React.useState(pagesData.pages);
   const [blocks, setBlocks] = React.useState(homepageData.blocks);
+  const [mediaAssets, setMediaAssets] = React.useState(mediaData.assets);
   const [selectedSlug, setSelectedSlug] = React.useState(pagesData.pages[0]?.slug ?? "about");
   const [selectedBlockKey, setSelectedBlockKey] = React.useState<CmsBlockKey>("home_hero");
   const [pageFeedback, setPageFeedback] = React.useState<FeedbackState>(null);
   const [blockFeedback, setBlockFeedback] = React.useState<FeedbackState>(null);
   const [blockPendingAction, setBlockPendingAction] = React.useState<BlockPendingAction>(null);
-  const [isUploadingHeroImage, setIsUploadingHeroImage] = React.useState(false);
   const [isSavingPage, startPageTransition] = React.useTransition();
   const [isSavingBlock, startBlockTransition] = React.useTransition();
   const [blockEditors, setBlockEditors] = React.useState<BlockEditorMap>(() =>
@@ -268,6 +275,16 @@ export function AdminCmsLive({
       } as BlockEditorMap[Key],
     }));
     setBlockFeedback(null);
+  };
+
+  const addMediaAsset = (asset: CmsMediaAsset) => {
+    setMediaAssets((current) => {
+      if (current.some((item) => item.id === asset.id)) {
+        return current.map((item) => (item.id === asset.id ? asset : item));
+      }
+
+      return [asset, ...current];
+    });
   };
 
   const runPageSave = (nextStatus?: ContentPageStatus) => {
@@ -344,40 +361,6 @@ export function AdminCmsLive({
     });
   };
 
-  const handleHeroImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const image = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!image) return;
-
-    setIsUploadingHeroImage(true);
-    setBlockFeedback(null);
-
-    const formData = new FormData();
-    formData.set("blockKey", "home_hero");
-    formData.set("image", image);
-
-    try {
-      const result = await uploadCmsImage(formData);
-
-      if (!result.success) {
-        setBlockFeedback({
-          status: "error",
-          message: result.error,
-        });
-        return;
-      }
-
-      updateBlockEditor("home_hero", { backgroundImageUrl: result.url });
-      setBlockFeedback({
-        status: "success",
-        message: result.message,
-      });
-    } finally {
-      setIsUploadingHeroImage(false);
-    }
-  };
-
   const renderSchemaWarning = () => {
     if (activeArea === "homepage" && !homepageData.schemaReady) {
       return (
@@ -443,40 +426,30 @@ export function AdminCmsLive({
               placeholder="Find your perfect vehicle."
             />
           </label>
-          <div className="space-y-2">
-            <span className="text-[13px] font-medium text-[#111827]">Background image</span>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                value={editor.backgroundImageUrl}
-                onChange={(event) =>
-                  updateBlockEditor("home_hero", { backgroundImageUrl: event.target.value })
-                }
-                className={adminInputClass}
-                placeholder="/hero-car.jpg"
-              />
-              <label
-                className={cn(
-                  adminGhostButtonClass,
-                  "shrink-0 cursor-pointer gap-2",
-                  isUploadingHeroImage && "pointer-events-none opacity-60"
-                )}
-              >
-                <Upload className="h-4 w-4" />
-                {isUploadingHeroImage ? "Uploading..." : "Upload"}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleHeroImageUpload}
-                  disabled={isUploadingHeroImage}
-                  className="sr-only"
-                />
-              </label>
-            </div>
-            <p className="text-[12px] leading-5 text-[#6b7280]">
-              Upload a JPG, PNG, or WebP up to 10MB. The upload fills this field, then save draft
-              or publish.
-            </p>
-          </div>
+          <AdminCmsMediaField
+            assets={mediaAssets}
+            schemaReady={mediaData.schemaReady}
+            value={editor.backgroundImageUrl}
+            label="Background image"
+            description="Upload or pick a reusable hero image."
+            placeholder="/hero-car.jpg"
+            usageContext="homepage_hero"
+            blockKey="home_hero"
+            onChange={(backgroundImageUrl) =>
+              updateBlockEditor("home_hero", { backgroundImageUrl })
+            }
+            onAssetUploaded={addMediaAsset}
+            onFeedback={(feedback) =>
+              setBlockFeedback(
+                feedback
+                  ? {
+                      status: feedback.tone === "success" ? "success" : "error",
+                      message: feedback.message,
+                    }
+                  : null
+              )
+            }
+          />
         </div>
 
         <label className="space-y-2">
@@ -1004,6 +977,14 @@ export function AdminCmsLive({
     );
   };
 
+  const renderMediaArea = () => (
+    <AdminCmsMediaLibrary
+      assets={mediaAssets}
+      schemaReady={mediaData.schemaReady}
+      onAssetUploaded={addMediaAsset}
+    />
+  );
+
   return (
     <div className="space-y-8">
       <AdminPageHeader
@@ -1013,6 +994,7 @@ export function AdminCmsLive({
             {[
               { key: "homepage" as const, label: "Homepage", icon: Home },
               { key: "pages" as const, label: "Pages", icon: FileText },
+              { key: "media" as const, label: "Media", icon: ImageIcon },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = item.key === activeArea;
@@ -1037,59 +1019,70 @@ export function AdminCmsLive({
       />
 
       {renderSchemaWarning()}
-      {activeArea === "homepage" ? renderFeedback(blockFeedback) : renderFeedback(pageFeedback)}
+      {activeArea === "homepage" ? renderFeedback(blockFeedback) : null}
+      {activeArea === "pages" ? renderFeedback(pageFeedback) : null}
 
-      <div className="grid gap-4 xl:grid-cols-4">
-        {activeArea === "homepage" ? (
-          <>
-            <AdminStatCard
-              label="Homepage blocks"
-              value={homepageStats.total.toLocaleString("en-KE")}
-              icon={<LayoutTemplate className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Published blocks"
-              value={homepageStats.published.toLocaleString("en-KE")}
-              icon={<BadgeCheck className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Draft-only blocks"
-              value={homepageStats.drafts.toLocaleString("en-KE")}
-              icon={<Clock3 className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Unpublished changes"
-              value={homepageStats.changes.toLocaleString("en-KE")}
-              icon={<Settings2 className="h-5 w-5" />}
-            />
-          </>
-        ) : (
-          <>
-            <AdminStatCard
-              label="Managed pages"
-              value={pageStats.total.toLocaleString("en-KE")}
-              icon={<FileText className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Published pages"
-              value={pageStats.published.toLocaleString("en-KE")}
-              icon={<BadgeCheck className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Draft pages"
-              value={pageStats.drafts.toLocaleString("en-KE")}
-              icon={<Clock3 className="h-5 w-5" />}
-            />
-            <AdminStatCard
-              label="Latest publish"
-              value={pageStats.latestPublishedAt ? formatDateTime(pageStats.latestPublishedAt) : "Not yet"}
-              icon={<Globe className="h-5 w-5" />}
-            />
-          </>
-        )}
-      </div>
+      {activeArea !== "media" ? (
+        <div className="grid gap-4 xl:grid-cols-4">
+          {activeArea === "homepage" ? (
+            <>
+              <AdminStatCard
+                label="Homepage blocks"
+                value={homepageStats.total.toLocaleString("en-KE")}
+                icon={<LayoutTemplate className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Published blocks"
+                value={homepageStats.published.toLocaleString("en-KE")}
+                icon={<BadgeCheck className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Draft-only blocks"
+                value={homepageStats.drafts.toLocaleString("en-KE")}
+                icon={<Clock3 className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Unpublished changes"
+                value={homepageStats.changes.toLocaleString("en-KE")}
+                icon={<Settings2 className="h-5 w-5" />}
+              />
+            </>
+          ) : (
+            <>
+              <AdminStatCard
+                label="Managed pages"
+                value={pageStats.total.toLocaleString("en-KE")}
+                icon={<FileText className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Published pages"
+                value={pageStats.published.toLocaleString("en-KE")}
+                icon={<BadgeCheck className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Draft pages"
+                value={pageStats.drafts.toLocaleString("en-KE")}
+                icon={<Clock3 className="h-5 w-5" />}
+              />
+              <AdminStatCard
+                label="Latest publish"
+                value={
+                  pageStats.latestPublishedAt
+                    ? formatDateTime(pageStats.latestPublishedAt)
+                    : "Not yet"
+                }
+                icon={<Globe className="h-5 w-5" />}
+              />
+            </>
+          )}
+        </div>
+      ) : null}
 
-      {activeArea === "homepage" ? renderHomepageArea() : renderPagesArea()}
+      {activeArea === "homepage"
+        ? renderHomepageArea()
+        : activeArea === "pages"
+          ? renderPagesArea()
+          : renderMediaArea()}
     </div>
   );
 }

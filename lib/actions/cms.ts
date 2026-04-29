@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { mapCmsBlockRow } from "@/lib/data/cms";
+import { CMS_MEDIA_ASSET_SELECT, normalizeCmsMediaAsset } from "@/lib/data/cms-media";
 import { r2 } from "@/lib/r2";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
@@ -17,8 +18,12 @@ import {
   type CmsBlockStatus,
   type SaveCmsBlockInput,
   type SaveCmsBlockResult,
-  type UploadCmsImageResult,
 } from "@/lib/types/cms";
+import {
+  CMS_MEDIA_USAGE_CONTEXTS,
+  type CmsMediaAssetRecord,
+  type UploadCmsImageResult,
+} from "@/lib/types/cms-media";
 
 type ExistingCmsBlockRow = {
   published_content: unknown;
@@ -103,6 +108,11 @@ const saveCmsBlockSchema = z.object({
   publish: z.boolean(),
 });
 
+const uploadCmsImageSchema = z.object({
+  usageContext: z.enum(CMS_MEDIA_USAGE_CONTEXTS).default("general"),
+  altText: z.string().trim().max(180, "Alt text is too long.").optional(),
+});
+
 function sanitizeCmsImageBaseName(fileName: string) {
   const withoutExtension = fileName.replace(/\.[a-z0-9]+$/i, "");
   const baseName = withoutExtension
@@ -114,8 +124,8 @@ function sanitizeCmsImageBaseName(fileName: string) {
   return baseName || "image";
 }
 
-function buildCmsImageKey(blockKey: CmsBlockKey, fileName: string) {
-  return `cms/${blockKey}/${Date.now()}-${nanoid(10)}-${sanitizeCmsImageBaseName(fileName)}.webp`;
+function buildCmsImageKey(folder: string, fileName: string) {
+  return `cms/${folder}/${Date.now()}-${nanoid(10)}-${sanitizeCmsImageBaseName(fileName)}.webp`;
 }
 
 function buildCmsImageUrl(key: string) {
@@ -165,10 +175,18 @@ export async function uploadCmsImage(formData: FormData): Promise<UploadCmsImage
     };
   }
 
-  const blockKey = z.enum(CMS_BLOCK_KEYS).safeParse(formData.get("blockKey"));
-  if (!blockKey.success) {
-    return { success: false, error: "Select a valid CMS block before uploading an image." };
+  const uploadContext = uploadCmsImageSchema.safeParse({
+    usageContext: formData.get("usageContext") || "general",
+    altText: formData.get("altText") || undefined,
+  });
+  if (!uploadContext.success) {
+    return {
+      success: false,
+      error: uploadContext.error.issues[0]?.message || "Invalid CMS media upload.",
+    };
   }
+
+  const blockKey = z.enum(CMS_BLOCK_KEYS).safeParse(formData.get("blockKey"));
 
   const image = formData.get("image");
   if (!(image instanceof File) || image.size === 0) {
@@ -184,18 +202,27 @@ export async function uploadCmsImage(formData: FormData): Promise<UploadCmsImage
   }
 
   let optimizedImage: Buffer;
+  let width: number | null = null;
+  let height: number | null = null;
   try {
     const bytes = Buffer.from(await image.arrayBuffer());
-    optimizedImage = await sharp(bytes)
+    const output = await sharp(bytes)
       .rotate()
       .resize({ width: 2400, withoutEnlargement: true })
       .webp({ quality: 84 })
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
+    optimizedImage = output.data;
+    width = output.info.width || null;
+    height = output.info.height || null;
   } catch {
     return { success: false, error: "Upload a valid JPG, PNG, or WebP image." };
   }
 
-  const key = buildCmsImageKey(blockKey.data, image.name);
+  const key = buildCmsImageKey(
+    blockKey.success ? blockKey.data : uploadContext.data.usageContext,
+    image.name
+  );
+  const url = buildCmsImageUrl(key);
 
   try {
     await r2.send(
@@ -210,11 +237,38 @@ export async function uploadCmsImage(formData: FormData): Promise<UploadCmsImage
     return { success: false, error: "The CMS image could not be uploaded. Check R2 storage." };
   }
 
+  const { data: assetRow, error: assetError } = await adminContext.supabase
+    .from("cms_media_assets")
+    .insert({
+      storage_key: key,
+      url,
+      file_name: image.name,
+      mime_type: "image/webp",
+      width,
+      height,
+      file_size_bytes: optimizedImage.length,
+      alt_text: uploadContext.data.altText?.trim() || null,
+      usage_context: uploadContext.data.usageContext,
+      created_by: adminContext.user.id,
+    })
+    .select(CMS_MEDIA_ASSET_SELECT)
+    .maybeSingle<CmsMediaAssetRecord>();
+
+  if (assetError && !isMissingRelationError(assetError)) {
+    return {
+      success: false,
+      error: assetError.message || "The CMS media asset could not be registered.",
+    };
+  }
+
   return {
     success: true,
     key,
-    url: buildCmsImageUrl(key),
-    message: "Image uploaded. Save draft or publish the block to use it.",
+    url,
+    asset: assetRow ? normalizeCmsMediaAsset(assetRow) : null,
+    message: assetError
+      ? "Image uploaded and selected. Apply the CMS media migration to save it in the library."
+      : "Image uploaded and selected. Save draft or publish to use it.",
   };
 }
 

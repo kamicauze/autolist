@@ -40,6 +40,10 @@ function normalizeOptionalCoverImageUrl(value: string) {
     return null;
   }
 
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
+
   try {
     const parsed = new URL(trimmed);
 
@@ -49,7 +53,7 @@ function normalizeOptionalCoverImageUrl(value: string) {
 
     return trimmed;
   } catch {
-    throw new Error("Cover image URL must be a valid http or https URL.");
+    throw new Error("Cover image URL must be a site path or a valid http/https URL.");
   }
 }
 
