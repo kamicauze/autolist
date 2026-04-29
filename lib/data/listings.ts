@@ -438,6 +438,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
       dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
     `)
     .eq("id", id)
+    .eq("status", "active")
     .single();
 
   if (error) {
