@@ -222,7 +222,7 @@ export function StepReview() {
           label="Submission Outcome"
           value={
             isEditing
-              ? "Saving will update the existing listing. If you upload new media, the current media set will be replaced."
+              ? "Saving will update the existing listing. Existing gallery cover changes keep the same media files; uploading new media replaces the current media set."
               : "The listing will be sent for moderation and remain pending until it is approved."
           }
         />

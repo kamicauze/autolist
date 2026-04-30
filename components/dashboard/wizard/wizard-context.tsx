@@ -331,6 +331,7 @@ interface WizardContextValue {
   // Media handlers
   handleCoverSelection: (files: File[]) => void;
   handleGallerySelection: (newFiles: File[]) => void;
+  selectExistingGalleryCover: (index: number) => void;
   removeGalleryFile: (file: File) => void;
   moveGalleryImage: (index: number, direction: "up" | "down") => void;
   reorderGalleryImages: (fromIndex: number, toIndex: number) => void;
@@ -364,6 +365,21 @@ function extractFileName(pathLike: string | null | undefined) {
   const normalized = pathLike.split("?")[0] ?? pathLike;
   const segments = normalized.split("/");
   return segments[segments.length - 1] || normalized;
+}
+
+function getExistingImageKeyOrder(draft: ListingDraft) {
+  return [
+    draft.coverImageRef?.r2_key,
+    ...draft.galleryImageRefs.map((image) => image.r2_key),
+  ].filter((key): key is string => Boolean(key));
+}
+
+function didExistingImageOrderChange(current: string[], initial: string[]) {
+  return (
+    current.length > 0 &&
+    current.length === initial.length &&
+    current.some((key, index) => key !== initial[index])
+  );
 }
 
 function getDraftCategory(listing: Listing): ListingCategory {
@@ -987,6 +1003,33 @@ export function WizardProvider({
     }));
   };
 
+  const selectExistingGalleryCover = (index: number) => {
+    if (!isEditing || coverFile || galleryFiles.length > 0) return;
+
+    setMediaError(null);
+    setDraft((prev) => {
+      const selectedImage = prev.galleryImageRefs[index];
+      if (!selectedImage) return prev;
+
+      const nextGalleryImageRefs = prev.galleryImageRefs.filter(
+        (_, imageIndex) => imageIndex !== index
+      );
+
+      if (prev.coverImageRef) {
+        nextGalleryImageRefs.unshift(prev.coverImageRef);
+      }
+
+      return {
+        ...prev,
+        coverImageName: selectedImage.name,
+        coverImageRef: selectedImage,
+        galleryImageNames: nextGalleryImageRefs.map((image) => image.name),
+        galleryImageRefs: nextGalleryImageRefs,
+        coverFromGalleryIndex: null,
+      };
+    });
+  };
+
   const removeGalleryFile = (fileToRemove: File) => {
     const updated = galleryFiles.filter((f) => f !== fileToRemove);
     setGalleryFiles(updated);
@@ -1261,6 +1304,7 @@ export function WizardProvider({
         updateListing,
         uploadListingImages,
         uploadListingVideo,
+        reorderListingImages,
       } = await import("@/lib/actions/listings");
 
       const listingData = {
@@ -1363,6 +1407,13 @@ export function WizardProvider({
         }
 
         const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
+        const initialExistingImageKeyOrder = getExistingImageKeyOrder(initialDraft);
+        const existingImageKeyOrder = getExistingImageKeyOrder(draft);
+        const existingImageOrderChanged =
+          isEditing &&
+          !hasReplacementMedia &&
+          didExistingImageOrderChange(existingImageKeyOrder, initialExistingImageKeyOrder);
+
         if (!isEditing || hasReplacementMedia) {
           const uploadFormData = new FormData();
           uploadFormData.set("listingId", listingId);
@@ -1390,6 +1441,22 @@ export function WizardProvider({
             setSubmitIssues(
               uploadResult.error
                 ? [{ message: uploadResult.error, stepIndex: 4 }]
+                : []
+            );
+            setIsSubmitting(false);
+            return;
+          }
+        } else if (existingImageOrderChanged) {
+          const reorderFormData = new FormData();
+          reorderFormData.set("listingId", listingId);
+          reorderFormData.set("orderedImageKeys", JSON.stringify(existingImageKeyOrder));
+
+          const reorderResult = await reorderListingImages(reorderFormData);
+          if ("error" in reorderResult) {
+            setSubmitError(reorderResult.error || "Unable to update the listing cover.");
+            setSubmitIssues(
+              reorderResult.error
+                ? [{ message: reorderResult.error, stepIndex: 4 }]
                 : []
             );
             setIsSubmitting(false);
@@ -1441,7 +1508,7 @@ export function WizardProvider({
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
-    handleCoverSelection, handleGallerySelection, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
+    handleCoverSelection, handleGallerySelection, selectExistingGalleryCover, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
     applyDealerAutofill, resetDraft,
     handleContinue, handleBack, goToStep, setActiveStep,
     canContinue, mediaValidationError, sellerValidationError, marketIndicator, selectedCategoryFields,

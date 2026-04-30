@@ -821,6 +821,76 @@ export async function uploadListingImages(formData: FormData) {
     return { success: true, uploadedCount };
 }
 
+export async function reorderListingImages(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const listingId = formData.get("listingId");
+    const rawOrderedImageKeys = formData.get("orderedImageKeys");
+
+    if (typeof listingId !== "string" || !listingId.trim()) {
+        return { error: "Listing id is required." };
+    }
+
+    if (typeof rawOrderedImageKeys !== "string" || !rawOrderedImageKeys.trim()) {
+        return { error: "Image order is required." };
+    }
+
+    let orderedImageKeys: string[];
+    try {
+        const parsed = JSON.parse(rawOrderedImageKeys);
+        if (!Array.isArray(parsed)) {
+            return { error: "Image order is invalid." };
+        }
+        orderedImageKeys = parsed
+            .map((value) => (typeof value === "string" ? value.trim() : ""))
+            .filter(Boolean);
+    } catch {
+        return { error: "Image order is invalid." };
+    }
+
+    if (orderedImageKeys.length === 0) {
+        return { error: "At least one listing image is required." };
+    }
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id")
+        .eq("id", listingId)
+        .eq("seller_id", user.id)
+        .maybeSingle();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found or not editable." };
+    }
+
+    const { error } = await supabase.rpc("reorder_listing_images", {
+        target_listing_id: listingId,
+        ordered_r2_keys: orderedImageKeys,
+    });
+
+    if (error) {
+        const missingFunction =
+            error.message.includes("Could not find the function") ||
+            error.message.includes("reorder_listing_images");
+
+        return {
+            error: missingFunction
+                ? "Apply the latest Supabase migration before changing the listing cover from existing media."
+                : error.message,
+        };
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${listingId}`);
+
+    return { success: true };
+}
+
 export async function uploadListingVideo(formData: FormData) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

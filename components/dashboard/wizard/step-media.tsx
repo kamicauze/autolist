@@ -16,9 +16,11 @@ import { getImageUrl } from "@/lib/utils/listings";
 function ExistingImageCard({
   image,
   badge,
+  onSetCover,
 }: {
   image: ExistingImageRef;
   badge?: string;
+  onSetCover?: () => void;
 }) {
   const src = getImageUrl(image.r2_key, "card");
   return (
@@ -38,11 +40,20 @@ function ExistingImageCard({
           </span>
         ) : null}
       </div>
-      <div className="p-4">
+      <div className="space-y-3 p-4">
         <p className="truncate text-[13px] font-medium text-[#202224]">{image.name}</p>
         <p className="mt-1 text-[11px] text-[#8a8a8a]">
           Preserved from current listing
         </p>
+        {onSetCover ? (
+          <button
+            type="button"
+            onClick={onSetCover}
+            className="rounded-[12px] border border-[#d9d9d9] bg-white px-3 py-2 text-[12px] font-medium text-[#202224]"
+          >
+            Make cover
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -144,6 +155,7 @@ export function StepMedia() {
     videoFile,
     handleCoverSelection,
     handleGallerySelection,
+    selectExistingGalleryCover,
     removeGalleryFile,
     moveGalleryImage,
     reorderGalleryImages,
@@ -172,6 +184,12 @@ export function StepMedia() {
     existingGalleryRefs.forEach((ref) => map.set(ref.name, ref));
     return map;
   }, [existingGalleryRefs]);
+  const uploadedMediaCount = hasReplacementMedia
+    ? galleryFiles.length + (draft.coverImageName ? 1 : 0)
+    : existingGalleryRefs.length + (existingCoverRef ? 1 : 0);
+  const canUseGalleryCover = hasReplacementMedia
+    ? galleryFiles.length > 0
+    : isEditing && existingGalleryRefs.length > 0;
 
   return (
     <div className="space-y-4">
@@ -186,8 +204,8 @@ export function StepMedia() {
         <div className="space-y-4">
           {isEditing && !hasReplacementMedia ? (
             <div className="rounded-[12px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[12px] leading-5 text-[#3157c8]">
-              Current listing media is preserved as-is. Upload a new cover image and gallery set only if you want
-              to replace the existing photos.
+              Current listing media is preserved as-is. Choose any existing gallery photo as the new cover, or
+              upload a new cover image and gallery set if you want to replace the existing photos.
             </div>
           ) : null}
 
@@ -232,7 +250,7 @@ export function StepMedia() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="font-heading text-[18px] font-semibold text-[#202224]">
-                  Uploaded media files ({galleryFiles.length + (draft.coverImageName ? 1 : 0)})
+                  Uploaded media files ({uploadedMediaCount})
                 </h3>
                 <p className="mt-1 text-[13px] text-[#7b7b7b]">
                   Choose the image that should appear as the cover card on the public listing, then drag or move photos into the display order you want.
@@ -241,12 +259,15 @@ export function StepMedia() {
               <button
                 type="button"
                 onClick={() => {
-                  if (isEditing && !hasReplacementMedia) return;
+                  if (isEditing && !hasReplacementMedia) {
+                    selectExistingGalleryCover(0);
+                    return;
+                  }
                   updateField("coverImageName", null);
                   updateField("coverFromGalleryIndex", galleryFiles.length > 0 ? 0 : null);
                 }}
                 className={sellerGhostButtonClass}
-                disabled={isEditing && !hasReplacementMedia}
+                disabled={!canUseGalleryCover}
               >
                 Use gallery cover
               </button>
@@ -281,16 +302,22 @@ export function StepMedia() {
                 )
               ) : null}
 
-              {galleryFiles.length === 0 && !draft.coverImageName ? (
+              {galleryFiles.length === 0 && !draft.coverImageName && existingGalleryImageNames.length === 0 ? (
                 <div className="col-span-full rounded-[12px] border border-dashed border-[#d9d9d9] px-4 py-7 text-center text-[13px] text-[#8a8a8a]">
                   No gallery media uploaded yet.
                 </div>
               ) : null}
 
-              {existingGalleryImageNames.map((name) => {
+              {existingGalleryImageNames.map((name, index) => {
                 const ref = galleryRefByName.get(name);
                 if (ref) {
-                  return <ExistingImageCard key={name} image={ref} />;
+                  return (
+                    <ExistingImageCard
+                      key={name}
+                      image={ref}
+                      onSetCover={() => selectExistingGalleryCover(index)}
+                    />
+                  );
                 }
                 // Fallback: we somehow have a filename without an r2_key.
                 return (
