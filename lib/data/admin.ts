@@ -81,6 +81,13 @@ type RolePermissionRow = {
   permission_key: string;
 };
 
+const ADMIN_STAFF_PROFILE_ROLES: AdminProfileRole[] = [
+  "sales_agent",
+  "support",
+  "admin",
+  "super_admin",
+];
+
 export type AdminDashboardMetric = {
   label: string;
   value: number;
@@ -1225,7 +1232,7 @@ export const getAdminUsersOverviewData = cache(async (limit = 80): Promise<Admin
         admins,
         superAdmins,
         supports,
-        staff: admins + superAdmins + supports,
+        staff: admins + superAdmins + supports + salesAgents,
         pendingDealers,
       },
       users: profiles.map((profile) => normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)),
@@ -1240,11 +1247,22 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
   try {
     const supabase = await createAdminDataClient();
 
-    const [usersOverview, permissionsResult, rolePermissionsResult] = await Promise.all([
+    const [usersOverview, staffProfilesResult, permissionsResult, rolePermissionsResult] = await Promise.all([
       getAdminUsersOverviewData(limit),
+      supabase
+        .from("profiles")
+        .select("id, email, full_name, role, created_at")
+        .in("role", ADMIN_STAFF_PROFILE_ROLES)
+        .order("role", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(limit),
       supabase.from("permissions").select("key, label, description, category").order("category").order("key"),
       supabase.from("role_permissions").select("role, permission_key").order("role").order("permission_key"),
     ]);
+
+    if (staffProfilesResult.error) {
+      throw new Error(`Unable to load staff profiles: ${staffProfilesResult.error.message}`);
+    }
 
     const rolePermissions: Record<AdminProfileRole, string[]> = {
       buyer: [],
@@ -1261,6 +1279,9 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
         rolePermissions[row.role].push(row.permission_key);
       }
     }
+
+    const emptyDealerMap = new Map<string, DealerRow>();
+    const emptyListingCountMap = new Map<string, { total: number; active: number }>();
 
     return {
       stats: {
@@ -1328,7 +1349,9 @@ export const getAdminRolesPermissionsData = cache(async (limit = 120): Promise<A
       ],
       permissions: ((permissionsResult.data || []) as PermissionRow[]),
       rolePermissions,
-      users: usersOverview.users,
+      users: ((staffProfilesResult.data || []) as ProfileRow[]).map((profile) =>
+        normalizeUser(profile, emptyDealerMap, emptyListingCountMap)
+      ),
     };
   } catch (error) {
     console.warn(`Admin roles unavailable: ${describeError(error)}`);

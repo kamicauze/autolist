@@ -33,6 +33,13 @@ const ROLE_OPTIONS: Array<{ value: AdminProfileRole; label: string }> = [
   { value: "super_admin", label: "Super Admin" },
 ];
 
+const STAFF_ASSIGNMENT_ROLE_VALUES = new Set<AdminProfileRole>([
+  "sales_agent",
+  "support",
+  "admin",
+  "super_admin",
+]);
+
 type FeedbackState =
   | {
       status: "success" | "error";
@@ -55,13 +62,6 @@ function roleTone(role: AdminProfileRole) {
   if (role === "admin" || role === "support") return "amber" as const;
   if (role === "dealer") return "green" as const;
   if (role === "seller" || role === "sales_agent") return "blue" as const;
-  return "slate" as const;
-}
-
-function dealerTone(status: string | null) {
-  if (status === "APPROVED") return "green" as const;
-  if (status === "PENDING") return "amber" as const;
-  if (status === "REJECTED") return "red" as const;
   return "slate" as const;
 }
 
@@ -112,14 +112,16 @@ export function AdminRolesPermissionsLive({
 
         if (result.success) {
           setUsers((currentUsers) =>
-            currentUsers.map((user) =>
-              user.id === targetUserId
-                ? {
-                    ...user,
-                    role: nextRole,
-                  }
-                : user
-            )
+            STAFF_ASSIGNMENT_ROLE_VALUES.has(nextRole)
+              ? currentUsers.map((user) =>
+                  user.id === targetUserId
+                    ? {
+                        ...user,
+                        role: nextRole,
+                      }
+                    : user
+                )
+              : currentUsers.filter((user) => user.id !== targetUserId)
           );
           setFeedbackState({ status: "success", message: result.message });
           router.refresh();
@@ -252,10 +254,10 @@ export function AdminRolesPermissionsLive({
       </AdminSectionCard>
 
       <AdminSectionCard
-        title="Role Assignments"
-        description="Update the role directly on public.profiles. Super admins are protected from editing their own role."
+        title="Staff Role Assignments"
+        description="Limited to sales agents, support, admins, and super admins so normal buyer, seller, and dealer profiles do not flood this page."
       >
-        <AdminDataTable columns={["User", "Current role", "Dealer status", "Listings", "Change role", "Joined"]}>
+        <AdminDataTable columns={["User", "Current role", "Change role", "Joined"]}>
           {users.length > 0 ? (
             users.map((user) => {
               const isProtected = user.id === currentUserId;
@@ -271,20 +273,6 @@ export function AdminRolesPermissionsLive({
                   </td>
                   <td className="px-6 py-4">
                     <AdminStatusPill label={user.role} tone={roleTone(user.role)} />
-                  </td>
-                  <td className="px-6 py-4">
-                    {user.dealerStatus ? (
-                      <AdminStatusPill
-                        label={user.dealerStatus.toLowerCase()}
-                        tone={dealerTone(user.dealerStatus)}
-                      />
-                    ) : (
-                      <span className="text-[12px] text-[#94a3b8]">Not a dealer</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-[13px] text-[#111827]">
-                    {user.listingCount} total
-                    <span className="block text-[12px] text-[#6b7280]">{user.activeListingCount} active</span>
                   </td>
                   <td className="px-6 py-4">
                     <form onSubmit={handleRoleSubmit} className="space-y-2">
@@ -327,8 +315,8 @@ export function AdminRolesPermissionsLive({
             })
           ) : (
             <tr>
-              <td colSpan={6} className="px-6 py-10 text-center text-[13px] text-[#6b7280]">
-                No profiles found yet.
+              <td colSpan={4} className="px-6 py-10 text-center text-[13px] text-[#6b7280]">
+                No staff profiles found yet.
               </td>
             </tr>
           )}
