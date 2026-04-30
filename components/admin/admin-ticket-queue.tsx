@@ -156,7 +156,7 @@ export function AdminTicketQueue({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <AdminSectionCard title="Ticket Queue" description={description} className="p-0">
+        <AdminSectionCard title="Ticket Queue" description={description} bodyClassName="p-0">
           <div className="divide-y divide-[#eef2f7]">
             {tickets.length === 0 ? (
               <div className="px-6 py-8 text-[14px] text-[#6b7280]">No support tickets yet.</div>

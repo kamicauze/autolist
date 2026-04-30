@@ -320,7 +320,7 @@ export function AdminSpecialOffersLive({
         <AdminSectionCard
           title="Offers"
           description="Create, schedule, pause, and order CMS-managed promotional offers."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {offers.length === 0 ? (

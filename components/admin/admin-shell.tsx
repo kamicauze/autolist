@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ChevronLeft,
   LogOut,
   Menu,
   X,
@@ -149,13 +148,6 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
         </nav>
 
         <div className="space-y-2 border-t border-white/5 px-4 py-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 rounded-[10px] px-4 py-3 text-[14px] font-medium text-white/90 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <ChevronLeft className="h-4 w-4 shrink-0" />
-            Seller Dashboard
-          </Link>
           <button
             type="button"
             onClick={handleSignOut}

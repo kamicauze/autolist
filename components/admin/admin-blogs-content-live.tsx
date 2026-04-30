@@ -317,7 +317,7 @@ export function AdminBlogsContentLive({
         <AdminSectionCard
           title="Posts"
           description="Every post lives here as a real draft or published record."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {posts.length === 0 ? (

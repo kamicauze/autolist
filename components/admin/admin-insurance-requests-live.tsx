@@ -181,7 +181,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
         <AdminSectionCard
           title="Live queue"
           description="Select a quote request to review vehicle details, contact data, and insurer handoff notes."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {requests.length === 0 ? (

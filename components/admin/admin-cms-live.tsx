@@ -693,7 +693,7 @@ export function AdminCmsLive({
         <AdminSectionCard
           title="Homepage Blocks"
           description="Edit draft content, then publish it when it is ready for the public landing page."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {blocks.map((block) => {
@@ -794,7 +794,7 @@ export function AdminCmsLive({
         <AdminSectionCard
           title="Pages"
           description="Static public routes with managed page copy and SEO metadata."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {pages.map((page) => {

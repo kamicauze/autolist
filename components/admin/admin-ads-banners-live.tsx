@@ -366,7 +366,7 @@ export function AdminAdsBannersLive({
         <AdminSectionCard
           title="Campaigns"
           description="Reusable banner campaigns by placement, schedule, and status."
-          className="p-0"
+          bodyClassName="p-0"
         >
           <div className="divide-y divide-[#eef2f7]">
             {banners.length === 0 ? (

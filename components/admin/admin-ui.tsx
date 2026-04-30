@@ -141,29 +141,34 @@ export function AdminSectionCard({
   action,
   children,
   className,
+  bodyClassName,
 }: {
   title: string;
   description?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
 }) {
   return (
-    <section className={cn(adminSurfaceClass, "p-6", className)}>
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h2 className="font-heading text-[18px] font-semibold text-[#111827]">{title}</h2>
-          {description ? (
-            <p className="mt-1 text-[13px] leading-5 text-[#6b7280]">{description}</p>
-          ) : null}
+    <section className={cn(adminSurfaceClass, className)}>
+      <div className="px-6 pt-6">
+        <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="font-heading text-[18px] font-semibold text-[#111827]">{title}</h2>
+            {description ? (
+              <p className="mt-1 text-[13px] leading-5 text-[#6b7280]">{description}</p>
+            ) : null}
+          </div>
+          {action}
         </div>
-        {action}
       </div>
-      {children}
+      <div className={cn("px-6 pb-6", bodyClassName)}>
+        {children}
+      </div>
     </section>
   );
 }
-
 export function AdminStatusPill({
   label,
   tone,
