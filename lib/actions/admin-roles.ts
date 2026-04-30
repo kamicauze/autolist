@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireSuperAdminAction } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -17,38 +16,53 @@ const ALLOWED_ADMIN_ROLES = [
 
 type AllowedAdminRole = (typeof ALLOWED_ADMIN_ROLES)[number];
 
+export type AdminRoleMutationResult =
+  | {
+      success: true;
+      message: string;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 function formatRole(role: string) {
   return role.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function redirectWithFeedback(status: "success" | "error", message: string): never {
-  const params = new URLSearchParams({
-    status,
+function successResult(message: string): AdminRoleMutationResult {
+  return {
+    success: true,
     message,
-  });
-
-  redirect(`/admin/roles-permissions?${params.toString()}`);
+  };
 }
 
-export async function updateAdminUserRoleAction(formData: FormData) {
+function errorResult(error: string): AdminRoleMutationResult {
+  return {
+    success: false,
+    error,
+  };
+}
+
+export async function updateAdminUserRoleAction(formData: FormData): Promise<AdminRoleMutationResult> {
   const targetUserId = String(formData.get("userId") || "").trim();
   const nextRole = String(formData.get("nextRole") || "").trim() as AllowedAdminRole;
 
   const adminContext = await requireSuperAdminAction();
   if ("error" in adminContext) {
-    redirectWithFeedback("error", adminContext.error);
+    return errorResult(adminContext.error);
   }
 
   if (!targetUserId) {
-    redirectWithFeedback("error", "Missing target user.");
+    return errorResult("Missing target user.");
   }
 
   if (!ALLOWED_ADMIN_ROLES.includes(nextRole)) {
-    redirectWithFeedback("error", "Select a valid role.");
+    return errorResult("Select a valid role.");
   }
 
   if (targetUserId === adminContext.user.id) {
-    redirectWithFeedback("error", "Use a different admin account to change your own role.");
+    return errorResult("Use a different admin account to change your own role.");
   }
 
   try {
@@ -61,14 +75,14 @@ export async function updateAdminUserRoleAction(formData: FormData) {
       .maybeSingle();
 
     if (targetProfileError || !targetProfile) {
-      redirectWithFeedback("error", "Target user was not found.");
+      return errorResult("Target user was not found.");
     }
 
     const currentRole = targetProfile.role as AllowedAdminRole;
     const targetName = targetProfile.full_name || targetProfile.email || "This user";
 
     if (currentRole === nextRole) {
-      redirectWithFeedback("success", `${targetName} is already ${formatRole(nextRole)}.`);
+      return successResult(`${targetName} is already ${formatRole(nextRole)}.`);
     }
 
     const { error: updateError } = await adminSupabase
@@ -77,7 +91,7 @@ export async function updateAdminUserRoleAction(formData: FormData) {
       .eq("id", targetUserId);
 
     if (updateError) {
-      redirectWithFeedback("error", updateError.message);
+      return errorResult(updateError.message);
     }
 
     const { error: auditError } = await adminSupabase.from("audit_logs").insert({
@@ -103,42 +117,31 @@ export async function updateAdminUserRoleAction(formData: FormData) {
     revalidatePath("/admin/roles-permissions");
     revalidatePath("/admin/audit-logs");
 
-    redirectWithFeedback(
-      "success",
+    return successResult(
       `Updated ${targetName} from ${formatRole(currentRole)} to ${formatRole(nextRole)}.`
     );
   } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof error.digest === "string" &&
-      error.digest.startsWith("NEXT_REDIRECT")
-    ) {
-      throw error;
-    }
-
     const message = error instanceof Error && error.message ? error.message : "Unknown error";
-    redirectWithFeedback("error", message);
+    return errorResult(message);
   }
 }
 
-export async function updateRolePermissionAction(formData: FormData) {
+export async function updateRolePermissionAction(formData: FormData): Promise<AdminRoleMutationResult> {
   const role = String(formData.get("role") || "").trim() as AllowedAdminRole;
   const permissionKey = String(formData.get("permissionKey") || "").trim();
   const enabled = String(formData.get("enabled") || "") === "true";
 
   const adminContext = await requireSuperAdminAction();
   if ("error" in adminContext) {
-    redirectWithFeedback("error", adminContext.error);
+    return errorResult(adminContext.error);
   }
 
   if (!ALLOWED_ADMIN_ROLES.includes(role)) {
-    redirectWithFeedback("error", "Select a valid role.");
+    return errorResult("Select a valid role.");
   }
 
   if (!permissionKey) {
-    redirectWithFeedback("error", "Missing permission.");
+    return errorResult("Missing permission.");
   }
 
   try {
@@ -150,7 +153,7 @@ export async function updateRolePermissionAction(formData: FormData) {
       .maybeSingle<{ key: string }>();
 
     if (permissionError || !permission) {
-      redirectWithFeedback("error", "Permission was not found.");
+      return errorResult("Permission was not found.");
     }
 
     if (enabled) {
@@ -165,11 +168,11 @@ export async function updateRolePermissionAction(formData: FormData) {
         );
 
       if (error) {
-        redirectWithFeedback("error", error.message);
+        return errorResult(error.message);
       }
     } else {
       if (role === "super_admin") {
-        redirectWithFeedback("error", "Super admin permissions cannot be removed.");
+        return errorResult("Super admin permissions cannot be removed.");
       }
 
       const { error } = await adminSupabase
@@ -179,7 +182,7 @@ export async function updateRolePermissionAction(formData: FormData) {
         .eq("permission_key", permissionKey);
 
       if (error) {
-        redirectWithFeedback("error", error.message);
+        return errorResult(error.message);
       }
     }
 
@@ -195,22 +198,11 @@ export async function updateRolePermissionAction(formData: FormData) {
     });
 
     revalidatePath("/admin/roles-permissions");
-    redirectWithFeedback(
-      "success",
+    return successResult(
       `${enabled ? "Enabled" : "Disabled"} ${permissionKey} for ${formatRole(role)}.`
     );
   } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof error.digest === "string" &&
-      error.digest.startsWith("NEXT_REDIRECT")
-    ) {
-      throw error;
-    }
-
     const message = error instanceof Error && error.message ? error.message : "Unknown error";
-    redirectWithFeedback("error", message);
+    return errorResult(message);
   }
 }

@@ -1,4 +1,8 @@
+"use client";
+
+import * as React from "react";
 import { Headset, ShieldCheck, UserCog, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   updateAdminUserRoleAction,
   updateRolePermissionAction,
@@ -61,6 +65,10 @@ function dealerTone(status: string | null) {
   return "slate" as const;
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error && error.message ? error.message : "Unknown error";
+}
+
 export function AdminRolesPermissionsLive({
   data,
   currentUserId,
@@ -72,7 +80,96 @@ export function AdminRolesPermissionsLive({
   currentUserRole: AdminProfileRole;
   feedback: FeedbackState;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = React.useTransition();
+  const [feedbackState, setFeedbackState] = React.useState<FeedbackState>(feedback);
+  const [users, setUsers] = React.useState(data.users);
+  const [rolePermissions, setRolePermissions] = React.useState(data.rolePermissions);
   const canManageRoles = currentUserRole === "super_admin";
+
+  React.useEffect(() => {
+    setFeedbackState(feedback);
+  }, [feedback]);
+
+  React.useEffect(() => {
+    setUsers(data.users);
+  }, [data.users]);
+
+  React.useEffect(() => {
+    setRolePermissions(data.rolePermissions);
+  }, [data.rolePermissions]);
+
+  function handleRoleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const targetUserId = String(formData.get("userId") || "");
+    const nextRole = String(formData.get("nextRole") || "") as AdminProfileRole;
+
+    startTransition(async () => {
+      try {
+        const result = await updateAdminUserRoleAction(formData);
+
+        if (result.success) {
+          setUsers((currentUsers) =>
+            currentUsers.map((user) =>
+              user.id === targetUserId
+                ? {
+                    ...user,
+                    role: nextRole,
+                  }
+                : user
+            )
+          );
+          setFeedbackState({ status: "success", message: result.message });
+          router.refresh();
+          return;
+        }
+
+        setFeedbackState({ status: "error", message: result.error });
+      } catch (error) {
+        setFeedbackState({ status: "error", message: getErrorMessage(error) });
+      }
+    });
+  }
+
+  function handlePermissionSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const role = String(formData.get("role") || "") as AdminProfileRole;
+    const permissionKey = String(formData.get("permissionKey") || "");
+    const enabled = String(formData.get("enabled") || "") === "true";
+
+    startTransition(async () => {
+      try {
+        const result = await updateRolePermissionAction(formData);
+
+        if (result.success) {
+          setRolePermissions((currentPermissions) => {
+            const nextPermissions = { ...currentPermissions };
+            const permissionSet = new Set(nextPermissions[role] ?? []);
+
+            if (enabled) {
+              permissionSet.add(permissionKey);
+            } else {
+              permissionSet.delete(permissionKey);
+            }
+
+            nextPermissions[role] = Array.from(permissionSet);
+            return nextPermissions;
+          });
+          setFeedbackState({ status: "success", message: result.message });
+          router.refresh();
+          return;
+        }
+
+        setFeedbackState({ status: "error", message: result.error });
+      } catch (error) {
+        setFeedbackState({ status: "error", message: getErrorMessage(error) });
+      }
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -87,17 +184,17 @@ export function AdminRolesPermissionsLive({
         }
       />
 
-      {feedback ? (
+      {feedbackState ? (
         <div
           className={cn(
             adminSurfaceClass,
             "px-5 py-4 text-[13px]",
-            feedback.status === "success"
+            feedbackState.status === "success"
               ? "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]"
               : "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]"
           )}
         >
-          {feedback.message}
+          {feedbackState.message}
         </div>
       ) : null}
 
@@ -159,8 +256,8 @@ export function AdminRolesPermissionsLive({
         description="Update the role directly on public.profiles. Super admins are protected from editing their own role."
       >
         <AdminDataTable columns={["User", "Current role", "Dealer status", "Listings", "Change role", "Joined"]}>
-          {data.users.length > 0 ? (
-            data.users.map((user) => {
+          {users.length > 0 ? (
+            users.map((user) => {
               const isProtected = user.id === currentUserId;
               const disableRoleChange = isProtected || !canManageRoles;
 
@@ -190,13 +287,13 @@ export function AdminRolesPermissionsLive({
                     <span className="block text-[12px] text-[#6b7280]">{user.activeListingCount} active</span>
                   </td>
                   <td className="px-6 py-4">
-                    <form action={updateAdminUserRoleAction} className="space-y-2">
+                    <form onSubmit={handleRoleSubmit} className="space-y-2">
                       <input type="hidden" name="userId" value={user.id} />
                       <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
                         <select
                           name="nextRole"
                           defaultValue={user.role}
-                          disabled={disableRoleChange}
+                          disabled={disableRoleChange || isPending}
                           className={cn(adminSelectClass, "min-w-[148px] xl:w-[148px]")}
                         >
                           {ROLE_OPTIONS.map((role) => (
@@ -207,11 +304,11 @@ export function AdminRolesPermissionsLive({
                         </select>
                         <button
                           type="submit"
-                          disabled={disableRoleChange}
+                          disabled={disableRoleChange || isPending}
                           className={cn(
                             adminPrimaryButtonClass,
                             "h-10 px-3 whitespace-nowrap",
-                            disableRoleChange && "cursor-not-allowed opacity-60"
+                            (disableRoleChange || isPending) && "cursor-not-allowed opacity-60"
                           )}
                         >
                           Update role
@@ -263,24 +360,26 @@ export function AdminRolesPermissionsLive({
                     <p className="mt-1 font-mono text-[11px] text-[#94a3b8]">{permission.key}</p>
                   </td>
                   {ROLE_OPTIONS.map((role) => {
-                    const checked = data.rolePermissions[role.value]?.includes(permission.key) ?? false;
+                    const checked = rolePermissions[role.value]?.includes(permission.key) ?? false;
                     const locked = role.value === "super_admin" || !canManageRoles;
 
                     return (
                       <td key={`${role.value}-${permission.key}`} className="px-3 py-4 text-center">
-                        <form action={updateRolePermissionAction}>
+                        <form onSubmit={handlePermissionSubmit}>
                           <input type="hidden" name="role" value={role.value} />
                           <input type="hidden" name="permissionKey" value={permission.key} />
                           <input type="hidden" name="enabled" value={checked ? "false" : "true"} />
                           <button
                             type="submit"
-                            disabled={locked}
+                            disabled={locked || isPending}
                             className={cn(
                               "mx-auto flex h-8 w-8 items-center justify-center rounded-[8px] border text-[13px] font-semibold transition",
                               checked
                                 ? "border-[#2563eb] bg-[#2563eb] text-white"
                                 : "border-[#d1d5db] bg-white text-[#94a3b8]",
-                              locked ? "cursor-not-allowed opacity-70" : "hover:border-[#2563eb] hover:text-[#2563eb]"
+                              locked || isPending
+                                ? "cursor-not-allowed opacity-70"
+                                : "hover:border-[#2563eb] hover:text-[#2563eb]"
                             )}
                             aria-label={`${checked ? "Disable" : "Enable"} ${permission.label} for ${role.label}`}
                           >
