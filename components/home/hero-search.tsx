@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { LOCATIONS, MILEAGE_RANGES } from "@/lib/constants/filters";
@@ -14,6 +15,7 @@ import { NON_CAR_REFERENCE_DATA } from "@/lib/constants/non-car-reference-data";
 import {
   DEFAULT_HOME_HERO_CMS_CONTENT,
   type HomepageHeroCmsContent,
+  type HomepageHeroSlide,
 } from "@/lib/types/cms";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
@@ -22,6 +24,8 @@ import {
   Bike,
   BusFront,
   CarFront,
+  ChevronLeft,
+  ChevronRight,
   Construction,
   MapPin,
   Search,
@@ -104,15 +108,27 @@ interface HeroSearchProps {
   content?: HomepageHeroCmsContent;
 }
 
-function getBackgroundImageStyle(imageUrl: string): React.CSSProperties {
-  return {
-    backgroundImage: `url("${imageUrl.replace(/"/g, '\\"')}")`,
-  };
+function getHeroSlides(content: HomepageHeroCmsContent): HomepageHeroSlide[] {
+  const slides = content.slides.filter((slide) => slide.imageUrl.trim());
+
+  if (slides.length > 0) {
+    return slides;
+  }
+
+  return [
+    {
+      id: "primary",
+      imageUrl: content.backgroundImageUrl,
+      altText: content.headline,
+    },
+  ];
 }
 
 export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
   const router = useRouter();
   const heroContent = content ?? DEFAULT_HOME_HERO_CMS_CONTENT;
+  const heroSlides = React.useMemo(() => getHeroSlides(heroContent), [heroContent]);
+  const [activeHeroSlideIndex, setActiveHeroSlideIndex] = React.useState(0);
   const [activeCategory, setActiveCategory] = React.useState<ListingCategory>("car");
   const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
@@ -125,6 +141,9 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
   const [matchingCount, setMatchingCount] = React.useState(totalCount);
+  const carouselEnabled = heroContent.carouselEnabled && heroSlides.length > 1;
+  const activeHeroSlide = heroSlides[activeHeroSlideIndex] ?? heroSlides[0];
+  const carouselIntervalMs = heroContent.carouselIntervalSeconds * 1000;
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
   const makeSuggestions = React.useMemo(() => {
@@ -149,6 +168,30 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
   React.useEffect(() => {
     setModel("");
   }, [make]);
+
+  React.useEffect(() => {
+    setActiveHeroSlideIndex(0);
+  }, [heroSlides]);
+
+  React.useEffect(() => {
+    if (!carouselEnabled) return;
+
+    const timer = window.setInterval(() => {
+      setActiveHeroSlideIndex((current) => (current + 1) % heroSlides.length);
+    }, carouselIntervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [carouselEnabled, carouselIntervalMs, heroSlides.length]);
+
+  const moveHeroSlide = (direction: "previous" | "next") => {
+    setActiveHeroSlideIndex((current) => {
+      if (direction === "previous") {
+        return current === 0 ? heroSlides.length - 1 : current - 1;
+      }
+
+      return (current + 1) % heroSlides.length;
+    });
+  };
 
   const formattedCount = React.useMemo(
     () => new Intl.NumberFormat("en-US").format(matchingCount),
@@ -457,11 +500,55 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
     <section className="relative">
       <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
         <div className="relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={getBackgroundImageStyle(heroContent.backgroundImageUrl)}
+          <Image
+            key={activeHeroSlide.id}
+            src={activeHeroSlide.imageUrl}
+            alt={activeHeroSlide.altText || heroContent.headline}
+            fill
+            priority={activeHeroSlideIndex === 0}
+            quality={95}
+            sizes="(min-width: 1280px) 1280px, 100vw"
+            className="absolute inset-0 object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,12,16,0.22)_0%,rgba(12,12,16,0.74)_100%)]" />
+
+          {carouselEnabled ? (
+            <div className="absolute inset-x-3 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-between sm:flex">
+              <button
+                type="button"
+                onClick={() => moveHeroSlide("previous")}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-black/20 text-white shadow-sm backdrop-blur transition hover:bg-black/35"
+                aria-label="Show previous hero image"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveHeroSlide("next")}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-black/20 text-white shadow-sm backdrop-blur transition hover:bg-black/35"
+                aria-label="Show next hero image"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          ) : null}
+
+          {carouselEnabled ? (
+            <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3 py-2 backdrop-blur">
+              {heroSlides.map((slide, index) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => setActiveHeroSlideIndex(index)}
+                  className={`h-2 rounded-full transition ${
+                    index === activeHeroSlideIndex ? "w-6 bg-white" : "w-2 bg-white/55 hover:bg-white/80"
+                  }`}
+                  aria-label={`Show hero image ${index + 1}`}
+                  aria-pressed={index === activeHeroSlideIndex}
+                />
+              ))}
+            </div>
+          ) : null}
 
           <div className="absolute inset-0 z-10 flex flex-col px-4 pb-6 pt-14 sm:px-6 sm:pt-16 md:pb-8 lg:px-8">
             <div className="flex flex-1 flex-col items-center text-center">

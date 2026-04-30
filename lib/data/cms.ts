@@ -17,6 +17,7 @@ import {
   type HomepageCmsContent,
   type HomepageFeaturedListingsCmsContent,
   type HomepageHeroCmsContent,
+  type HomepageHeroSlide,
   type HomepageSectionsCmsContent,
 } from "@/lib/types/cms";
 
@@ -67,17 +68,59 @@ function readInteger(value: unknown, fallback: number, min: number, max: number)
   return Math.min(Math.max(Math.trunc(numeric), min), max);
 }
 
-function normalizeHeroContent(value: unknown): HomepageHeroCmsContent {
+function normalizeHeroSlide(
+  value: unknown,
+  index: number,
+  fallbackImageUrl: string
+): HomepageHeroSlide | null {
   const input = isRecord(value) ? value : {};
+  const imageUrl = readString(input.imageUrl, index === 0 ? fallbackImageUrl : "", 500);
+
+  if (!imageUrl) {
+    return null;
+  }
 
   return {
-    headline: readString(input.headline, DEFAULT_HOME_HERO_CMS_CONTENT.headline, 90),
-    subheading: readString(input.subheading, DEFAULT_HOME_HERO_CMS_CONTENT.subheading, 220),
-    backgroundImageUrl: readString(
-      input.backgroundImageUrl,
-      DEFAULT_HOME_HERO_CMS_CONTENT.backgroundImageUrl,
-      500
+    id: readString(input.id, index === 0 ? "primary" : `slide-${index + 1}`, 80),
+    imageUrl,
+    altText: readString(input.altText, "Homepage hero banner", 180),
+  };
+}
+
+function normalizeHeroContent(value: unknown): HomepageHeroCmsContent {
+  const input = isRecord(value) ? value : {};
+  const headline = readString(input.headline, DEFAULT_HOME_HERO_CMS_CONTENT.headline, 90);
+  const subheading = readString(input.subheading, DEFAULT_HOME_HERO_CMS_CONTENT.subheading, 220);
+  const backgroundImageUrl = readString(
+    input.backgroundImageUrl,
+    DEFAULT_HOME_HERO_CMS_CONTENT.backgroundImageUrl,
+    500
+  );
+  const rawSlides = Array.isArray(input.slides) ? input.slides : [];
+  const slides = rawSlides
+    .map((slide, index) => normalizeHeroSlide(slide, index, backgroundImageUrl))
+    .filter((slide): slide is HomepageHeroSlide => Boolean(slide));
+  const primarySlide = slides[0] ?? {
+    id: "primary",
+    imageUrl: backgroundImageUrl,
+    altText: headline,
+  };
+
+  return {
+    headline,
+    subheading,
+    backgroundImageUrl: primarySlide.imageUrl,
+    carouselEnabled: readBoolean(
+      input.carouselEnabled,
+      DEFAULT_HOME_HERO_CMS_CONTENT.carouselEnabled
     ),
+    carouselIntervalSeconds: readInteger(
+      input.carouselIntervalSeconds,
+      DEFAULT_HOME_HERO_CMS_CONTENT.carouselIntervalSeconds,
+      3,
+      15
+    ),
+    slides: slides.length > 0 ? slides : [primarySlide],
     quickSearchEnabled: readBoolean(
       input.quickSearchEnabled,
       DEFAULT_HOME_HERO_CMS_CONTENT.quickSearchEnabled

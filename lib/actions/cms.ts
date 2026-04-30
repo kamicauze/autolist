@@ -61,21 +61,32 @@ const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const CMS_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const CMS_IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .min(1, "Image URL is required.")
+  .max(500)
+  .refine(
+    (value) =>
+      value.startsWith("/") ||
+      value.startsWith("https://") ||
+      value.startsWith("http://"),
+    "Use a site path like /hero-car.jpg or a full image URL."
+  );
+
+const heroSlideSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  imageUrl: imageUrlSchema,
+  altText: z.string().trim().max(180, "Alt text is too long."),
+});
+
 const heroBlockSchema = z.object({
   headline: z.string().trim().min(1, "Hero headline is required.").max(90),
   subheading: z.string().trim().min(1, "Hero subheading is required.").max(220),
-  backgroundImageUrl: z
-    .string()
-    .trim()
-    .min(1, "Hero image URL is required.")
-    .max(500)
-    .refine(
-      (value) =>
-        value.startsWith("/") ||
-        value.startsWith("https://") ||
-        value.startsWith("http://"),
-      "Use a site path like /hero-car.jpg or a full image URL."
-    ),
+  backgroundImageUrl: imageUrlSchema,
+  carouselEnabled: z.boolean(),
+  carouselIntervalSeconds: z.number().int().min(3).max(15),
+  slides: z.array(heroSlideSchema).min(1, "Add at least one hero slide.").max(6, "Use up to 6 hero slides."),
   quickSearchEnabled: z.boolean(),
 });
 
@@ -206,10 +217,13 @@ export async function uploadCmsImage(formData: FormData): Promise<UploadCmsImage
   let height: number | null = null;
   try {
     const bytes = Buffer.from(await image.arrayBuffer());
+    const isHighDefinitionBanner =
+      uploadContext.data.usageContext === "homepage_hero" ||
+      uploadContext.data.usageContext === "banner";
     const output = await sharp(bytes)
       .rotate()
-      .resize({ width: 2400, withoutEnlargement: true })
-      .webp({ quality: 84 })
+      .resize({ width: isHighDefinitionBanner ? 2880 : 2400, withoutEnlargement: true })
+      .webp({ quality: isHighDefinitionBanner ? 90 : 84 })
       .toBuffer({ resolveWithObject: true });
     optimizedImage = output.data;
     width = output.info.width || null;

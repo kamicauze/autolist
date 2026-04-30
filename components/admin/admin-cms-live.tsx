@@ -11,8 +11,10 @@ import {
   Home,
   ImageIcon,
   LayoutTemplate,
+  Plus,
   Save,
   Settings2,
+  Trash2,
 } from "lucide-react";
 import { saveCmsBlock } from "@/lib/actions/cms";
 import { saveContentPage } from "@/lib/actions/content-pages";
@@ -27,6 +29,7 @@ import {
   type CmsBlockRecord,
   type HomepageFeaturedListingsCmsContent,
   type HomepageHeroCmsContent,
+  type HomepageHeroSlide,
   type HomepageSectionsCmsContent,
 } from "@/lib/types/cms";
 import {
@@ -74,6 +77,8 @@ type BlockEditorMap = {
   home_featured_listings: HomepageFeaturedListingsCmsContent;
   home_sections: HomepageSectionsCmsContent;
 };
+
+const MAX_HERO_SLIDES = 6;
 
 const SECTION_TOGGLE_FIELDS: Array<{
   key: keyof HomepageSectionsCmsContent;
@@ -216,6 +221,36 @@ function getBackgroundPreviewStyle(imageUrl: string): React.CSSProperties {
   };
 }
 
+function createHeroSlide(imageUrl = ""): HomepageHeroSlide {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `slide-${Date.now()}`;
+
+  return {
+    id,
+    imageUrl,
+    altText: "",
+  };
+}
+
+function getHeroEditorSlides(editor: HomepageHeroCmsContent): HomepageHeroSlide[] {
+  const slides = editor.slides.length > 0 ? editor.slides : [];
+  const primarySlide = slides[0] ?? {
+    id: "primary",
+    imageUrl: editor.backgroundImageUrl,
+    altText: editor.headline,
+  };
+
+  return [
+    {
+      ...primarySlide,
+      imageUrl: editor.backgroundImageUrl,
+    },
+    ...slides.slice(1),
+  ];
+}
+
 export function AdminCmsLive({
   pagesData,
   homepageData,
@@ -275,6 +310,75 @@ export function AdminCmsLive({
       } as BlockEditorMap[Key],
     }));
     setBlockFeedback(null);
+  };
+
+  const updateHeroEditor = (updater: (current: HomepageHeroCmsContent) => HomepageHeroCmsContent) => {
+    setBlockEditors((current) => ({
+      ...current,
+      home_hero: updater(current.home_hero),
+    }));
+    setBlockFeedback(null);
+  };
+
+  const updateHeroBackgroundImage = (backgroundImageUrl: string) => {
+    updateHeroEditor((current) => {
+      const slides = getHeroEditorSlides(current);
+      const [primarySlide, ...additionalSlides] = slides;
+
+      return {
+        ...current,
+        backgroundImageUrl,
+        slides: [
+          {
+            ...(primarySlide ?? createHeroSlide()),
+            imageUrl: backgroundImageUrl,
+          },
+          ...additionalSlides,
+        ],
+      };
+    });
+  };
+
+  const addHeroSlide = () => {
+    updateHeroEditor((current) => {
+      const slides = getHeroEditorSlides(current);
+
+      if (slides.length >= MAX_HERO_SLIDES) {
+        return current;
+      }
+
+      return {
+        ...current,
+        slides: [...slides, createHeroSlide()],
+      };
+    });
+  };
+
+  const updateHeroSlide = (slideId: string, patch: Partial<HomepageHeroSlide>) => {
+    updateHeroEditor((current) => ({
+      ...current,
+      slides: getHeroEditorSlides(current).map((slide) =>
+        slide.id === slideId
+          ? {
+              ...slide,
+              ...patch,
+            }
+          : slide
+      ),
+    }));
+  };
+
+  const removeHeroSlide = (slideId: string) => {
+    updateHeroEditor((current) => {
+      const slides = getHeroEditorSlides(current);
+      const [primarySlide, ...additionalSlides] = slides;
+      const nextAdditionalSlides = additionalSlides.filter((slide) => slide.id !== slideId);
+
+      return {
+        ...current,
+        slides: primarySlide ? [primarySlide, ...nextAdditionalSlides] : nextAdditionalSlides,
+      };
+    });
   };
 
   const addMediaAsset = (asset: CmsMediaAsset) => {
@@ -403,6 +507,8 @@ export function AdminCmsLive({
 
   const renderHeroEditor = () => {
     const editor = blockEditors.home_hero as HomepageHeroCmsContent;
+    const heroSlides = getHeroEditorSlides(editor);
+    const additionalHeroSlides = heroSlides.slice(1);
 
     return (
       <div className="grid gap-5">
@@ -410,8 +516,19 @@ export function AdminCmsLive({
           className="min-h-[220px] rounded-[16px] bg-cover bg-center px-6 py-8 text-white"
           style={getBackgroundPreviewStyle(editor.backgroundImageUrl)}
         >
-          <p className="max-w-xl text-[30px] font-semibold leading-[1.08]">{editor.headline}</p>
-          <p className="mt-3 max-w-xl text-[14px] leading-6 text-white/86">{editor.subheading}</p>
+          <div className="flex h-full min-h-[156px] flex-col justify-between gap-8">
+            <div>
+              <p className="max-w-xl text-[30px] font-semibold leading-[1.08]">{editor.headline}</p>
+              <p className="mt-3 max-w-xl text-[14px] leading-6 text-white/86">{editor.subheading}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/30 bg-black/20 px-3 py-1 text-[12px] font-semibold backdrop-blur">
+                {editor.carouselEnabled && heroSlides.length > 1
+                  ? `Carousel on: ${heroSlides.length} slides`
+                  : "Single high-definition banner"}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
@@ -431,13 +548,11 @@ export function AdminCmsLive({
             schemaReady={mediaData.schemaReady}
             value={editor.backgroundImageUrl}
             label="Background image"
-            description="Upload or pick a reusable hero image."
+            description="Upload or pick a reusable 1920px+ hero banner. Homepage hero uploads are saved as high-definition WebP."
             placeholder="/hero-car.jpg"
             usageContext="homepage_hero"
             blockKey="home_hero"
-            onChange={(backgroundImageUrl) =>
-              updateBlockEditor("home_hero", { backgroundImageUrl })
-            }
+            onChange={updateHeroBackgroundImage}
             onAssetUploaded={addMediaAsset}
             onFeedback={(feedback) =>
               setBlockFeedback(
@@ -463,6 +578,129 @@ export function AdminCmsLive({
             placeholder="Short homepage hero support copy."
           />
         </label>
+
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="flex items-start gap-3 rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4 text-[13px] text-[#374151]">
+            <input
+              type="checkbox"
+              checked={editor.carouselEnabled}
+              onChange={(event) =>
+                updateBlockEditor("home_hero", { carouselEnabled: event.target.checked })
+              }
+              className="mt-0.5 h-4 w-4 rounded border-[#d1d5db]"
+            />
+            <span>
+              <span className="block font-semibold text-[#111827]">Enable hero carousel</span>
+              <span className="mt-1 block text-[#6b7280]">
+                Rotates the main hero banner. The primary background image remains the fallback
+                if the carousel is turned off.
+              </span>
+            </span>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-[13px] font-medium text-[#111827]">Slide interval</span>
+            <input
+              type="number"
+              min={3}
+              max={15}
+              value={editor.carouselIntervalSeconds}
+              onChange={(event) =>
+                updateBlockEditor("home_hero", {
+                  carouselIntervalSeconds: Number(event.target.value),
+                })
+              }
+              className={adminInputClass}
+            />
+            <span className="block text-[12px] text-[#6b7280]">Seconds, 3 to 15.</span>
+          </label>
+        </div>
+
+        {editor.carouselEnabled ? (
+          <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[14px] font-semibold text-[#111827]">Additional carousel slides</p>
+                <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+                  Add up to {MAX_HERO_SLIDES - 1} more high-definition banners. Slide 1 uses the
+                  background image above.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addHeroSlide}
+                disabled={heroSlides.length >= MAX_HERO_SLIDES}
+                className={cn(
+                  adminGhostButtonClass,
+                  "h-9 gap-2 px-3",
+                  heroSlides.length >= MAX_HERO_SLIDES && "cursor-not-allowed opacity-60"
+                )}
+              >
+                <Plus className="h-4 w-4" />
+                Add slide
+              </button>
+            </div>
+
+            {additionalHeroSlides.length > 0 ? (
+              <div className="mt-4 grid gap-4">
+                {additionalHeroSlides.map((slide, index) => (
+                  <div key={slide.id} className="rounded-[12px] border border-[#e5e7eb] bg-white p-4">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="text-[13px] font-semibold text-[#111827]">
+                        Slide {index + 2}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeHeroSlide(slide.id)}
+                        className={cn(adminGhostButtonClass, "h-9 gap-2 px-3 text-[#dc2626] hover:border-[#fecaca] hover:text-[#b91c1c]")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </button>
+                    </div>
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      <AdminCmsMediaField
+                        assets={mediaAssets}
+                        schemaReady={mediaData.schemaReady}
+                        value={slide.imageUrl}
+                        label="Slide image"
+                        description="Use a 1920px+ landscape banner for crisp desktop display."
+                        placeholder="/hero-car.jpg"
+                        usageContext="homepage_hero"
+                        blockKey="home_hero"
+                        onChange={(imageUrl) => updateHeroSlide(slide.id, { imageUrl })}
+                        onAssetUploaded={addMediaAsset}
+                        onFeedback={(feedback) =>
+                          setBlockFeedback(
+                            feedback
+                              ? {
+                                  status: feedback.tone === "success" ? "success" : "error",
+                                  message: feedback.message,
+                                }
+                              : null
+                          )
+                        }
+                      />
+                      <label className="space-y-2">
+                        <span className="text-[13px] font-medium text-[#111827]">Alt text</span>
+                        <input
+                          value={slide.altText}
+                          onChange={(event) => updateHeroSlide(slide.id, { altText: event.target.value })}
+                          className={adminInputClass}
+                          placeholder="Describe the banner image"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-[12px] border border-dashed border-[#cbd5e1] bg-white px-4 py-6 text-center text-[13px] text-[#64748b]">
+                No extra slides yet. Add a slide to make the carousel rotate.
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <label className="flex items-start gap-3 rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4 text-[13px] text-[#374151]">
           <input

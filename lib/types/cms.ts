@@ -9,10 +9,19 @@ export const CMS_BLOCK_STATUSES = ["draft", "published"] as const;
 export type CmsBlockKey = (typeof CMS_BLOCK_KEYS)[number];
 export type CmsBlockStatus = (typeof CMS_BLOCK_STATUSES)[number];
 
+export type HomepageHeroSlide = {
+  id: string;
+  imageUrl: string;
+  altText: string;
+};
+
 export type HomepageHeroCmsContent = {
   headline: string;
   subheading: string;
   backgroundImageUrl: string;
+  carouselEnabled: boolean;
+  carouselIntervalSeconds: number;
+  slides: HomepageHeroSlide[];
   quickSearchEnabled: boolean;
 };
 
@@ -90,6 +99,15 @@ export const DEFAULT_HOME_HERO_CMS_CONTENT: HomepageHeroCmsContent = {
   subheading:
     "Search cars, vans, bikes, trucks, plant and farm equipment from one marketplace.",
   backgroundImageUrl: "/hero-car.jpg",
+  carouselEnabled: false,
+  carouselIntervalSeconds: 6,
+  slides: [
+    {
+      id: "primary",
+      imageUrl: "/hero-car.jpg",
+      altText: "Vehicle marketplace hero banner",
+    },
+  ],
   quickSearchEnabled: true,
 };
 
@@ -128,7 +146,7 @@ export const CMS_BLOCK_DEFINITIONS: Record<
   home_hero: {
     key: "home_hero",
     label: "Homepage hero",
-    description: "Main landing banner copy, image, and quick-search visibility.",
+    description: "Main landing banner copy, high-definition image, carousel, and quick-search visibility.",
     defaultContent: DEFAULT_HOME_HERO_CMS_CONTENT,
   },
   home_featured_listings: {
