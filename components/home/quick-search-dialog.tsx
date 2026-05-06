@@ -98,11 +98,13 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-[960px]">
         <DialogHeader className="px-5 pt-5 pb-3">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Quick Search
-            <span className="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-              NEW
+          <DialogTitle className="flex flex-col gap-1 text-lg">
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Quick Search
+            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              Powered by Autolist Intelligence
             </span>
           </DialogTitle>
         </DialogHeader>

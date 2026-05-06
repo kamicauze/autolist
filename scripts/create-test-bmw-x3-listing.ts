@@ -146,6 +146,7 @@ async function main() {
       alt_text: `BMW X3 - Photo ${index + 1}`,
       image_order: index,
       image_hash: image.hash,
+      is_watermarked: true,
     });
 
     if (imageError) {

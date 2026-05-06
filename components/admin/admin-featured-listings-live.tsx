@@ -537,6 +537,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
       </div>
 
       <AdminSectionCard
+        data-tour="featured-add"
         title="Add listing"
         description="Search active inventory and pin one listing into the homepage featured rail."
       >
@@ -696,6 +697,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
       </AdminSectionCard>
 
       <AdminSectionCard
+        data-tour="featured-rail"
         title="Pinned rail"
         description="Listings appear in ascending sort order when active and inside their date window."
         action={

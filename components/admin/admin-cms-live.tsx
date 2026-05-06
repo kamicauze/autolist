@@ -52,6 +52,7 @@ import {
   adminSurfaceClass,
   adminTextareaClass,
 } from "./admin-ui";
+import { setTourState } from "./tour/tour-state";
 
 type FeedbackState =
   | {
@@ -261,6 +262,12 @@ export function AdminCmsLive({
   mediaData: AdminCmsMediaData;
 }) {
   const [activeArea, setActiveArea] = React.useState<CmsArea>("homepage");
+
+  // Publish the active area so the admin tour engine can pick the right
+  // sub-tour (homepage / pages / media) on first arrival in each area.
+  React.useEffect(() => {
+    setTourState("cms.activeArea", activeArea);
+  }, [activeArea]);
   const [pages, setPages] = React.useState(pagesData.pages);
   const [blocks, setBlocks] = React.useState(homepageData.blocks);
   const [mediaAssets, setMediaAssets] = React.useState(mediaData.assets);
@@ -929,6 +936,7 @@ export function AdminCmsLive({
     return (
       <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="cms-homepage-block-list"
           title="Homepage Blocks"
           description="Edit draft content, then publish it when it is ready for the public landing page."
           bodyClassName="p-0"
@@ -970,10 +978,11 @@ export function AdminCmsLive({
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="cms-homepage-editor"
           title={selectedBlock.label}
           description={selectedBlock.description}
           action={
-            <div className="flex flex-wrap gap-3">
+            <div data-tour="cms-homepage-publish" className="flex flex-wrap gap-3">
               <Link
                 href="/"
                 target="_blank"
@@ -1030,6 +1039,7 @@ export function AdminCmsLive({
     return (
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="cms-pages-list"
           title="Pages"
           description="Static public routes with managed page copy and SEO metadata."
           bodyClassName="p-0"
@@ -1069,10 +1079,11 @@ export function AdminCmsLive({
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="cms-pages-editor"
           title={selectedPage.title}
           description="Edit the live copy, save it as draft, or publish it to the linked public route."
           action={
-            <div className="flex flex-wrap gap-3">
+            <div data-tour="cms-pages-publish" className="flex flex-wrap gap-3">
               <Link
                 href={CONTENT_PAGE_DEFINITIONS[selectedPage.slug].path}
                 target="_blank"
@@ -1228,7 +1239,10 @@ export function AdminCmsLive({
       <AdminPageHeader
         title="CMS"
         action={
-          <div className="inline-flex rounded-[12px] border border-[#d1d5db] bg-white p-1">
+          <div
+            data-tour="cms-area-switcher"
+            className="inline-flex rounded-[12px] border border-[#d1d5db] bg-white p-1"
+          >
             {[
               { key: "homepage" as const, label: "Homepage", icon: Home },
               { key: "pages" as const, label: "Pages", icon: FileText },
@@ -1261,7 +1275,7 @@ export function AdminCmsLive({
       {activeArea === "pages" ? renderFeedback(pageFeedback) : null}
 
       {activeArea !== "media" ? (
-        <div className="grid gap-4 xl:grid-cols-4">
+        <div data-tour="cms-stats" className="grid gap-4 xl:grid-cols-4">
           {activeArea === "homepage" ? (
             <>
               <AdminStatCard
@@ -1316,11 +1330,13 @@ export function AdminCmsLive({
         </div>
       ) : null}
 
-      {activeArea === "homepage"
-        ? renderHomepageArea()
-        : activeArea === "pages"
-          ? renderPagesArea()
-          : renderMediaArea()}
+      <div data-tour="cms-editor-body">
+        {activeArea === "homepage"
+          ? renderHomepageArea()
+          : activeArea === "pages"
+            ? renderPagesArea()
+            : renderMediaArea()}
+      </div>
     </div>
   );
 }

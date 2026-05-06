@@ -179,6 +179,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="insurance-list"
           title="Live queue"
           description="Select a quote request to review vehicle details, contact data, and insurer handoff notes."
           bodyClassName="p-0"
@@ -236,6 +237,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="insurance-detail"
           title={selectedRequest?.reference || "Insurance request details"}
           description={
             selectedRequest

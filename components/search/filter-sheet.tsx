@@ -27,7 +27,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import {
   BODY_TYPES,
   TRANSMISSIONS,
@@ -52,6 +52,7 @@ interface FilterSheetProps {
 }
 
 type FilterSheetState = {
+  q: string;
   make: string;
   model: string;
   minPrice: string;
@@ -76,6 +77,7 @@ type FilterSheetState = {
 
 function createEmptyFilterSheetState(): FilterSheetState {
   return {
+    q: "",
     make: "",
     model: "",
     minPrice: "",
@@ -106,6 +108,7 @@ function buildFilterSheetState(
   const emptyState = createEmptyFilterSheetState();
 
   return {
+    q: initialFilters?.q || searchParams.get("q") || emptyState.q,
     make: initialFilters?.make || searchParams.get("make") || emptyState.make,
     model: initialFilters?.model || searchParams.get("model") || emptyState.model,
     minPrice: initialFilters?.minPrice || searchParams.get("minPrice") || emptyState.minPrice,
@@ -129,6 +132,34 @@ function buildFilterSheetState(
   };
 }
 
+function parseKeywordTags(value: string) {
+  return value
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+}
+
+function serializeKeywordTags(keywords: string[]) {
+  return keywords.join(",");
+}
+
+function mergeKeywordTags(currentKeywords: string[], nextValue: string) {
+  const merged = [...currentKeywords];
+  const nextKeywords = parseKeywordTags(nextValue);
+
+  for (const nextKeyword of nextKeywords) {
+    const hasKeyword = merged.some(
+      (keyword) => keyword.toLocaleLowerCase() === nextKeyword.toLocaleLowerCase()
+    );
+
+    if (!hasKeyword) {
+      merged.push(nextKeyword);
+    }
+  }
+
+  return merged;
+}
+
 interface FilterSheetPanelProps {
   makes: string[];
   totalCount: number;
@@ -147,6 +178,34 @@ function FilterSheetPanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [localFilters, setLocalFilters] = useState(initialLocalFilters);
+  const [keywordInput, setKeywordInput] = useState("");
+  const keywordTags = parseKeywordTags(localFilters.q);
+
+  const addKeywordTag = useCallback(() => {
+    if (!keywordInput.trim()) {
+      return;
+    }
+
+    setLocalFilters((prev) => {
+      const currentKeywords = parseKeywordTags(prev.q);
+      const nextKeywords = mergeKeywordTags(currentKeywords, keywordInput);
+
+      return {
+        ...prev,
+        q: serializeKeywordTags(nextKeywords),
+      };
+    });
+    setKeywordInput("");
+  }, [keywordInput]);
+
+  const removeKeywordTag = useCallback((keywordToRemove: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      q: serializeKeywordTags(
+        parseKeywordTags(prev.q).filter((keyword) => keyword !== keywordToRemove)
+      ),
+    }));
+  }, []);
 
   const toggleArrayFilter = useCallback((
     key: "bodyTypes" | "transmissions" | "fuelTypes" | "sellerTypes",
@@ -163,6 +222,11 @@ function FilterSheetPanel({
   const applyFilters = () => {
     const params = new URLSearchParams(searchParamsString);
     params.set("page", "1");
+    const keyword = serializeKeywordTags(mergeKeywordTags(keywordTags, keywordInput));
+
+    // Keyword
+    if (keyword) params.set("q", keyword);
+    else params.delete("q");
 
     // Make & Model
     if (localFilters.make) params.set("make", localFilters.make);
@@ -262,6 +326,7 @@ function FilterSheetPanel({
 
   const resetFilters = () => {
     setLocalFilters(createEmptyFilterSheetState());
+    setKeywordInput("");
   };
 
   return (
@@ -271,6 +336,62 @@ function FilterSheetPanel({
       </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Keyword */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-gray-500" />
+              <Label htmlFor="filter-keyword" className="text-sm font-medium">
+                Keyword search
+              </Label>
+            </div>
+            <p className="text-sm text-gray-500">e.g. sunroof, heated seats</p>
+            {keywordTags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {keywordTags.map((keyword) => (
+                  <span
+                    key={keyword}
+                    className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+                  >
+                    {keyword}
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 text-primary hover:bg-primary/10"
+                      onClick={() => removeKeywordTag(keyword)}
+                      aria-label={`Remove ${keyword}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+              <Input
+                id="filter-keyword"
+                placeholder="Add keyword"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addKeywordTag();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="px-5"
+                onClick={addKeywordTag}
+                disabled={!keywordInput.trim()}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Make */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Make</Label>

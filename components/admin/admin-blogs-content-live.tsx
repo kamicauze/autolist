@@ -315,6 +315,7 @@ export function AdminBlogsContentLive({
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="blogs-list"
           title="Posts"
           description="Every post lives here as a real draft or published record."
           bodyClassName="p-0"
@@ -373,6 +374,7 @@ export function AdminBlogsContentLive({
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="blogs-editor"
           title={selectedPost ? selectedPost.title : "Post editor"}
           description={
             selectedPost

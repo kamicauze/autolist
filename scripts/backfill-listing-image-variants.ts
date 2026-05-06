@@ -11,6 +11,7 @@ type ListingImageRow = {
   listing_id: string;
   r2_key: string;
   image_order: number;
+  is_watermarked: boolean | null;
 };
 
 type ListingRow = {
@@ -37,6 +38,7 @@ function parseArgs(argv: string[]) {
     offset?: number;
     listingId?: string;
     dryRun?: boolean;
+    force?: boolean;
     includeAllListings?: boolean;
   } = {};
 
@@ -59,6 +61,10 @@ function parseArgs(argv: string[]) {
     }
     if (token === "--dry-run") {
       options.dryRun = true;
+      continue;
+    }
+    if (token === "--force") {
+      options.force = true;
       continue;
     }
     if (token === "--include-all-listings") {
@@ -85,7 +91,7 @@ async function fetchListingImages(limit?: number, offset?: number, listingId?: s
   const supabase = createAdminClient();
   let query = supabase
     .from("listing_images")
-    .select("id, listing_id, r2_key, image_order")
+    .select("id, listing_id, r2_key, image_order, is_watermarked")
     .not("r2_key", "like", "%/variants/%")
     .order("listing_id", { ascending: true })
     .order("image_order", { ascending: true });
@@ -166,7 +172,7 @@ async function backfill() {
 
     for (const image of images) {
       try {
-        if (!options.dryRun && (await hasCardVariant(image.r2_key))) {
+        if (!options.force && !options.dryRun && image.is_watermarked && (await hasCardVariant(image.r2_key))) {
           skippedExisting += 1;
           const fileName = image.r2_key.split("/").pop() || image.r2_key;
           const object = await r2.send(
@@ -208,6 +214,11 @@ async function backfill() {
             90_000,
             `Generate variants for ${image.r2_key}`
           );
+          const { error } = await supabase
+            .from("listing_images")
+            .update({ is_watermarked: true })
+            .eq("id", image.id);
+          if (error) throw error;
         }
         variantCount += 1;
 
@@ -270,6 +281,7 @@ async function backfill() {
         reorderedListings,
         failedImages,
         skippedExisting,
+        force: Boolean(options.force),
         offset: options.offset || 0,
         dryRun: Boolean(options.dryRun),
         includeAllListings: Boolean(options.includeAllListings),
@@ -287,6 +299,7 @@ async function backfill() {
         reorderedListings,
         failedImages,
         skippedExisting,
+        force: Boolean(options.force),
         offset: options.offset || 0,
         dryRun: Boolean(options.dryRun),
         includeAllListings: Boolean(options.includeAllListings),

@@ -8,6 +8,12 @@ import { getImageUrl } from "@/lib/utils/listings";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AdminFeedbackBanner,
+  AdminPageHeader,
+  AdminPromptDialog,
+  type AdminFeedbackState,
+} from "./admin-ui";
 
 interface AdminDealersClientProps {
   dealers: DealerVerificationRecord[];
@@ -31,45 +37,47 @@ function isImageDocument(mimeType: string | null) {
 export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
   const [processingId, setProcessingId] = React.useState<string | null>(null);
   const [dealerRows, setDealerRows] = React.useState(dealers);
+  const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
+  const [rejectingDealerId, setRejectingDealerId] = React.useState<string | null>(null);
 
   const handleApprove = async (dealerId: string) => {
     setProcessingId(dealerId);
+    setFeedback(null);
     const result = await approveDealer(dealerId);
     if (result.error) {
-      alert(`Error: ${result.error}`);
+      setFeedback({ tone: "error", message: result.error });
       setProcessingId(null);
       return;
     }
 
     setDealerRows((current) => current.filter((dealer) => dealer.id !== dealerId));
+    setFeedback({ tone: "success", message: "Dealer verification approved." });
     setProcessingId(null);
   };
 
-  const handleReject = async (dealerId: string) => {
-    const reason = window.prompt("Rejection reason:");
-    if (reason === null) return;
-
+  const handleReject = async (dealerId: string, reason: string) => {
     setProcessingId(dealerId);
+    setFeedback(null);
     const result = await rejectDealer(dealerId, reason);
     if (result.error) {
-      alert(`Error: ${result.error}`);
+      setFeedback({ tone: "error", message: result.error });
       setProcessingId(null);
       return;
     }
 
     setDealerRows((current) => current.filter((dealer) => dealer.id !== dealerId));
+    setFeedback({ tone: "success", message: "Dealer verification rejected." });
+    setRejectingDealerId(null);
     setProcessingId(null);
   };
+
+  const rejectingDealer = dealerRows.find((dealer) => dealer.id === rejectingDealerId) ?? null;
 
   if (dealerRows.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Verification (KYC)</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Review submitted dealership profiles and their supporting documents.
-          </p>
-        </div>
+        <AdminPageHeader title="Verification (KYC)" />
+        <AdminFeedbackBanner feedback={feedback} />
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
           <h3 className="mt-4 text-lg font-semibold text-slate-900">No pending dealer reviews</h3>
@@ -83,21 +91,24 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Verification (KYC)</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {dealerRows.length} dealer application{dealerRows.length === 1 ? "" : "s"} waiting for
-            review.
-          </p>
-        </div>
-        <Badge variant="warning" className="gap-1">
-          <Clock className="h-3 w-3" />
-          {dealerRows.length} Pending
-        </Badge>
-      </div>
+      <AdminPageHeader
+        title="Verification (KYC)"
+        action={
+          <Badge variant="warning" className="gap-1">
+            <Clock className="h-3 w-3" />
+            {dealerRows.length} Pending
+          </Badge>
+        }
+      />
 
-      <div className="space-y-4">
+      <p className="text-sm text-slate-600">
+        {dealerRows.length} dealer application{dealerRows.length === 1 ? "" : "s"} waiting for
+        review.
+      </p>
+
+      <AdminFeedbackBanner feedback={feedback} />
+
+      <div data-tour="admin-page-table" className="space-y-4">
         {dealerRows.map((dealer) => {
           const isProcessing = processingId === dealer.id;
 
@@ -224,7 +235,7 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                       variant="outline"
                       className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                       disabled={isProcessing}
-                      onClick={() => handleReject(dealer.id)}
+                      onClick={() => setRejectingDealerId(dealer.id)}
                     >
                       <XCircle className="h-4 w-4" />
                       Reject
@@ -245,6 +256,27 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
           );
         })}
       </div>
+
+      <AdminPromptDialog
+        open={Boolean(rejectingDealer)}
+        onOpenChange={(open) => {
+          if (!open) setRejectingDealerId(null);
+        }}
+        title="Reject dealer verification"
+        description={
+          rejectingDealer
+            ? `Add the reason ${rejectingDealer.name} should see for this verification decision.`
+            : "Add the reason for this verification decision."
+        }
+        label="Rejection reason"
+        placeholder="Documents are unreadable, expired, or do not match the dealership profile."
+        confirmLabel="Reject dealer"
+        pending={Boolean(rejectingDealerId && processingId === rejectingDealerId)}
+        onConfirm={(reason) => {
+          if (!rejectingDealerId) return;
+          void handleReject(rejectingDealerId, reason);
+        }}
+      />
     </div>
   );
 }

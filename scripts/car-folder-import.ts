@@ -1278,6 +1278,7 @@ async function saveListingImages(
       alt_text: `${item.listing.title || `${item.listing.make} ${item.listing.model}`.trim()} - Photo ${index + 1}`,
       image_order: index,
       image_hash: image.hash,
+      is_watermarked: true,
     });
     if (error) throw error;
   }

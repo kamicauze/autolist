@@ -53,6 +53,7 @@ export const listingSchema = z.object({
   availability: z.enum(LISTING_AVAILABILITY).optional(),
   negotiable: z.boolean().optional(),
   tradeInAccepted: z.boolean().optional(),
+  documentNames: z.array(z.string().trim().min(1)).max(20).optional(),
   videoUrl: z.string().trim().url("Enter a valid video URL.").optional().or(z.literal("")),
   sellerType: z.enum(LISTING_SELLER_TYPES).optional(),
   useDealerAutoFill: z.boolean().optional(),

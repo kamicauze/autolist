@@ -9,6 +9,8 @@ import {
   LISTING_FEATURES_BY_CATEGORY,
   LISTING_WIZARD_STEPS,
   type ListingCategory,
+  type ListingFeatureGroupDefinition,
+  type ListingFeatureGroups,
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
 import type { Listing } from "@/lib/types/listing";
@@ -27,7 +29,8 @@ export type DetailFieldKey =
   | "driveType" | "mileage" | "bodyType" | "bodyStyle" | "loadCapacity"
   | "engineCapacity" | "fuelType" | "fuelSystem" | "bikeType" | "color"
   | "seats" | "axleConfiguration" | "equipmentType" | "operatingHours"
-  | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType";
+  | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType"
+  | "registrationStatus";
 
 export type DetailField = {
   key: DetailFieldKey;
@@ -96,6 +99,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
     engineCapacity: "", fuelType: "", fuelSystem: "", bikeType: "", color: "",
     seats: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
     operatingWeight: "", operationalStatus: "", powerOutput: "", usageType: "",
+    registrationStatus: "",
   },
   selectedFeatureIds: [],
   coverImageName: null,
@@ -119,9 +123,10 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
   car: [
     { key: "make", label: "Make", type: "select", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "select", required: true, placeholder: "Corolla" },
-    { key: "trim", label: "Trim", type: "select", required: false, placeholder: "TX" },
-    { key: "variant", label: "Variant / Engine", type: "select", required: false, placeholder: "xDrive30d" },
+    { key: "trim", label: "Trim / Variant", type: "text", required: false, placeholder: "G, Hybrid, TX" },
+    { key: "variant", label: "Engine", type: "text", required: false, placeholder: "1500cc petrol, hybrid, xDrive30d" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
+    { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered in Kenya" }, { value: "not_registered", label: "Not registered" }, { value: "registration_in_progress", label: "Registration in progress" }] },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "fwd", label: "FWD" }, { value: "rwd", label: "RWD" }, { value: "awd", label: "AWD" }, { value: "4wd", label: "4WD" }] },
@@ -159,18 +164,18 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "loadCapacity", label: "Load Capacity (tonnes)", type: "number", required: true, placeholder: "12" },
   ],
   plant_construction: [
-    { key: "equipmentType", label: "Equipment Type", type: "select", required: true, options: [{ value: "excavator", label: "Excavator" }, { value: "bulldozer", label: "Bulldozer" }, { value: "loader", label: "Loader" }, { value: "crane", label: "Crane" }] },
-    { key: "make", label: "Make", type: "text", required: true, placeholder: "Caterpillar" },
-    { key: "model", label: "Model", type: "text", required: true, placeholder: "320D" },
+    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: [{ value: "excavator", label: "Excavator" }, { value: "bulldozer", label: "Bulldozer" }, { value: "loader", label: "Loader" }, { value: "crane", label: "Crane" }] },
+    { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Caterpillar" },
+    { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "320D" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2018" },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "6400" },
     { key: "operatingWeight", label: "Operating Weight (Optional)", type: "number", required: false, placeholder: "22000" },
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
   farm_agricultural: [
-    { key: "equipmentType", label: "Equipment Type", type: "select", required: true, options: [{ value: "tractor", label: "Tractor" }, { value: "plough", label: "Plough" }, { value: "harvester", label: "Harvester" }] },
-    { key: "make", label: "Make", type: "text", required: true, placeholder: "Massey Ferguson" },
-    { key: "model", label: "Model", type: "text", required: true, placeholder: "MF 385" },
+    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: [{ value: "tractor", label: "Tractor" }, { value: "plough", label: "Plough" }, { value: "harvester", label: "Harvester" }] },
+    { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Massey Ferguson" },
+    { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "MF 385" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2019" },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "1200" },
     { key: "powerOutput", label: "Horsepower / Capacity (Optional)", type: "number", required: false, placeholder: "85" },
@@ -264,12 +269,38 @@ function buildTrimTokens(value: string) {
   );
 }
 
-function buildAutoListingTitle(details: ListingDraft["details"]) {
+function formatEquipmentTypeLabel(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getEquipmentFallbackMake(category: ListingCategory | "") {
+  if (category === "plant_construction") return "Plant Equipment";
+  if (category === "farm_agricultural") return "Farm Equipment";
+  return "";
+}
+
+function getSubmissionMake(draft: ListingDraft) {
+  return draft.details.make.trim() || getEquipmentFallbackMake(draft.category);
+}
+
+function getSubmissionModel(draft: ListingDraft) {
+  const equipmentType = draft.details.equipmentType.trim();
+  return draft.details.model.trim() || (equipmentType ? formatEquipmentTypeLabel(equipmentType) : "");
+}
+
+function buildAutoListingTitle(details: ListingDraft["details"], category: ListingCategory | "" = "") {
   const trimValue = buildTrimTokens(details.trim).join(", ");
+  const fallbackMake = getEquipmentFallbackMake(category);
+  const equipmentTypeLabel = details.equipmentType.trim()
+    ? formatEquipmentTypeLabel(details.equipmentType.trim())
+    : "";
   const parts = [
     details.year.trim(),
-    details.make.trim(),
-    details.model.trim(),
+    details.make.trim() || fallbackMake,
+    details.model.trim() || equipmentTypeLabel,
     trimValue || details.variant.trim(),
   ].filter(Boolean);
 
@@ -284,6 +315,71 @@ export function getMarketIndicator(category: ListingCategory | "", priceKes: str
   if (amount < min) return { label: "Below Market", tone: "success" as const, note: `Typical range ${formatKES(String(min))} - ${formatKES(String(max))}.` };
   if (amount > max) return { label: "Above Market", tone: "warning" as const, note: `Typical range ${formatKES(String(min))} - ${formatKES(String(max))}.` };
   return { label: "Within Market", tone: "info" as const, note: `Typical range ${formatKES(String(min))} - ${formatKES(String(max))}.` };
+}
+
+const SMART_FEATURE_LIMIT = 12;
+
+function buildSmartFeatureKeywords(draft: ListingDraft) {
+  const year = Number(draft.details.year);
+  const detailText = [
+    draft.details.make,
+    draft.details.model,
+    draft.details.trim,
+    draft.details.variant,
+    draft.details.engineType,
+    draft.details.bodyType,
+  ].join(" ").toLowerCase();
+  const keywords = new Set<string>();
+
+  if (draft.category === "car" || draft.category === "van" || draft.category === "truck") {
+    ["abs", "airbag", "air conditioning", "bluetooth"].forEach((keyword) => keywords.add(keyword));
+
+    if (Number.isFinite(year) && year >= 2016) {
+      ["rear parking camera", "parking sensors", "traction control", "stability control"].forEach((keyword) => keywords.add(keyword));
+    }
+
+    if (Number.isFinite(year) && year >= 2020) {
+      ["lane departure", "lane keep", "automatic emergency braking", "android auto", "apple carplay"].forEach((keyword) => keywords.add(keyword));
+    }
+
+    if (detailText.includes("hybrid") || detailText.includes("electric")) {
+      ["regenerative braking", "eco mode"].forEach((keyword) => keywords.add(keyword));
+    }
+  } else if (draft.category === "motorbike") {
+    ["abs", "traction control", "led", "digital display"].forEach((keyword) => keywords.add(keyword));
+  } else if (draft.category === "plant_construction" || draft.category === "farm_agricultural") {
+    ["hydraulic", "rops", "monitor", "gps", "traction"].forEach((keyword) => keywords.add(keyword));
+  }
+
+  return Array.from(keywords);
+}
+
+function buildSmartFeatureSuggestionIds(
+  draft: ListingDraft,
+  groups: ListingFeatureGroups,
+  groupDefinition: ListingFeatureGroupDefinition
+) {
+  const allFeatures = groupDefinition.order.flatMap((groupKey) => groups[groupKey] ?? []);
+  const selected = new Set<string>();
+
+  for (const keyword of buildSmartFeatureKeywords(draft)) {
+    const normalizedKeyword = keyword.toLowerCase();
+    const match = allFeatures.find((feature) => {
+      if (selected.has(feature.id)) return false;
+      return [feature.label, feature.id, ...(feature.aliases ?? [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedKeyword);
+    });
+
+    if (match) {
+      selected.add(match.id);
+    }
+
+    if (selected.size >= SMART_FEATURE_LIMIT) break;
+  }
+
+  return Array.from(selected);
 }
 
 // ─── Context ───
@@ -410,6 +506,29 @@ function getDraftAvailability(
   return DEFAULT_DRAFT.availability;
 }
 
+function getListingMetadataStringArray(listing: Listing, key: string) {
+  const metadata = listing.metadata && typeof listing.metadata === "object"
+    ? (listing.metadata as Record<string, unknown>)
+    : {};
+  const value = metadata[key];
+
+  if (key === "documentNames" && !Array.isArray(value) && Array.isArray(metadata.documents)) {
+    return metadata.documents
+      .map((document) => {
+        if (!document || typeof document !== "object") return "";
+        const name = (document as Record<string, unknown>).name;
+        return typeof name === "string" ? name.trim() : "";
+      })
+      .filter(Boolean);
+  }
+
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+}
+
 function buildDraftFromListing(listing: Listing): ListingDraft {
   const detailMetadata = getListingMetadataDetails(listing);
   const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
@@ -460,6 +579,7 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     locationArea,
     description: listing.description ?? "",
     availability: getDraftAvailability(listing),
+    documentNames: getListingMetadataStringArray(listing, "documentNames"),
     videoUrl: getListingMetadataString(listing, "videoUrl") || "",
     details: {
       ...DEFAULT_DRAFT.details,
@@ -474,6 +594,7 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
       fuelType: listing.fuel_type ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
       engineType: listing.fuel_type ?? detailMetadata.engineType ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
       color: listing.color ?? detailMetadata.color ?? "",
+      registrationStatus: detailMetadata.registrationStatus ?? "",
       seats:
         typeof listing.seats === "number"
           ? String(listing.seats)
@@ -532,11 +653,11 @@ function buildFreshDraft(
     ...DEFAULT_DRAFT,
     details: { ...DEFAULT_DRAFT.details },
     sellerType: sellerAccountDefaults.sellerType,
-    useDealerAutoFill: sellerAccountDefaults.useDealerAutoFill,
-    contactName: sellerAccountDefaults.contactName || initialDraft.contactName,
-    phoneNumber: sellerAccountDefaults.phoneNumber || initialDraft.phoneNumber,
-    whatsappEnabled: sellerAccountDefaults.whatsappEnabled,
-    whatsappNumber: sellerAccountDefaults.whatsappNumber || initialDraft.whatsappNumber,
+    useDealerAutoFill: false,
+    contactName: initialDraft.contactName,
+    phoneNumber: initialDraft.phoneNumber,
+    whatsappEnabled: initialDraft.whatsappEnabled,
+    whatsappNumber: initialDraft.whatsappNumber,
   };
 }
 
@@ -546,8 +667,9 @@ const SUBMISSION_FIELD_METADATA: Record<
 > = {
   make: { label: "Make", stepId: "details" },
   model: { label: "Model", stepId: "details" },
-  trim: { label: "Trim", stepId: "details" },
-  variant: { label: "Variant / Engine", stepId: "details" },
+  trim: { label: "Trim / Variant", stepId: "details" },
+  variant: { label: "Engine", stepId: "details" },
+  registrationStatus: { label: "Registration Status", stepId: "details" },
   year: { label: "Year", stepId: "details" },
   mileage: { label: "Mileage", stepId: "details" },
   body_type: { label: "Body Type", stepId: "details" },
@@ -654,6 +776,7 @@ export function WizardProvider({
   const [presetUndoSelection, setPresetUndoSelection] = React.useState<string[] | null>(null);
   const [showValidationErrors, setShowValidationErrors] = React.useState(false);
   const [sellerAccountDefaults, setSellerAccountDefaults] = React.useState<SellerAccountDefaults | null>(null);
+  const smartFeatureSuggestionSignatureRef = React.useRef<string | null>(null);
 
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = React.useState<File[]>([]);
@@ -682,7 +805,7 @@ export function WizardProvider({
           };
           setDraft({
             ...restoredDraft,
-            title: buildAutoListingTitle(restoredDraft.details),
+            title: buildAutoListingTitle(restoredDraft.details, restoredDraft.category),
           });
         }
       } catch { /* ignore */ }
@@ -797,17 +920,6 @@ export function WizardProvider({
       setDraft((prev) => ({
         ...prev,
         sellerType: prev.sellerType === DEFAULT_DRAFT.sellerType ? defaults.sellerType : prev.sellerType,
-        useDealerAutoFill:
-          prev.useDealerAutoFill === DEFAULT_DRAFT.useDealerAutoFill
-            ? defaults.useDealerAutoFill
-            : prev.useDealerAutoFill,
-        contactName: prev.contactName.trim() ? prev.contactName : defaults.contactName,
-        phoneNumber: prev.phoneNumber.trim() ? prev.phoneNumber : defaults.phoneNumber,
-        whatsappEnabled:
-          prev.whatsappEnabled === DEFAULT_DRAFT.whatsappEnabled
-            ? defaults.whatsappEnabled
-            : prev.whatsappEnabled,
-        whatsappNumber: prev.whatsappNumber.trim() ? prev.whatsappNumber : defaults.whatsappNumber,
       }));
     };
 
@@ -842,6 +954,49 @@ export function WizardProvider({
       return next;
     });
   }, [selectedFeatureGroupDefinition]);
+
+  React.useEffect(() => {
+    if (activeStep !== WIZARD_STEP_INDEX_BY_ID.features) return;
+    if (!draft.category || !selectedFeatureGroups || !selectedFeatureGroupDefinition) return;
+    if (draft.selectedFeatureIds.length > 0) return;
+
+    const anchor = [
+      draft.category,
+      draft.details.make.trim().toLowerCase(),
+      draft.details.model.trim().toLowerCase(),
+      draft.details.trim.trim().toLowerCase(),
+      draft.details.variant.trim().toLowerCase(),
+      draft.details.year.trim(),
+      draft.details.equipmentType.trim().toLowerCase(),
+    ].join("|");
+
+    if (smartFeatureSuggestionSignatureRef.current === anchor) return;
+    const hasSuggestionAnchor =
+      draft.category === "plant_construction" || draft.category === "farm_agricultural"
+        ? draft.details.equipmentType.trim().length > 0
+        : draft.details.make.trim().length > 0 && draft.details.model.trim().length > 0;
+    if (!hasSuggestionAnchor) return;
+
+    smartFeatureSuggestionSignatureRef.current = anchor;
+    const suggestedFeatureIds = buildSmartFeatureSuggestionIds(
+      draft,
+      selectedFeatureGroups,
+      selectedFeatureGroupDefinition
+    );
+
+    if (suggestedFeatureIds.length === 0) return;
+
+    setDraft((prev) =>
+      prev.selectedFeatureIds.length > 0
+        ? prev
+        : { ...prev, selectedFeatureIds: suggestedFeatureIds }
+    );
+  }, [
+    activeStep,
+    draft,
+    selectedFeatureGroups,
+    selectedFeatureGroupDefinition,
+  ]);
 
   React.useEffect(() => {
     setFeatureQuery("");
@@ -911,7 +1066,7 @@ export function WizardProvider({
       return {
         ...prev,
         details: nextDetails,
-        title: buildAutoListingTitle(nextDetails),
+        title: buildAutoListingTitle(nextDetails, prev.category),
       };
     });
   };
@@ -1117,7 +1272,7 @@ export function WizardProvider({
     setDraft((prev) => ({
       ...prev,
       sellerType: sellerAccountDefaults.sellerType,
-      useDealerAutoFill: sellerAccountDefaults.useDealerAutoFill,
+      useDealerAutoFill: true,
       contactName: sellerAccountDefaults.contactName || prev.contactName,
       phoneNumber: sellerAccountDefaults.phoneNumber || prev.phoneNumber,
       whatsappEnabled: sellerAccountDefaults.whatsappEnabled,
@@ -1302,14 +1457,15 @@ export function WizardProvider({
         createListing,
         submitListingForReview,
         updateListing,
+        uploadListingDocuments,
         uploadListingImages,
         uploadListingVideo,
         reorderListingImages,
       } = await import("@/lib/actions/listings");
 
       const listingData = {
-        make: draft.details.make || "",
-        model: draft.details.model || "",
+        make: getSubmissionMake(draft),
+        model: getSubmissionModel(draft),
         trim: draft.details.trim || undefined,
         variant: draft.details.variant || undefined,
         year: parseInt(draft.details.year) || new Date().getFullYear(),
@@ -1332,6 +1488,7 @@ export function WizardProvider({
         negotiable: draft.negotiable,
         tradeInAccepted: draft.tradeInAccepted,
         videoUrl: draft.videoUrl,
+        documentNames: draft.documentNames,
         sellerType: draft.sellerType,
         useDealerAutoFill: draft.useDealerAutoFill,
         contactName: draft.contactName,
@@ -1399,6 +1556,25 @@ export function WizardProvider({
             setSubmitIssues(
               videoUploadResult.error
                 ? [{ message: videoUploadResult.error, stepIndex: 4 }]
+                : []
+            );
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
+        if (documentFiles.length > 0) {
+          const documentFormData = new FormData();
+          documentFormData.set("listingId", listingId);
+          documentFiles.forEach((file) => documentFormData.append("documentFiles", file));
+
+          const documentUploadResult = await uploadListingDocuments(documentFormData);
+
+          if ("error" in documentUploadResult) {
+            setSubmitError(documentUploadResult.error || "Unable to upload listing documents.");
+            setSubmitIssues(
+              documentUploadResult.error
+                ? [{ message: documentUploadResult.error, stepIndex: 4 }]
                 : []
             );
             setIsSubmitting(false);

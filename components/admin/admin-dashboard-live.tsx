@@ -79,7 +79,7 @@ export function AdminDashboardLive({ data }: { data: AdminDashboardData }) {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div data-tour="admin-dashboard-stats" className="grid gap-4 xl:grid-cols-4">
         {statCards.map((card) => (
           <AdminStatCard
             key={card.label}

@@ -240,6 +240,7 @@ export function AdminSettingsLive({
       </div>
 
       <AdminSectionCard
+        data-tour="settings-platform"
         title="Platform Settings"
         description="Update the marketplace defaults used by the admin team. Changes are saved immediately to Supabase when you submit."
       >

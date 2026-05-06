@@ -1,14 +1,14 @@
 "use client";
 
-import { Bike, Bus, CarFront, Construction, Tractor, Truck } from "lucide-react";
+import { BusFront, CarFront, Construction, Motorbike, Tractor, Truck } from "lucide-react";
 import { LISTING_CATEGORY_OPTIONS, type ListingCategory } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
 import { useWizard } from "./wizard-context";
 
 const CATEGORY_ICONS: Record<ListingCategory, React.ElementType> = {
   car: CarFront,
-  van: Bus,
-  motorbike: Bike,
+  van: BusFront,
+  motorbike: Motorbike,
   truck: Truck,
   plant_construction: Construction,
   farm_agricultural: Tractor,
@@ -48,11 +48,11 @@ export function StepCategory() {
               <div className="flex items-start justify-between gap-4">
                 <div
                   className={cn(
-                    "flex h-11 w-11 items-center justify-center rounded-[12px]",
+                    "flex h-14 w-14 items-center justify-center rounded-[14px]",
                     selected ? "bg-[#2563eb] text-white" : "bg-[#f5f5f5] text-[#7f7f7f]"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-7 w-7" strokeWidth={1.7} />
                 </div>
                 <span
                   className={cn(

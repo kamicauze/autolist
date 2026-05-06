@@ -9,6 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { getImageUrl } from "@/lib/utils/listings";
 import type { DuplicateReviewSuggestion } from "@/lib/types/duplicate-review";
 import type { Listing } from "@/lib/types/listing";
+import {
+  AdminFeedbackBanner,
+  AdminPageHeader,
+  AdminPromptDialog,
+  type AdminFeedbackState,
+} from "./admin-ui";
 
 interface AdminListingsClientProps {
   listings: Listing[];
@@ -42,49 +48,56 @@ function getDuplicateTone(severity: DuplicateReviewSuggestion["severity"]) {
 export function AdminListingsClient({ listings, duplicateSuggestions }: AdminListingsClientProps) {
   const router = useRouter();
   const [processing, setProcessing] = React.useState<string | null>(null);
+  const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
+  const [rejectingListingId, setRejectingListingId] = React.useState<string | null>(null);
 
   async function handleApprove(listingId: string) {
     setProcessing(listingId);
+    setFeedback(null);
     try {
       const { approveListing } = await import("@/lib/actions/listings");
       const result = await approveListing(listingId);
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        setFeedback({ tone: "error", message: result.error });
+        return;
       }
       router.refresh();
     } catch {
-      alert("An unexpected error occurred.");
+      setFeedback({ tone: "error", message: "An unexpected error occurred." });
     } finally {
       setProcessing(null);
     }
   }
 
-  async function handleReject(listingId: string) {
-    const reason = prompt("Rejection reason (optional):");
-    if (reason === null) return; // User cancelled
-
+  async function handleReject(listingId: string, reason: string) {
     setProcessing(listingId);
+    setFeedback(null);
     try {
       const { rejectListing } = await import("@/lib/actions/listings");
       const result = await rejectListing(listingId, reason || undefined);
       if (result.error) {
-        alert(`Error: ${result.error}`);
+        setFeedback({ tone: "error", message: result.error });
+        return;
       }
+      setRejectingListingId(null);
       router.refresh();
     } catch {
-      alert("An unexpected error occurred.");
+      setFeedback({ tone: "error", message: "An unexpected error occurred." });
     } finally {
       setProcessing(null);
     }
   }
 
+  const rejectingListing = listings.find((listing) => listing.id === rejectingListingId) ?? null;
+
   if (listings.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Listing Review</h1>
-          <p className="text-sm text-muted-foreground">Review and approve or reject new listing submissions</p>
-        </div>
+        <AdminPageHeader title="Listing Review" />
+        <p className="text-sm text-muted-foreground">
+          Review and approve or reject new listing submissions.
+        </p>
+        <AdminFeedbackBanner feedback={feedback} />
         <div className="rounded-xl border border-border bg-white p-12 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 text-green-400" />
           <h3 className="mt-4 text-lg font-medium text-gray-900">All caught up!</h3>
@@ -96,20 +109,23 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Listing Review</h1>
-          <p className="text-sm text-muted-foreground">
-            {listings.length} listing{listings.length !== 1 ? "s" : ""} awaiting review
-          </p>
-        </div>
-        <Badge variant="warning" className="gap-1">
-          <Clock className="h-3 w-3" />
-          {listings.length} Pending
-        </Badge>
-      </div>
+      <AdminPageHeader
+        title="Listing Review"
+        action={
+          <Badge variant="warning" className="gap-1">
+            <Clock className="h-3 w-3" />
+            {listings.length} Pending
+          </Badge>
+        }
+      />
 
-      <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        {listings.length} listing{listings.length !== 1 ? "s" : ""} awaiting review.
+      </p>
+
+      <AdminFeedbackBanner feedback={feedback} />
+
+      <div data-tour="admin-page-table" className="space-y-4">
         {listings.map((listing) => {
           const title = `${listing.year} ${listing.make} ${listing.model}`;
           const coverImage = listing.images
@@ -184,7 +200,7 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleReject(listing.id)}
+                    onClick={() => setRejectingListingId(listing.id)}
                     disabled={isProcessing}
                     className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                   >
@@ -263,6 +279,28 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
           );
         })}
       </div>
+
+      <AdminPromptDialog
+        open={Boolean(rejectingListing)}
+        onOpenChange={(open) => {
+          if (!open) setRejectingListingId(null);
+        }}
+        title="Reject listing"
+        description={
+          rejectingListing
+            ? `Add an optional rejection reason for ${rejectingListing.year} ${rejectingListing.make} ${rejectingListing.model}.`
+            : "Add an optional rejection reason."
+        }
+        label="Rejection reason"
+        placeholder="Duplicate, incomplete details, or failed moderation checks."
+        confirmLabel="Reject listing"
+        optional
+        pending={Boolean(rejectingListingId && processing === rejectingListingId)}
+        onConfirm={(reason) => {
+          if (!rejectingListingId) return;
+          void handleReject(rejectingListingId, reason);
+        }}
+      />
     </div>
   );
 }

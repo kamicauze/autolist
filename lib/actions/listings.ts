@@ -43,6 +43,7 @@ export type CreateListingInput = {
     availability?: "available" | "reserved" | "sold";
     negotiable?: boolean;
     tradeInAccepted?: boolean;
+    documentNames?: string[];
     videoUrl?: string;
     sellerType?: "dealer" | "individual";
     useDealerAutoFill?: boolean;
@@ -54,9 +55,23 @@ export type CreateListingInput = {
     hidePhoneNumber?: boolean;
 };
 
+type UploadedListingDocument = {
+    name: string;
+    url: string;
+    key: string;
+    contentType: string;
+    size: number;
+};
+
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_UPLOAD_SIZE_BYTES = 200 * 1024 * 1024;
 const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const DOCUMENT_ACCEPTED_TYPES = new Set([
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+]);
 const VIDEO_ACCEPTED_TYPES = new Set([
     "video/mp4",
     "video/webm",
@@ -144,6 +159,20 @@ function applySupplementalListingMetadata(
         }
     }
 
+    if (input.documentNames !== undefined) {
+        const documentNames = Array.isArray(input.documentNames)
+            ? input.documentNames
+                .map((name) => (typeof name === "string" ? name.trim() : ""))
+                .filter(Boolean)
+            : [];
+
+        if (documentNames.length > 0) {
+            metadata.documentNames = documentNames;
+        } else {
+            delete metadata.documentNames;
+        }
+    }
+
     return metadata;
 }
 
@@ -212,6 +241,7 @@ export async function insertListingInternal(
         availability,
         negotiable,
         tradeInAccepted,
+        documentNames,
         videoUrl,
         sellerType,
         useDealerAutoFill,
@@ -251,6 +281,7 @@ export async function insertListingInternal(
         availability,
         negotiable,
         tradeInAccepted,
+        documentNames,
         videoUrl,
         sellerType,
         useDealerAutoFill,
@@ -345,6 +376,7 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         availability,
         negotiable,
         tradeInAccepted,
+        documentNames,
         videoUrl,
         sellerType,
         useDealerAutoFill,
@@ -441,6 +473,7 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         availability,
         negotiable,
         tradeInAccepted,
+        documentNames,
         videoUrl,
         sellerType,
         useDealerAutoFill,
@@ -619,7 +652,7 @@ export async function duplicateOwnerListing(id: string) {
         .from("listings")
         .select(`
             *,
-            images:listing_images(r2_key, alt_text, image_order, image_hash)
+            images:listing_images(r2_key, alt_text, image_order, image_hash, is_watermarked)
         `)
         .eq("id", id)
         .eq("seller_id", user.id)
@@ -645,6 +678,7 @@ export async function duplicateOwnerListing(id: string) {
             alt_text: string | null;
             image_order: number;
             image_hash?: string | null;
+            is_watermarked?: boolean | null;
         }>;
     };
     void _id;
@@ -677,6 +711,7 @@ export async function duplicateOwnerListing(id: string) {
         alt_text: image.alt_text,
         image_order: image.image_order,
         image_hash: image.image_hash ?? null,
+        is_watermarked: image.is_watermarked ?? true,
     }));
 
     if (imageRows.length > 0) {
@@ -719,6 +754,7 @@ export async function saveListingImage(
             alt_text: altText,
             image_order: imageOrder,
             image_hash: imageHash,
+            is_watermarked: true,
         });
 
     if (error) {
@@ -973,6 +1009,121 @@ export async function uploadListingVideo(formData: FormData) {
     revalidatePath(`/vehicle/${listingId}`);
     revalidatePath("/dashboard/listings");
     return { success: true, videoUrl: publicUrl };
+}
+
+export async function uploadListingDocuments(formData: FormData) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+
+    const listingId = formData.get("listingId");
+    if (typeof listingId !== "string" || !listingId.trim()) {
+        return { error: "Listing id is required." };
+    }
+
+    const documentFiles = formData
+        .getAll("documentFiles")
+        .filter((value): value is File => value instanceof File && value.size > 0);
+
+    if (documentFiles.length === 0) {
+        return { error: "At least one document file is required." };
+    }
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id, metadata")
+        .eq("id", listingId)
+        .eq("seller_id", user.id)
+        .single();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found or not editable." };
+    }
+
+    if (!process.env.R2_BUCKET_NAME) {
+        return { error: "R2 bucket configuration is missing." };
+    }
+
+    const uploadedDocuments: UploadedListingDocument[] = [];
+
+    for (const documentFile of documentFiles) {
+        if (!DOCUMENT_ACCEPTED_TYPES.has(documentFile.type)) {
+            return { error: `"${documentFile.name}" must be a PDF, JPG, PNG, or WebP file.` };
+        }
+
+        if (documentFile.size > MAX_UPLOAD_SIZE_BYTES) {
+            return { error: `"${documentFile.name}" exceeds the 10MB upload limit.` };
+        }
+
+        const extension = extensionForFile(documentFile);
+        const baseName = extension
+            ? documentFile.name.slice(0, -extension.length)
+            : documentFile.name;
+        const key = `listings/${listingId}/documents/${Date.now()}-${nanoid(10)}-${sanitizeFileName(`${baseName}${extension}`)}`;
+        const publicUrl = getStorageObjectUrl(key);
+
+        if (!publicUrl.startsWith("http")) {
+            return { error: "Public asset URL configuration is missing." };
+        }
+
+        try {
+            await r2.send(
+                new PutObjectCommand({
+                    Bucket: process.env.R2_BUCKET_NAME,
+                    Key: key,
+                    Body: Buffer.from(await documentFile.arrayBuffer()),
+                    ContentType: documentFile.type || "application/octet-stream",
+                })
+            );
+        } catch (error) {
+            console.error("Listing document upload error:", error);
+            return { error: `Unable to upload "${documentFile.name}".` };
+        }
+
+        uploadedDocuments.push({
+            name: documentFile.name,
+            url: publicUrl,
+            key,
+            contentType: documentFile.type || "application/octet-stream",
+            size: documentFile.size,
+        });
+    }
+
+    const existingMetadata = (
+        listing.metadata && typeof listing.metadata === "object" ? listing.metadata : {}
+    ) as Record<string, unknown>;
+    const existingDocuments = Array.isArray(existingMetadata.documents)
+        ? existingMetadata.documents.filter((document) => document && typeof document === "object")
+        : [];
+    const documents = [...existingDocuments, ...uploadedDocuments];
+    const nextMetadata = {
+        ...existingMetadata,
+        documents,
+        documentNames: documents
+            .map((document) =>
+                typeof (document as Record<string, unknown>).name === "string"
+                    ? String((document as Record<string, unknown>).name).trim()
+                    : ""
+            )
+            .filter(Boolean),
+    };
+
+    const { error: updateError } = await supabase
+        .from("listings")
+        .update({
+            metadata: nextMetadata,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", listingId)
+        .eq("seller_id", user.id);
+
+    if (updateError) {
+        return { error: updateError.message };
+    }
+
+    revalidatePath(`/vehicle/${listingId}`);
+    revalidatePath("/dashboard/listings");
+    return { success: true, documents: uploadedDocuments };
 }
 
 // ─── Status Transitions ──────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import {
   AdminTopNavigation,
   adminPrimaryButtonClass,
 } from "./admin-ui";
+import { AdminTourHelpButton, AdminTourProvider } from "./tour/admin-tour";
 
 interface AdminShellProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
@@ -77,6 +78,7 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
   };
 
   return (
+    <AdminTourProvider>
     <div className="min-h-screen bg-white">
       {sidebarOpen ? (
         <button
@@ -88,6 +90,7 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
       ) : null}
 
       <aside
+        data-tour="admin-sidebar"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/5 bg-[#24272c] text-white transition-transform duration-300 lg:translate-x-0",
           sidebarOpen
@@ -172,7 +175,11 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
             </button>
             <AdminTopNavigation />
             <div className="ml-auto flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151]">
+              <AdminTourHelpButton />
+              <div
+                data-tour="admin-notifications"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151]"
+              >
                 <NotificationBell className="text-[#374151]" />
               </div>
               <div className="hidden items-center gap-3 lg:flex">
@@ -182,7 +189,11 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </div>
-              <Link href={primaryAction.href} className={cn(adminPrimaryButtonClass, "h-10 gap-2 px-4")}>
+              <Link
+                data-tour="admin-primary-action"
+                href={primaryAction.href}
+                className={cn(adminPrimaryButtonClass, "h-10 gap-2 px-4")}
+              >
                 <Plus className="h-4 w-4" />
                 {primaryAction.label}
               </Link>
@@ -200,5 +211,6 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
         </main>
       </div>
     </div>
+    </AdminTourProvider>
   );
 }

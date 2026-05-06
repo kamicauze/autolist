@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
+  ExternalLink,
+  FileText,
   Flag,
   GitCompare,
   Heart,
@@ -12,6 +14,7 @@ import {
   MapPin,
   ShieldCheck,
   Share2,
+  Video,
 } from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
 import { Listing } from "@/lib/types/listing";
@@ -40,6 +43,7 @@ import {
 } from "./price-adviser-panel";
 import { FinancingRequestDialog } from "./financing-request-dialog";
 import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsDirectionsUrl } from "@/lib/google-maps";
 import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
@@ -210,6 +214,79 @@ function metadataValue(metadata: Listing["metadata"], key: string) {
   return value == null ? "N/A" : String(value);
 }
 
+type ListingDocument = {
+  name: string;
+  url: string | null;
+};
+
+function getMetadataRecord(metadata: Listing["metadata"]) {
+  return metadata && typeof metadata === "object"
+    ? (metadata as Record<string, unknown>)
+    : {};
+}
+
+function getVideoUrl(metadata: Listing["metadata"]) {
+  const value = getListingMetadataString({ metadata }, "videoUrl");
+  return value?.startsWith("http") ? value : null;
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, "");
+
+    if (hostname === "youtu.be") {
+      const id = parsed.pathname.split("/").filter(Boolean)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+      const id = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function getListingDocuments(metadata: Listing["metadata"]): ListingDocument[] {
+  const record = getMetadataRecord(metadata);
+  const documents = Array.isArray(record.documents) ? record.documents : [];
+  const normalizedDocuments = documents
+    .map((document) => {
+      if (!document || typeof document !== "object") return null;
+      const candidate = document as Record<string, unknown>;
+      const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+      const url = typeof candidate.url === "string" && candidate.url.startsWith("http")
+        ? candidate.url
+        : null;
+      return name ? { name, url } : null;
+    })
+    .filter((document): document is ListingDocument => Boolean(document));
+
+  if (normalizedDocuments.length > 0) {
+    return normalizedDocuments;
+  }
+
+  const documentNames = Array.isArray(record.documentNames) ? record.documentNames : [];
+  return documentNames
+    .map((name) => (typeof name === "string" ? name.trim() : ""))
+    .filter(Boolean)
+    .map((name) => ({ name, url: null }));
+}
+
+function formatRegistrationStatus(listing: Listing) {
+  const status = getListingMetadataString(listing, "registrationStatus");
+
+  if (status === "registered") return "Registered in Kenya";
+  if (status === "not_registered") return "Not registered";
+  if (status === "registration_in_progress") return "Registration in progress";
+
+  return "N/A";
+}
+
 export function VehiclePageClient({
   listing,
   similarListings,
@@ -278,6 +355,10 @@ export function VehiclePageClient({
     location,
     "Kenya",
   ]);
+  const videoUrl = getVideoUrl(listing.metadata);
+  const youtubeEmbedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
+  const listingDocuments = getListingDocuments(listing.metadata);
+  const hasSupportingMedia = Boolean(videoUrl) || listingDocuments.length > 0;
 
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
@@ -388,7 +469,7 @@ export function VehiclePageClient({
         currency={listing.currency}
         pricePositioning={pricePositioning}
       />
-              <ImageGallery images={sortedImages} title={title} />
+              <ImageGallery images={sortedImages} title={title} videoUrl={videoUrl} />
             </div>
 
             <Tabs defaultValue="overview" className="mt-6 w-full">
@@ -448,6 +529,67 @@ export function VehiclePageClient({
               onOpenDetails={() => setIsPriceAdviserOpen(true)}
             />
 
+            {hasSupportingMedia ? (
+              <div id="listing-video" className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  <h2 className="text-base font-semibold text-gray-900">Video & Documents</h2>
+                </div>
+                {videoUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-gray-100 bg-gray-950">
+                    {youtubeEmbedUrl ? (
+                      <iframe
+                        src={youtubeEmbedUrl}
+                        title={`${title} video`}
+                        className="aspect-video w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video
+                        controls
+                        preload="metadata"
+                        src={videoUrl}
+                        className="aspect-video w-full bg-black"
+                      />
+                    )}
+                  </div>
+                ) : null}
+                {listingDocuments.length > 0 ? (
+                  <div className={videoUrl ? "mt-4" : ""}>
+                    <p className="mb-2 text-sm font-semibold text-gray-900">Documents</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {listingDocuments.map((document) =>
+                        document.url ? (
+                          <a
+                            key={`${document.name}-${document.url}`}
+                            href={document.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary"
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <FileText className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{document.name}</span>
+                            </span>
+                            <ExternalLink className="h-4 w-4 shrink-0" />
+                          </a>
+                        ) : (
+                          <div
+                            key={document.name}
+                            className="flex min-w-0 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700"
+                          >
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{document.name}</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="mt-5">
               <AccordionSection
                 title="Description"
@@ -478,15 +620,21 @@ export function VehiclePageClient({
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Trim</p>
+                    <p className="text-xs text-gray-500">Trim / Variant</p>
                     <p className="font-semibold text-gray-900">
                       {getListingTrim(listing) || "N/A"}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Variant / Engine</p>
+                    <p className="text-xs text-gray-500">Engine</p>
                     <p className="font-semibold text-gray-900">
                       {getListingVariant(listing) || "N/A"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-100 p-3">
+                    <p className="text-xs text-gray-500">Registration</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatRegistrationStatus(listing)}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-100 p-3">

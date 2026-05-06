@@ -30,24 +30,19 @@ import {
 import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
 import { cn } from "@/lib/utils";
 import {
+  AdminConfirmDialog,
+  AdminFeedbackBanner,
   AdminPageHeader,
   AdminSectionCard,
   AdminStatCard,
   AdminStatusPill,
+  type AdminFeedbackState,
   adminGhostButtonClass,
   adminInputClass,
   adminPrimaryButtonClass,
   adminSelectClass,
-  adminSurfaceClass,
   adminTextareaClass,
 } from "./admin-ui";
-
-type FeedbackState =
-  | {
-      tone: "success" | "error";
-      message: string;
-    }
-  | null;
 
 type PendingAction = "create" | "save" | "delete" | null;
 
@@ -187,8 +182,9 @@ export function AdminAdsBannersLive({
   const [mediaAssets, setMediaAssets] = React.useState(mediaData.assets);
   const [selectedId, setSelectedId] = React.useState(data.banners[0]?.id ?? "");
   const [editor, setEditor] = React.useState(() => createEditorState(data.banners[0] ?? null));
-  const [feedback, setFeedback] = React.useState<FeedbackState>(null);
+  const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
   const selectedBanner = banners.find((banner) => banner.id === selectedId) ?? banners[0] ?? null;
@@ -278,7 +274,6 @@ export function AdminAdsBannersLive({
 
   function handleDelete() {
     if (!selectedBanner) return;
-    if (!window.confirm(`Delete "${selectedBanner.title}"?`)) return;
 
     startTransition(async () => {
       setPendingAction("delete");
@@ -294,6 +289,7 @@ export function AdminAdsBannersLive({
 
         setBanners((current) => current.filter((banner) => banner.id !== result.bannerId));
         setSelectedId("");
+        setDeleteDialogOpen(false);
         setFeedback({ tone: "success", message: result.message });
       } finally {
         setPendingAction(null);
@@ -325,19 +321,7 @@ export function AdminAdsBannersLive({
         </div>
       ) : null}
 
-      {feedback ? (
-        <div
-          className={cn(
-            adminSurfaceClass,
-            "px-5 py-4 text-[13px]",
-            feedback.tone === "success"
-              ? "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]"
-              : "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]"
-          )}
-        >
-          {feedback.message}
-        </div>
-      ) : null}
+      <AdminFeedbackBanner feedback={feedback} />
 
       <div className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
@@ -364,6 +348,7 @@ export function AdminAdsBannersLive({
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="ads-list"
           title="Campaigns"
           description="Reusable banner campaigns by placement, schedule, and status."
           bodyClassName="p-0"
@@ -416,6 +401,7 @@ export function AdminAdsBannersLive({
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="ads-editor"
           title={selectedBanner ? selectedBanner.title : "Banner editor"}
           description="Configure placement, creative, link target, schedule, and activation state."
           action={
@@ -424,7 +410,7 @@ export function AdminAdsBannersLive({
                 <button
                   type="button"
                   className={cn(adminGhostButtonClass, "gap-2")}
-                  onClick={handleDelete}
+                  onClick={() => setDeleteDialogOpen(true)}
                   disabled={isPending}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -646,6 +632,21 @@ export function AdminAdsBannersLive({
           )}
         </AdminSectionCard>
       </div>
+
+      <AdminConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete banner"
+        description={
+          selectedBanner
+            ? `Delete "${selectedBanner.title}"? This campaign will be removed from the admin editor.`
+            : "Delete this campaign?"
+        }
+        confirmLabel="Delete banner"
+        destructive
+        pending={pendingAction === "delete"}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -63,7 +63,7 @@ export function VideoSection() {
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Car reviews & updates
+            Car reviews and blogs
           </h2>
           <Link
             href="/reviews"
@@ -74,11 +74,11 @@ export function VideoSection() {
           </Link>
         </div>
 
-        <div className="relative rounded-[24px] overflow-hidden">
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[20px]">
           {/* Main Carousel Card */}
           <Link
             href={currentArticle.href}
-            className="relative aspect-video block w-full group cursor-pointer"
+            className="relative block aspect-[16/8.5] w-full cursor-pointer group"
           >
             <Image
               src={currentArticle.image}
@@ -92,19 +92,19 @@ export function VideoSection() {
             {/* Play button (if video) */}
             {currentArticle.hasVideo && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="h-8 w-8 text-primary ml-1" fill="currentColor" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg transition-transform group-hover:scale-110 sm:h-[72px] sm:w-[72px]">
+                  <Play className="ml-1 h-7 w-7 text-primary" fill="currentColor" />
                 </div>
               </div>
             )}
 
             {/* Title overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-12">
+            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-9">
               <div className="max-w-3xl mx-auto text-center">
                 <p className="text-sm font-medium text-white/80 tracking-wider uppercase mb-2">
                   {currentArticle.category}
                 </p>
-                <h3 className="text-2xl sm:text-4xl font-bold text-white">
+                <h3 className="text-2xl font-bold text-white sm:text-3xl">
                   {currentArticle.title}
                 </h3>
               </div>

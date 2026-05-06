@@ -229,6 +229,7 @@ export function AdminRolesPermissionsLive({
       </div>
 
       <AdminSectionCard
+        data-tour="roles-coverage"
         title="Live Role Coverage"
         description="Current account split across the role values supported by the backend."
       >
@@ -254,6 +255,7 @@ export function AdminRolesPermissionsLive({
       </AdminSectionCard>
 
       <AdminSectionCard
+        data-tour="roles-assignments"
         title="Staff Role Assignments"
         description="Limited to sales agents, support, admins, and super admins so normal buyer, seller, and dealer profiles do not flood this page."
       >
@@ -324,6 +326,7 @@ export function AdminRolesPermissionsLive({
       </AdminSectionCard>
 
       <AdminSectionCard
+        data-tour="roles-matrix"
         title="Permission Matrix"
         description="Map platform permissions to each role. Super admin always keeps every permission."
       >

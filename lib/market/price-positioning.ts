@@ -85,11 +85,10 @@ function getCandidateScore(candidate: CandidateListing, input: PricePositioningI
   return score;
 }
 
-function buildBasedOnLabel(exactMatches: number, makeBodyMatches: number) {
-  if (exactMatches >= 4) return "make, model and close year matches";
-  if (exactMatches >= 2) return "make and model matches";
-  if (makeBodyMatches >= 4) return "make and body type matches";
-  return "broader active marketplace matches";
+function buildBasedOnLabel(hasYearWindow: boolean) {
+  return hasYearWindow
+    ? "same make, same model and +/- 1 year matches"
+    : "same make and same model matches";
 }
 
 export function computePricePositioning(
@@ -99,6 +98,17 @@ export function computePricePositioning(
   const validCandidates = candidates
     .filter((candidate) => candidate.id !== input.currentListingId)
     .filter((candidate) => Number.isFinite(candidate.price) && candidate.price > 0)
+    .filter(
+      (candidate) =>
+        normalize(candidate.make) === normalize(input.make) &&
+        normalize(candidate.model) === normalize(input.model)
+    )
+    .filter(
+      (candidate) =>
+        !input.year ||
+        !candidate.year ||
+        Math.abs(candidate.year - input.year) <= 1
+    )
     .map((candidate) => ({
       candidate,
       score: getCandidateScore(candidate, input),
@@ -106,7 +116,7 @@ export function computePricePositioning(
     .sort((a, b) => b.score - a.score);
 
   const filteredCandidates = validCandidates
-    .filter(({ score }) => score >= 28)
+    .filter(({ score }) => score >= 66)
     .slice(0, 12)
     .map(({ candidate }) => candidate);
 
@@ -115,21 +125,15 @@ export function computePricePositioning(
       normalize(candidate.make) === normalize(input.make) &&
       normalize(candidate.model) === normalize(input.model)
   ).length;
-  const makeBodyMatches = filteredCandidates.filter(
-    (candidate) =>
-      normalize(candidate.make) === normalize(input.make) &&
-      normalize(candidate.body_type) === normalize(input.bodyType)
-  ).length;
-
   if (filteredCandidates.length < 3) {
     return {
       status: "insufficient_data",
       label: "Not enough data",
       tone: "neutral",
-      note: "We need at least 3 similar active listings to estimate a reliable market range.",
+      note: "We need at least 3 active listings with the same make, same model and close model year to estimate a reliable market range.",
       confidence: "low",
       confidenceLabel: confidenceLabel("low"),
-      basedOn: "limited comparable listings",
+      basedOn: buildBasedOnLabel(Boolean(input.year)),
       sampleSize: filteredCandidates.length,
       marketAverage: null,
       marketMedian: null,
@@ -216,7 +220,7 @@ export function computePricePositioning(
     note,
     confidence,
     confidenceLabel: confidenceLabel(confidence),
-    basedOn: buildBasedOnLabel(exactMatches, makeBodyMatches),
+    basedOn: buildBasedOnLabel(Boolean(input.year)),
     sampleSize: filteredCandidates.length,
     marketAverage,
     marketMedian,

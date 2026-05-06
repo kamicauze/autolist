@@ -139,6 +139,7 @@ export async function GET() {
                         image_order: index,
                         alt_text: `${item.make} ${item.model} - Photo ${index + 1}`,
                         image_hash: image.hash,
+                        is_watermarked: true,
                     });
 
                 if (dbError) {

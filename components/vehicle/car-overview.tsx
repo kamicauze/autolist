@@ -11,9 +11,11 @@ import {
   DoorOpen,
   Palette,
   Users,
+  BadgeCheck,
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
 import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 
 interface CarOverviewProps {
   listing: Listing;
@@ -29,6 +31,16 @@ interface Item {
 function readMetadataValue(metadata: Listing["metadata"], key: string) {
   const value = metadata && key in metadata ? metadata[key] : null;
   return value == null ? "N/A" : String(value);
+}
+
+function formatRegistrationStatus(listing: Listing) {
+  const status = getListingMetadataString(listing, "registrationStatus");
+
+  if (status === "registered") return "Registered in Kenya";
+  if (status === "not_registered") return "Not registered";
+  if (status === "registration_in_progress") return "Registration in progress";
+
+  return "N/A";
 }
 
 function OverviewItem({ item }: { item: Item }) {
@@ -56,6 +68,11 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
       icon: <Calendar className="h-4 w-4" />,
     },
     {
+      label: "Registration",
+      value: formatRegistrationStatus(listing),
+      icon: <BadgeCheck className="h-4 w-4" />,
+    },
+    {
       label: "Fuel Type",
       value: listing.fuel_type || "N/A",
       icon: <Fuel className="h-4 w-4" />,
@@ -76,12 +93,12 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
       icon: <Car className="h-4 w-4" />,
     },
     {
-      label: "Trim",
+      label: "Trim / Variant",
       value: getListingTrim(listing) || "N/A",
       icon: <Car className="h-4 w-4" />,
     },
     {
-      label: "Variant / Engine",
+      label: "Engine",
       value: getListingVariant(listing) || "N/A",
       icon: <Cog className="h-4 w-4" />,
     },

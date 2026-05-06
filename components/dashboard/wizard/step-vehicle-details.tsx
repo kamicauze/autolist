@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Palette } from "lucide-react";
 import { COLORS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils";
 import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
@@ -56,6 +57,13 @@ export function StepVehicleDetails() {
         return;
       }
 
+      setReferenceOptions((previous) => ({
+        ...previous,
+        models: draft.details.make ? previous.models : [],
+        trimOptions: [],
+        variants: [],
+      }));
+
       const nextOptions = await fetchVehicleReferenceOptionsAction(
         draft.category,
         draft.details.make,
@@ -104,17 +112,17 @@ export function StepVehicleDetails() {
         <>
           <input
             list={`detail-make-options-${draft.category || "car"}`}
-          value={draft.details.make}
-          onChange={(event) => updateDetailField("make", event.target.value)}
+            value={draft.details.make}
+            onChange={(event) => updateDetailField("make", event.target.value)}
             placeholder={field.placeholder}
             className={cn(sellerInputClass, hasError && "border-[#f04438]")}
           />
           <datalist id={`detail-make-options-${draft.category || "car"}`}>
-          {referenceOptions.makes.map((make) => (
-            <option key={make} value={make}>
-              {make}
-            </option>
-          ))}
+            {referenceOptions.makes.map((make) => (
+              <option key={make} value={make}>
+                {make}
+              </option>
+            ))}
           </datalist>
         </>
       );
@@ -143,22 +151,22 @@ export function StepVehicleDetails() {
         <>
           <input
             list={`detail-model-options-${draft.category || "car"}`}
-          value={draft.details.model}
-          onChange={(event) => updateDetailField("model", event.target.value)}
-          disabled={!draft.details.make}
+            value={draft.details.model}
+            onChange={(event) => updateDetailField("model", event.target.value)}
+            disabled={!draft.details.make}
             placeholder={draft.details.make ? field.placeholder : "Select make first"}
             className={cn(
-            sellerInputClass,
-            !draft.details.make && "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
-            hasError && "border-[#f04438]"
-          )}
+              sellerInputClass,
+              !draft.details.make && "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
+              hasError && "border-[#f04438]"
+            )}
           />
           <datalist id={`detail-model-options-${draft.category || "car"}`}>
-          {referenceOptions.models.map((model) => (
-            <option key={model} value={model}>
-              {model}
-            </option>
-          ))}
+            {referenceOptions.models.map((model) => (
+              <option key={model} value={model}>
+                {model}
+              </option>
+            ))}
           </datalist>
         </>
       );
@@ -171,12 +179,9 @@ export function StepVehicleDetails() {
             list={`detail-trim-options-${draft.category || "car"}`}
             value={draft.details.trim}
             onChange={(event) => updateDetailField("trim", event.target.value)}
-            disabled={!draft.details.model || referenceOptions.trimOptions.length === 0}
-            placeholder={!draft.details.model ? "Select model first" : "Add one or more trims, separated by commas"}
+            placeholder="Type trim or variant, separated by commas if needed"
             className={cn(
               sellerInputClass,
-              (!draft.details.model || referenceOptions.trimOptions.length === 0) &&
-                "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
               hasError && "border-[#f04438]"
             )}
           />
@@ -187,9 +192,9 @@ export function StepVehicleDetails() {
               </option>
             ))}
           </datalist>
-          {draft.details.model ? (
+          {draft.details.model && referenceOptions.trimOptions.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
-              Add multiple trims by separating them with commas. Model-specific trims are suggested first.
+              Suggestions are model-specific where available. You can still type the exact trim.
             </p>
           ) : null}
         </>
@@ -203,12 +208,9 @@ export function StepVehicleDetails() {
             list={`detail-variant-options-${draft.category || "car"}`}
             value={draft.details.variant}
             onChange={(event) => updateDetailField("variant", event.target.value)}
-            disabled={!draft.details.model || referenceOptions.variants.length === 0}
-            placeholder={!draft.details.model ? "Select model first" : field.placeholder}
+            placeholder={field.placeholder}
             className={cn(
               sellerInputClass,
-              (!draft.details.model || referenceOptions.variants.length === 0) &&
-                "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
               hasError && "border-[#f04438]"
             )}
           />
@@ -221,8 +223,7 @@ export function StepVehicleDetails() {
           </datalist>
           {referenceOptions.variants.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
-              Use this field for engine or drivetrain naming such as BMW `xDrive30d` or Mercedes
-              `C200`.
+              Use this for the engine, drivetrain, or market engine name such as Hybrid, C200, or xDrive30d.
             </p>
           ) : null}
         </>
@@ -230,6 +231,9 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "color") {
+      const isKnownColor = COLORS.includes(draft.details.color as (typeof COLORS)[number]);
+      const isCustomColor = draft.details.color.trim().length > 0 && !isKnownColor;
+
       return (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -255,9 +259,30 @@ export function StepVehicleDetails() {
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => updateDetailField("color", isCustomColor ? draft.details.color : "")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition",
+                isCustomColor
+                  ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
+                  : "border-[#e4e7ec] bg-white text-[#202224] hover:border-[#2563eb]"
+              )}
+            >
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[conic-gradient(from_90deg,#ef4444,#f59e0b,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444)] text-white">
+                <Palette className="h-3 w-3" />
+              </span>
+              Other
+            </button>
           </div>
+          <input
+            value={isKnownColor ? "" : draft.details.color}
+            onChange={(event) => updateDetailField("color", event.target.value)}
+            placeholder="Type preferred color, e.g. Champagne, Pearl White, Two-tone"
+            className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+          />
           <p className="text-[12px] text-[#767676]">
-            Pick the exterior color buyers should see on the listing card and filters.
+            Pick a common exterior color or type a preferred color when the exact shade is not listed.
           </p>
         </div>
       );

@@ -75,6 +75,10 @@ function parseRequestedValues(value?: string | string[]) {
     .filter(Boolean);
 }
 
+function parseRequestedKeywords(value?: string | string[]) {
+  return parseRequestedValues(value);
+}
+
 function parseRequestedDriveTypes(value?: string | string[]) {
   return parseRequestedValues(value)
     .map((item) => normalizeDriveTypeValue(item) ?? item.trim().toUpperCase())
@@ -234,11 +238,18 @@ function applyListingFilters<TQuery extends ListingQuery>(
 ): TQuery {
   let nextQuery = query;
 
-  if (filters?.q) {
-    const broad = escapeLike(filters.q);
-    nextQuery = nextQuery.or(
-      `make.ilike.%${broad}%,model.ilike.%${broad}%,description.ilike.%${broad}%,body_type.ilike.%${broad}%`
-    );
+  const keywordFilters = parseRequestedKeywords(filters?.q)
+    .map((keyword) => escapeLike(keyword))
+    .filter(Boolean)
+    .flatMap((keyword) => [
+      `make.ilike.%${keyword}%`,
+      `model.ilike.%${keyword}%`,
+      `description.ilike.%${keyword}%`,
+      `body_type.ilike.%${keyword}%`,
+    ]);
+
+  if (keywordFilters.length > 0) {
+    nextQuery = nextQuery.or(keywordFilters.join(","));
   }
   if (filters?.make) {
     nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "make", filters.make);

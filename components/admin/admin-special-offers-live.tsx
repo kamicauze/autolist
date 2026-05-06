@@ -318,6 +318,7 @@ export function AdminSpecialOffersLive({
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminSectionCard
+          data-tour="offers-list"
           title="Offers"
           description="Create, schedule, pause, and order CMS-managed promotional offers."
           bodyClassName="p-0"
@@ -385,6 +386,7 @@ export function AdminSpecialOffersLive({
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="offers-editor"
           title={selectedOffer ? selectedOffer.title : "Offer editor"}
           description={
             selectedOffer

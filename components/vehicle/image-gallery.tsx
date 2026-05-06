@@ -15,9 +15,10 @@ import {
 interface ImageGalleryProps {
   images: string[];
   title: string;
+  videoUrl?: string | null;
 }
 
-export function ImageGallery({ images, title }: ImageGalleryProps) {
+export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showAllImages, setShowAllImages] = React.useState(false);
   const displayImages = images.length > 0 ? images : ["/placeholder-car.jpg"];
@@ -44,7 +45,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           src={displayImages[selectedIndex]}
           alt={`${title} - Image ${selectedIndex + 1}`}
           fill
-          className="object-cover"
+          className="object-contain"
           sizes="(max-width: 768px) 100vw, 600px"
           priority
         />
@@ -71,14 +72,19 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
 
         {/* Action buttons overlay */}
         <div className="absolute bottom-4 left-4 z-10 flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="h-9 bg-white/90 text-black hover:bg-white"
-          >
-            <Play className="h-4 w-4" />
-            Video
-          </Button>
+          {videoUrl ? (
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="h-9 bg-white/90 text-black hover:bg-white"
+            >
+              <a href="#listing-video">
+                <Play className="h-4 w-4" />
+                Video
+              </a>
+            </Button>
+          ) : null}
           <Button
             variant="secondary"
             size="sm"
@@ -143,7 +149,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                   src={image}
                   alt={`${title} - Image ${index + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                 />
               </button>

@@ -78,6 +78,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <AdminSectionCard
+          data-tour="reports-queue"
           title="Live Ticket Queue"
           description="Current support tickets and safety escalations pulled from the backend queue."
         >
@@ -132,6 +133,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
         </AdminSectionCard>
 
         <AdminSectionCard
+          data-tour="reports-activity"
           title="Recent Ticket Activity"
           description="Latest event trail from assignments, status changes, and resolutions."
         >

@@ -23,6 +23,12 @@ import {
   updateAdminListingStatus,
 } from "@/lib/actions/listings";
 import type { AdminDashboardListing } from "@/lib/data/admin";
+import {
+  AdminConfirmDialog,
+  AdminFeedbackBanner,
+  AdminPromptDialog,
+  type AdminFeedbackState,
+} from "./admin-ui";
 
 type ActionResult = { error?: string; success?: boolean };
 
@@ -33,6 +39,8 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<string | null>(null);
+  const [dialog, setDialog] = React.useState<"reject" | "delete" | null>(null);
+  const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
   const isPending = Boolean(pendingAction);
 
   const runAction = async (
@@ -40,16 +48,19 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
     action: () => Promise<ActionResult>
   ) => {
     setPendingAction(actionKey);
+    setFeedback(null);
     try {
       const result = await action();
       if (result.error) {
-        window.alert(result.error);
-        return;
+        setFeedback({ tone: "error", message: result.error });
+        return false;
       }
       setOpen(false);
       router.refresh();
+      return true;
     } catch {
-      window.alert("Could not update this listing. Try again.");
+      setFeedback({ tone: "error", message: "Could not update this listing. Try again." });
+      return false;
     } finally {
       setPendingAction(null);
     }
@@ -66,165 +77,201 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
   };
 
   const handleReject = () => {
-    const reason =
-      listing.status === "pending"
-        ? window.prompt("Rejection reason (optional):")
-        : "";
-    if (reason === null) return;
+    if (listing.status === "pending") {
+      setDialog("reject");
+      return;
+    }
 
     void runAction(
       "reject",
-      () =>
-        listing.status === "pending"
-          ? rejectListing(listing.id, reason || undefined)
-          : updateAdminListingStatus(listing.id, "rejected")
+      () => updateAdminListingStatus(listing.id, "rejected")
     );
   };
 
   const handleDelete = () => {
-    const confirmed = window.confirm(
-      `Delete "${listing.title}"? This removes it from admin, seller, and public views.`
-    );
-    if (!confirmed) return;
-    void runAction("delete", () => deleteAdminListing(listing.id));
+    setDialog("delete");
   };
 
   return (
-    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-[9px] border border-[#d1d5db] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]"
-        >
-        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-        Actions
-        <ChevronDown className="h-3.5 w-3.5" />
-        </button>
-      </DropdownMenu.Trigger>
-
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={8}
-          collisionPadding={16}
-          className="z-[100] w-[220px] rounded-[10px] border border-[#e5e7eb] bg-white p-1 shadow-[0_18px_45px_rgba(15,23,42,0.16)]"
-        >
-          <DropdownMenu.Item asChild>
-            <Link href={`/vehicle/${listing.id}`} className={itemClass}>
-              <ArrowUpRight className="h-4 w-4" />
-              View listing
-            </Link>
-          </DropdownMenu.Item>
-
-        {listing.status !== "active" ? (
-          <DropdownMenu.Item
-            onSelect={handleActivate}
-            disabled={isPending}
-            className={itemClass}
+    <div className="space-y-2">
+      <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-[9px] border border-[#d1d5db] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]"
           >
-            <CheckCircle2 className="h-4 w-4 text-[#059669]" />
-            {listing.status === "pending" ? "Approve listing" : "Set active"}
-          </DropdownMenu.Item>
-        ) : null}
+            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Actions
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </DropdownMenu.Trigger>
 
-        {listing.status !== "pending" ? (
-          <DropdownMenu.Item
-            onSelect={() =>
-              void runAction("pending", () =>
-                updateAdminListingStatus(listing.id, "pending")
-              )
-            }
-            disabled={isPending}
-            className={itemClass}
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="z-[100] w-[220px] rounded-[10px] border border-[#e5e7eb] bg-white p-1 shadow-[0_18px_45px_rgba(15,23,42,0.16)]"
           >
-            <Clock3 className="h-4 w-4 text-[#d97706]" />
-            Send to review
-          </DropdownMenu.Item>
-        ) : null}
+            <DropdownMenu.Item asChild>
+              <Link href={`/vehicle/${listing.id}`} className={itemClass}>
+                <ArrowUpRight className="h-4 w-4" />
+                View listing
+              </Link>
+            </DropdownMenu.Item>
 
-        {listing.status !== "rejected" ? (
-          <DropdownMenu.Item
-            onSelect={handleReject}
-            disabled={isPending}
-            className={itemClass}
-          >
-            <XCircle className="h-4 w-4 text-[#dc2626]" />
-            Reject listing
-          </DropdownMenu.Item>
-        ) : null}
+            {listing.status !== "active" ? (
+              <DropdownMenu.Item
+                onSelect={handleActivate}
+                disabled={isPending}
+                className={itemClass}
+              >
+                <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+                {listing.status === "pending" ? "Approve listing" : "Set active"}
+              </DropdownMenu.Item>
+            ) : null}
 
-        <DropdownMenu.Separator className="my-1 h-px bg-[#eef2f7]" />
+            {listing.status !== "pending" ? (
+              <DropdownMenu.Item
+                onSelect={() =>
+                  void runAction("pending", () =>
+                    updateAdminListingStatus(listing.id, "pending")
+                  )
+                }
+                disabled={isPending}
+                className={itemClass}
+              >
+                <Clock3 className="h-4 w-4 text-[#d97706]" />
+                Send to review
+              </DropdownMenu.Item>
+            ) : null}
 
-        <DropdownMenu.Item
-          onSelect={() =>
-            void runAction("feature", () =>
-              setListingFeatured(listing.id, !listing.isFeatured)
-            )
-          }
-          disabled={isPending}
-          className={itemClass}
-        >
-          <Star className="h-4 w-4 text-[#2563eb]" />
-          {listing.isFeatured ? "Remove featured" : "Feature listing"}
-        </DropdownMenu.Item>
+            {listing.status !== "rejected" ? (
+              <DropdownMenu.Item
+                onSelect={handleReject}
+                disabled={isPending}
+                className={itemClass}
+              >
+                <XCircle className="h-4 w-4 text-[#dc2626]" />
+                Reject listing
+              </DropdownMenu.Item>
+            ) : null}
 
-        {listing.status !== "reserved" ? (
-          <DropdownMenu.Item
-            onSelect={() =>
-              void runAction("reserved", () =>
-                updateAdminListingStatus(listing.id, "reserved")
-              )
-            }
-            disabled={isPending}
-            className={itemClass}
-          >
-            <ShieldX className="h-4 w-4 text-[#7c3aed]" />
-            Hold listing
-          </DropdownMenu.Item>
-        ) : null}
+            <DropdownMenu.Separator className="my-1 h-px bg-[#eef2f7]" />
 
-        {listing.status !== "sold" ? (
-          <DropdownMenu.Item
-            onSelect={() =>
-              void runAction("sold", () =>
-                updateAdminListingStatus(listing.id, "sold")
-              )
-            }
-            disabled={isPending}
-            className={itemClass}
-          >
-            <CheckCircle2 className="h-4 w-4 text-[#059669]" />
-            Mark sold
-          </DropdownMenu.Item>
-        ) : null}
+            <DropdownMenu.Item
+              onSelect={() =>
+                void runAction("feature", () =>
+                  setListingFeatured(listing.id, !listing.isFeatured)
+                )
+              }
+              disabled={isPending}
+              className={itemClass}
+            >
+              <Star className="h-4 w-4 text-[#2563eb]" />
+              {listing.isFeatured ? "Remove featured" : "Feature listing"}
+            </DropdownMenu.Item>
 
-        {listing.status !== "expired" ? (
-          <DropdownMenu.Item
-            onSelect={() =>
-              void runAction("expired", () =>
-                updateAdminListingStatus(listing.id, "expired")
-              )
-            }
-            disabled={isPending}
-            className={itemClass}
-          >
-            <Clock3 className="h-4 w-4 text-[#6b7280]" />
-            Expire listing
-          </DropdownMenu.Item>
-        ) : null}
+            {listing.status !== "reserved" ? (
+              <DropdownMenu.Item
+                onSelect={() =>
+                  void runAction("reserved", () =>
+                    updateAdminListingStatus(listing.id, "reserved")
+                  )
+                }
+                disabled={isPending}
+                className={itemClass}
+              >
+                <ShieldX className="h-4 w-4 text-[#7c3aed]" />
+                Hold listing
+              </DropdownMenu.Item>
+            ) : null}
 
-        <DropdownMenu.Separator className="my-1 h-px bg-[#eef2f7]" />
+            {listing.status !== "sold" ? (
+              <DropdownMenu.Item
+                onSelect={() =>
+                  void runAction("sold", () =>
+                    updateAdminListingStatus(listing.id, "sold")
+                  )
+                }
+                disabled={isPending}
+                className={itemClass}
+              >
+                <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+                Mark sold
+              </DropdownMenu.Item>
+            ) : null}
 
-        <DropdownMenu.Item
-          onSelect={handleDelete}
-          disabled={isPending}
-          className="flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] outline-none transition hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete listing
-        </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+            {listing.status !== "expired" ? (
+              <DropdownMenu.Item
+                onSelect={() =>
+                  void runAction("expired", () =>
+                    updateAdminListingStatus(listing.id, "expired")
+                  )
+                }
+                disabled={isPending}
+                className={itemClass}
+              >
+                <Clock3 className="h-4 w-4 text-[#6b7280]" />
+                Expire listing
+              </DropdownMenu.Item>
+            ) : null}
+
+            <DropdownMenu.Separator className="my-1 h-px bg-[#eef2f7]" />
+
+            <DropdownMenu.Item
+              onSelect={handleDelete}
+              disabled={isPending}
+              className="flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] outline-none transition hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete listing
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+
+      <AdminFeedbackBanner feedback={feedback} className="max-w-[240px] px-3 py-2 text-[12px]" />
+
+      <AdminPromptDialog
+        open={dialog === "reject"}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDialog(null);
+        }}
+        title="Reject listing"
+        description={`Add an optional rejection reason for "${listing.title}".`}
+        label="Rejection reason"
+        placeholder="Missing documents, duplicate listing, or inaccurate listing details."
+        confirmLabel="Reject listing"
+        optional
+        pending={pendingAction === "reject"}
+        onConfirm={(reason) => {
+          void (async () => {
+            const ok = await runAction("reject", () =>
+              rejectListing(listing.id, reason || undefined)
+            );
+            if (ok) setDialog(null);
+          })();
+        }}
+      />
+
+      <AdminConfirmDialog
+        open={dialog === "delete"}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDialog(null);
+        }}
+        title="Delete listing"
+        description={`Delete "${listing.title}"? This removes it from admin, seller, and public views.`}
+        confirmLabel="Delete listing"
+        destructive
+        pending={pendingAction === "delete"}
+        onConfirm={() => {
+          void (async () => {
+            const ok = await runAction("delete", () => deleteAdminListing(listing.id));
+            if (ok) setDialog(null);
+          })();
+        }}
+      />
+    </div>
   );
 }

@@ -351,7 +351,7 @@ export function AdminCmsMediaLibrary({
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div data-tour="cms-media-stats" className="grid gap-4 xl:grid-cols-3">
         <AdminStatCard
           label="Media assets"
           value={assets.length.toLocaleString("en-KE")}
@@ -369,6 +369,7 @@ export function AdminCmsMediaLibrary({
         />
       </div>
 
+      <div data-tour="cms-media-upload">
       <AdminSectionCard
         title="Upload Media"
         description="Upload JPG, PNG, or WebP files. Images are optimized to WebP and saved for reuse across CMS modules."
@@ -386,13 +387,16 @@ export function AdminCmsMediaLibrary({
           }}
         />
       </AdminSectionCard>
+      </div>
 
+      <div data-tour="cms-media-library">
       <AdminSectionCard
         title="Media Library"
         description="Reusable images for homepage, blog covers, banners, offers, and future CMS modules."
       >
         <CmsMediaAssetGrid assets={assets} />
       </AdminSectionCard>
+      </div>
     </div>
   );
 }

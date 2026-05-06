@@ -14,8 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dropzone } from "@/components/ui/dropzone";
 import {
   CarFront,
-  Bus,
-  Bike,
+  BusFront,
+  Motorbike,
   Truck,
   Tractor,
   Construction,
@@ -577,8 +577,8 @@ function getMarketIndicator(category: ListingCategory | "", priceKes: string) {
 
 const CATEGORY_ICONS: Record<ListingCategory, React.ElementType> = {
   car: CarFront,
-  van: Bus,
-  motorbike: Bike,
+  van: BusFront,
+  motorbike: Motorbike,
   truck: Truck,
   plant_construction: Construction,
   farm_agricultural: Tractor,
@@ -1258,6 +1258,7 @@ export function ListingWizard() {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {LISTING_CATEGORY_OPTIONS.map((category) => {
               const selected = draft.category === category.value;
+              const Icon = CATEGORY_ICONS[category.value];
               return (
                 <button
                   key={category.value}
@@ -1272,7 +1273,22 @@ export function ListingWizard() {
                   onClick={() => updateField("category", category.value)}
                   data-testid={`listing-category-${category.value}`}
                 >
-                  <p className="font-semibold text-foreground">{category.label}</p>
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px]",
+                        selected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <Icon className="h-7 w-7" strokeWidth={1.7} />
+                    </div>
+                    <div className="min-w-0 pt-1">
+                      <p className="font-semibold text-foreground">{category.label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {selected ? "Selected" : "Available"}
+                      </p>
+                    </div>
+                  </div>
                 </button>
               );
             })}

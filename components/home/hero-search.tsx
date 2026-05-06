@@ -21,13 +21,13 @@ import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { QuickSearchDialog } from "./quick-search-dialog";
 import {
-  Bike,
   BusFront,
   CarFront,
   ChevronLeft,
   ChevronRight,
   Construction,
   MapPin,
+  Motorbike,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -56,7 +56,7 @@ type HeroCategoryConfig = {
 
 const CATEGORY_CONFIG: Record<ListingCategory, HeroCategoryConfig> = {
   car: { icon: CarFront, ...LANDING_SEARCH_CATEGORY_CONFIG.car },
-  motorbike: { icon: Bike, ...LANDING_SEARCH_CATEGORY_CONFIG.motorbike },
+  motorbike: { icon: Motorbike, ...LANDING_SEARCH_CATEGORY_CONFIG.motorbike },
   van: { icon: BusFront, ...LANDING_SEARCH_CATEGORY_CONFIG.van },
   truck: { icon: Truck, ...LANDING_SEARCH_CATEGORY_CONFIG.truck },
   plant_construction: { icon: Construction, ...LANDING_SEARCH_CATEGORY_CONFIG.plant_construction },
@@ -603,7 +603,7 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
                         aria-pressed={isActive}
                         title={config.label}
                       >
-                        <Icon className="h-5 w-5 sm:h-[22px] sm:w-[22px]" strokeWidth={1.8} />
+                        <Icon className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={1.7} />
                       </button>
                     );
                   })}

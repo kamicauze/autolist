@@ -37,49 +37,22 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
   const queries = [];
 
   if (input.make && input.model) {
-    queries.push(
-      supabase
-        .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
-        .eq("status", "active")
-        .ilike("make", input.make)
-        .ilike("model", input.model)
-        .limit(30)
-    );
-  }
+    const inputYear = typeof input.year === "number" && Number.isFinite(input.year)
+      ? input.year
+      : null;
+    let query = supabase
+      .from("listings")
+      .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
+      .eq("status", "active")
+      .ilike("make", input.make.trim())
+      .ilike("model", input.model.trim())
+      .limit(40);
 
-  if (input.make && input.bodyType) {
-    queries.push(
-      supabase
-        .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
-        .eq("status", "active")
-        .ilike("make", input.make)
-        .eq("body_type", input.bodyType)
-        .limit(30)
-    );
-  }
+    if (inputYear && inputYear > 0) {
+      query = query.gte("year", inputYear - 1).lte("year", inputYear + 1);
+    }
 
-  if (input.make) {
-    queries.push(
-      supabase
-        .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
-        .eq("status", "active")
-        .ilike("make", input.make)
-        .limit(30)
-    );
-  }
-
-  if (input.bodyType) {
-    queries.push(
-      supabase
-        .from("listings")
-        .select("id, make, model, year, price, mileage, body_type, transmission, fuel_type, metadata, dealer:dealers(city)")
-        .eq("status", "active")
-        .eq("body_type", input.bodyType)
-        .limit(30)
-    );
+    queries.push(query);
   }
 
   const results = await Promise.all(queries);

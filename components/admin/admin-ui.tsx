@@ -21,6 +21,14 @@ import {
   UserCog,
   Users,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type AdminNavItem = {
@@ -89,6 +97,13 @@ export const adminPrimaryButtonClass =
 export const adminGhostButtonClass =
   "inline-flex items-center justify-center rounded-[10px] border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]";
 
+export type AdminFeedbackState =
+  | {
+      tone: "success" | "error";
+      message: string;
+    }
+  | null;
+
 export function AdminPageHeader({
   title,
   action,
@@ -97,11 +112,14 @@ export function AdminPageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div
+      data-tour="admin-page-header"
+      className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+    >
       <h1 className="font-heading text-[24px] font-semibold leading-[1.1] text-[#111827]">
         {title}
       </h1>
-      {action}
+      {action ? <div data-tour="admin-page-action">{action}</div> : null}
     </div>
   );
 }
@@ -142,6 +160,7 @@ export function AdminSectionCard({
   children,
   className,
   bodyClassName,
+  ...sectionProps
 }: {
   title: string;
   description?: string;
@@ -149,9 +168,9 @@ export function AdminSectionCard({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
-}) {
+} & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section className={cn(adminSurfaceClass, className)}>
+    <section {...sectionProps} className={cn(adminSurfaceClass, className)}>
       <div className="px-6 pt-6">
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
@@ -167,6 +186,165 @@ export function AdminSectionCard({
         {children}
       </div>
     </section>
+  );
+}
+
+export function AdminFeedbackBanner({
+  feedback,
+  className,
+}: {
+  feedback: AdminFeedbackState;
+  className?: string;
+}) {
+  if (!feedback) return null;
+
+  return (
+    <div
+      className={cn(
+        adminSurfaceClass,
+        "px-5 py-4 text-[13px]",
+        feedback.tone === "success"
+          ? "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]"
+          : "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]",
+        className
+      )}
+    >
+      {feedback.message}
+    </div>
+  );
+}
+
+export function AdminConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  destructive = false,
+  pending = false,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  pending?: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-[#e5e7eb] bg-white sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-[20px] text-[#111827]">{title}</DialogTitle>
+          <DialogDescription className="text-[14px] leading-6 text-[#6b7280]">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <button
+            type="button"
+            className={adminGhostButtonClass}
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              adminPrimaryButtonClass,
+              destructive && "bg-[#dc2626] hover:bg-[#b91c1c]"
+            )}
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? "Working..." : confirmLabel}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AdminPromptDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  label,
+  placeholder,
+  confirmLabel = "Submit",
+  pending = false,
+  optional = false,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  label: string;
+  placeholder?: string;
+  confirmLabel?: string;
+  pending?: boolean;
+  optional?: boolean;
+  onConfirm: (value: string) => void;
+}) {
+  const [value, setValue] = React.useState("");
+
+  React.useEffect(() => {
+    if (open) setValue("");
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-[#e5e7eb] bg-white sm:max-w-[500px]">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onConfirm(value);
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="font-heading text-[20px] text-[#111827]">{title}</DialogTitle>
+            <DialogDescription className="text-[14px] leading-6 text-[#6b7280]">
+              {description}
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block space-y-2">
+            <span className="text-[13px] font-medium text-[#374151]">
+              {label}
+              {optional ? <span className="font-normal text-[#9ca3af]"> optional</span> : null}
+            </span>
+            <textarea
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              className={adminTextareaClass}
+              placeholder={placeholder}
+              disabled={pending}
+              required={!optional}
+            />
+          </label>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button
+              type="button"
+              className={adminGhostButtonClass}
+              onClick={() => onOpenChange(false)}
+              disabled={pending}
+            >
+              Cancel
+            </button>
+            <button type="submit" className={adminPrimaryButtonClass} disabled={pending}>
+              {pending ? "Working..." : confirmLabel}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 export function AdminStatusPill({
@@ -201,7 +379,7 @@ export function AdminDataTable({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className={adminSurfaceClass}>
+    <div data-tour="admin-page-table" className={adminSurfaceClass}>
       <div className="overflow-x-auto">
         <table className="min-w-full text-left">
           <thead>
@@ -309,7 +487,10 @@ export function AdminTopNavigation() {
   ];
 
   return (
-    <div className="hidden items-center gap-6 text-[12px] text-[#111827] xl:flex">
+    <div
+      data-tour="admin-topnav"
+      className="hidden items-center gap-6 text-[12px] text-[#111827] xl:flex"
+    >
       {links.map((link) => (
         <Link key={link.href} href={link.href} className="transition hover:text-[#2563eb]">
           {link.label}
