@@ -94,6 +94,15 @@ function createEditorState(banner: CmsBanner | null): BannerEditorState {
   };
 }
 
+function parseSortOrderInput(value: string) {
+  if (!value.trim()) return 0;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+
+  return Math.min(999, Math.max(0, Math.trunc(parsed)));
+}
+
 function sortBanners(banners: CmsBanner[]) {
   return [...banners].sort((left, right) => {
     if (left.placement !== right.placement) {
@@ -522,11 +531,12 @@ export function AdminAdsBannersLive({
                     type="number"
                     min={0}
                     max={999}
+                    step={1}
                     value={editor.sortOrder}
                     onChange={(event) =>
                       setEditor((current) => ({
                         ...current,
-                        sortOrder: Number(event.target.value),
+                        sortOrder: parseSortOrderInput(event.target.value),
                       }))
                     }
                     className={adminInputClass}

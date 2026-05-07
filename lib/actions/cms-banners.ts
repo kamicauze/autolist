@@ -25,7 +25,7 @@ const saveCmsBannerSchema = z.object({
   targetUrl: z.string().trim().max(2000),
   startsAt: z.string().trim().max(80),
   endsAt: z.string().trim().max(80),
-  sortOrder: z.number().int().min(0).max(999),
+  sortOrder: z.coerce.number().int().min(0).max(999),
 });
 
 const bannerIdSchema = z.object({
