@@ -4,6 +4,7 @@ import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { ListingsTable } from "@/components/dashboard/listings-table";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
 import { VerificationBanner } from "@/components/dashboard/verification-banner";
+import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
 import { getMyListings } from "@/lib/actions/listings";
 import { createClient } from "@/lib/supabase/server";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
@@ -103,6 +104,12 @@ export default async function DashboardPage() {
       />
 
       <VerificationBanner />
+
+      <PublicCmsBannerPlacement
+        placement="dashboard"
+        variant="compact"
+        className="px-0 py-0"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {dashboardStats.map((item) => (

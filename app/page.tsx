@@ -11,6 +11,8 @@ import { VideoSection } from "@/components/home/video-section";
 import { ServicesSection } from "@/components/home/services-section";
 import { NewsSection } from "@/components/home/news-section";
 import { SocialMediaSection } from "@/components/home/social-media-section";
+import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
+import { PublicSpecialOffers } from "@/components/cms/public-special-offers";
 import {
   countMatchingListings,
   getNewestListings,
@@ -61,10 +63,16 @@ export default async function Home() {
           <HeroSearchWithData content={cmsContent.hero} />
         </Suspense>
 
+        <PublicCmsBannerPlacement placement="home_top" variant="full" />
+
         {/* Recent Activities Section */}
         <Suspense fallback={<ListingsSectionSkeleton />}>
           <RecentActivitiesData content={cmsContent.featuredListings} />
         </Suspense>
+
+        <PublicCmsBannerPlacement placement="home_featured" variant="compact" />
+
+        <PublicSpecialOffers />
 
         {/* How Autolist Works */}
         {cmsContent.sections.showHowItWorks ? <HowItWorks /> : null}

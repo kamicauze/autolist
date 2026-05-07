@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserFavoriteListingIds } from "@/lib/data/favorites";
@@ -88,6 +89,9 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
               title={title}
               location={location}
               googleMapsApiKey={googleMapsApiKey}
+              sidebarBanner={
+                <PublicCmsBannerPlacement placement="vehicle_detail" variant="sidebar" />
+              }
             />
           </Suspense>
         </div>

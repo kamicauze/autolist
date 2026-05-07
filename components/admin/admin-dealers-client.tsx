@@ -180,7 +180,10 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                 </div>
 
                 <div className="w-full max-w-xl space-y-4">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div
+                    data-tour="kyc-documents"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  >
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                       Documents
                     </p>
@@ -229,7 +232,7 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div data-tour="kyc-decision" className="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"

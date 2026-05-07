@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -63,6 +64,7 @@ interface VehiclePageClientProps {
   title: string;
   location: string;
   googleMapsApiKey: string;
+  sidebarBanner?: ReactNode;
 }
 
 type SectionKey =
@@ -298,6 +300,7 @@ export function VehiclePageClient({
   title,
   location,
   googleMapsApiKey,
+  sidebarBanner,
 }: VehiclePageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -763,6 +766,8 @@ export function VehiclePageClient({
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-5">
               <SellerCard listingId={listing.id} dealer={listing.dealer} seller={listing.seller} />
+
+              {sidebarBanner}
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>

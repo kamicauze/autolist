@@ -168,7 +168,10 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
         title="Listings"
         description="Live inventory across active, pending, sold, and expired states."
       >
-        <div className="mb-5 grid gap-3 xl:grid-cols-[minmax(280px,1.4fr)_180px_160px_160px_auto]">
+        <div
+          data-tour="listings-filters"
+          className="mb-5 grid gap-3 xl:grid-cols-[minmax(280px,1.4fr)_180px_160px_160px_auto]"
+        >
           <label className="flex h-11 min-w-0 items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-3">
             <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
             <input
@@ -290,7 +293,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                       {formatCurrency(listing.price, listing.currency)}
                     </td>
                     <td className="px-6 py-4 text-[12px] text-[#6b7280]">{formatDate(listing.createdAt)}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right" data-tour="listings-actions">
                       <AdminListingActions listing={listing} />
                     </td>
                   </tr>

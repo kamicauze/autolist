@@ -12,7 +12,7 @@ import {
 // Bump this when tour copy or step structure changes meaningfully so returning
 // admins see the updated walkthrough. All module storage keys are namespaced
 // under this version.
-const TOUR_VERSION = 3;
+const TOUR_VERSION = 4;
 const STORAGE_KEY = (moduleId: string) =>
   `autolist:admin-tour:v${TOUR_VERSION}:${moduleId}`;
 
@@ -138,11 +138,43 @@ const DASHBOARD_TOUR: ModuleTour = {
       placement: "bottom",
     },
     {
+      id: "sidebar",
+      selector: '[data-tour="admin-sidebar"]',
+      title: "Move around from the left menu",
+      body:
+        "Every module lives in this menu — listings, the review queue, KYC, payments, content, and so on. A red number on a row means something is waiting for you in that section.",
+      placement: "right",
+    },
+    {
+      id: "topnav",
+      selector: '[data-tour="admin-topnav"]',
+      title: "Top quick links",
+      body:
+        "Six shortcuts to the most-used pages. They mirror the sidebar so you don't have to scroll the menu when you're already up here.",
+      placement: "bottom",
+    },
+    {
       id: "stats",
       selector: '[data-tour="admin-dashboard-stats"]',
       title: "Four numbers that matter",
       body:
         "Live counts for active listings, things waiting on review, total users, and the support queue. If a number jumps suddenly, that's usually worth investigating.",
+      placement: "bottom",
+    },
+    {
+      id: "primary-action",
+      selector: '[data-tour="admin-primary-action"]',
+      title: "Jump to the busiest queue",
+      body:
+        "This blue button is context-aware. On the dashboard it sends you to the moderation queue so you can clear the most pressing work in a single click.",
+      placement: "bottom",
+    },
+    {
+      id: "notifications",
+      selector: '[data-tour="admin-notifications"]',
+      title: "Live notifications",
+      body:
+        "New flags, KYC submissions, payouts, and reports ping here as they happen. A dot on the bell means something arrived since you last checked.",
       placement: "bottom",
     },
     {
@@ -152,6 +184,14 @@ const DASHBOARD_TOUR: ModuleTour = {
       body:
         "The most recent listings, signups, and tickets. Click any row to jump to the full record. Use this to spot odd patterns — bursts of new accounts, repeat phone numbers, etc.",
       placement: "top",
+    },
+    {
+      id: "help",
+      selector: '[data-tour="admin-help"]',
+      title: "Replay any tour later",
+      body:
+        "Click the help icon any time to replay the tour for the page you're on. Each module also has its own short walkthrough on first visit.",
+      placement: "bottom",
     },
   ],
 };
@@ -190,7 +230,15 @@ const LISTINGS_TOUR: ModuleTour = {
       selector: '[data-tour="admin-page-header"]',
       title: "Every listing on Autolist",
       body:
-        "All listings across all sellers and dealers in one place. Filter by status, category, or seller type to drill in.",
+        "All listings across all sellers and dealers in one place. This is the inventory control room — search, filter, inspect, and act on any listing.",
+      placement: "bottom",
+    },
+    {
+      id: "filters",
+      selector: '[data-tour="listings-filters"]',
+      title: "Search and filter",
+      body:
+        "Search by listing, seller, dealer, or price. Then narrow by status (active, pending, rejected, sold, etc.), seller type (dealer or private), and visibility (featured or standard). Use Clear to reset everything.",
       placement: "bottom",
     },
     {
@@ -198,8 +246,16 @@ const LISTINGS_TOUR: ModuleTour = {
       selector: '[data-tour="admin-page-table"]',
       title: "The listing table",
       body:
-        "The colour pills tell you the state — green is live, amber is waiting on review, red is rejected or sold. The action menu on each row covers approving, rejecting, marking as featured, and removing the listing.",
+        "Each row shows the listing, seller, status pill, price, and when it was created. Click the chevron on the left of a row to expand it and see the full vehicle details, photos, and notes inline.",
       placement: "top",
+    },
+    {
+      id: "actions",
+      selector: '[data-tour="listings-actions"]',
+      title: "The action menu",
+      body:
+        "Open this menu to act on any listing. Options change with status: View listing, Approve / Set active, Send to review, Reject (with optional reason), Feature or Unfeature, Hold, Mark sold, Expire, and Delete (with confirmation). Every change updates admin, seller, and public views together.",
+      placement: "left",
     },
   ],
 };
@@ -214,8 +270,16 @@ const REVIEW_TOUR: ModuleTour = {
       selector: '[data-tour="admin-page-header"]',
       title: "The single moderation inbox",
       body:
-        "Anything that needs a human decision lives here — new listings waiting for approval, user reports, and disputes. Oldest items rise to the top so nothing gets forgotten.",
+        "New listings waiting for approval show up here. Each row has the photos, the seller, and Approve / Reject buttons — Reject opens a small modal where you can record an optional reason.",
       placement: "bottom",
+    },
+    {
+      id: "duplicate-assistant",
+      selector: '[data-tour="review-duplicate-assistant"]',
+      title: "AI Duplicate Review Assistant",
+      body:
+        "When a pending listing looks similar to existing inventory, an AI summary appears in this card. It scores the similarity, names the matching listings, and explains why — so the moderation team can spot repeats and obvious scams faster. The badge tells you how the score was produced (OpenAI, local AI, or rule-based).",
+      placement: "top",
     },
     {
       id: "primary-action",
@@ -242,11 +306,19 @@ const VERIFICATION_TOUR: ModuleTour = {
       placement: "bottom",
     },
     {
-      id: "table",
-      selector: '[data-tour="admin-page-table"]',
-      title: "The submissions queue",
+      id: "documents",
+      selector: '[data-tour="kyc-documents"]',
+      title: "Review the uploaded documents",
       body:
-        "Click a row to open the document viewer. You can zoom in, compare to the user's profile data, then approve or reject with a note. Every decision is logged so we can audit it later.",
+        "Each dealer card shows their business and contact details on the left, with their submitted documents on the right. Image documents render as previews you can click to enlarge in a new tab. PDFs and other files open via the link icon. Compare what you see here to the dealer's profile data before deciding.",
+      placement: "left",
+    },
+    {
+      id: "decision",
+      selector: '[data-tour="kyc-decision"]',
+      title: "Approve or reject",
+      body:
+        "Approve clears the dealer to operate. Reject opens a small modal where you record a reason — that note is sent back to the dealer and stored in the audit log so we can show our work later.",
       placement: "top",
     },
   ],
@@ -488,19 +560,27 @@ const ADS_BANNERS_TOUR: ModuleTour = {
       placement: "bottom",
     },
     {
+      id: "stats",
+      selector: '[data-tour="ads-stats"]',
+      title: "Performance at a glance",
+      body:
+        "Live campaigns, scheduled, expiring soon, and average click-through rate (CTR) across everything currently running. Watch the CTR — a sudden drop usually means the creative is stale or pointing somewhere broken.",
+      placement: "bottom",
+    },
+    {
       id: "list",
       selector: '[data-tour="ads-list"]',
       title: "Campaign list",
       body:
-        "Each row is a banner campaign. The pill shows whether it's live, paused, or scheduled for later. Click a row to open it on the right.",
+        "Each row is a banner campaign. The pill shows whether it's live, paused, scheduled, or just a draft. Click any row to open it in the editor on the right.",
       placement: "right",
     },
     {
       id: "editor",
       selector: '[data-tour="ads-editor"]',
-      title: "Edit a banner",
+      title: "Edit the banner",
       body:
-        "Pick where it shows (homepage, search, listing), upload the image, set the link target, and choose start and end dates. Toggle Active when you want it live. Remember to save.",
+        "Set the placement (homepage top, sidebar, etc.), upload separate desktop and mobile creatives, write alt text for accessibility, set the click-through URL, and choose a run window with start and end dates. Status flips from Draft → Active → Paused as needed. Save before navigating away.",
       placement: "left",
     },
   ],
@@ -584,7 +664,15 @@ const SETTINGS_TOUR: ModuleTour = {
       selector: '[data-tour="admin-page-header"]',
       title: "Platform-wide settings",
       body:
-        "These are the defaults that affect the whole site — things like the default currency, support contacts, and which features are turned on. Be careful here; changes go live immediately for every user.",
+        "These are the defaults that affect the whole site — support contacts, review SLAs, AI features, dealer approval flow. Be careful here; saved changes go live immediately for every user.",
+      placement: "bottom",
+    },
+    {
+      id: "schema-status",
+      selector: '[data-tour="settings-schema-status"]',
+      title: "Schema readiness",
+      body:
+        "This badge tells you whether your changes will actually persist. Blue means the platform_settings table is connected and saves go straight to Supabase. Amber means the table isn't there yet — the form still loads, but Save will fail until the migration runs.",
       placement: "bottom",
     },
     {
@@ -592,7 +680,7 @@ const SETTINGS_TOUR: ModuleTour = {
       selector: '[data-tour="settings-platform"]',
       title: "The settings form",
       body:
-        "All editable settings in one place. Make your changes, then click Save at the bottom. Anything you change is logged in the audit log so we can roll back later if needed.",
+        "All editable settings in one place. Make your changes, click Save at the bottom, and a green or red banner appears just above the form to confirm what happened. Every successful change is recorded in the audit log so we can roll back later if needed.",
       placement: "top",
     },
   ],

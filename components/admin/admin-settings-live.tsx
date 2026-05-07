@@ -170,6 +170,7 @@ export function AdminSettingsLive({
         title="Settings"
         action={
           <div
+            data-tour="settings-schema-status"
             className={cn(
               "rounded-[10px] px-4 py-2 text-[12px]",
               schemaReady

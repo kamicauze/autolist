@@ -323,7 +323,7 @@ export function AdminAdsBannersLive({
 
       <AdminFeedbackBanner feedback={feedback} />
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div data-tour="ads-stats" className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
           label="Live campaigns"
           value={stats.live.toLocaleString("en-KE")}

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
 import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
@@ -120,12 +121,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </div>
 
           <Suspense fallback={<div className="animate-pulse h-16 bg-gray-200 rounded-lg" />}>
+            <PublicCmsBannerPlacement
+              placement="search_top"
+              variant="compact"
+              className="mb-6 px-0 py-0"
+            />
             <SearchPageClient
               listings={listings}
               total={total}
               totalPages={totalPages}
               totalCount={totalCount}
               makes={makes}
+              sidebarSlot={
+                <PublicCmsBannerPlacement placement="search_sidebar" variant="sidebar" />
+              }
             />
           </Suspense>
         </div>

@@ -220,7 +220,10 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
               </div>
 
               {duplicateSuggestion && (
-                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div
+                  data-tour="review-duplicate-assistant"
+                  className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
