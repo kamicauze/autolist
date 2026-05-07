@@ -113,8 +113,39 @@ export function Header() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const desktopNavRef = React.useRef<HTMLElement | null>(null);
   const { ids } = useCompare();
   const { user, loading } = useAuth();
+
+  React.useEffect(() => {
+    if (!openMenu) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!desktopNavRef.current?.contains(event.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMenu]);
+
+  React.useEffect(() => {
+    setOpenMenu(null);
+  }, [pathname]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -145,7 +176,7 @@ export function Header() {
             />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex" onMouseLeave={() => setOpenMenu(null)}>
+          <nav ref={desktopNavRef} className="hidden items-center gap-1 lg:flex">
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 const isOpen = openMenu === item.key;
@@ -157,6 +188,9 @@ export function Header() {
                   >
                     <button
                       type="button"
+                      aria-expanded={isOpen}
+                      aria-haspopup="menu"
+                      onClick={() => setOpenMenu((current) => (current === item.key ? null : item.key))}
                       className={cn(
                         "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:text-gray-900",
                         isOpen && "text-gray-900"
@@ -171,6 +205,7 @@ export function Header() {
                           <Link
                             key={menuItem.name}
                             href={menuItem.href}
+                            onClick={() => setOpenMenu(null)}
                             className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
                           >
                             {menuItem.name}
