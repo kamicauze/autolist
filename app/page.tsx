@@ -6,6 +6,7 @@ import { ListingsSection, ListingsSectionSkeleton } from "@/components/home/list
 import { BrandLogos } from "@/components/home/brand-logos";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { DiscoverMore } from "@/components/home/discover-more";
+import { PopularSearches } from "@/components/home/popular-searches";
 import { SellVehicleSection } from "@/components/home/sell-vehicle-section";
 import { VideoSection } from "@/components/home/video-section";
 import { ServicesSection } from "@/components/home/services-section";
@@ -18,7 +19,7 @@ import {
   getNewestListings,
 } from "@/lib/data/listings";
 import { getHomepageFeaturedListings } from "@/lib/data/featured-listing-pins";
-import { getAllMakeNames } from "@/lib/data/car-data";
+import { getAllMakeNames, getPopularMakes } from "@/lib/data/car-data";
 import { getHomepageCmsContent } from "@/lib/data/cms";
 import type { HomepageCmsContent } from "@/lib/types/cms";
 
@@ -50,6 +51,32 @@ async function HeroSearchWithData({ content }: { content: HomepageCmsContent["he
   return <HeroSearch makes={makes} totalCount={totalCount} content={content} />;
 }
 
+const POPULAR_SEARCH_FALLBACKS = [
+  "Toyota",
+  "Nissan",
+  "Mazda",
+  "Subaru",
+  "Honda",
+  "Mercedes-Benz",
+  "BMW",
+  "Volkswagen",
+];
+
+async function PopularSearchesData() {
+  const popularMakes = await getPopularMakes();
+  const searches = (popularMakes.length > 0
+    ? popularMakes.map((make) => make.name)
+    : POPULAR_SEARCH_FALLBACKS
+  )
+    .slice(0, 8)
+    .map((make) => ({
+      label: make,
+      href: `/search?make=${encodeURIComponent(make)}`,
+    }));
+
+  return <PopularSearches searches={searches} />;
+}
+
 export default async function Home() {
   const cmsContent = await getHomepageCmsContent();
 
@@ -79,6 +106,10 @@ export default async function Home() {
 
         {/* Discover More from Autolist */}
         {cmsContent.sections.showDiscoverMore ? <DiscoverMore /> : null}
+
+        <Suspense fallback={<div className="h-[260px]" aria-hidden />}>
+          <PopularSearchesData />
+        </Suspense>
 
         {/* Sell Your Vehicle Section */}
         {cmsContent.sections.showSellVehicle ? <SellVehicleSection /> : null}

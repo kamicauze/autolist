@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -349,6 +349,12 @@ export function VehiclePageClient({
     setIsLiked(initialIsFavorited);
   }, [initialIsFavorited]);
 
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      galleryRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+    });
+  }, [listing.id]);
+
   const formattedPrice = new Intl.NumberFormat("en-KE").format(listing.price);
   const inCompare = isInCompare(listing.id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
@@ -362,6 +368,7 @@ export function VehiclePageClient({
   const youtubeEmbedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
   const listingDocuments = getListingDocuments(listing.metadata);
   const hasSupportingMedia = Boolean(videoUrl) || listingDocuments.length > 0;
+  const galleryRef = useRef<HTMLDivElement | null>(null);
 
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
@@ -463,7 +470,7 @@ export function VehiclePageClient({
               </div>
             )}
 
-            <div className="mt-5">
+            <div ref={galleryRef} className="mt-5">
               <PriceAdviserPanel
         open={isPriceAdviserOpen}
         onOpenChange={setIsPriceAdviserOpen}

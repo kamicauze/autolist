@@ -107,6 +107,7 @@ export function RecommendedCars({
                   <Image src={image} alt={title} fill className="object-cover" />
                   <Link
                     href={`/vehicle/${listing.id}`}
+                    scroll
                     className="absolute inset-0 z-10"
                     aria-label={`View ${title}`}
                   />
@@ -163,7 +164,7 @@ export function RecommendedCars({
                     </div>
                   </div>
                 </div>
-                <Link href={`/vehicle/${listing.id}`} className="min-w-0 flex-1 py-1">
+                <Link href={`/vehicle/${listing.id}`} scroll className="min-w-0 flex-1 py-1">
                   <h4 className="line-clamp-2 text-xs font-semibold text-gray-900 transition-colors group-hover:text-primary">
                     {title}
                   </h4>

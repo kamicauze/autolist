@@ -3,11 +3,11 @@ import Link from "next/link";
 
 const features = [
   {
-    title: "Browse inventory",
+    title: "Car Insurance",
     description:
-      "Find the ideal vehicle for you and browse our affordable inventory.",
-    buttonText: "Find a car",
-    href: "/search",
+      "Protect your next vehicle with flexible cover options built for local drivers.",
+    buttonText: "Get insured",
+    href: "/insurance",
     image: "/sample-car-1.jpg",
   },
   {

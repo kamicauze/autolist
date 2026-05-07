@@ -364,7 +364,7 @@ export function CarCard({
 
   if (href) {
     return (
-      <Link href={href} className="block">
+      <Link href={href} scroll className="block">
         {cardContent}
       </Link>
     );

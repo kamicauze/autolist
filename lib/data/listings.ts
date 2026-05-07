@@ -446,7 +446,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:profiles!seller_id(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("id", id)
     .eq("status", "active")
@@ -475,7 +475,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:profiles!seller_id(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("status", "active")
     .in("id", sanitizedIds);

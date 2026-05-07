@@ -61,6 +61,7 @@ export interface Listing {
     email?: string;
     address?: string;
     about_text?: string;
+    social_links?: Record<string, unknown> | null;
   };
 }
 
