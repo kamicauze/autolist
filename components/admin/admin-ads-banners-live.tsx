@@ -48,11 +48,15 @@ type PendingAction = "create" | "save" | "delete" | null;
 
 type BannerEditorState = {
   title: string;
+  slug: string;
   placement: CmsBannerPlacement;
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string;
   altText: string;
+  summary: string;
+  body: string;
+  ctaLabel: string;
   targetUrl: string;
   startsAt: string;
   endsAt: string;
@@ -82,11 +86,15 @@ function toDateTimeLocal(value: string | null) {
 function createEditorState(banner: CmsBanner | null): BannerEditorState {
   return {
     title: banner?.title ?? "",
+    slug: banner?.slug ?? "",
     placement: banner?.placement ?? "home_top",
     status: banner?.status ?? "draft",
     desktopImageUrl: banner?.desktopImageUrl ?? "",
     mobileImageUrl: banner?.mobileImageUrl ?? "",
     altText: banner?.altText ?? "",
+    summary: banner?.summary ?? "",
+    body: banner?.body ?? "",
+    ctaLabel: banner?.ctaLabel ?? "",
     targetUrl: banner?.targetUrl ?? "",
     startsAt: toDateTimeLocal(banner?.startsAt ?? null),
     endsAt: toDateTimeLocal(banner?.endsAt ?? null),
@@ -257,11 +265,15 @@ export function AdminAdsBannersLive({
         const result = await saveCmsBanner({
           bannerId: selectedBanner.id,
           title: editor.title,
+          slug: editor.slug,
           placement: editor.placement,
           status: editor.status,
           desktopImageUrl: editor.desktopImageUrl,
           mobileImageUrl: editor.mobileImageUrl,
           altText: editor.altText,
+          summary: editor.summary,
+          body: editor.body,
+          ctaLabel: editor.ctaLabel,
           targetUrl: editor.targetUrl,
           startsAt: editor.startsAt,
           endsAt: editor.endsAt,
@@ -458,6 +470,9 @@ export function AdminAdsBannersLive({
                     <p className="mt-1 text-[12px] text-[#6b7280]">
                       {CMS_BANNER_PLACEMENT_LABELS[editor.placement]}
                     </p>
+                    {selectedBanner.slug ? (
+                      <p className="mt-1 text-[12px] text-[#94a3b8]">/ads/{selectedBanner.slug}</p>
+                    ) : null}
                   </div>
                   <AdminStatusPill
                     label={editor.status.charAt(0).toUpperCase() + editor.status.slice(1)}
@@ -482,6 +497,18 @@ export function AdminAdsBannersLive({
                     }
                     className={adminInputClass}
                     placeholder="Homepage hero leaderboard"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-[13px] font-medium text-[#374151]">Ad page slug</span>
+                  <input
+                    value={editor.slug}
+                    onChange={(event) =>
+                      setEditor((current) => ({ ...current, slug: event.target.value }))
+                    }
+                    className={adminInputClass}
+                    placeholder="toyota-finance-may"
                   />
                 </label>
 
@@ -585,7 +612,22 @@ export function AdminAdsBannersLive({
                       setEditor((current) => ({ ...current, targetUrl: event.target.value }))
                     }
                     className={adminInputClass}
-                    placeholder="/search?make=Toyota"
+                    placeholder="/search?make=Toyota or https://partner.example.com"
+                  />
+                  <p className="text-[12px] leading-5 text-[#6b7280]">
+                    Leave empty to use the CMS-managed ad detail page at the saved slug.
+                  </p>
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-[13px] font-medium text-[#374151]">CTA label</span>
+                  <input
+                    value={editor.ctaLabel}
+                    onChange={(event) =>
+                      setEditor((current) => ({ ...current, ctaLabel: event.target.value }))
+                    }
+                    className={adminInputClass}
+                    placeholder="View offer"
                   />
                 </label>
 
@@ -622,6 +664,30 @@ export function AdminAdsBannersLive({
                   />
                 </label>
               </div>
+
+              <label className="block space-y-2">
+                <span className="text-[13px] font-medium text-[#374151]">Summary</span>
+                <textarea
+                  value={editor.summary}
+                  onChange={(event) =>
+                    setEditor((current) => ({ ...current, summary: event.target.value }))
+                  }
+                  className={cn(adminTextareaClass, "min-h-[88px]")}
+                  placeholder="Short campaign summary shown on hero and ad detail layouts."
+                />
+              </label>
+
+              <label className="block space-y-2">
+                <span className="text-[13px] font-medium text-[#374151]">Body copy</span>
+                <textarea
+                  value={editor.body}
+                  onChange={(event) =>
+                    setEditor((current) => ({ ...current, body: event.target.value }))
+                  }
+                  className={cn(adminTextareaClass, "min-h-[160px]")}
+                  placeholder="Longer sponsor details, offer terms, or campaign copy for the ad detail page."
+                />
+              </label>
 
               <label className="block space-y-2">
                 <span className="text-[13px] font-medium text-[#374151]">Alt text</span>

@@ -90,7 +90,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
               location={location}
               googleMapsApiKey={googleMapsApiKey}
               sidebarBanner={
-                <PublicCmsBannerPlacement placement="vehicle_detail" variant="sidebar" />
+                <PublicCmsBannerPlacement placement="vehicle_detail" variant="sidebar" limit={2} />
               }
             />
           </Suspense>

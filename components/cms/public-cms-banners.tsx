@@ -2,7 +2,7 @@ import { getActiveCmsBanners } from "@/lib/data/cms-banners";
 import type { CmsBannerPlacement } from "@/lib/types/cms-banners";
 import { PublicCmsBannerList } from "./public-cms-banners-client";
 
-type PublicCmsBannerVariant = "full" | "compact" | "sidebar";
+type PublicCmsBannerVariant = "full" | "compact" | "sidebar" | "hero";
 
 type PublicCmsBannerPlacementProps = {
   placement: CmsBannerPlacement;

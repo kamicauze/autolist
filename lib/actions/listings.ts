@@ -6,6 +6,7 @@ import { requireAdminAction } from "@/lib/admin/guard";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { revalidatePath } from "next/cache";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
+import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notifications";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
 import { getStorageObjectUrl } from "@/lib/utils/listings";
 import { r2 } from "@/lib/r2";
@@ -98,6 +99,198 @@ const BOOLEAN_METADATA_FIELDS = [
     "allowPhoneCalls",
     "hidePhoneNumber",
 ] as const;
+
+type AdminCapableRole = "admin" | "super_admin";
+type EditableListingRecord = {
+    id: string;
+    seller_id: string;
+    dealer_id: string | null;
+    status: ListingStatus;
+    make: string;
+    model: string;
+    year: number;
+    metadata: Record<string, unknown> | null;
+};
+
+function toMetadataObject(metadata: unknown) {
+    return metadata && typeof metadata === "object" && !Array.isArray(metadata)
+        ? { ...(metadata as Record<string, unknown>) }
+        : {};
+}
+
+async function getProfileRole(
+    supabase: SupabaseClient,
+    userId: string,
+): Promise<AdminCapableRole | "buyer" | "seller" | "dealer" | "sales_agent" | "support" | null> {
+    const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle<{ role: AdminCapableRole | "buyer" | "seller" | "dealer" | "sales_agent" | "support" | null }>();
+
+    return data?.role ?? null;
+}
+
+async function getEditableListingAccess(
+    supabase: SupabaseClient,
+    userId: string,
+    listingId: string,
+) {
+    const { data: listing, error } = await supabase
+        .from("listings")
+        .select("id, seller_id, dealer_id, status, make, model, year, metadata")
+        .eq("id", listingId)
+        .maybeSingle<EditableListingRecord>();
+
+    if (error || !listing) {
+        return { error: error?.message || "Listing not found." } as const;
+    }
+
+    if (listing.seller_id === userId) {
+        return { listing, canAdminister: false } as const;
+    }
+
+    const role = await getProfileRole(supabase, userId);
+    if (role === "admin" || role === "super_admin") {
+        return { listing, canAdminister: true } as const;
+    }
+
+    return { error: "Listing not found or not editable." } as const;
+}
+
+function revalidateListingPaths(id: string) {
+    revalidatePath("/admin/listings");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/listings");
+    revalidatePath(`/dashboard/listings/${id}/edit`);
+    revalidatePath("/search");
+    revalidatePath(`/vehicle/${id}`);
+}
+
+function formatListingStatusLabel(status: ListingStatus) {
+    return LISTING_STATUS_META[status]?.label || status;
+}
+
+async function emitListingStatusNotification(input: {
+    actorId: string;
+    listing: EditableListingRecord;
+    status: ListingStatus;
+    reason?: string | null;
+}) {
+    if (!input.listing.seller_id) {
+        return;
+    }
+
+    const title = buildListingTitle(input.listing);
+    const statusLabel = formatListingStatusLabel(input.status);
+    const reasonText = input.reason?.trim();
+
+    await emitNotificationEvent({
+        eventType: "listing_status_changed",
+        actorId: input.actorId,
+        listingId: input.listing.id,
+        payload: {
+            status: input.status,
+            reason: reasonText || null,
+        },
+        deliveries: [
+            {
+                recipientId: input.listing.seller_id,
+                title: `${title} status updated`,
+                body: reasonText
+                    ? `Your listing is now ${statusLabel}. Reason: ${reasonText}`
+                    : `Your listing is now ${statusLabel}.`,
+                href: `/dashboard/listings/${input.listing.id}/edit`,
+                metadata: {
+                    status: input.status,
+                    reason: reasonText || null,
+                },
+            },
+        ],
+    });
+}
+
+async function emitListingUpdatedNotification(input: {
+    actorId: string;
+    listing: EditableListingRecord;
+    summary: string;
+}) {
+    if (!input.listing.seller_id || input.listing.seller_id === input.actorId) {
+        return;
+    }
+
+    const title = buildListingTitle(input.listing);
+
+    await emitNotificationEvent({
+        eventType: "listing_updated",
+        actorId: input.actorId,
+        listingId: input.listing.id,
+        payload: {
+            summary: input.summary,
+        },
+        deliveries: [
+            {
+                recipientId: input.listing.seller_id,
+                title: `${title} was updated by admin`,
+                body: input.summary,
+                href: `/dashboard/listings/${input.listing.id}/edit`,
+                metadata: {
+                    summary: input.summary,
+                },
+            },
+        ],
+    });
+}
+
+function buildModerationMetadata(
+    metadata: Record<string, unknown> | null,
+    input: {
+        nextStatus: ListingStatus;
+        actorId: string;
+        reason?: string | null;
+    },
+) {
+    const nextMetadata = toMetadataObject(metadata);
+    const trimmedReason = input.reason?.trim() || null;
+
+    nextMetadata.last_status_change = input.nextStatus;
+    nextMetadata.last_status_changed_at = new Date().toISOString();
+    nextMetadata.last_status_changed_by = input.actorId;
+
+    if (trimmedReason) {
+        nextMetadata.status_change_reason = trimmedReason;
+    } else {
+        delete nextMetadata.status_change_reason;
+    }
+
+    if (input.nextStatus === "rejected" && trimmedReason) {
+        nextMetadata.rejection_reason = trimmedReason;
+    }
+
+    return nextMetadata;
+}
+
+function hammingDistance(left: string, right: string) {
+    if (!left || !right || left.length !== right.length) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    let distance = 0;
+    for (let index = 0; index < left.length; index += 1) {
+        const xor = Number.parseInt(left[index], 16) ^ Number.parseInt(right[index], 16);
+        distance += xor.toString(2).replace(/0/g, "").length;
+    }
+
+    return distance;
+}
+
+function parsePerceptualHashes(value: string | null | undefined) {
+    return (value || "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+}
 
 function extensionForFile(file: File) {
     if (file.name.includes(".")) {
@@ -351,16 +544,12 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    const { data: existingListing, error: existingError } = await supabase
-        .from('listings')
-        .select('id, metadata')
-        .eq('id', id)
-        .eq('seller_id', user.id)
-        .single();
-
-    if (existingError || !existingListing) {
-        return { error: existingError?.message || "Listing not found." };
+    const access = await getEditableListingAccess(supabase, user.id, id);
+    if ("error" in access) {
+        return { error: access.error };
     }
+    const existingListing = access.listing;
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 
     const {
         trim,
@@ -485,7 +674,7 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         hidePhoneNumber,
     });
 
-    const { error } = await supabase
+    const { error } = await writeSupabase
         .from('listings')
         .update({
             ...listingValues,
@@ -498,9 +687,14 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         return { error: error.message };
     }
 
-    revalidatePath(`/vehicle/${id}`);
-    revalidatePath('/dashboard/listings');
-    revalidatePath('/search');
+    revalidateListingPaths(id);
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing: existingListing,
+            summary: "An admin updated the listing details on your behalf.",
+        });
+    }
     return { success: true };
 }
 
@@ -568,7 +762,7 @@ export async function setListingFeatured(id: string, isFeatured: boolean) {
     const adminContext = await requireAdminAction();
     if ('error' in adminContext) return adminContext;
 
-    const { supabase } = adminContext;
+    const supabase = createAdminClient();
 
     const { error } = await supabase
         .from("listings")
@@ -591,7 +785,11 @@ export async function setOwnerListingFeatured(id: string, isFeatured: boolean) {
     return setListingFeatured(id, isFeatured);
 }
 
-export async function updateAdminListingStatus(id: string, status: ListingStatus) {
+export async function updateAdminListingStatus(
+    id: string,
+    status: ListingStatus,
+    options?: { reason?: string | null },
+) {
     const adminContext = await requireAdminAction();
     if ('error' in adminContext) return adminContext;
 
@@ -599,23 +797,48 @@ export async function updateAdminListingStatus(id: string, status: ListingStatus
         return { error: "Invalid listing status." };
     }
 
-    const { supabase } = adminContext;
+    const { user } = adminContext;
+    const supabase = createAdminClient();
+    const trimmedReason = String(options?.reason || "").trim();
+
+    if ((status === "rejected" || status === "reserved") && !trimmedReason) {
+        return { error: `A reason is required when marking a listing as ${status === "reserved" ? "on hold" : "rejected"}.` };
+    }
+
+    const { data: listing, error: listingError } = await supabase
+        .from("listings")
+        .select("id, seller_id, dealer_id, status, make, model, year, metadata")
+        .eq("id", id)
+        .maybeSingle<EditableListingRecord>();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found." };
+    }
 
     const { error } = await supabase
         .from("listings")
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({
+            status,
+            metadata: buildModerationMetadata(listing.metadata, {
+                nextStatus: status,
+                actorId: user.id,
+                reason: trimmedReason || null,
+            }),
+            updated_at: new Date().toISOString(),
+        })
         .eq("id", id);
 
     if (error) {
         return { error: error.message };
     }
 
-    revalidatePath("/admin/listings");
-    revalidatePath("/admin/dashboard");
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/listings");
-    revalidatePath("/search");
-    revalidatePath(`/vehicle/${id}`);
+    revalidateListingPaths(id);
+    await emitListingStatusNotification({
+        actorId: user.id,
+        listing,
+        status,
+        reason: trimmedReason || null,
+    });
     return { success: true };
 }
 
@@ -623,7 +846,7 @@ export async function deleteAdminListing(id: string) {
     const adminContext = await requireAdminAction();
     if ('error' in adminContext) return adminContext;
 
-    const { supabase } = adminContext;
+    const supabase = createAdminClient();
 
     const { error } = await supabase
         .from("listings")
@@ -652,7 +875,7 @@ export async function duplicateOwnerListing(id: string) {
         .from("listings")
         .select(`
             *,
-            images:listing_images(r2_key, alt_text, image_order, image_hash, is_watermarked)
+            images:listing_images(r2_key, alt_text, image_order, image_hash, perceptual_hash, is_watermarked)
         `)
         .eq("id", id)
         .eq("seller_id", user.id)
@@ -678,6 +901,7 @@ export async function duplicateOwnerListing(id: string) {
             alt_text: string | null;
             image_order: number;
             image_hash?: string | null;
+            perceptual_hash?: string | null;
             is_watermarked?: boolean | null;
         }>;
     };
@@ -711,6 +935,7 @@ export async function duplicateOwnerListing(id: string) {
         alt_text: image.alt_text,
         image_order: image.image_order,
         image_hash: image.image_hash ?? null,
+        perceptual_hash: image.perceptual_hash ?? null,
         is_watermarked: image.is_watermarked ?? true,
     }));
 
@@ -740,13 +965,20 @@ export async function saveListingImage(
     r2Key: string,
     altText: string | null,
     imageOrder: number,
-    imageHash: string | null
+    imageHash: string | null,
+    perceptualHash: string | null,
 ) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    const { error } = await supabase
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        return { error: access.error };
+    }
+
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const { error } = await writeSupabase
         .from('listing_images')
         .insert({
             listing_id: listingId,
@@ -754,6 +986,7 @@ export async function saveListingImage(
             alt_text: altText,
             image_order: imageOrder,
             image_hash: imageHash,
+            perceptual_hash: perceptualHash,
             is_watermarked: true,
         });
 
@@ -775,16 +1008,12 @@ export async function uploadListingImages(formData: FormData) {
         return { error: "Listing id is required." };
     }
 
-    const { data: listing, error: listingError } = await supabase
-        .from("listings")
-        .select("id")
-        .eq("id", listingId)
-        .eq("seller_id", user.id)
-        .single();
-
-    if (listingError || !listing) {
-        return { error: listingError?.message || "Listing not found or not editable." };
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        return { error: access.error };
     }
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const listing = access.listing;
 
     const coverImage = formData.get("coverImage");
     const galleryImages = formData
@@ -800,8 +1029,63 @@ export async function uploadListingImages(formData: FormData) {
     }
 
     const filesToUpload = [coverImage, ...galleryImages];
+    const preparedUploads: Array<{
+        key: string;
+        hash: string;
+        perceptualHash: string;
+        altText: string | null;
+        imageOrder: number;
+    }> = [];
+    let uploadedCount = 0;
 
-    const { error: deleteError } = await supabase
+    for (const [index, file] of filesToUpload.entries()) {
+        try {
+            const { key, hash, perceptualHash } = await uploadListingFile(listingId, file);
+            const duplicateCheck = await writeSupabase
+                .from('listing_images')
+                .select('id, image_hash, perceptual_hash, listings!inner(seller_id, id)')
+                .eq('listings.seller_id', listing.seller_id)
+                .neq('listing_id', listingId);
+
+            if (duplicateCheck.error) {
+                return { error: duplicateCheck.error.message };
+            }
+
+            const duplicateRows = (duplicateCheck.data ?? []) as Array<{
+                id: string;
+                image_hash: string | null;
+                perceptual_hash: string | null;
+            }>;
+            const nextHashes = parsePerceptualHashes(perceptualHash);
+            const hasPerceptualDuplicate = duplicateRows.some((row) =>
+                parsePerceptualHashes(row.perceptual_hash).some((existingHash) =>
+                    nextHashes.some((candidateHash) => hammingDistance(existingHash, candidateHash) <= 8)
+                )
+            );
+
+            if (duplicateRows.some((row) => row.image_hash === hash) || hasPerceptualDuplicate) {
+                return { error: `Duplicate image detected for "${file.name}".` };
+            }
+
+            const altText = formData.get("altTextBase");
+            preparedUploads.push({
+                key,
+                hash,
+                perceptualHash,
+                altText:
+                    typeof altText === "string" && altText.trim()
+                        ? `${altText} - Photo ${index + 1}`
+                        : null,
+                imageOrder: index,
+            });
+        } catch (error) {
+            return {
+                error: error instanceof Error ? error.message : `Unable to upload "${file.name}".`,
+            };
+        }
+    }
+
+    const { error: deleteError } = await writeSupabase
         .from("listing_images")
         .delete()
         .eq("listing_id", listingId);
@@ -810,48 +1094,29 @@ export async function uploadListingImages(formData: FormData) {
         return { error: deleteError.message };
     }
 
-    let uploadedCount = 0;
+    for (const upload of preparedUploads) {
+        const imageResult = await saveListingImage(
+            listingId,
+            upload.key,
+            upload.altText,
+            upload.imageOrder,
+            upload.hash,
+            upload.perceptualHash,
+        );
 
-    for (const [index, file] of filesToUpload.entries()) {
-        try {
-            const { key, hash } = await uploadListingFile(listingId, file);
-            const duplicateCheck = await supabase
-                .from('listing_images')
-                .select('id, listings!inner(seller_id)')
-                .eq('image_hash', hash)
-                .eq('listings.seller_id', user.id)
-                .limit(1)
-                .maybeSingle();
-
-            if (duplicateCheck.error) {
-                return { error: duplicateCheck.error.message };
-            }
-
-            if (duplicateCheck.data) {
-                return { error: `Duplicate image detected for "${file.name}".` };
-            }
-
-            const altText = formData.get("altTextBase");
-            const imageResult = await saveListingImage(
-                listingId,
-                key,
-                typeof altText === "string" && altText.trim()
-                    ? `${altText} - Photo ${index + 1}`
-                    : null,
-                index,
-                hash,
-            );
-
-            if (imageResult.error) {
-                return imageResult;
-            }
-
-            uploadedCount += 1;
-        } catch (error) {
-            return {
-                error: error instanceof Error ? error.message : `Unable to upload "${file.name}".`,
-            };
+        if (imageResult.error) {
+            return imageResult;
         }
+
+        uploadedCount += 1;
+    }
+
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing,
+            summary: "An admin updated the listing photos on your behalf.",
+        });
     }
 
     return { success: true, uploadedCount };
@@ -890,21 +1155,34 @@ export async function reorderListingImages(formData: FormData) {
         return { error: "At least one listing image is required." };
     }
 
-    const { data: listing, error: listingError } = await supabase
-        .from("listings")
-        .select("id")
-        .eq("id", listingId)
-        .eq("seller_id", user.id)
-        .maybeSingle();
-
-    if (listingError || !listing) {
-        return { error: listingError?.message || "Listing not found or not editable." };
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        return { error: access.error };
     }
 
-    const { error } = await supabase.rpc("reorder_listing_images", {
-        target_listing_id: listingId,
-        ordered_r2_keys: orderedImageKeys,
-    });
+    let error: { message: string } | null = null;
+
+    if (!access.canAdminister) {
+        const rpcResult = await supabase.rpc("reorder_listing_images", {
+            target_listing_id: listingId,
+            ordered_r2_keys: orderedImageKeys,
+        });
+        error = rpcResult.error;
+    } else {
+        const adminSupabase = createAdminClient();
+        for (const [index, key] of orderedImageKeys.entries()) {
+            const updateResult = await adminSupabase
+                .from("listing_images")
+                .update({ image_order: index })
+                .eq("listing_id", listingId)
+                .eq("r2_key", key);
+
+            if (updateResult.error) {
+                error = updateResult.error;
+                break;
+            }
+        }
+    }
 
     if (error) {
         const missingFunction =
@@ -918,11 +1196,15 @@ export async function reorderListingImages(formData: FormData) {
         };
     }
 
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/listings");
-    revalidatePath(`/dashboard/listings/${listingId}/edit`);
-    revalidatePath("/search");
-    revalidatePath(`/vehicle/${listingId}`);
+    revalidateListingPaths(listingId);
+
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing: access.listing,
+            summary: "An admin reordered the listing gallery on your behalf.",
+        });
+    }
 
     return { success: true };
 }
@@ -942,16 +1224,12 @@ export async function uploadListingVideo(formData: FormData) {
         return { error: "A video file is required." };
     }
 
-    const { data: listing, error: listingError } = await supabase
-        .from("listings")
-        .select("id, metadata")
-        .eq("id", listingId)
-        .eq("seller_id", user.id)
-        .single();
-
-    if (listingError || !listing) {
-        return { error: listingError?.message || "Listing not found or not editable." };
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        return { error: access.error };
     }
+    const listing = access.listing;
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 
     if (!VIDEO_ACCEPTED_TYPES.has(videoFile.type)) {
         return { error: "Video must be an MP4, WEBM, or MOV file." };
@@ -993,21 +1271,26 @@ export async function uploadListingVideo(formData: FormData) {
         videoUrl: publicUrl,
     } as Record<string, unknown>;
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await writeSupabase
         .from("listings")
         .update({
             metadata: nextMetadata,
             updated_at: new Date().toISOString(),
         })
         .eq("id", listingId)
-        .eq("seller_id", user.id);
 
     if (updateError) {
         return { error: updateError.message };
     }
 
-    revalidatePath(`/vehicle/${listingId}`);
-    revalidatePath("/dashboard/listings");
+    revalidateListingPaths(listingId);
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing,
+            summary: "An admin updated the listing video on your behalf.",
+        });
+    }
     return { success: true, videoUrl: publicUrl };
 }
 
@@ -1029,16 +1312,12 @@ export async function uploadListingDocuments(formData: FormData) {
         return { error: "At least one document file is required." };
     }
 
-    const { data: listing, error: listingError } = await supabase
-        .from("listings")
-        .select("id, metadata")
-        .eq("id", listingId)
-        .eq("seller_id", user.id)
-        .single();
-
-    if (listingError || !listing) {
-        return { error: listingError?.message || "Listing not found or not editable." };
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        return { error: access.error };
     }
+    const listing = access.listing;
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 
     if (!process.env.R2_BUCKET_NAME) {
         return { error: "R2 bucket configuration is missing." };
@@ -1108,21 +1387,26 @@ export async function uploadListingDocuments(formData: FormData) {
             .filter(Boolean),
     };
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await writeSupabase
         .from("listings")
         .update({
             metadata: nextMetadata,
             updated_at: new Date().toISOString(),
         })
         .eq("id", listingId)
-        .eq("seller_id", user.id);
 
     if (updateError) {
         return { error: updateError.message };
     }
 
-    revalidatePath(`/vehicle/${listingId}`);
-    revalidatePath("/dashboard/listings");
+    revalidateListingPaths(listingId);
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing,
+            summary: "An admin updated the listing documents on your behalf.",
+        });
+    }
     return { success: true, documents: uploadedDocuments };
 }
 
@@ -1224,11 +1508,29 @@ export async function approveListing(listingId: string) {
     const adminContext = await requireAdminAction();
     if ('error' in adminContext) return adminContext;
 
-    const { supabase } = adminContext;
+    const { user } = adminContext;
+    const supabase = createAdminClient();
+    const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .select('id, seller_id, dealer_id, status, make, model, year, metadata')
+        .eq('id', listingId)
+        .eq('status', 'pending')
+        .maybeSingle<EditableListingRecord>();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found." };
+    }
 
     const { error } = await supabase
         .from('listings')
-        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .update({
+            status: 'active',
+            metadata: buildModerationMetadata(listing.metadata, {
+                nextStatus: 'active',
+                actorId: user.id,
+            }),
+            updated_at: new Date().toISOString(),
+        })
         .eq('id', listingId)
         .eq('status', 'pending');
 
@@ -1237,9 +1539,12 @@ export async function approveListing(listingId: string) {
         return { error: error.message };
     }
 
-    revalidatePath('/admin/listings');
-    revalidatePath('/dashboard/listings');
-    revalidatePath('/search');
+    revalidateListingPaths(listingId);
+    await emitListingStatusNotification({
+        actorId: user.id,
+        listing,
+        status: 'active',
+    });
     return { success: true };
 }
 
@@ -1251,19 +1556,35 @@ export async function rejectListing(listingId: string, reason?: string) {
     const adminContext = await requireAdminAction();
     if ('error' in adminContext) return adminContext;
 
-    const { supabase } = adminContext;
+    const { user } = adminContext;
+    const supabase = createAdminClient();
+    const trimmedReason = reason?.trim();
+    if (!trimmedReason) {
+        return { error: "A rejection reason is required." };
+    }
 
-    const updateData: Record<string, unknown> = {
-        status: 'rejected',
-        updated_at: new Date().toISOString(),
-    };
-    if (reason) {
-        updateData.metadata = { rejection_reason: reason };
+    const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .select('id, seller_id, dealer_id, status, make, model, year, metadata')
+        .eq('id', listingId)
+        .eq('status', 'pending')
+        .maybeSingle<EditableListingRecord>();
+
+    if (listingError || !listing) {
+        return { error: listingError?.message || "Listing not found." };
     }
 
     const { error } = await supabase
         .from('listings')
-        .update(updateData)
+        .update({
+            status: 'rejected',
+            metadata: buildModerationMetadata(listing.metadata, {
+                nextStatus: 'rejected',
+                actorId: user.id,
+                reason: trimmedReason,
+            }),
+            updated_at: new Date().toISOString(),
+        })
         .eq('id', listingId)
         .eq('status', 'pending');
 
@@ -1272,8 +1593,13 @@ export async function rejectListing(listingId: string, reason?: string) {
         return { error: error.message };
     }
 
-    revalidatePath('/admin/listings');
-    revalidatePath('/dashboard/listings');
+    revalidateListingPaths(listingId);
+    await emitListingStatusNotification({
+        actorId: user.id,
+        listing,
+        status: 'rejected',
+        reason: trimmedReason,
+    });
     return { success: true };
 }
 
@@ -1288,13 +1614,13 @@ export async function getPendingListings() {
         return { error: adminContext.error, data: [] };
     }
 
-    const { supabase } = adminContext;
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
         .from('listings')
         .select(`
             *,
-            images:listing_images(id, r2_key, alt_text, image_order),
+            images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
             seller:profiles!seller_id(id, full_name, avatar_url, email)
         `)
         .eq('status', 'pending')
@@ -1342,12 +1668,35 @@ export async function getMyListingById(id: string) {
         .from('listings')
         .select(`
             *,
-            images:listing_images(id, r2_key, alt_text, image_order),
+            images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
             seller:profiles!seller_id(id, full_name, avatar_url, email),
             dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .eq('id', id)
         .eq('seller_id', user.id)
+        .single();
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { data };
+}
+
+export async function getAdminListingById(id: string) {
+    const adminContext = await requireAdminAction();
+    if ('error' in adminContext) return { error: adminContext.error };
+
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+        .from('listings')
+        .select(`
+            *,
+            images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
+            seller:profiles!seller_id(id, full_name, avatar_url, email),
+            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+        `)
+        .eq('id', id)
         .single();
 
     if (error) {

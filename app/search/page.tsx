@@ -133,7 +133,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               totalCount={totalCount}
               makes={makes}
               sidebarSlot={
-                <PublicCmsBannerPlacement placement="search_sidebar" variant="sidebar" />
+                <PublicCmsBannerPlacement placement="search_sidebar" variant="sidebar" limit={2} />
               }
             />
           </Suspense>

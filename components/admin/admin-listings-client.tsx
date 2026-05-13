@@ -74,7 +74,7 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
     setFeedback(null);
     try {
       const { rejectListing } = await import("@/lib/actions/listings");
-      const result = await rejectListing(listingId, reason || undefined);
+      const result = await rejectListing(listingId, reason);
       if (result.error) {
         setFeedback({ tone: "error", message: result.error });
         return;
@@ -291,13 +291,12 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
         title="Reject listing"
         description={
           rejectingListing
-            ? `Add an optional rejection reason for ${rejectingListing.year} ${rejectingListing.make} ${rejectingListing.model}.`
-            : "Add an optional rejection reason."
+            ? `Add the rejection reason for ${rejectingListing.year} ${rejectingListing.make} ${rejectingListing.model}.`
+            : "Add a rejection reason."
         }
         label="Rejection reason"
         placeholder="Duplicate, incomplete details, or failed moderation checks."
         confirmLabel="Reject listing"
-        optional
         pending={Boolean(rejectingListingId && processing === rejectingListingId)}
         onConfirm={(reason) => {
           if (!rejectingListingId) return;

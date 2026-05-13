@@ -84,6 +84,69 @@ async function sampleBrightness(bytes: Buffer) {
   return pixels > 0 ? total / (pixels * 3) : 128;
 }
 
+async function computeDHashFromSharp(image: sharp.Sharp) {
+  const { data, info } = await image
+    .grayscale()
+    .resize(9, 8, { fit: "fill" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  let bits = "";
+  for (let row = 0; row < info.height; row += 1) {
+    for (let column = 0; column < info.width - 1; column += 1) {
+      const left = data[row * info.width + column] ?? 0;
+      const right = data[row * info.width + column + 1] ?? 0;
+      bits += left > right ? "1" : "0";
+    }
+  }
+
+  const hex: string[] = [];
+  for (let index = 0; index < bits.length; index += 4) {
+    hex.push(Number.parseInt(bits.slice(index, index + 4), 2).toString(16));
+  }
+
+  return hex.join("");
+}
+
+async function computePerceptualHashes(bytes: Buffer) {
+  const baseImage = sharp(bytes).rotate();
+  const metadata = await baseImage.metadata();
+  const width = metadata.width || 0;
+  const height = metadata.height || 0;
+  const minDimension = Math.max(1, Math.min(width, height));
+  const insetRatios = [0, 0.06, 0.12];
+  const hashes = new Set<string>();
+
+  for (const ratio of insetRatios) {
+    if (ratio === 0) {
+      hashes.add(await computeDHashFromSharp(sharp(bytes).rotate()));
+      continue;
+    }
+
+    const inset = Math.max(1, Math.round(minDimension * ratio));
+    const extractWidth = Math.max(8, width - inset * 2);
+    const extractHeight = Math.max(8, height - inset * 2);
+    if (extractWidth <= 8 || extractHeight <= 8) {
+      continue;
+    }
+
+    hashes.add(
+      await computeDHashFromSharp(
+        sharp(bytes)
+          .rotate()
+          .extract({
+            left: Math.min(inset, Math.max(0, width - extractWidth)),
+            top: Math.min(inset, Math.max(0, height - extractHeight)),
+            width: extractWidth,
+            height: extractHeight,
+          })
+      )
+    );
+  }
+
+  return Array.from(hashes).join(",");
+}
+
 export async function scoreListingCoverCandidate(fileName: string, bytes: Buffer) {
   const metadata = await sharp(bytes).metadata();
   const width = metadata.width || 0;
@@ -204,6 +267,7 @@ export async function uploadListingImageAssets(input: {
 }) {
   const originalKey = buildOriginalListingImageKey(input.listingId, input.fileName);
   const hash = createHash("sha256").update(input.bytes).digest("hex");
+  const perceptualHash = await computePerceptualHashes(input.bytes);
   const coverScore = await scoreListingCoverCandidate(input.fileName, input.bytes);
 
   await uploadBuffer(originalKey, input.bytes, input.contentType || "application/octet-stream");
@@ -212,6 +276,7 @@ export async function uploadListingImageAssets(input: {
   return {
     key: originalKey,
     hash,
+    perceptualHash,
     coverScore,
   };
 }

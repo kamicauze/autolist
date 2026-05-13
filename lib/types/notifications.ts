@@ -4,7 +4,9 @@ export type NotificationEventType =
   | "new_enquiry"
   | "new_message"
   | "ticket_created"
-  | "ticket_assigned";
+  | "ticket_assigned"
+  | "listing_status_changed"
+  | "listing_updated";
 
 export type NotificationChannel = "in_app" | "email" | "whatsapp";
 export type NotificationDeliveryStatus = "queued" | "sent" | "read" | "failed" | "skipped";

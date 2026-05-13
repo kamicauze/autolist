@@ -13,11 +13,15 @@ import type {
 export const CMS_BANNER_SELECT = [
   "id",
   "title",
+  "slug",
   "placement",
   "status",
   "desktop_image_url",
   "mobile_image_url",
   "alt_text",
+  "summary",
+  "body",
+  "cta_label",
   "target_url",
   "starts_at",
   "ends_at",
@@ -72,11 +76,15 @@ export function normalizeCmsBanner(record: CmsBannerRecord): CmsBanner {
   return {
     id: record.id,
     title: record.title,
+    slug: record.slug,
     placement: record.placement,
     status: record.status,
     desktopImageUrl: record.desktop_image_url,
     mobileImageUrl: record.mobile_image_url,
     altText: record.alt_text,
+    summary: record.summary,
+    body: record.body,
+    ctaLabel: record.cta_label,
     targetUrl: record.target_url,
     startsAt: record.starts_at,
     endsAt: record.ends_at,
@@ -162,3 +170,31 @@ export const getActiveCmsBanners = cache(
     return ((data ?? []) as unknown as CmsBannerRecord[]).map(normalizeCmsBanner);
   }
 );
+
+export async function getActiveCmsBannerBySlug(slug: string): Promise<CmsBanner | null> {
+  const normalizedSlug = slug.trim().toLowerCase();
+  if (!normalizedSlug) return null;
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("cms_banners")
+    .select(CMS_BANNER_SELECT)
+    .eq("slug", normalizedSlug)
+    .eq("status", "active")
+    .neq("desktop_image_url", "")
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .limit(1)
+    .maybeSingle<CmsBannerRecord>();
+
+  if (error) {
+    if (!isMissingRelationError(error)) {
+      console.error("Error fetching CMS banner by slug:", error);
+    }
+    return null;
+  }
+
+  return data ? normalizeCmsBanner(data) : null;
+}

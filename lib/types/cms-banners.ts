@@ -1,10 +1,13 @@
 export const CMS_BANNER_PLACEMENTS = [
+  "home_hero",
   "home_top",
   "home_featured",
   "search_top",
   "search_sidebar",
   "vehicle_detail",
   "dashboard",
+  "ad_detail_hero",
+  "ad_detail_sidebar",
 ] as const;
 
 export const CMS_BANNER_STATUSES = ["draft", "active", "paused"] as const;
@@ -13,22 +16,29 @@ export type CmsBannerPlacement = (typeof CMS_BANNER_PLACEMENTS)[number];
 export type CmsBannerStatus = (typeof CMS_BANNER_STATUSES)[number];
 
 export const CMS_BANNER_PLACEMENT_LABELS: Record<CmsBannerPlacement, string> = {
+  home_hero: "Home / Hero",
   home_top: "Home / Top",
   home_featured: "Home / Featured rail",
   search_top: "Search / Top",
-  search_sidebar: "Search / Sidebar",
-  vehicle_detail: "Vehicle detail",
-  dashboard: "Dashboard",
+  search_sidebar: "Search / Sidebar stack",
+  vehicle_detail: "Vehicle detail / Sidebar stack",
+  dashboard: "Dashboard / Sidebar stack",
+  ad_detail_hero: "Ad detail / Hero",
+  ad_detail_sidebar: "Ad detail / Sidebar",
 };
 
 export type CmsBannerRecord = {
   id: string;
   title: string;
+  slug: string | null;
   placement: CmsBannerPlacement;
   status: CmsBannerStatus;
   desktop_image_url: string;
   mobile_image_url: string | null;
   alt_text: string | null;
+  summary: string | null;
+  body: string | null;
+  cta_label: string | null;
   target_url: string | null;
   starts_at: string | null;
   ends_at: string | null;
@@ -43,11 +53,15 @@ export type CmsBannerRecord = {
 export type CmsBanner = {
   id: string;
   title: string;
+  slug: string | null;
   placement: CmsBannerPlacement;
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string | null;
   altText: string | null;
+  summary: string | null;
+  body: string | null;
+  ctaLabel: string | null;
   targetUrl: string | null;
   startsAt: string | null;
   endsAt: string | null;
@@ -75,11 +89,15 @@ export type AdminCmsBannersData = {
 export type SaveCmsBannerInput = {
   bannerId: string;
   title: string;
+  slug: string;
   placement: CmsBannerPlacement;
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string;
   altText: string;
+  summary: string;
+  body: string;
+  ctaLabel: string;
   targetUrl: string;
   startsAt: string;
   endsAt: string;

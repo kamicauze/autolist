@@ -11,6 +11,8 @@ export interface ListingImage {
   alt_text: string | null;
   image_order: number;
   is_watermarked: boolean;
+  image_hash?: string | null;
+  perceptual_hash?: string | null;
   created_at: string;
 }
 

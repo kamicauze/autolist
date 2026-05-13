@@ -12,6 +12,11 @@ export type DuplicateCandidate = {
     pricePercent: number | null;
     mileageDelta: number | null;
   };
+  photo: {
+    matchedImages: number;
+    bestDistance: number | null;
+    exactHashMatch: boolean;
+  };
   candidate: Pick<
     Listing,
     | "id"

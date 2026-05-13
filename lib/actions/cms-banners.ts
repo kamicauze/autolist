@@ -17,11 +17,15 @@ import {
 const saveCmsBannerSchema = z.object({
   bannerId: z.string().uuid("Unknown banner."),
   title: z.string().trim().min(2, "Banner title is required.").max(120),
+  slug: z.string().trim().max(160),
   placement: z.enum(CMS_BANNER_PLACEMENTS),
   status: z.enum(CMS_BANNER_STATUSES),
   desktopImageUrl: z.string().trim().max(2000),
   mobileImageUrl: z.string().trim().max(2000),
   altText: z.string().trim().max(180, "Alt text is too long."),
+  summary: z.string().trim().max(240, "Summary is too long."),
+  body: z.string().trim().max(5000, "Detail body is too long."),
+  ctaLabel: z.string().trim().max(60, "CTA label is too long."),
   targetUrl: z.string().trim().max(2000),
   startsAt: z.string().trim().max(80),
   endsAt: z.string().trim().max(80),
@@ -61,10 +65,22 @@ function normalizeOptionalDate(value: string, label: string) {
   return date.toISOString();
 }
 
+function slugifyBanner(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+
+  return normalized || "banner";
+}
+
 function revalidateBannerPaths() {
   revalidatePath("/");
   revalidatePath("/search");
   revalidatePath("/admin/ads-banners");
+  revalidatePath("/dashboard");
 }
 
 function toMutationError(error: unknown): CmsBannerMutationResult {
@@ -86,11 +102,15 @@ export async function createCmsBannerDraft(): Promise<CmsBannerMutationResult> {
       .from("cms_banners")
       .insert({
         title: "Untitled banner",
+        slug: `untitled-banner-${crypto.randomUUID().slice(0, 8)}`,
         placement: "home_top",
         status: "draft",
         desktop_image_url: "",
         mobile_image_url: null,
         alt_text: "",
+        summary: null,
+        body: null,
+        cta_label: null,
         target_url: null,
         starts_at: null,
         ends_at: null,
@@ -150,6 +170,8 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
     const targetUrl = normalizeOptionalPathOrUrl(parsed.data.targetUrl, "Target URL");
     const startsAt = normalizeOptionalDate(parsed.data.startsAt, "Start date");
     const endsAt = normalizeOptionalDate(parsed.data.endsAt, "End date");
+    const slugBase = slugifyBanner(parsed.data.slug || parsed.data.title);
+    const slug = `${slugBase}-${parsed.data.bannerId.slice(0, 8)}`;
 
     if (startsAt && endsAt && new Date(startsAt).getTime() >= new Date(endsAt).getTime()) {
       return { success: false, error: "End date must be after the start date." };
@@ -163,11 +185,15 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
       .from("cms_banners")
       .update({
         title: parsed.data.title.trim(),
+        slug,
         placement: parsed.data.placement,
         status: parsed.data.status,
         desktop_image_url: desktopImageUrl ?? "",
         mobile_image_url: mobileImageUrl,
         alt_text: parsed.data.altText.trim() || null,
+        summary: parsed.data.summary.trim() || null,
+        body: parsed.data.body.trim() || null,
+        cta_label: parsed.data.ctaLabel.trim() || null,
         target_url: targetUrl,
         starts_at: startsAt,
         ends_at: endsAt,
@@ -190,6 +216,9 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
 
     const banner = normalizeCmsBanner(data);
     revalidateBannerPaths();
+    if (banner.slug) {
+      revalidatePath(`/ads/${banner.slug}`);
+    }
 
     return {
       success: true,

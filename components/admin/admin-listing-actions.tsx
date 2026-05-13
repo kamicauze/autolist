@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Edit3,
   Loader2,
   ShieldX,
   Star,
@@ -39,7 +40,7 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<string | null>(null);
-  const [dialog, setDialog] = React.useState<"reject" | "delete" | null>(null);
+  const [dialog, setDialog] = React.useState<"reject" | "hold" | "delete" | null>(null);
   const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
   const isPending = Boolean(pendingAction);
 
@@ -77,15 +78,7 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
   };
 
   const handleReject = () => {
-    if (listing.status === "pending") {
-      setDialog("reject");
-      return;
-    }
-
-    void runAction(
-      "reject",
-      () => updateAdminListingStatus(listing.id, "rejected")
-    );
+    setDialog("reject");
   };
 
   const handleDelete = () => {
@@ -117,6 +110,13 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
               <Link href={`/vehicle/${listing.id}`} className={itemClass}>
                 <ArrowUpRight className="h-4 w-4" />
                 View listing
+              </Link>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Item asChild>
+              <Link href={`/admin/listings/${listing.id}/edit`} className={itemClass}>
+                <Edit3 className="h-4 w-4" />
+                Edit listing
               </Link>
             </DropdownMenu.Item>
 
@@ -174,11 +174,7 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
 
             {listing.status !== "reserved" ? (
               <DropdownMenu.Item
-                onSelect={() =>
-                  void runAction("reserved", () =>
-                    updateAdminListingStatus(listing.id, "reserved")
-                  )
-                }
+                onSelect={() => setDialog("hold")}
                 disabled={isPending}
                 className={itemClass}
               >
@@ -239,16 +235,38 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
           if (!nextOpen) setDialog(null);
         }}
         title="Reject listing"
-        description={`Add an optional rejection reason for "${listing.title}".`}
+        description={`Add the rejection reason for "${listing.title}".`}
         label="Rejection reason"
         placeholder="Missing documents, duplicate listing, or inaccurate listing details."
         confirmLabel="Reject listing"
-        optional
         pending={pendingAction === "reject"}
         onConfirm={(reason) => {
           void (async () => {
             const ok = await runAction("reject", () =>
-              rejectListing(listing.id, reason || undefined)
+              listing.status === "pending"
+                ? rejectListing(listing.id, reason)
+                : updateAdminListingStatus(listing.id, "rejected", { reason })
+            );
+            if (ok) setDialog(null);
+          })();
+        }}
+      />
+
+      <AdminPromptDialog
+        open={dialog === "hold"}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setDialog(null);
+        }}
+        title="Hold listing"
+        description={`Add the hold reason for "${listing.title}".`}
+        label="Hold reason"
+        placeholder="Ownership documents missing, pricing mismatch, or pending verification."
+        confirmLabel="Hold listing"
+        pending={pendingAction === "reserved"}
+        onConfirm={(reason) => {
+          void (async () => {
+            const ok = await runAction("reserved", () =>
+              updateAdminListingStatus(listing.id, "reserved", { reason })
             );
             if (ok) setDialog(null);
           })();

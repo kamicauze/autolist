@@ -6,6 +6,27 @@ function normalize(value: string | null | undefined) {
   return (value || "").trim().toLowerCase();
 }
 
+function parsePerceptualHashes(value: string | null | undefined) {
+  return (value || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function hammingDistance(left: string, right: string) {
+  if (!left || !right || left.length !== right.length) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  let distance = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    const xor = Number.parseInt(left[index], 16) ^ Number.parseInt(right[index], 16);
+    distance += xor.toString(2).replace(/0/g, "").length;
+  }
+
+  return distance;
+}
+
 function tokenizeDescription(value: string | null | undefined) {
   return new Set(
     normalize(value)
@@ -52,6 +73,50 @@ function getConfidenceLabel(score: number) {
   return "Weak match";
 }
 
+function getPhotoSimilarity(listing: Listing, candidate: Listing) {
+  const listingImages = listing.images ?? [];
+  const candidateImages = candidate.images ?? [];
+
+  let exactHashMatch = false;
+  let matchedImages = 0;
+  let bestDistance: number | null = null;
+
+  for (const image of listingImages) {
+    const exactHash = image.image_hash?.trim();
+    const imageHashes = parsePerceptualHashes(image.perceptual_hash);
+
+    for (const candidateImage of candidateImages) {
+      if (exactHash && candidateImage.image_hash?.trim() === exactHash) {
+        exactHashMatch = true;
+        matchedImages += 1;
+        bestDistance = bestDistance == null ? 0 : Math.min(bestDistance, 0);
+        continue;
+      }
+
+      const candidateHashes = parsePerceptualHashes(candidateImage.perceptual_hash);
+      let localBest = Number.POSITIVE_INFINITY;
+      for (const leftHash of imageHashes) {
+        for (const rightHash of candidateHashes) {
+          localBest = Math.min(localBest, hammingDistance(leftHash, rightHash));
+        }
+      }
+
+      if (Number.isFinite(localBest)) {
+        bestDistance = bestDistance == null ? localBest : Math.min(bestDistance, localBest);
+        if (localBest <= 10) {
+          matchedImages += 1;
+        }
+      }
+    }
+  }
+
+  return {
+    exactHashMatch,
+    matchedImages,
+    bestDistance,
+  };
+}
+
 export function scoreDuplicateCandidate(listing: Listing, candidate: Listing): DuplicateCandidate | null {
   let score = 0;
   const reasons: string[] = [];
@@ -65,6 +130,21 @@ export function scoreDuplicateCandidate(listing: Listing, candidate: Listing): D
       : null;
   const yearDelta = Math.abs((listing.year || 0) - (candidate.year || 0));
   const descriptionOverlap = getDescriptionOverlap(listing.description, candidate.description);
+  const photoSimilarity = getPhotoSimilarity(listing, candidate);
+
+  if (photoSimilarity.exactHashMatch) {
+    score += 58;
+    reasons.push("exact photo match");
+  } else if (photoSimilarity.bestDistance != null && photoSimilarity.bestDistance <= 6) {
+    score += 42;
+    reasons.push("photos look nearly identical even after crop changes");
+  } else if (photoSimilarity.bestDistance != null && photoSimilarity.bestDistance <= 10) {
+    score += 28;
+    reasons.push("photos are strongly similar");
+  } else if (photoSimilarity.matchedImages >= 2) {
+    score += 18;
+    reasons.push("multiple gallery photos overlap");
+  }
 
   if (normalize(listing.make) === normalize(candidate.make)) {
     score += 18;
@@ -149,6 +229,11 @@ export function scoreDuplicateCandidate(listing: Listing, candidate: Listing): D
       pricePercent: pricePercent == null ? null : Number(pricePercent.toFixed(1)),
       mileageDelta,
     },
+    photo: {
+      matchedImages: photoSimilarity.matchedImages,
+      bestDistance: photoSimilarity.bestDistance,
+      exactHashMatch: photoSimilarity.exactHashMatch,
+    },
     candidate: {
       id: candidate.id,
       make: candidate.make,
@@ -230,6 +315,7 @@ export async function buildDuplicateReviewSuggestion(
       "You are assisting an admin reviewing vehicle listing duplicates.",
       "Return strict JSON only with keys: headline, summary, reviewerNote.",
       "Do not approve or reject. Only suggest what the human reviewer should verify.",
+      "Prioritize photo duplication and crop-resistant image overlap over text similarity.",
       "Keep headline under 6 words.",
       "Keep summary under 30 words.",
       "Keep reviewerNote under 25 words.",
@@ -238,7 +324,7 @@ export async function buildDuplicateReviewSuggestion(
       `Candidates: ${candidates
         .map(
           (candidate) =>
-            `${candidate.candidate.status} ${candidate.candidate.year} ${candidate.candidate.make} ${candidate.candidate.model}, score ${candidate.score}, reason ${candidate.reason}`
+            `${candidate.candidate.status} ${candidate.candidate.year} ${candidate.candidate.make} ${candidate.candidate.model}, score ${candidate.score}, reason ${candidate.reason}, photo matches ${candidate.photo.matchedImages}, best distance ${candidate.photo.bestDistance ?? "none"}`
         )
         .join(" | ")}`,
     ].join("\n");

@@ -21,14 +21,14 @@ export async function getDuplicateReviewSuggestions(
         .from("listings")
         .select(`
           *,
+          images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
           seller:profiles!seller_id(id, full_name, avatar_url, email)
         `)
         .in("status", DUPLICATE_REVIEW_CANDIDATE_STATUSES)
         .ilike("make", listing.make.trim())
-        .ilike("model", listing.model.trim())
         .neq("id", listing.id)
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(16);
 
       if (error) {
         console.error("Duplicate review fetch error:", error);

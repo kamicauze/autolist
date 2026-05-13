@@ -85,6 +85,8 @@ export default async function Home() {
       <Header />
 
       <main className="flex-1">
+        <PublicCmsBannerPlacement placement="home_hero" variant="hero" className="mb-2" />
+
         {/* Hero Section with Search */}
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
           <HeroSearchWithData content={cmsContent.hero} />

@@ -27,9 +27,18 @@ const STEP_COMPONENTS = [
   StepReview,
 ];
 
-function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
+type ListingWizardMode = "seller" | "admin";
+
+function WizardContent({
+  googleMapsApiKey,
+  mode,
+}: {
+  googleMapsApiKey: string;
+  mode: ListingWizardMode;
+}) {
   const {
     isEditing,
+    editingListingId,
     activeStep,
     submitted,
     autoApproved,
@@ -49,6 +58,7 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
   } = useWizard();
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
+  const isAdminMode = mode === "admin";
 
   const footerMeta =
       activeStep === 3
@@ -57,7 +67,9 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
         ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length + draft.documentNames.length + (videoFile || draft.videoUrl ? 1 : 0)} media files added`
         : `Step ${activeStep + 1} of ${LISTING_WIZARD_STEPS.length}`;
 
-  const packageBanner = isEditing
+  const packageBanner = isAdminMode
+    ? null
+    : isEditing
     ? null
     : isLoadingPackageAccess
       ? {
@@ -133,7 +145,9 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6e6e6e]">
             {isEditing
-              ? "Your changes have been saved. Public listing pages and seller dashboard views will refresh with the updated data."
+              ? isAdminMode
+                ? "The admin update has been saved. The seller will see the refreshed listing data and the notification in their workspace."
+                : "Your changes have been saved. Public listing pages and seller dashboard views will refresh with the updated data."
               : autoApproved
               ? "The seller dashboard has published your package immediately and buyers can view it now."
               : "Your package has been sent for review. It will appear publicly as soon as the moderation team approves it."}
@@ -141,16 +155,16 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/dashboard/listings"
+              href={isAdminMode ? "/admin/listings" : "/dashboard/listings"}
               className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
             >
-              View My Listings
+              {isAdminMode ? "Back to Admin Listings" : "View My Listings"}
             </Link>
             <Link
-              href="/dashboard"
+              href={isAdminMode && editingListingId ? `/vehicle/${editingListingId}` : "/dashboard"}
               className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[14px] font-semibold text-[#202224] transition hover:border-[#2563eb] hover:text-[#2563eb]"
             >
-              Back to Dashboard
+              {isAdminMode ? "View Listing" : "Back to Dashboard"}
             </Link>
           </div>
         </div>
@@ -196,10 +210,10 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
       ) : null}
 
       <WizardShell
-        title={isEditing ? "Edit Listing" : "Add Listing"}
-        description={isEditing ? "Update the saved listing details and publish the latest changes." : "Unified listing form for all vehicle categories."}
+        title={isEditing ? (isAdminMode ? "Admin Listing Edit" : "Edit Listing") : "Add Listing"}
+        description={isEditing ? (isAdminMode ? "Update the listing details, media, and seller-facing status from the admin workspace." : "Update the saved listing details and publish the latest changes.") : "Unified listing form for all vehicle categories."}
         headerAction={
-          !isEditing ? (
+          !isEditing && !isAdminMode ? (
             <Button
               type="button"
               variant="outline"
@@ -285,13 +299,15 @@ function WizardContent({ googleMapsApiKey }: { googleMapsApiKey: string }) {
 export function ListingWizardV2({
   initialListing,
   googleMapsApiKey = "",
+  mode = "seller",
 }: {
   initialListing?: Listing | null;
   googleMapsApiKey?: string;
+  mode?: ListingWizardMode;
 }) {
   return (
     <WizardProvider initialListing={initialListing}>
-      <WizardContent googleMapsApiKey={googleMapsApiKey} />
+      <WizardContent googleMapsApiKey={googleMapsApiKey} mode={mode} />
     </WizardProvider>
   );
 }
