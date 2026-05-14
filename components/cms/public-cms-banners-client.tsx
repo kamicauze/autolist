@@ -54,7 +54,7 @@ function PublicCmsBannerCard({
         variant === "full" && "min-h-[150px] sm:min-h-[180px]",
         variant === "compact" && "min-h-[120px]",
         variant === "sidebar" && "min-h-[260px]",
-        variant === "gutter" && "min-h-[300px]",
+        variant === "gutter" && "min-h-[260px]",
         variant === "hero" && "min-h-[340px] sm:min-h-[420px]"
       )}
     >
@@ -91,7 +91,7 @@ function PublicCmsBannerCard({
                 : variant === "full"
                   ? "text-[24px] sm:text-[30px]"
                   : variant === "gutter"
-                    ? "text-[15px]"
+                    ? "text-[14px]"
                     : "text-[18px]"
             )}
           >

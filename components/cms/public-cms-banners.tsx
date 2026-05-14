@@ -33,8 +33,8 @@ export async function PublicCmsGutterBannerPlacement({
   if (banners.length === 0) return null;
 
   const [rightBanner, leftBanner] = banners;
-  const gutterPosition = "top-8 bottom-0 hidden w-[160px] min-[1660px]:block";
-  const gutterOffset = "max(1rem,calc((100vw-80rem)/2-180px))";
+  const gutterPosition = "top-8 bottom-0 hidden w-[120px] 2xl:block";
+  const gutterOffset = "max(0.75rem,calc((100vw-80rem)/2-132px))";
 
   return (
     <>
