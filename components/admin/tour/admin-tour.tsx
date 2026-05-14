@@ -929,6 +929,11 @@ function markTourSeen(moduleId: string) {
   }
 }
 
+function markAllToursSeen() {
+  markTourSeen(PORTAL_INTRO.id);
+  MODULE_TOURS.forEach((tour) => markTourSeen(tour.id));
+}
+
 function markAutoToursSkipped() {
   try {
     window.localStorage.setItem(
@@ -991,6 +996,7 @@ export function AdminTourProvider({ children }: AdminTourProviderProps) {
   React.useEffect(() => {
     if (!onAdminRoute || typeof window === "undefined") return;
     if (isOpen) return;
+    if (hasSkippedAutoTours()) return;
 
     let cancelled = false;
     const t = window.setTimeout(() => {
@@ -1049,10 +1055,10 @@ export function AdminTourProvider({ children }: AdminTourProviderProps) {
   }, [activeTour]);
 
   const skipAndClose = React.useCallback(() => {
-    if (activeTour) markTourSeen(activeTour.id);
+    markAllToursSeen();
     markAutoToursSkipped();
     setIsOpen(false);
-  }, [activeTour]);
+  }, []);
 
   const onNext = React.useCallback(() => {
     if (!activeTour) return;
