@@ -21,6 +21,7 @@ import {
 import { getHomepageFeaturedListings } from "@/lib/data/featured-listing-pins";
 import { getAllMakeNames, getPopularMakes } from "@/lib/data/car-data";
 import { getHomepageCmsContent } from "@/lib/data/cms";
+import { getActiveCmsBanners } from "@/lib/data/cms-banners";
 import type { HomepageCmsContent } from "@/lib/types/cms";
 
 async function RecentActivitiesData({
@@ -44,11 +45,19 @@ async function RecentActivitiesData({
 }
 
 async function HeroSearchWithData({ content }: { content: HomepageCmsContent["hero"] }) {
-  const [makes, totalCount] = await Promise.all([
+  const [makes, totalCount, heroBanners] = await Promise.all([
     getAllMakeNames(),
     countMatchingListings(),
+    getActiveCmsBanners("home_hero", 1),
   ]);
-  return <HeroSearch makes={makes} totalCount={totalCount} content={content} />;
+  return (
+    <HeroSearch
+      makes={makes}
+      totalCount={totalCount}
+      content={content}
+      heroBanner={heroBanners[0] ?? null}
+    />
+  );
 }
 
 const POPULAR_SEARCH_FALLBACKS = [
@@ -85,8 +94,6 @@ export default async function Home() {
       <Header />
 
       <main className="flex-1">
-        <PublicCmsBannerPlacement placement="home_hero" variant="hero" className="mb-2" />
-
         {/* Hero Section with Search */}
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
           <HeroSearchWithData content={cmsContent.hero} />

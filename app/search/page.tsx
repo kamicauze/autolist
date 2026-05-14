@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
+import {
+  PublicCmsBannerPlacement,
+  PublicCmsGutterBannerPlacement,
+} from "@/components/cms/public-cms-banners";
 import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
@@ -106,7 +109,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 bg-white">
+      <main className="relative flex-1 bg-white">
+        <PublicCmsGutterBannerPlacement placement="search_sidebar" />
+
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
@@ -132,9 +137,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               totalPages={totalPages}
               totalCount={totalCount}
               makes={makes}
-              sidebarSlot={
-                <PublicCmsBannerPlacement placement="search_sidebar" variant="sidebar" limit={2} />
-              }
             />
           </Suspense>
         </div>

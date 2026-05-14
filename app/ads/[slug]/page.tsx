@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
-import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
+import {
+  PublicCmsBannerPlacement,
+  PublicCmsGutterBannerPlacement,
+} from "@/components/cms/public-cms-banners";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { getActiveCmsBannerBySlug } from "@/lib/data/cms-banners";
@@ -33,10 +36,11 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
     <div className="min-h-screen bg-[#f8fafc]">
       <Header />
 
-      <main className="pb-12">
+      <main className="relative pb-12">
         <PublicCmsBannerPlacement placement="ad_detail_hero" variant="hero" className="pb-0" />
+        <PublicCmsGutterBannerPlacement placement="ad_detail_sidebar" />
 
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
           <article className="overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white shadow-sm">
             <div className="relative aspect-[16/8] w-full overflow-hidden bg-[#0f172a]">
               <img
@@ -110,10 +114,6 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
               </div>
             </div>
           </article>
-
-          <aside className="space-y-4">
-            <PublicCmsBannerPlacement placement="ad_detail_sidebar" variant="sidebar" limit={2} />
-          </aside>
         </div>
       </main>
 

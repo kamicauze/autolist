@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { LOCATIONS, MILEAGE_RANGES } from "@/lib/constants/filters";
@@ -20,6 +21,11 @@ import {
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { QuickSearchDialog } from "./quick-search-dialog";
+import type { CmsBanner } from "@/lib/types/cms-banners";
+import {
+  trackCmsBannerClick,
+  useCmsBannerImpressions,
+} from "@/components/cms/cms-tracking";
 import {
   BusFront,
   CarFront,
@@ -106,6 +112,7 @@ interface HeroSearchProps {
   makes: string[];
   totalCount: number;
   content?: HomepageHeroCmsContent;
+  heroBanner?: CmsBanner | null;
 }
 
 function getHeroSlides(content: HomepageHeroCmsContent): HomepageHeroSlide[] {
@@ -124,7 +131,18 @@ function getHeroSlides(content: HomepageHeroCmsContent): HomepageHeroSlide[] {
   ];
 }
 
-export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
+function isExternalHref(href: string) {
+  return /^https?:\/\//.test(href);
+}
+
+function getBannerHref(banner: CmsBanner | null | undefined) {
+  const explicitHref = banner?.targetUrl?.trim();
+  if (explicitHref) return explicitHref;
+  if (banner?.slug) return `/ads/${banner.slug}`;
+  return "";
+}
+
+export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearchProps) {
   const router = useRouter();
   const heroContent = content ?? DEFAULT_HOME_HERO_CMS_CONTENT;
   const heroSlides = React.useMemo(() => getHeroSlides(heroContent), [heroContent]);
@@ -141,9 +159,15 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
   const [matchingCount, setMatchingCount] = React.useState(totalCount);
-  const carouselEnabled = heroContent.carouselEnabled && heroSlides.length > 1;
+  const carouselEnabled = !heroBanner && heroContent.carouselEnabled && heroSlides.length > 1;
   const activeHeroSlide = heroSlides[activeHeroSlideIndex] ?? heroSlides[0];
   const carouselIntervalMs = heroContent.carouselIntervalSeconds * 1000;
+  const heroBannerHref = getBannerHref(heroBanner);
+  const heroBannerIsExternal = heroBannerHref ? isExternalHref(heroBannerHref) : false;
+  const heroImageUrl = heroBanner?.desktopImageUrl || activeHeroSlide.imageUrl;
+  const heroImageAlt = heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
+
+  useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
   const makeSuggestions = React.useMemo(() => {
@@ -501,9 +525,9 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
       <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
         <div className="relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]">
           <Image
-            key={activeHeroSlide.id}
-            src={activeHeroSlide.imageUrl}
-            alt={activeHeroSlide.altText || heroContent.headline}
+            key={heroBanner?.id ?? activeHeroSlide.id}
+            src={heroImageUrl}
+            alt={heroImageAlt}
             fill
             priority={activeHeroSlideIndex === 0}
             quality={95}
@@ -558,6 +582,42 @@ export function HeroSearch({ makes, totalCount, content }: HeroSearchProps) {
               <p className="mt-3 max-w-2xl text-base text-white/86 sm:text-lg">
                 {heroContent.subheading}
               </p>
+              {heroBanner ? (
+                heroBannerHref ? (
+                  heroBannerIsExternal ? (
+                    <a
+                      href={heroBannerHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => trackCmsBannerClick(heroBanner.id)}
+                      className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur transition hover:bg-black/35"
+                    >
+                      <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
+                        Sponsored
+                      </span>
+                      <span className="truncate">{heroBanner.title}</span>
+                    </a>
+                  ) : (
+                    <Link
+                      href={heroBannerHref}
+                      onClick={() => trackCmsBannerClick(heroBanner.id)}
+                      className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur transition hover:bg-black/35"
+                    >
+                      <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
+                        Sponsored
+                      </span>
+                      <span className="truncate">{heroBanner.title}</span>
+                    </Link>
+                  )
+                ) : (
+                  <div className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur">
+                    <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
+                      Sponsored
+                    </span>
+                    <span className="truncate">{heroBanner.title}</span>
+                  </div>
+                )
+              ) : null}
             </div>
           </div>
         </div>

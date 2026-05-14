@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { MessageSquareText, PanelRightClose, PanelRightOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ interface SearchPageClientProps {
   totalPages: number;
   totalCount: number;
   makes: string[];
-  sidebarSlot?: ReactNode;
 }
 
 export function SearchPageClient({
@@ -30,7 +28,6 @@ export function SearchPageClient({
   totalPages,
   totalCount,
   makes,
-  sidebarSlot,
 }: SearchPageClientProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
@@ -91,8 +88,6 @@ export function SearchPageClient({
         className={`grid gap-6 ${
           isDesktopAssistantOpen
             ? "lg:grid-cols-[minmax(0,1fr)_420px]"
-            : sidebarSlot
-              ? "lg:grid-cols-[minmax(0,1fr)_320px]"
               : ""
         }`}
       >
@@ -125,12 +120,7 @@ export function SearchPageClient({
                 onClose={() => setIsDesktopAssistantOpen(false)}
                 showCloseButton
               />
-              {sidebarSlot ? <div className="shrink-0">{sidebarSlot}</div> : null}
             </div>
-          </aside>
-        ) : sidebarSlot ? (
-          <aside className="hidden lg:block">
-            <div className="sticky top-24">{sidebarSlot}</div>
           </aside>
         ) : null}
       </div>

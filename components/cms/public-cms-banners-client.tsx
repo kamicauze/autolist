@@ -9,7 +9,7 @@ import {
   useCmsBannerImpressions,
 } from "./cms-tracking";
 
-type PublicCmsBannerVariant = "full" | "compact" | "sidebar" | "hero";
+type PublicCmsBannerVariant = "full" | "compact" | "sidebar" | "hero" | "gutter";
 
 function isExternalHref(href: string) {
   return /^https?:\/\//.test(href);
@@ -54,6 +54,7 @@ function PublicCmsBannerCard({
         variant === "full" && "min-h-[150px] sm:min-h-[180px]",
         variant === "compact" && "min-h-[120px]",
         variant === "sidebar" && "min-h-[260px]",
+        variant === "gutter" && "min-h-[300px]",
         variant === "hero" && "min-h-[340px] sm:min-h-[420px]"
       )}
     >
@@ -69,14 +70,19 @@ function PublicCmsBannerCard({
       <div
         className={cn(
           "relative flex h-full min-h-[inherit] flex-col justify-end p-5 text-white",
-          variant === "sidebar" && "justify-between",
+          (variant === "sidebar" || variant === "gutter") && "justify-between",
           variant === "hero" && "mx-auto w-full max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8"
         )}
       >
         <p className="w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] backdrop-blur">
           Sponsored
         </p>
-        <div className={cn(variant === "sidebar" ? "" : "mt-10", variant === "hero" ? "max-w-3xl" : "max-w-xl")}>
+        <div
+          className={cn(
+            variant === "sidebar" || variant === "gutter" ? "" : "mt-10",
+            variant === "hero" ? "max-w-3xl" : "max-w-xl"
+          )}
+        >
           <h3
             className={cn(
               "font-heading font-semibold leading-tight",
@@ -84,7 +90,9 @@ function PublicCmsBannerCard({
                 ? "text-[34px] sm:text-[46px]"
                 : variant === "full"
                   ? "text-[24px] sm:text-[30px]"
-                  : "text-[18px]"
+                  : variant === "gutter"
+                    ? "text-[15px]"
+                    : "text-[18px]"
             )}
           >
             {banner.title}
@@ -93,7 +101,11 @@ function PublicCmsBannerCard({
             <p
               className={cn(
                 "mt-3 max-w-2xl text-white/92",
-                variant === "hero" ? "text-[16px] leading-7" : "text-[13px] leading-6"
+                variant === "hero"
+                  ? "text-[16px] leading-7"
+                  : variant === "gutter"
+                    ? "text-[12px] leading-5"
+                    : "text-[13px] leading-6"
               )}
             >
               {banner.summary}
@@ -153,6 +165,8 @@ export function PublicCmsBannerList({
       className={cn(
         variant === "sidebar"
           ? "space-y-4"
+          : variant === "gutter"
+            ? "space-y-4"
           : "mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 lg:px-8",
         variant === "full" && "py-6",
         variant === "compact" && "py-4",
