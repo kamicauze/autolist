@@ -303,7 +303,7 @@ export function HotspotOverlay({
             type="button"
             onClick={onSkip}
             className="-mr-2 -mt-1 rounded-md p-1 text-[#6b7280] transition hover:bg-[#f3f4f6] hover:text-[#111827]"
-            aria-label="Skip tour"
+            aria-label="Skip automatic tours"
           >
             <X className="h-4 w-4" />
           </button>
@@ -335,7 +335,7 @@ export function HotspotOverlay({
             onClick={onSkip}
             className="text-[13px] font-medium text-[#6b7280] transition hover:text-[#111827]"
           >
-            Skip tour
+            Skip tours
           </button>
           <div className="flex items-center gap-2">
             <button

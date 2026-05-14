@@ -15,6 +15,7 @@ import {
 const TOUR_VERSION = 4;
 const STORAGE_KEY = (moduleId: string) =>
   `autolist:admin-tour:v${TOUR_VERSION}:${moduleId}`;
+const AUTO_TOURS_SKIPPED_KEY = `autolist:admin-tour:v${TOUR_VERSION}:auto-skipped`;
 
 type ModuleId =
   | "portal-intro"
@@ -908,10 +909,30 @@ function hasSeenTour(moduleId: string): boolean {
   }
 }
 
+function hasSkippedAutoTours(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return Boolean(window.localStorage.getItem(AUTO_TOURS_SKIPPED_KEY));
+  } catch {
+    return true;
+  }
+}
+
 function markTourSeen(moduleId: string) {
   try {
     window.localStorage.setItem(
       STORAGE_KEY(moduleId),
+      JSON.stringify({ at: new Date().toISOString() })
+    );
+  } catch {
+    /* no-op */
+  }
+}
+
+function markAutoToursSkipped() {
+  try {
+    window.localStorage.setItem(
+      AUTO_TOURS_SKIPPED_KEY,
       JSON.stringify({ at: new Date().toISOString() })
     );
   } catch {
@@ -974,6 +995,7 @@ export function AdminTourProvider({ children }: AdminTourProviderProps) {
     let cancelled = false;
     const t = window.setTimeout(() => {
       if (cancelled) return;
+      if (hasSkippedAutoTours()) return;
 
       if (!hasSeenTour(PORTAL_INTRO.id)) {
         setActiveTour(PORTAL_INTRO);
@@ -1021,8 +1043,14 @@ export function AdminTourProvider({ children }: AdminTourProviderProps) {
     setIsOpen(false);
   }, []);
 
-  const persistAndClose = React.useCallback(() => {
+  const finishAndClose = React.useCallback(() => {
     if (activeTour) markTourSeen(activeTour.id);
+    setIsOpen(false);
+  }, [activeTour]);
+
+  const skipAndClose = React.useCallback(() => {
+    if (activeTour) markTourSeen(activeTour.id);
+    markAutoToursSkipped();
     setIsOpen(false);
   }, [activeTour]);
 
@@ -1056,8 +1084,8 @@ export function AdminTourProvider({ children }: AdminTourProviderProps) {
         stepIndex={Math.min(stepIndex, Math.max(0, steps.length - 1))}
         onPrev={onPrev}
         onNext={onNext}
-        onSkip={persistAndClose}
-        onFinish={persistAndClose}
+        onSkip={skipAndClose}
+        onFinish={finishAndClose}
       />
     </AdminTourContext.Provider>
   );

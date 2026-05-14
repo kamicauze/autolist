@@ -26,8 +26,17 @@ export function getGoogleMapsEmbedUrl(
   const trimmedApiKey = apiKey?.trim();
   const trimmedQuery = query?.trim();
 
-  if (!trimmedApiKey || !trimmedQuery) {
+  if (!trimmedQuery) {
     return null;
+  }
+
+  if (!trimmedApiKey) {
+    const params = new URLSearchParams({
+      q: trimmedQuery,
+      output: "embed",
+    });
+
+    return `${GOOGLE_MAPS_BASE_URL}?${params.toString()}`;
   }
 
   const params = new URLSearchParams({
