@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { PublicCmsGutterBannerPlacement } from "@/components/cms/public-cms-banners";
+import { PublicCmsAdGrid } from "@/components/cms/public-cms-banners";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserFavoriteListingIds } from "@/lib/data/favorites";
@@ -59,10 +59,8 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="relative flex-1 bg-gray-50">
-        <PublicCmsGutterBannerPlacement placement="vehicle_detail" />
-
-        <div className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6 lg:px-8">
+      <main className="flex-1 bg-gray-50">
+        <PublicCmsAdGrid placement="vehicle_detail" contentClassName="py-6">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
@@ -93,7 +91,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
               googleMapsApiKey={googleMapsApiKey}
             />
           </Suspense>
-        </div>
+        </PublicCmsAdGrid>
       </main>
 
       <Footer />

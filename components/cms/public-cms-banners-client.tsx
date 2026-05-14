@@ -54,7 +54,7 @@ function PublicCmsBannerCard({
         variant === "full" && "min-h-[150px] sm:min-h-[180px]",
         variant === "compact" && "min-h-[120px]",
         variant === "sidebar" && "min-h-[260px]",
-        variant === "gutter" && "min-h-[260px]",
+        variant === "gutter" && "min-h-[520px] rounded-[14px]",
         variant === "hero" && "min-h-[340px] sm:min-h-[420px]"
       )}
     >
@@ -70,6 +70,7 @@ function PublicCmsBannerCard({
       <div
         className={cn(
           "relative flex h-full min-h-[inherit] flex-col justify-end p-5 text-white",
+          variant === "gutter" && "p-4",
           (variant === "sidebar" || variant === "gutter") && "justify-between",
           variant === "hero" && "mx-auto w-full max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8"
         )}
@@ -91,7 +92,7 @@ function PublicCmsBannerCard({
                 : variant === "full"
                   ? "text-[24px] sm:text-[30px]"
                   : variant === "gutter"
-                    ? "text-[14px]"
+                    ? "text-[15px]"
                     : "text-[18px]"
             )}
           >
@@ -166,7 +167,7 @@ export function PublicCmsBannerList({
         variant === "sidebar"
           ? "space-y-4"
           : variant === "gutter"
-            ? "space-y-4"
+            ? "space-y-5"
           : "mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 lg:px-8",
         variant === "full" && "py-6",
         variant === "compact" && "py-4",

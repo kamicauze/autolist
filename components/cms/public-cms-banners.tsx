@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { getActiveCmsBanners } from "@/lib/data/cms-banners";
 import type { CmsBannerPlacement } from "@/lib/types/cms-banners";
+import { cn } from "@/lib/utils";
 import { PublicCmsBannerList } from "./public-cms-banners-client";
 
 type PublicCmsBannerVariant = "full" | "compact" | "sidebar" | "hero" | "gutter";
@@ -24,42 +26,64 @@ export async function PublicCmsBannerPlacement({
   return <PublicCmsBannerList banners={banners} variant={variant} className={className} />;
 }
 
-export async function PublicCmsGutterBannerPlacement({
-  placement,
-  limit = 2,
-}: Omit<PublicCmsBannerPlacementProps, "variant" | "className">) {
-  const banners = await getActiveCmsBanners(placement, limit);
+type PublicCmsAdGridProps = {
+  placement: CmsBannerPlacement;
+  children: ReactNode;
+  limit?: number;
+  className?: string;
+  contentClassName?: string;
+};
 
-  if (banners.length === 0) return null;
-
-  const [rightBanner, leftBanner] = banners;
-  const gutterPosition = "top-8 bottom-0 hidden w-[120px] 2xl:block";
-  const gutterOffset = "max(0.75rem,calc((100vw-80rem)/2-132px))";
+function CmsGutterColumn({
+  banners,
+  side,
+}: {
+  banners: Awaited<ReturnType<typeof getActiveCmsBanners>>;
+  side: "left" | "right";
+}) {
+  if (banners.length === 0) return <div className="hidden lg:block" aria-hidden="true" />;
 
   return (
-    <>
-      {leftBanner ? (
-        <aside
-          className={`pointer-events-none absolute ${gutterPosition}`}
-          style={{ left: gutterOffset }}
-          aria-label="Left promotional banners"
-        >
-          <div className="pointer-events-auto sticky top-24">
-            <PublicCmsBannerList banners={[leftBanner]} variant="gutter" />
-          </div>
-        </aside>
-      ) : null}
-      {rightBanner ? (
-        <aside
-          className={`pointer-events-none absolute ${gutterPosition}`}
-          style={{ right: gutterOffset }}
-          aria-label="Right promotional banners"
-        >
-          <div className="pointer-events-auto sticky top-24">
-            <PublicCmsBannerList banners={[rightBanner]} variant="gutter" />
-          </div>
-        </aside>
-      ) : null}
-    </>
+    <aside className="hidden lg:block" aria-label={`${side} promotional banners`}>
+      <div className="sticky top-24">
+        <PublicCmsBannerList banners={banners} variant="gutter" />
+      </div>
+    </aside>
+  );
+}
+
+export async function PublicCmsAdGrid({
+  placement,
+  children,
+  limit = 4,
+  className,
+  contentClassName,
+}: PublicCmsAdGridProps) {
+  const banners = await getActiveCmsBanners(placement, limit);
+  const leftBanners = banners.filter((_, index) => index % 2 === 0);
+  const rightBanners = banners.filter((_, index) => index % 2 === 1);
+  const hasGutterBanners = banners.length > 0;
+
+  if (!hasGutterBanners) {
+    return (
+      <div className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8", className)}>
+        <div className={cn("min-w-0", contentClassName)}>{children}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "mx-auto grid w-full max-w-[1560px] grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-[112px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[112px_minmax(0,1fr)_112px] 2xl:max-w-[1680px] 2xl:grid-cols-[144px_minmax(0,1280px)_144px]",
+        className
+      )}
+    >
+      <CmsGutterColumn banners={leftBanners} side="left" />
+      <div className={cn("min-w-0", contentClassName)}>{children}</div>
+      <div className="hidden xl:block">
+        <CmsGutterColumn banners={rightBanners} side="right" />
+      </div>
+    </div>
   );
 }

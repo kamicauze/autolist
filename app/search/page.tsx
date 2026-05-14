@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import {
+  PublicCmsAdGrid,
   PublicCmsBannerPlacement,
-  PublicCmsGutterBannerPlacement,
 } from "@/components/cms/public-cms-banners";
 import { SearchPageClient } from "@/components/search/search-page-client";
 import { searchListings, countMatchingListings } from "@/lib/data/listings";
@@ -109,10 +109,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="relative flex-1 bg-white">
-        <PublicCmsGutterBannerPlacement placement="search_sidebar" />
-
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="flex-1 bg-white">
+        <PublicCmsAdGrid placement="search_sidebar" contentClassName="py-6">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -129,7 +127,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <PublicCmsBannerPlacement
               placement="search_top"
               variant="compact"
-              className="mb-6 px-0 py-0"
+              className="mb-6 max-w-none px-0 py-0"
             />
             <SearchPageClient
               listings={listings}
@@ -139,7 +137,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               makes={makes}
             />
           </Suspense>
-        </div>
+        </PublicCmsAdGrid>
       </main>
 
       <Footer />

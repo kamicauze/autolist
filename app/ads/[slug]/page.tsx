@@ -4,8 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import {
+  PublicCmsAdGrid,
   PublicCmsBannerPlacement,
-  PublicCmsGutterBannerPlacement,
 } from "@/components/cms/public-cms-banners";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
@@ -36,11 +36,13 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
     <div className="min-h-screen bg-[#f8fafc]">
       <Header />
 
-      <main className="relative pb-12">
+      <main className="pb-12">
         <PublicCmsBannerPlacement placement="ad_detail_hero" variant="hero" className="pb-0" />
-        <PublicCmsGutterBannerPlacement placement="ad_detail_sidebar" />
 
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <PublicCmsAdGrid
+          placement="ad_detail_sidebar"
+          contentClassName="w-full max-w-4xl justify-self-center py-8"
+        >
           <article className="overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white shadow-sm">
             <div className="relative aspect-[16/8] w-full overflow-hidden bg-[#0f172a]">
               <img
@@ -114,7 +116,7 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
               </div>
             </div>
           </article>
-        </div>
+        </PublicCmsAdGrid>
       </main>
 
       <Footer />
