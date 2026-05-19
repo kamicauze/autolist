@@ -299,7 +299,38 @@ export function Header() {
 
       {mobileMenuOpen && (
         <div className="border-t border-gray-100 lg:hidden">
-          <div className="space-y-2 px-4 py-4">
+          <div className="max-h-[calc(100vh-4rem)] space-y-2 overflow-y-auto px-4 py-4">
+            <div className="space-y-2 border-b border-gray-200 pb-3">
+              {user ? (
+                <>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start gap-2">
+                      <IconUser className="h-4 w-4" />
+                      {userLabel}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">Login / Register</Button>
+                </Link>
+              )}
+              <Link href="/dashboard/listings/new" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full">Add listing</Button>
+              </Link>
+            </div>
+
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 return (
@@ -342,34 +373,6 @@ export function Header() {
                   <GitCompare className="h-4 w-4" />
                   Compare{ids.length > 0 ? ` (${ids.length})` : ""}
                 </Button>
-              </Link>
-              {user ? (
-                <>
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start gap-2">
-                      <IconUser className="h-4 w-4" />
-                      {userLabel}
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">Login / Register</Button>
-                </Link>
-              )}
-              <Link href="/dashboard/listings/new" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full">Add listing</Button>
               </Link>
             </div>
           </div>
