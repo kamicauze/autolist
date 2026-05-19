@@ -113,7 +113,9 @@ export function Header() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const desktopNavRef = React.useRef<HTMLElement | null>(null);
+  const accountMenuRef = React.useRef<HTMLDivElement | null>(null);
   const { ids } = useCompare();
   const { user, loading } = useAuth();
 
@@ -145,7 +147,34 @@ export function Header() {
 
   React.useEffect(() => {
     setOpenMenu(null);
+    setAccountMenuOpen(false);
   }, [pathname]);
+
+  React.useEffect(() => {
+    if (!accountMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -255,20 +284,57 @@ export function Header() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700">
                   <NotificationBell className="text-gray-700" />
                 </div>
-                <Link href="/dashboard" className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
-                    {userInitial}
-                  </span>
-                  <span className="max-w-[108px] truncate">{userLabel}</span>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSignOut}
-                  title="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <div ref={accountMenuRef} className="relative">
+                  <button
+                    type="button"
+                    aria-expanded={accountMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setAccountMenuOpen((current) => !current)}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:border-primary/30 hover:text-primary"
+                  >
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
+                      {userInitial}
+                    </span>
+                    <span className="max-w-[108px] truncate">{userLabel}</span>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", accountMenuOpen && "rotate-180")} />
+                  </button>
+                  {accountMenuOpen ? (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl"
+                    >
+                      <Link
+                        href="/dashboard/profile"
+                        role="menuitem"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        <IconUser className="h-4 w-4" />
+                        Account details
+                      </Link>
+                      <Link
+                        href="/dashboard"
+                        role="menuitem"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setAccountMenuOpen(false);
+                          handleSignOut();
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <Link href="/login" className="hidden sm:block">
@@ -302,11 +368,22 @@ export function Header() {
           <div className="max-h-[calc(100vh-4rem)] space-y-2 overflow-y-auto px-4 py-4">
             <div className="space-y-2 border-b border-gray-200 pb-3">
               {user ? (
-                <>
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-2">
+                  <div className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-800">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
+                      {userInitial}
+                    </span>
+                    <span className="min-w-0 truncate">{userLabel}</span>
+                  </div>
+                  <Link href="/dashboard/profile" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full justify-start gap-2">
                       <IconUser className="h-4 w-4" />
-                      {userLabel}
+                      Account details
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start gap-2">
+                      Dashboard
                     </Button>
                   </Link>
                   <Button
@@ -318,9 +395,9 @@ export function Header() {
                     }}
                   >
                     <LogOut className="h-4 w-4" />
-                    Sign Out
+                    Logout
                   </Button>
-                </>
+                </div>
               ) : (
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full">Login / Register</Button>
