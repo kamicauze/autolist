@@ -15,13 +15,15 @@ export function VehicleLoanCalculator({
   onApplyForFinancing,
 }: VehicleLoanCalculatorProps) {
   const [downPaymentPercent, setDownPaymentPercent] = useState("0");
+  const [downPaymentPrice, setDownPaymentPrice] = useState("0");
   const [interestRate, setInterestRate] = useState("14");
   const [loanTerm, setLoanTerm] = useState("12");
   const [repaymentType, setRepaymentType] = useState("Monthly");
 
   const calculations = useMemo(() => {
     const downPercent = Number(downPaymentPercent) || 0;
-    const downPaymentAmount = (price * downPercent) / 100;
+    const enteredDownPaymentAmount = Number(downPaymentPrice.replace(/,/g, "")) || 0;
+    const downPaymentAmount = Math.min(price, Math.max(0, enteredDownPaymentAmount || (price * downPercent) / 100));
     const principal = Math.max(0, price - downPaymentAmount);
     const months = Number(loanTerm) || 12;
     const monthlyRate = (Number(interestRate) || 0) / 100 / 12;
@@ -43,13 +45,31 @@ export function VehicleLoanCalculator({
       financedAmount: principal,
       monthlyPayment,
     };
-  }, [price, downPaymentPercent, interestRate, loanTerm]);
+  }, [price, downPaymentPercent, downPaymentPrice, interestRate, loanTerm]);
 
   const formatMoney = (value: number) =>
     `${currency}${new Intl.NumberFormat("en-KE", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(Math.round(value))}`;
+
+  const formatNumberInput = (value: number) =>
+    new Intl.NumberFormat("en-KE", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(value));
+
+  const handleDownPaymentPercentChange = (value: string) => {
+    const percent = Math.min(100, Math.max(0, Number(value) || 0));
+    setDownPaymentPercent(value);
+    setDownPaymentPrice(formatNumberInput((price * percent) / 100));
+  };
+
+  const handleDownPaymentPriceChange = (value: string) => {
+    const numeric = Math.min(price, Math.max(0, Number(value.replace(/[^0-9.]/g, "")) || 0));
+    setDownPaymentPrice(value.replace(/[^0-9.,]/g, ""));
+    setDownPaymentPercent(price > 0 ? ((numeric / price) * 100).toFixed(1).replace(/\.0$/, "") : "0");
+  };
 
   return (
     <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-5">
@@ -62,18 +82,34 @@ export function VehicleLoanCalculator({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-gray-600">Down payment</label>
+          <label className="mb-1.5 block text-xs font-medium text-gray-600">Deposit</label>
           <div className="relative">
             <input
               type="number"
               min="0"
               max="100"
               value={downPaymentPercent}
-              onChange={(event) => setDownPaymentPercent(event.target.value)}
+              onChange={(event) => handleDownPaymentPercentChange(event.target.value)}
               className="h-11 w-full rounded-lg border border-gray-200 px-3 pr-8 text-sm text-gray-900 focus:border-primary focus:outline-none"
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
               %
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-gray-600">Down payment price</label>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={downPaymentPrice}
+              onChange={(event) => handleDownPaymentPriceChange(event.target.value)}
+              className="h-11 w-full rounded-lg border border-gray-200 px-3 pl-12 text-sm text-gray-900 focus:border-primary focus:outline-none"
+            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+              {currency}
             </span>
           </div>
         </div>
@@ -110,7 +146,7 @@ export function VehicleLoanCalculator({
           </select>
         </div>
 
-        <div className="md:col-span-2">
+        <div>
           <label className="mb-1.5 block text-xs font-medium text-gray-600">Repayment type</label>
           <select
             value={repaymentType}

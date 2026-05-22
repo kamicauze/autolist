@@ -96,9 +96,9 @@ export const LISTING_CATEGORY_OPTIONS = [
 export type ListingCategory = (typeof LISTING_CATEGORY_OPTIONS)[number]["value"];
 
 export const LISTING_CONDITION_OPTIONS = [
-  { value: "new", label: "New" },
-  { value: "locally_used", label: "Kenyan Used" },
-  { value: "foreign_used", label: "Foreign Used" },
+  { value: "new", label: "Brand new" },
+  { value: "locally_used", label: "Locally used" },
+  { value: "foreign_used", label: "Foreign used" },
 ] as const;
 
 export const LISTING_AVAILABILITY_OPTIONS = [

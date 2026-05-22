@@ -112,8 +112,8 @@ const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
   car: [
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "Corolla" },
+    { key: "variant", label: "Model Variant", type: "text", required: false, placeholder: "C200, 320i, xDrive30d" },
     { key: "trim", label: "Trim", type: "text", required: false, placeholder: "TX" },
-    { key: "variant", label: "Variant / Engine", type: "text", required: false, placeholder: "xDrive30d" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
     {
       key: "engineType",

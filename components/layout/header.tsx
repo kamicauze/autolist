@@ -7,6 +7,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, GitCompare, LogOut, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { IconMenu, IconX, IconUser, IconSearch } from "@/components/ui/icons";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -35,6 +40,7 @@ const toolsMenu = [
   { name: "Compare cars", href: "/compare" },
   { name: "Car Insurance", href: "/insurance" },
   { name: "Import Inquiry", href: "/import-inquiry" },
+  { name: "Inquiries & Assistance", href: "/inquiries-assistance" },
 ];
 
 const pagesMenu = [
@@ -112,6 +118,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileOpenMenu, setMobileOpenMenu] = React.useState<string | null>(null);
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const desktopNavRef = React.useRef<HTMLElement | null>(null);
@@ -148,6 +155,7 @@ export function Header() {
   React.useEffect(() => {
     setOpenMenu(null);
     setAccountMenuOpen(false);
+    setMobileOpenMenu(null);
   }, [pathname]);
 
   React.useEffect(() => {
@@ -213,7 +221,6 @@ export function Header() {
                   <div
                     key={item.name}
                     className="relative"
-                    onMouseEnter={() => setOpenMenu(item.key)}
                   >
                     <button
                       type="button"
@@ -365,30 +372,30 @@ export function Header() {
 
       {mobileMenuOpen && (
         <div className="border-t border-gray-100 lg:hidden">
-          <div className="max-h-[calc(100vh-4rem)] space-y-2 overflow-y-auto px-4 py-4">
-            <div className="space-y-2 border-b border-gray-200 pb-3">
+          <div className="max-h-[calc(100vh-4rem)] space-y-3 overflow-y-auto px-4 py-4">
+            <div className="flex flex-col gap-3 border-b border-gray-200 pb-4">
               {user ? (
-                <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-800">
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                       {userInitial}
                     </span>
                     <span className="min-w-0 truncate">{userLabel}</span>
                   </div>
-                  <Link href="/dashboard/profile" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start gap-2">
+                  <Link href="/dashboard/profile" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
                       <IconUser className="h-4 w-4" />
                       Account details
                     </Button>
                   </Link>
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start gap-2">
+                  <Link href="/dashboard" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
                       Dashboard
                     </Button>
                   </Link>
                   <Button
                     variant="outline"
-                    className="w-full justify-start gap-2"
+                    className="min-h-11 w-full justify-start gap-2"
                     onClick={() => {
                       handleSignOut();
                       setMobileMenuOpen(false);
@@ -399,31 +406,44 @@ export function Header() {
                   </Button>
                 </div>
               ) : (
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">Login / Register</Button>
+                <Link href="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="min-h-11 w-full">Login / Register</Button>
                 </Link>
               )}
-              <Link href="/dashboard/listings/new" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full">Add listing</Button>
+              <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="min-h-11 w-full">Add listing</Button>
               </Link>
             </div>
 
             {desktopLinks.map((item) => {
               if ("menu" in item) {
+                const isMobileSectionOpen = mobileOpenMenu === item.key;
+
                 return (
-                  <div key={item.name} className="rounded-lg border border-gray-200 p-2">
-                    <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{item.name}</p>
-                    {item.menu.map((menuItem) => (
-                      <Link
-                        key={menuItem.name}
-                        href={menuItem.href}
-                        className="block rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {menuItem.name}
-                      </Link>
-                    ))}
-                  </div>
+                  <Collapsible
+                    key={item.name}
+                    open={isMobileSectionOpen}
+                    onOpenChange={(open) => setMobileOpenMenu(open ? item.key : null)}
+                    className="rounded-lg border border-gray-200"
+                  >
+                    <CollapsibleTrigger className="px-3 py-3 text-left text-sm font-semibold text-gray-800">
+                      {item.name}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="border-t border-gray-100">
+                      <div className="flex flex-col gap-1 px-2">
+                        {item.menu.map((menuItem) => (
+                          <Link
+                            key={menuItem.name}
+                            href={menuItem.href}
+                            className="block rounded-md px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {menuItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 );
               }
 
@@ -444,9 +464,9 @@ export function Header() {
               );
             })}
 
-            <div className="space-y-2 border-t border-gray-200 pt-3">
-              <Link href="/compare" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full justify-start gap-2">
+            <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
+              <Link href="/compare" className="block" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
                   <GitCompare className="h-4 w-4" />
                   Compare{ids.length > 0 ? ` (${ids.length})` : ""}
                 </Button>

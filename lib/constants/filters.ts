@@ -45,9 +45,9 @@ export const FUEL_TYPES = [
 
 // Conditions
 export const CONDITIONS = [
-  { value: "new", label: "Brand New" },
-  { value: "foreign_used", label: "Foreign Used" },
-  { value: "locally_used", label: "Kenyan Used" },
+  { value: "new", label: "Brand new" },
+  { value: "foreign_used", label: "Foreign used" },
+  { value: "locally_used", label: "Locally used" },
 ] as const;
 
 // Colors

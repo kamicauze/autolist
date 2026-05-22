@@ -6,6 +6,7 @@ import {
   getVehicleReferenceOptionsFallback,
   type VehicleReferenceOptions,
 } from "@/lib/data/vehicle-reference-catalog";
+import { shapeVariantOptionsForMake } from "@/lib/utils/vehicle-variant-visibility";
 
 // ── Server-side fetchers for car reference data ─────────────────────────────
 // These tables are small (~57 makes, ~850 models) so direct queries are fast.
@@ -201,14 +202,21 @@ export async function getVehicleReferenceOptions(
     };
   }
 
+  const trimOptions = trims.map((trim) => ({
+    label: trim.name,
+    value: trim.name,
+    source: trim.is_shared ? ("shared" as const) : ("model" as const),
+  }));
+  const shapedReferenceOptions = shapeVariantOptionsForMake(
+    selectedMakeName,
+    trimOptions,
+    variants.map((variant) => variant.name)
+  );
+
   return {
     makes: makeOptions,
     models: modelOptions,
-    trimOptions: trims.map((trim) => ({
-      label: trim.name,
-      value: trim.name,
-      source: trim.is_shared ? ("shared" as const) : ("model" as const),
-    })),
-    variants: variants.map((variant) => variant.name),
+    trimOptions: shapedReferenceOptions.trimOptions,
+    variants: shapedReferenceOptions.variants,
   };
 }

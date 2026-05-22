@@ -125,6 +125,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
           <Suspense fallback={<div className="animate-pulse h-16 bg-gray-200 rounded-lg" />}>
             <PublicCmsBannerPlacement
+              placement="listing_global_top"
+              variant="compact"
+              className="mb-6 max-w-none px-0 py-0"
+            />
+            <PublicCmsBannerPlacement
               placement="search_top"
               variant="compact"
               className="mb-6 max-w-none px-0 py-0"

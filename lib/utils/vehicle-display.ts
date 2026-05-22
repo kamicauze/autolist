@@ -9,6 +9,16 @@ export function getListingVariant(listing: Listing) {
   return getListingMetadataString(listing, "variant");
 }
 
+export function getListingEngineDisplacement(listing: Listing) {
+  return (
+    getListingMetadataString(listing, "engineCapacity") ??
+    getListingMetadataString(listing, "engine_capacity") ??
+    getListingMetadataString(listing, "engineDisplacement") ??
+    getListingMetadataString(listing, "engine_displacement") ??
+    getListingMetadataString(listing, "engine_size")
+  );
+}
+
 export function getListingDisplayTitle(listing: Listing) {
   const trimValue = getListingTrim(listing);
   const parts = [

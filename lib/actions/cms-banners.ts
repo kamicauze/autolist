@@ -79,6 +79,7 @@ function slugifyBanner(value: string) {
 function revalidateBannerPaths() {
   revalidatePath("/");
   revalidatePath("/search");
+  revalidatePath("/vehicle/[id]", "page");
   revalidatePath("/admin/ads-banners");
   revalidatePath("/dashboard");
 }

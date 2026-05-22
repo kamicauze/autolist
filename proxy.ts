@@ -2,6 +2,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/config";
+import {
+    ANON_VEHICLE_VIEWS_COOKIE,
+    ANON_VEHICLE_VIEWS_MAX_AGE,
+    getAnonymousVehicleViewDecision,
+    readAnonymousVehicleViews,
+    writeAnonymousVehicleViews,
+} from "@/lib/vehicle-view-limit";
 
 export async function proxy(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
@@ -54,7 +61,39 @@ export async function proxy(request: NextRequest) {
     );
 
     try {
-        await supabase.auth.getUser();
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+
+        const vehicleMatch = request.nextUrl.pathname.match(/^\/vehicle\/([^/]+)$/);
+        if (!user && vehicleMatch) {
+            const listingId = decodeURIComponent(vehicleMatch[1]);
+            const existingViews = readAnonymousVehicleViews(
+                request.cookies.get(ANON_VEHICLE_VIEWS_COOKIE)?.value
+            );
+            const decision = getAnonymousVehicleViewDecision(existingViews, listingId);
+
+            if (!decision.allowed) {
+                const loginUrl = new URL("/login", request.url);
+                loginUrl.searchParams.set(
+                    "next",
+                    `${request.nextUrl.pathname}${request.nextUrl.search}`
+                );
+                return NextResponse.redirect(loginUrl);
+            }
+
+            if (decision.changed) {
+                response.cookies.set(
+                    ANON_VEHICLE_VIEWS_COOKIE,
+                    writeAnonymousVehicleViews(decision.ids),
+                    {
+                        path: "/",
+                        sameSite: "lax",
+                        maxAge: ANON_VEHICLE_VIEWS_MAX_AGE,
+                    }
+                );
+            }
+        }
     } catch (error) {
         console.error("Supabase auth refresh failed in proxy:", error);
     }

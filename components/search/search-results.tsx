@@ -10,6 +10,7 @@ import {
   getListingDisplayTitle,
   getListingSubtitle,
 } from "@/lib/utils/vehicle-display";
+import { formatListingLabel } from "@/lib/utils/listing-details";
 import { cn } from "@/lib/utils";
 
 interface SearchResultsProps {
@@ -66,11 +67,11 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
               id={listing.id}
               title={getListingDisplayTitle(listing)}
               subtitle={getListingSubtitle(listing)}
-              bodyType={listing.body_type || "Vehicle"}
+              bodyType={formatListingLabel(listing.body_type) || "Vehicle"}
               year={listing.year}
               mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}
-              fuelType={listing.fuel_type || "N/A"}
-              transmission={listing.transmission || "N/A"}
+              fuelType={formatListingLabel(listing.fuel_type) || "N/A"}
+              transmission={formatListingLabel(listing.transmission) || "N/A"}
               price={listing.price}
               currency={listing.currency}
               images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}

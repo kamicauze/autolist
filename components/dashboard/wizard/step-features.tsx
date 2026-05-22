@@ -143,7 +143,6 @@ export function StepFeatures() {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-[#202224]">{feature.label}</p>
-                      <p className="mt-1 truncate text-[12px] text-[#8a8a8a]">{feature.id}</p>
                     </div>
                   </label>
                 );

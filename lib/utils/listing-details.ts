@@ -71,3 +71,27 @@ export function buildListingDetailMetadata(details: Record<string, string | null
 
   return Object.fromEntries(cleanedEntries);
 }
+
+export function formatListingLabel(value: string | null | undefined) {
+  const normalized = String(value ?? "")
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (!normalized) return "";
+
+  return normalized.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+}
+
+export function formatListingCondition(value: string | null | undefined) {
+  if (value === "new") return "Brand new";
+  if (value === "locally_used" || value === "used") return "Locally used";
+  if (value === "foreign_used") return "Foreign used";
+  return formatListingLabel(value) || "N/A";
+}
+
+export function formatListingRegistrationStatus(value: string | null | undefined) {
+  if (value === "registered") return "Registered";
+  if (value === "not_registered") return "Not registered";
+  return "N/A";
+}

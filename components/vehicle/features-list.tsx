@@ -5,6 +5,7 @@ import {
   LISTING_FEATURE_GROUPS_BY_CATEGORY,
   LISTING_FEATURE_INDEX,
 } from "@/lib/constants/marketplace";
+import { formatListingLabel } from "@/lib/utils/listing-details";
 
 interface FeaturesListProps {
   features: string[] | null;
@@ -67,7 +68,7 @@ function groupProvidedFeatures(features: string[]) {
   for (const feature of features) {
     const definition = LISTING_FEATURE_INDEX[feature];
     const groupLabel = definition ? getGroupLabel(definition.group) : "Other Features";
-    const label = definition?.label ?? feature;
+    const label = definition?.label ?? formatListingLabel(feature);
     const existing = grouped.get(groupLabel) ?? [];
     existing.push(label);
     grouped.set(groupLabel, existing);

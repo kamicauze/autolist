@@ -42,8 +42,17 @@ import {
   PriceAdviserSummary,
 } from "./price-adviser-panel";
 import { FinancingRequestDialog } from "./financing-request-dialog";
-import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
-import { getListingMetadataString } from "@/lib/utils/listing-details";
+import {
+  getListingEngineDisplacement,
+  getListingTrim,
+  getListingVariant,
+} from "@/lib/utils/vehicle-display";
+import {
+  formatListingCondition,
+  formatListingLabel,
+  formatListingRegistrationStatus,
+  getListingMetadataString,
+} from "@/lib/utils/listing-details";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsDirectionsUrl } from "@/lib/google-maps";
 import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
@@ -267,24 +276,34 @@ function getListingDocuments(metadata: Listing["metadata"]): ListingDocument[] {
     .filter((document): document is ListingDocument => Boolean(document));
 
   if (normalizedDocuments.length > 0) {
-    return normalizedDocuments;
+    return normalizedDocuments.filter((document) => Boolean(document.url));
   }
 
-  const documentNames = Array.isArray(record.documentNames) ? record.documentNames : [];
-  return documentNames
-    .map((name) => (typeof name === "string" ? name.trim() : ""))
-    .filter(Boolean)
-    .map((name) => ({ name, url: null }));
+  return [];
 }
 
 function formatRegistrationStatus(listing: Listing) {
   const status = getListingMetadataString(listing, "registrationStatus");
+  return formatListingRegistrationStatus(status);
+}
 
-  if (status === "registered") return "Registered in Kenya";
-  if (status === "not_registered") return "Not registered";
-  if (status === "registration_in_progress") return "Registration in progress";
+function getModelDescription(listing: Listing) {
+  const bodyType = formatListingLabel(listing.body_type) || "vehicle";
+  const fuelType = formatListingLabel(listing.fuel_type);
+  const transmission = formatListingLabel(listing.transmission);
+  const variant = getListingVariant(listing);
+  const displacement = getListingEngineDisplacement(listing);
+  const seats = listing.seats ? `${listing.seats}-seat` : "";
+  const modelName = [listing.make, listing.model, variant].filter(Boolean).join(" ");
+  const specSummary = [displacement, fuelType, transmission, seats]
+    .filter(Boolean)
+    .join(", ");
 
-  return "N/A";
+  return `${modelName} is a ${bodyType.toLowerCase()} model from ${listing.make}, built for buyers comparing space, comfort, running costs, and everyday usability. ${
+    specSummary
+      ? `Across this model line, shoppers commonly compare configuration details such as ${specSummary}. `
+      : ""
+  }It is best understood by looking at how the model balances practicality, cabin comfort, performance, and long-term ownership needs.`;
 }
 
 export function VehiclePageClient({
@@ -615,52 +634,61 @@ export function VehiclePageClient({
               </AccordionSection>
 
               <AccordionSection
-                title={`About ${listing.make}`}
+                title={`About ${listing.make} ${listing.model}`}
                 open={accordionState.about}
                 onOpenChange={(open) => setSectionOpen("about", open)}
               >
-                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Condition</p>
-                    <p className="font-semibold text-gray-900">
-                      {listing.condition ? listing.condition.replaceAll("_", " ") : "N/A"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Trim / Variant</p>
-                    <p className="font-semibold text-gray-900">
-                      {getListingTrim(listing) || "N/A"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Engine</p>
-                    <p className="font-semibold text-gray-900">
-                      {getListingVariant(listing) || "N/A"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Registration</p>
-                    <p className="font-semibold text-gray-900">
-                      {formatRegistrationStatus(listing)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Stock number</p>
-                    <p className="font-semibold text-gray-900">
-                      {metadataValue(listing.metadata, "stock_number")}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">VIN number</p>
-                    <p className="font-semibold text-gray-900">
-                      {metadataValue(listing.metadata, "vin")}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-100 p-3">
-                    <p className="text-xs text-gray-500">Drive type</p>
-                    <p className="font-semibold text-gray-900">
-                      {metadataValue(listing.metadata, "drive_type")}
-                    </p>
+                <div className="space-y-4 text-sm leading-relaxed text-gray-600">
+                  <p>{getModelDescription(listing)}</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Condition</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatListingCondition(listing.condition)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Registration</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatRegistrationStatus(listing)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Trim</p>
+                      <p className="font-semibold text-gray-900">
+                        {getListingTrim(listing) || "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Model Variant</p>
+                      <p className="font-semibold text-gray-900">
+                        {getListingVariant(listing) || "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Engine Displacement</p>
+                      <p className="font-semibold text-gray-900">
+                        {getListingEngineDisplacement(listing) || "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Drive type</p>
+                      <p className="font-semibold text-gray-900">
+                        {formatListingLabel(listing.drive_type) || formatListingLabel(metadataValue(listing.metadata, "drive_type")) || "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">Stock number</p>
+                      <p className="font-semibold text-gray-900">
+                        {metadataValue(listing.metadata, "stock_number")}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500">VIN number</p>
+                      <p className="font-semibold text-gray-900">
+                        {metadataValue(listing.metadata, "vin")}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </AccordionSection>

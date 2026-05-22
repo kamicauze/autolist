@@ -163,6 +163,11 @@ export function AdminTicketQueue({
             ) : null}
             {tickets.map((ticket) => {
               const active = ticket.id === selectedTicket?.id;
+              const contextLabel = ticket.thread
+                ? `${ticket.thread.buyerName || "Buyer"} • ${ticket.listing?.title || "Listing"}`
+                : `${ticket.category.replace(/[_-]+/g, " ")} • ${
+                    ticket.createdBy?.fullName || ticket.createdBy?.email || "Public inquiry"
+                  }`;
               return (
                 <button
                   key={ticket.id}
@@ -177,7 +182,7 @@ export function AdminTicketQueue({
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold text-[#111827]">{ticket.subject}</p>
                       <p className="mt-1 text-[12px] text-[#6b7280]">
-                        {ticket.thread?.buyerName || "Buyer"} • {ticket.listing?.title || "Listing"}
+                        {contextLabel}
                       </p>
                     </div>
                     <p className="text-[11px] text-[#94a3b8]">{formatTime(ticket.updatedAt)}</p>

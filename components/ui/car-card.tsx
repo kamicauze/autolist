@@ -11,7 +11,7 @@ import { useCompare } from "@/lib/hooks/use-compare";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "./badge";
-import { IconCamera, IconFuel, IconGear, IconSpeedometer } from "./icons";
+import { IconFuel, IconGear, IconSpeedometer } from "./icons";
 
 export interface CarCardProps {
   id: string;
@@ -40,7 +40,6 @@ export function CarCard({
   title,
   subtitle,
   bodyType,
-  year,
   mileage,
   fuelType,
   transmission,
@@ -245,54 +244,42 @@ export function CarCard({
               Featured
             </Badge>
           ) : null}
-          <Badge variant="default" size="sm" className="flex items-center gap-1">
-            <IconCamera className="h-4 w-4" />
-            <span>{imageCount}</span>
-          </Badge>
         </div>
 
-        <div className="absolute right-2.5 top-2.5 z-30">
-          <Badge variant="default" size="sm">
-            {year}
-          </Badge>
-        </div>
+        <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCompareClick}
+            disabled={!isLoaded || compareLimitReached}
+            aria-label={inCompare ? "Remove from compare" : "Add to compare"}
+            title={
+              compareLimitReached
+                ? `You can compare up to ${maxItems} vehicles`
+                : inCompare
+                  ? "Remove from compare"
+                  : "Add to compare"
+            }
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-primary shadow-md transition-colors hover:bg-white",
+              (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
+            )}
+          >
+            {inCompare ? <Check className="h-4 w-4" /> : <GitCompare className="h-4 w-4" />}
+          </button>
 
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onCompareClick}
-              disabled={!isLoaded || compareLimitReached}
-              aria-label={inCompare ? "Remove from compare" : "Add to compare"}
-              title={
-                compareLimitReached
-                  ? `You can compare up to ${maxItems} vehicles`
-                  : inCompare
-                    ? "Remove from compare"
-                    : "Add to compare"
-              }
-              className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-md transition-colors",
-                (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
-              )}
-            >
-              {inCompare ? <Check className="h-5 w-5" /> : <GitCompare className="h-5 w-5" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={onLikeClick}
-              disabled={isWishlistPending}
-              aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
-              className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-md transition-colors hover:text-red-500",
-                isLiked && "text-red-500",
-                isWishlistPending && "cursor-wait opacity-80"
-              )}
-            >
-              <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onLikeClick}
+            disabled={isWishlistPending}
+            aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-primary shadow-md transition-colors hover:bg-white hover:text-red-500",
+              isLiked && "text-red-500",
+              isWishlistPending && "cursor-wait opacity-80"
+            )}
+          >
+            <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
+          </button>
         </div>
 
         {imageCount > 1 && (

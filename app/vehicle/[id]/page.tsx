@@ -2,7 +2,10 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { PublicCmsAdGrid } from "@/components/cms/public-cms-banners";
+import {
+  PublicCmsAdGrid,
+  PublicCmsBannerPlacement,
+} from "@/components/cms/public-cms-banners";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserFavoriteListingIds } from "@/lib/data/favorites";
@@ -67,6 +70,11 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
               { label: "All car listings", href: "/search" },
             ]}
             className="mb-4"
+          />
+          <PublicCmsBannerPlacement
+            placement="listing_global_top"
+            variant="compact"
+            className="mb-6 max-w-none px-0 py-0"
           />
 
           <Suspense fallback={<div className="h-[1200px] animate-pulse rounded-2xl bg-white" aria-hidden />}>

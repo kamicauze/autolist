@@ -10,9 +10,12 @@ import { useCompare } from "@/lib/hooks/use-compare";
 import { Listing } from "@/lib/types/listing";
 import { COMPARE_MAX_ITEMS } from "@/lib/utils/compare";
 import { getImageUrl } from "@/lib/utils/listings";
+import { LISTING_FEATURE_INDEX } from "@/lib/constants/marketplace";
+import { formatListingCondition, formatListingLabel } from "@/lib/utils/listing-details";
 import {
   getListingDisplayLocation,
   getListingDisplayTitle,
+  getListingEngineDisplacement,
   getListingTrim,
   getListingVariant,
 } from "@/lib/utils/vehicle-display";
@@ -91,34 +94,19 @@ function metadataValue(listing: Listing, keys: string[]): string | null {
   return null;
 }
 
-function normalizeFeature(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-
-function featureValue(listing: Listing, featureLabel: string): string {
-  const key = featureLabel.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  const metadata = metadataValue(listing, [key]);
-
-  if (metadata) {
-    return metadata;
-  }
-
-  const normalizedLabel = normalizeFeature(featureLabel);
-  const listingFeatures = listing.features || [];
-
-  const hasFeature = listingFeatures.some((feature) => {
-    return normalizeFeature(feature).includes(normalizedLabel);
-  });
-
-  return hasFeature ? "Yes" : "-";
-}
-
 function valueOrDash(value: string | null): string {
   if (!value) {
     return "-";
   }
 
   return value;
+}
+
+function getFeatureLabels(listing: Listing) {
+  const features = listing.features || [];
+  return features
+    .map((feature) => LISTING_FEATURE_INDEX[feature]?.label ?? formatListingLabel(feature))
+    .filter(Boolean);
 }
 
 function ComparisonTable({
@@ -171,6 +159,41 @@ function ComparisonTable({
                   </div>
                 );
               })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FeatureTagsComparison({ listings }: { listings: Listing[] }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+      <div className="grid min-w-[860px] grid-cols-3 divide-x divide-gray-100">
+        {Array.from({ length: COMPARE_MAX_ITEMS }).map((_, index) => {
+          const listing = listings[index];
+          const features = listing ? getFeatureLabels(listing) : [];
+
+          return (
+            <div key={`features-${index}`} className="p-5">
+              <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                {listing ? `${listing.make} ${listing.model}` : `Vehicle ${index + 1}`}
+              </p>
+              {features.length > 0 ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {features.map((feature) => (
+                    <span
+                      key={`${listing?.id}-${feature}`}
+                      className="rounded-full border border-[#d8e3ff] bg-[#f8fbff] px-3 py-1.5 text-xs font-medium text-[#3157c8]"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-sm text-gray-500">No features listed.</p>
+              )}
             </div>
           );
         })}
@@ -302,7 +325,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => valueOrDash(getListingTrim(listing)),
       },
       {
-        label: "Variant / Engine",
+        label: "Model Variant",
         getValue: (listing) => valueOrDash(getListingVariant(listing)),
       },
       {
@@ -320,8 +343,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
       },
       {
         label: "Engine Displacement",
-        getValue: (listing) =>
-          valueOrDash(metadataValue(listing, ["engine_displacement", "engine_capacity", "engine_cc"])),
+        getValue: (listing) => valueOrDash(getListingEngineDisplacement(listing)),
       },
       {
         label: "Car location",
@@ -330,33 +352,6 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
     ],
     []
   );
-
-  const featureLabels = React.useMemo(
-    () => [
-      "Bottle Holder",
-      "Foldable Rear Seat",
-      "Parking Sensors",
-      "Remote Trunk Opener",
-      "Low Fuel Warning Light",
-      "Trunk Light",
-      "Seat Lumbar Support",
-      "Navigation System",
-      "Smart Access Card Entry",
-      "Glove Box Cooling",
-      "USB Charger",
-      "Central Console Armrest",
-      "Luggage Hook and Net",
-      "One Touch Operating Power Window",
-    ],
-    []
-  );
-
-  const featureRows = React.useMemo<RowDefinition[]>(() => {
-    return featureLabels.map((label) => ({
-      label,
-      getValue: (listing) => featureValue(listing, label),
-    }));
-  }, [featureLabels]);
 
   const specificationRows = React.useMemo<RowDefinition[]>(
     () => [
@@ -385,7 +380,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => {
           const condition = listing.condition || "-";
           const color = listing.color || "-";
-          return `${condition}, ${color}`;
+          return `${formatListingCondition(condition)}, ${formatListingLabel(color) || "-"}`;
         },
       },
     ],
@@ -546,11 +541,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
             </TabsContent>
 
             <TabsContent value="features" className="mt-5">
-              <ComparisonTable
-                sectionTitle="Features"
-                rows={featureRows}
-                listings={selectedListings}
-              />
+              <FeatureTagsComparison listings={selectedListings} />
             </TabsContent>
 
             <TabsContent value="specification" className="mt-5">

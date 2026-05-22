@@ -524,6 +524,9 @@ export async function insertListingInternal(
             dealer_id: dealerId ?? null,
             status: initialStatus,
             ...listingValues,
+            seats: seats ?? null,
+            doors: doors ?? null,
+            drive_type: drive_type || null,
             metadata: Object.keys(vehicleReferenceMetadata).length > 0 ? vehicleReferenceMetadata : null,
             features: data.features // Zod array -> JSONB
         })
@@ -678,6 +681,9 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         .from('listings')
         .update({
             ...listingValues,
+            ...(seats !== undefined ? { seats: seats ?? null } : {}),
+            ...(doors !== undefined ? { doors: doors ?? null } : {}),
+            ...(drive_type !== undefined ? { drive_type: drive_type || null } : {}),
             metadata: Object.keys(nextMetadata).length > 0 ? nextMetadata : null,
             updated_at: new Date().toISOString()
         })

@@ -179,7 +179,7 @@ export function StepVehicleDetails() {
             list={`detail-trim-options-${draft.category || "car"}`}
             value={draft.details.trim}
             onChange={(event) => updateDetailField("trim", event.target.value)}
-            placeholder="Type trim or variant, separated by commas if needed"
+            placeholder="Type trim or package, e.g. AMG Line, M Sport, TX"
             className={cn(
               sellerInputClass,
               hasError && "border-[#f04438]"
@@ -194,7 +194,7 @@ export function StepVehicleDetails() {
           </datalist>
           {draft.details.model && referenceOptions.trimOptions.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
-              Suggestions are model-specific where available. You can still type the exact trim.
+              Suggestions are model-specific where available. Use this for trim, package, or grade, not engine displacement.
             </p>
           ) : null}
         </>
@@ -223,7 +223,7 @@ export function StepVehicleDetails() {
           </datalist>
           {referenceOptions.variants.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
-              Use this for the engine, drivetrain, or market engine name such as Hybrid, C200, or xDrive30d.
+              Use this for complex model variants such as C200, 320i, Cayenne S, or xDrive30d.
             </p>
           ) : null}
         </>

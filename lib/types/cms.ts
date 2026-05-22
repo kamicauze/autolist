@@ -114,9 +114,9 @@ export const DEFAULT_HOME_HERO_CMS_CONTENT: HomepageHeroCmsContent = {
 export const DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT: HomepageFeaturedListingsCmsContent = {
   title: "Your recent activities",
   viewAllLabel: "View all",
-  featuredTabLabel: "Featured",
+  featuredTabLabel: "Recently viewed",
   recentTabLabel: "Recently added",
-  favoritesTabLabel: "Favorites",
+  favoritesTabLabel: "Favourites",
   showTabs: true,
   showFavoritesTab: true,
   featuredLimit: 8,

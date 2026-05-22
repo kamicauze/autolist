@@ -1,6 +1,7 @@
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { CAR_MAKES_DATA } from "@/lib/constants/car-data";
 import { NON_CAR_REFERENCE_DATA } from "@/lib/constants/non-car-reference-data";
+import { shapeVariantOptionsForMake } from "@/lib/utils/vehicle-variant-visibility";
 
 export type VehicleTrimOption = {
   label: string;
@@ -70,11 +71,17 @@ export function getVehicleReferenceOptionsFallback(
       source: "shared" as const,
     }));
 
+  const shapedReferenceOptions = shapeVariantOptionsForMake(
+    make.name,
+    [...modelTrims, ...sharedTrims],
+    sortValues(model?.variants ?? [])
+  );
+
   return {
     makes,
     models,
-    trimOptions: model ? [...modelTrims, ...sharedTrims] : [],
-    variants: sortValues(model?.variants ?? []),
+    trimOptions: model ? shapedReferenceOptions.trimOptions : [],
+    variants: model ? shapedReferenceOptions.variants : [],
     makeInputMode: "select",
     modelInputMode: "select",
   };

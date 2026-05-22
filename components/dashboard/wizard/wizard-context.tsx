@@ -21,6 +21,7 @@ import {
 } from "@/lib/utils/listing-details";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
+import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
 
 // ─── Types ───
@@ -28,7 +29,7 @@ export type DetailFieldKey =
   | "make" | "model" | "trim" | "variant" | "year" | "engineType" | "transmission"
   | "driveType" | "mileage" | "bodyType" | "bodyStyle" | "loadCapacity"
   | "engineCapacity" | "fuelType" | "fuelSystem" | "bikeType" | "color"
-  | "seats" | "axleConfiguration" | "equipmentType" | "operatingHours"
+  | "seats" | "doors" | "axleConfiguration" | "equipmentType" | "operatingHours"
   | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType"
   | "registrationStatus";
 
@@ -97,7 +98,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
     make: "", model: "", trim: "", variant: "", year: "", engineType: "", transmission: "",
     driveType: "", mileage: "", bodyType: "", bodyStyle: "", loadCapacity: "",
     engineCapacity: "", fuelType: "", fuelSystem: "", bikeType: "", color: "",
-    seats: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
+    seats: "", doors: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
     operatingWeight: "", operationalStatus: "", powerOutput: "", usageType: "",
     registrationStatus: "",
   },
@@ -123,16 +124,18 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
   car: [
     { key: "make", label: "Make", type: "select", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "select", required: true, placeholder: "Corolla" },
-    { key: "trim", label: "Trim / Variant", type: "text", required: false, placeholder: "G, Hybrid, TX" },
-    { key: "variant", label: "Engine", type: "text", required: false, placeholder: "1500cc petrol, hybrid, xDrive30d" },
+    { key: "variant", label: "Model Variant", type: "text", required: false, placeholder: "C200, 320i, Cayenne S" },
+    { key: "trim", label: "Trim", type: "text", required: false, placeholder: "AMG Line, M Sport, TX" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
-    { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered in Kenya" }, { value: "not_registered", label: "Not registered" }, { value: "registration_in_progress", label: "Registration in progress" }] },
+    { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered" }, { value: "not_registered", label: "Not registered" }] },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
+    { key: "engineCapacity", label: "Engine Displacement", type: "text", required: false, placeholder: "2000cc or 2.0L" },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "fwd", label: "FWD" }, { value: "rwd", label: "RWD" }, { value: "awd", label: "AWD" }, { value: "4wd", label: "4WD" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
     { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "saloon", label: "Saloon" }, { value: "hatchback", label: "Hatchback" }, { value: "coupe", label: "Coupe" }, { value: "wagon", label: "Station Wagon" }, { value: "convertible", label: "Convertible" }, { value: "pickup", label: "Pick Up" }, { value: "suv", label: "SUV" }] },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Pearl White" },
+    { key: "doors", label: "Number of Doors", type: "number", required: true, placeholder: "4" },
     { key: "seats", label: "Number of Seats", type: "number", required: true, placeholder: "5" },
   ],
   van: [
@@ -213,7 +216,6 @@ const LISTING_CATEGORY_VALUE_SET = new Set(
 const LISTING_AVAILABILITY_VALUE_SET = new Set(
   LISTING_AVAILABILITY_OPTIONS.map((option) => option.value)
 );
-
 export type WizardIssue = {
   message: string;
   stepIndex: number | null;
@@ -293,6 +295,7 @@ function getSubmissionModel(draft: ListingDraft) {
 
 function buildAutoListingTitle(details: ListingDraft["details"], category: ListingCategory | "" = "") {
   const trimValue = buildTrimTokens(details.trim).join(", ");
+  const variantValue = details.variant.trim();
   const fallbackMake = getEquipmentFallbackMake(category);
   const equipmentTypeLabel = details.equipmentType.trim()
     ? formatEquipmentTypeLabel(details.equipmentType.trim())
@@ -301,7 +304,8 @@ function buildAutoListingTitle(details: ListingDraft["details"], category: Listi
     details.year.trim(),
     details.make.trim() || fallbackMake,
     details.model.trim() || equipmentTypeLabel,
-    trimValue || details.variant.trim(),
+    variantValue,
+    trimValue,
   ].filter(Boolean);
 
   return parts.join(" ").slice(0, MAX_TITLE_LENGTH);
@@ -593,12 +597,22 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
       transmission: listing.transmission ?? detailMetadata.transmission ?? "",
       fuelType: listing.fuel_type ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
       engineType: listing.fuel_type ?? detailMetadata.engineType ?? detailMetadata.fuelType ?? detailMetadata.fuel_type ?? "",
+      engineCapacity:
+        detailMetadata.engineCapacity ??
+        detailMetadata.engine_capacity ??
+        detailMetadata.engineDisplacement ??
+        detailMetadata.engine_displacement ??
+        "",
       color: listing.color ?? detailMetadata.color ?? "",
       registrationStatus: detailMetadata.registrationStatus ?? "",
       seats:
         typeof listing.seats === "number"
           ? String(listing.seats)
           : getListingMetadataString(listing, "seats") ?? "",
+      doors:
+        typeof listing.doors === "number"
+          ? String(listing.doors)
+          : getListingMetadataString(listing, "doors") ?? "",
       driveType:
         listing.drive_type ??
         detailMetadata.driveType ??
@@ -667,8 +681,8 @@ const SUBMISSION_FIELD_METADATA: Record<
 > = {
   make: { label: "Make", stepId: "details" },
   model: { label: "Model", stepId: "details" },
-  trim: { label: "Trim / Variant", stepId: "details" },
-  variant: { label: "Engine", stepId: "details" },
+  trim: { label: "Trim", stepId: "details" },
+  variant: { label: "Model Variant", stepId: "details" },
   registrationStatus: { label: "Registration Status", stepId: "details" },
   year: { label: "Year", stepId: "details" },
   mileage: { label: "Mileage", stepId: "details" },
@@ -932,8 +946,16 @@ export function WizardProvider({
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
   const selectedCategoryFields = React.useMemo(
-    () => (draft.category ? DETAIL_FIELDS_BY_CATEGORY[draft.category] : []),
-    [draft.category]
+    () => {
+      if (!draft.category) return [];
+      const fields = DETAIL_FIELDS_BY_CATEGORY[draft.category];
+      if (draft.category !== "car") return fields;
+      return fields.filter((field) => {
+        if (field.key !== "variant") return true;
+        return isComplexVariantMake(draft.details.make);
+      });
+    },
+    [draft.category, draft.details.make]
   );
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const selectedFeatureGroupDefinition = draft.category ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category] : null;
@@ -1463,11 +1485,16 @@ export function WizardProvider({
         reorderListingImages,
       } = await import("@/lib/actions/listings");
 
+      const shouldSubmitVariant = draft.category !== "car" || isComplexVariantMake(draft.details.make);
+      const submissionDetails = {
+        ...draft.details,
+        variant: shouldSubmitVariant ? draft.details.variant : "",
+      };
       const listingData = {
         make: getSubmissionMake(draft),
         model: getSubmissionModel(draft),
         trim: draft.details.trim || undefined,
-        variant: draft.details.variant || undefined,
+        variant: shouldSubmitVariant ? draft.details.variant || undefined : undefined,
         year: parseInt(draft.details.year) || new Date().getFullYear(),
         price: parseFloat(draft.priceKes.replace(/,/g, "")) || 0,
         currency: "KES" as const,
@@ -1479,7 +1506,10 @@ export function WizardProvider({
         transmission: draft.details.transmission || undefined,
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
-        details: draft.details,
+        seats: draft.details.seats ? parseInt(draft.details.seats) : undefined,
+        doors: draft.details.doors ? parseInt(draft.details.doors) : undefined,
+        drive_type: draft.details.driveType || undefined,
+        details: submissionDetails,
         category: draft.category || undefined,
         country: draft.country,
         cityTown: draft.cityTown,

@@ -263,7 +263,7 @@ export const getSupportQueueData = cache(async (): Promise<SupportQueueData | nu
   const adminSupabase = createOptionalAdminClient();
   const viewer = await getViewer(supabase);
 
-  if (!viewer || !["admin", "support"].includes(viewer.role)) {
+  if (!viewer || !["admin", "super_admin", "support"].includes(viewer.role)) {
     return null;
   }
 

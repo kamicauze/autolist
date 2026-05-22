@@ -31,9 +31,9 @@ const BODY_TYPES = [
 const TRANSMISSIONS = ["Automatic", "Manual", "CVT", "AMT", "Dual Clutch"];
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric"];
 const CONDITIONS = [
-  { value: "foreign_used", label: "Foreign Used" },
-  { value: "locally_used", label: "Kenyan Used" },
-  { value: "new", label: "Brand New" },
+  { value: "foreign_used", label: "Foreign used" },
+  { value: "locally_used", label: "Locally used" },
+  { value: "new", label: "Brand new" },
 ];
 
 const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);

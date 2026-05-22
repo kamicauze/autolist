@@ -14,8 +14,16 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
-import { getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
-import { getListingMetadataString } from "@/lib/utils/listing-details";
+import {
+  getListingEngineDisplacement,
+  getListingTrim,
+  getListingVariant,
+} from "@/lib/utils/vehicle-display";
+import {
+  formatListingLabel,
+  formatListingRegistrationStatus,
+  getListingMetadataString,
+} from "@/lib/utils/listing-details";
 
 interface CarOverviewProps {
   listing: Listing;
@@ -35,12 +43,7 @@ function readMetadataValue(metadata: Listing["metadata"], key: string) {
 
 function formatRegistrationStatus(listing: Listing) {
   const status = getListingMetadataString(listing, "registrationStatus");
-
-  if (status === "registered") return "Registered in Kenya";
-  if (status === "not_registered") return "Not registered";
-  if (status === "registration_in_progress") return "Registration in progress";
-
-  return "N/A";
+  return formatListingRegistrationStatus(status);
 }
 
 function OverviewItem({ item }: { item: Item }) {
@@ -74,31 +77,31 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
     },
     {
       label: "Fuel Type",
-      value: listing.fuel_type || "N/A",
+      value: formatListingLabel(listing.fuel_type) || "N/A",
       icon: <Fuel className="h-4 w-4" />,
     },
     {
-      label: "Engine Size",
-      value: readMetadataValue(listing.metadata, "engine_size"),
+      label: "Engine Displacement",
+      value: getListingEngineDisplacement(listing) || "N/A",
       icon: <Cog className="h-4 w-4" />,
     },
     {
       label: "Transmission",
-      value: listing.transmission || "N/A",
+      value: formatListingLabel(listing.transmission) || "N/A",
       icon: <Settings className="h-4 w-4" />,
     },
     {
       label: "Body Type",
-      value: listing.body_type || "N/A",
+      value: formatListingLabel(listing.body_type) || "N/A",
       icon: <Car className="h-4 w-4" />,
     },
     {
-      label: "Trim / Variant",
+      label: "Trim",
       value: getListingTrim(listing) || "N/A",
       icon: <Car className="h-4 w-4" />,
     },
     {
-      label: "Engine",
+      label: "Model Variant",
       value: getListingVariant(listing) || "N/A",
       icon: <Cog className="h-4 w-4" />,
     },
@@ -109,12 +112,12 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
     },
     {
       label: "Doors",
-      value: readMetadataValue(listing.metadata, "doors"),
+      value: listing.doors ? String(listing.doors) : readMetadataValue(listing.metadata, "doors"),
       icon: <DoorOpen className="h-4 w-4" />,
     },
     {
       label: "Seats",
-      value: readMetadataValue(listing.metadata, "seats"),
+      value: listing.seats ? String(listing.seats) : readMetadataValue(listing.metadata, "seats"),
       icon: <Users className="h-4 w-4" />,
     },
     {

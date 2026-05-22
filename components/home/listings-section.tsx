@@ -13,6 +13,7 @@ import {
   getListingDisplayTitle,
   getListingSubtitle,
 } from "@/lib/utils/vehicle-display";
+import { formatListingLabel } from "@/lib/utils/listing-details";
 
 interface ListingsSectionProps {
   title: string;
@@ -82,25 +83,25 @@ export function ListingsSection({
                 value="featured"
                 className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
               >
-                {sectionContent.featuredTabLabel}
+                Recently viewed
               </TabsTrigger>
               <TabsTrigger
                 value="recent"
                 className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
               >
-                {sectionContent.recentTabLabel}
+                Recently added
               </TabsTrigger>
               {sectionContent.showFavoritesTab ? (
                 <TabsTrigger
                   value="favorites"
                   className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
                 >
-                  {sectionContent.favoritesTabLabel}
+                  Favourites
                 </TabsTrigger>
               ) : null}
             </TabsList>
 
-            {/* Featured — shows 4, rotates every 8 hours server-side */}
+            {/* Recently viewed placeholder uses the rotated featured set until personalized activity is available. */}
             <TabsContent value="featured">
               <ListingsGrid listings={rotatedFeatured} />
             </TabsContent>
@@ -131,7 +132,7 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="flex snap-x gap-4 overflow-x-auto pb-3 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:pb-0 lg:grid-cols-4">
       {listings.map((listing) => {
         const sortedImages = (listing.images || [])
           .sort((a, b) => a.image_order - b.image_order)
@@ -143,35 +144,36 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
           "Private Seller";
 
         return (
-          <CarCard
-            key={listing.id}
-            id={listing.id}
-            title={getListingDisplayTitle(listing)}
-            subtitle={getListingSubtitle(listing)}
-            bodyType={listing.body_type || "Vehicle"}
-            year={listing.year}
-            mileage={
-              listing.mileage
-                ? `${listing.mileage.toLocaleString()} kms`
-                : "N/A"
-            }
-            fuelType={listing.fuel_type || "N/A"}
-            transmission={listing.transmission || "N/A"}
-            price={listing.price}
-            currency={listing.currency}
-            images={
-              sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]
-            }
-            isFeatured={true}
-            seller={{
-              name: sellerName,
-              avatarUrl:
-                listing.dealer?.logo_url ||
-                listing.seller?.avatar_url ||
-                undefined,
-            }}
-            href={`/vehicle/${listing.id}`}
-          />
+          <div key={listing.id} className="w-[82vw] shrink-0 snap-start sm:w-auto">
+            <CarCard
+              id={listing.id}
+              title={getListingDisplayTitle(listing)}
+              subtitle={getListingSubtitle(listing)}
+              bodyType={formatListingLabel(listing.body_type) || "Vehicle"}
+              year={listing.year}
+              mileage={
+                listing.mileage
+                  ? `${listing.mileage.toLocaleString()} kms`
+                  : "N/A"
+              }
+              fuelType={formatListingLabel(listing.fuel_type) || "N/A"}
+              transmission={formatListingLabel(listing.transmission) || "N/A"}
+              price={listing.price}
+              currency={listing.currency}
+              images={
+                sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]
+              }
+              isFeatured={true}
+              seller={{
+                name: sellerName,
+                avatarUrl:
+                  listing.dealer?.logo_url ||
+                  listing.seller?.avatar_url ||
+                  undefined,
+              }}
+              href={`/vehicle/${listing.id}`}
+            />
+          </div>
         );
       })}
     </div>

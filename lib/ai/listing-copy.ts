@@ -26,9 +26,9 @@ function buildRuleTitle(input: ListingCopyInput) {
     input.mileage ? `${input.mileage.toLocaleString()} km` : "",
     titleCase(input.transmission),
     input.condition === "foreign_used"
-      ? "Foreign Used"
+      ? "Foreign used"
       : input.condition === "locally_used"
-        ? "Kenyan Used"
+        ? "Locally used"
         : titleCase(input.condition),
   ].filter(Boolean);
 

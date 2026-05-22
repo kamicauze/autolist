@@ -62,6 +62,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { name: "Verification (KYC)", href: "/admin/verification", icon: ShieldCheck },
       { name: "Insurance Requests", href: "/admin/insurance-requests", icon: ReceiptText },
       { name: "Car Inquiries", href: "/admin/car-inquiries", icon: MessageSquareText },
+      { name: "Inquiries & Assistance", href: "/admin/inquiries-assistance", icon: MessageSquareText },
       { name: "Payments", href: "/admin/payments", icon: CircleDollarSign },
     ],
   },
