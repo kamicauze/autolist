@@ -123,8 +123,30 @@ export function Header() {
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const desktopNavRef = React.useRef<HTMLElement | null>(null);
   const accountMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const closeMenuTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const { ids } = useCompare();
   const { user, loading } = useAuth();
+
+  const clearCloseMenuTimeout = React.useCallback(() => {
+    if (closeMenuTimeoutRef.current) {
+      clearTimeout(closeMenuTimeoutRef.current);
+      closeMenuTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleCloseMenu = React.useCallback(() => {
+    clearCloseMenuTimeout();
+    closeMenuTimeoutRef.current = setTimeout(() => {
+      setOpenMenu(null);
+      closeMenuTimeoutRef.current = null;
+    }, 150);
+  }, [clearCloseMenuTimeout]);
+
+  React.useEffect(() => {
+    return () => {
+      clearCloseMenuTimeout();
+    };
+  }, [clearCloseMenuTimeout]);
 
   React.useEffect(() => {
     if (!openMenu) {
@@ -133,12 +155,14 @@ export function Header() {
 
     const handlePointerDown = (event: MouseEvent) => {
       if (!desktopNavRef.current?.contains(event.target as Node)) {
+        clearCloseMenuTimeout();
         setOpenMenu(null);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        clearCloseMenuTimeout();
         setOpenMenu(null);
       }
     };
@@ -150,13 +174,14 @@ export function Header() {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [openMenu]);
+  }, [clearCloseMenuTimeout, openMenu]);
 
   React.useEffect(() => {
+    clearCloseMenuTimeout();
     setOpenMenu(null);
     setAccountMenuOpen(false);
     setMobileOpenMenu(null);
-  }, [pathname]);
+  }, [clearCloseMenuTimeout, pathname]);
 
   React.useEffect(() => {
     if (!accountMenuOpen) {
@@ -221,12 +246,29 @@ export function Header() {
                   <div
                     key={item.name}
                     className="relative"
+                    onPointerEnter={() => {
+                      clearCloseMenuTimeout();
+                      setOpenMenu(item.key);
+                    }}
+                    onPointerLeave={scheduleCloseMenu}
+                    onFocus={() => {
+                      clearCloseMenuTimeout();
+                      setOpenMenu(item.key);
+                    }}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                        scheduleCloseMenu();
+                      }
+                    }}
                   >
                     <button
                       type="button"
                       aria-expanded={isOpen}
                       aria-haspopup="menu"
-                      onClick={() => setOpenMenu((current) => (current === item.key ? null : item.key))}
+                      onClick={() => {
+                        clearCloseMenuTimeout();
+                        setOpenMenu((current) => (current === item.key ? null : item.key));
+                      }}
                       className={cn(
                         "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:text-gray-900",
                         isOpen && "text-gray-900"

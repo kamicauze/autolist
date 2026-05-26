@@ -405,7 +405,6 @@ interface WizardContextValue {
   packageAccessError: string | null;
 
   // Media file refs
-  coverFile: File | null;
   galleryFiles: File[];
   documentFiles: File[];
   videoFile: File | null;
@@ -429,7 +428,6 @@ interface WizardContextValue {
   setFeatureSelection: (ids: string[], mode: "add" | "remove") => void;
 
   // Media handlers
-  handleCoverSelection: (files: File[]) => void;
   handleGallerySelection: (newFiles: File[]) => void;
   selectExistingGalleryCover: (index: number) => void;
   removeGalleryFile: (file: File) => void;
@@ -792,7 +790,6 @@ export function WizardProvider({
   const [sellerAccountDefaults, setSellerAccountDefaults] = React.useState<SellerAccountDefaults | null>(null);
   const smartFeatureSuggestionSignatureRef = React.useRef<string | null>(null);
 
-  const [coverFile, setCoverFile] = React.useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = React.useState<File[]>([]);
   const [documentFiles, setDocumentFiles] = React.useState<File[]>([]);
   const [videoFile, setVideoFile] = React.useState<File | null>(null);
@@ -1044,7 +1041,6 @@ export function WizardProvider({
       setExpandedFeatureGroups({});
       setPresetUndoSelection(null);
       setMediaError(null);
-      setCoverFile(null);
       setGalleryFiles([]);
       setDocumentFiles([]);
       setVideoFile(null);
@@ -1153,15 +1149,6 @@ export function WizardProvider({
   };
 
   // Media handlers
-  const handleCoverSelection = (files: File[]) => {
-    const file = files[0];
-    if (!file) { updateField("coverImageName", null); setCoverFile(null); return; }
-    if (file.size > MAX_FILE_SIZE_BYTES) { setMediaError("Cover image exceeds 10MB limit."); return; }
-    setMediaError(null);
-    updateField("coverImageName", file.name);
-    setCoverFile(file);
-  };
-
   const handleGallerySelection = (newFiles: File[]) => {
     if (galleryFiles.length + newFiles.length > MAX_GALLERY_IMAGES) {
       setMediaError(`Gallery supports up to ${MAX_GALLERY_IMAGES} images.`);
@@ -1174,6 +1161,9 @@ export function WizardProvider({
     setGalleryFiles(updated);
     setDraft((prev) => ({
       ...prev,
+      coverImageName: null,
+      coverImageRef: null,
+      galleryImageRefs: [],
       galleryImageNames: updated.map((f) => f.name),
       coverFromGalleryIndex: prev.coverFromGalleryIndex !== null && prev.coverFromGalleryIndex < updated.length
         ? prev.coverFromGalleryIndex : updated.length > 0 ? 0 : null,
@@ -1181,7 +1171,7 @@ export function WizardProvider({
   };
 
   const selectExistingGalleryCover = (index: number) => {
-    if (!isEditing || coverFile || galleryFiles.length > 0) return;
+    if (!isEditing || galleryFiles.length > 0) return;
 
     setMediaError(null);
     setDraft((prev) => {
@@ -1319,7 +1309,6 @@ export function WizardProvider({
     setExpandedFeatureGroups({});
     setPresetUndoSelection(null);
     setShowValidationErrors(false);
-    setCoverFile(null);
     setGalleryFiles([]);
     setDocumentFiles([]);
     setVideoFile(null);
@@ -1327,17 +1316,21 @@ export function WizardProvider({
 
   // Validation
   const mediaValidationError = React.useMemo(() => {
-    const replacingImages = isEditing && (coverFile !== null || galleryFiles.length > 0);
+    const replacingImages = isEditing && galleryFiles.length > 0;
     if (replacingImages) {
-      if (!coverFile) return "Upload a new cover image to replace the current media set.";
-      if (galleryFiles.length < 2) return "Upload at least two gallery images when replacing the current media set.";
+      if (galleryFiles.length < MIN_TOTAL_IMAGES) {
+        return `Upload at least ${MIN_TOTAL_IMAGES} photos when replacing the current media set.`;
+      }
+      if (draft.coverFromGalleryIndex === null) {
+        return "Choose a cover photo from the uploaded photos.";
+      }
     }
     const totalImages = (draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length;
     if (totalImages < MIN_TOTAL_IMAGES) return `Minimum ${MIN_TOTAL_IMAGES} photos required.`;
-    if (!draft.coverImageName && draft.coverFromGalleryIndex === null) return "Select a cover image or choose one from gallery.";
+    if (!draft.coverImageName && draft.coverFromGalleryIndex === null) return "Choose a cover photo from the uploaded photos.";
     if (draft.galleryImageNames.length > MAX_GALLERY_IMAGES) return `Gallery supports up to ${MAX_GALLERY_IMAGES} images.`;
     return mediaError;
-  }, [coverFile, draft.coverFromGalleryIndex, draft.coverImageName, draft.galleryImageNames.length, galleryFiles.length, isEditing, mediaError]);
+  }, [draft.coverFromGalleryIndex, draft.coverImageName, draft.galleryImageNames.length, galleryFiles.length, isEditing, mediaError]);
 
   const sellerValidationError = React.useMemo(() => {
     if (!draft.contactName.trim() || !draft.phoneNumber.trim()) return "Contact name and phone number are required.";
@@ -1612,7 +1605,7 @@ export function WizardProvider({
           }
         }
 
-        const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
+        const hasReplacementMedia = galleryFiles.length > 0;
         const initialExistingImageKeyOrder = getExistingImageKeyOrder(initialDraft);
         const existingImageKeyOrder = getExistingImageKeyOrder(draft);
         const existingImageOrderChanged =
@@ -1625,19 +1618,21 @@ export function WizardProvider({
           uploadFormData.set("listingId", listingId);
           uploadFormData.set("altTextBase", `${draft.details.make} ${draft.details.model}`.trim());
 
-          if (coverFile) {
-            uploadFormData.set("coverImage", coverFile);
-          } else if (
+          const selectedCoverIndex =
             draft.coverFromGalleryIndex !== null &&
             galleryFiles[draft.coverFromGalleryIndex]
-          ) {
-            uploadFormData.set("coverImage", galleryFiles[draft.coverFromGalleryIndex]);
-          }
+              ? draft.coverFromGalleryIndex
+              : 0;
+          const selectedCoverFile = galleryFiles[selectedCoverIndex];
+          const orderedGalleryFiles =
+            selectedCoverFile
+              ? [
+                  selectedCoverFile,
+                  ...galleryFiles.filter((_, index) => index !== selectedCoverIndex),
+                ]
+              : galleryFiles;
 
-          galleryFiles.forEach((file, index) => {
-            if (!coverFile && draft.coverFromGalleryIndex === index) {
-              return;
-            }
+          orderedGalleryFiles.forEach((file) => {
             uploadFormData.append("galleryImages", file);
           });
 
@@ -1710,11 +1705,11 @@ export function WizardProvider({
     isEditing, editingListingId,
     draft, activeStep, showValidationErrors, isSubmitting, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
-    coverFile, galleryFiles, documentFiles, videoFile,
+    galleryFiles, documentFiles, videoFile,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
-    handleCoverSelection, handleGallerySelection, selectExistingGalleryCover, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
+    handleGallerySelection, selectExistingGalleryCover, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
     applyDealerAutofill, resetDraft,
     handleContinue, handleBack, goToStep, setActiveStep,
     canContinue, mediaValidationError, sellerValidationError, marketIndicator, selectedCategoryFields,

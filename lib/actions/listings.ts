@@ -1026,15 +1026,17 @@ export async function uploadListingImages(formData: FormData) {
         .getAll("galleryImages")
         .filter((value): value is File => value instanceof File && value.size > 0);
 
-    if (!(coverImage instanceof File) || coverImage.size === 0) {
-        return { error: "A cover image is required." };
-    }
+    const coverFile = coverImage instanceof File && coverImage.size > 0 ? coverImage : null;
 
-    if (galleryImages.length < 2) {
+    if (coverFile && galleryImages.length < 2) {
         return { error: "At least two gallery images are required." };
     }
 
-    const filesToUpload = [coverImage, ...galleryImages];
+    if (!coverFile && galleryImages.length < 3) {
+        return { error: "At least three listing photos are required." };
+    }
+
+    const filesToUpload = coverFile ? [coverFile, ...galleryImages] : galleryImages;
     const preparedUploads: Array<{
         key: string;
         hash: string;

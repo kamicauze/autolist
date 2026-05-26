@@ -65,7 +65,7 @@ export const LISTING_WIZARD_STEPS = [
   {
     id: "media",
     title: "Media Uploads",
-    description: "Cover image, gallery management, documents, and optional video.",
+    description: "Photo selection, gallery management, documents, and optional video.",
   },
   {
     id: "seller",

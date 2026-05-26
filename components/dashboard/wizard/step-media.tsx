@@ -149,11 +149,9 @@ export function StepMedia() {
     isEditing,
     draft,
     updateField,
-    coverFile,
     galleryFiles,
     documentFiles,
     videoFile,
-    handleCoverSelection,
     handleGallerySelection,
     selectExistingGalleryCover,
     removeGalleryFile,
@@ -166,7 +164,7 @@ export function StepMedia() {
     mediaValidationError,
   } = useWizard();
   const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
-  const hasReplacementMedia = coverFile !== null || galleryFiles.length > 0;
+  const hasReplacementMedia = galleryFiles.length > 0;
   const existingGalleryImageNames =
     isEditing && !hasReplacementMedia ? draft.galleryImageNames : [];
   // When editing without replacement uploads, use the full image refs (r2_key
@@ -185,7 +183,7 @@ export function StepMedia() {
     return map;
   }, [existingGalleryRefs]);
   const uploadedMediaCount = hasReplacementMedia
-    ? galleryFiles.length + (draft.coverImageName ? 1 : 0)
+    ? galleryFiles.length
     : existingGalleryRefs.length + (existingCoverRef ? 1 : 0);
   const canUseGalleryCover = hasReplacementMedia
     ? galleryFiles.length > 0
@@ -204,46 +202,24 @@ export function StepMedia() {
         <div className="space-y-4">
           {isEditing && !hasReplacementMedia ? (
             <div className="rounded-[12px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[12px] leading-5 text-[#3157c8]">
-              Current listing media is preserved as-is. Choose any existing gallery photo as the new cover, or
-              upload a new cover image and gallery set if you want to replace the existing photos.
+              Current listing media is preserved as-is. Choose any existing photo as the new cover, or
+              upload a new photo set if you want to replace the existing photos.
             </div>
           ) : null}
 
-          <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <div className="flex h-full flex-col">
-              <label className={sellerLabelClass}>Cover Image</label>
-              <p className="mb-3 min-h-[40px] text-[13px] leading-5 text-[#7b7b7b]">
-                Upload a primary image or choose one from the gallery below.
-              </p>
-              <Dropzone
-                onFilesAdded={handleCoverSelection}
-                files={draft.coverImageName ? [{ name: draft.coverImageName } as File] : []}
-                onRemove={
-                  isEditing && !hasReplacementMedia
-                    ? undefined
-                    : () => updateField("coverImageName", null)
-                }
-                accept="image/*"
-                multiple={false}
-                maxSize={MAX_FILE_SIZE_BYTES}
-                className="flex min-h-[168px] items-center justify-center rounded-[14px] border-[#d9d9d9] bg-[#faf9f7] p-4"
-              />
-            </div>
-
-            <div className="flex h-full flex-col">
-              <label className={sellerLabelClass}>Upload Media</label>
-              <p className="mb-3 min-h-[40px] text-[13px] leading-5 text-[#7b7b7b]">
-                PNG or JPG files up to 10MB each. Minimum {MIN_TOTAL_IMAGES} photos in total, up to 100 gallery images.
-              </p>
-              <Dropzone
-                onFilesAdded={handleGallerySelection}
-                showFiles={false}
-                accept="image/*"
-                multiple
-                maxSize={MAX_FILE_SIZE_BYTES}
-                className="flex min-h-[168px] items-center justify-center rounded-[14px] border-[#d9d9d9] bg-white p-4"
-              />
-            </div>
+          <div className="flex h-full flex-col">
+            <label className={sellerLabelClass}>Upload Photos</label>
+            <p className="mb-3 min-h-[40px] text-[13px] leading-5 text-[#7b7b7b]">
+              PNG or JPG files up to 10MB each. Upload at least {MIN_TOTAL_IMAGES} photos, then choose one below as the cover.
+            </p>
+            <Dropzone
+              onFilesAdded={handleGallerySelection}
+              showFiles={false}
+              accept="image/*"
+              multiple
+              maxSize={MAX_FILE_SIZE_BYTES}
+              className="flex min-h-[168px] items-center justify-center rounded-[14px] border-[#d9d9d9] bg-white p-4"
+            />
           </div>
 
           <div className="space-y-3">
