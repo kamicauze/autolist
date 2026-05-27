@@ -1,5 +1,9 @@
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { BODY_TYPES, YEARS } from "@/lib/constants/filters";
+import {
+  FARM_AGRICULTURAL_EQUIPMENT_TYPES,
+  PLANT_CONSTRUCTION_EQUIPMENT_TYPES,
+} from "@/lib/constants/non-car-reference-data";
 
 export const LANDING_PRICE_OPTIONS = [
   { label: "Any", value: "any" },
@@ -89,31 +93,8 @@ const TRUCK_AXLE_OPTIONS = [
   { label: "8x8", value: "8x8" },
 ];
 
-const PLANT_TYPE_OPTIONS = [
-  "Aerial Platforms",
-  "Compaction Machines",
-  "Compressors",
-  "Concrete",
-  "Cranes",
-  "Dozers",
-  "Dumpers",
-  "Excavators",
-  "Forklifts",
-  "Generators",
-  "Loaders",
-  "Mining and Quarry Equipment",
-  "Road Construction Equipment",
-  "Telehandlers",
-  "Tools And Equipment",
-  "Trailers",
-  "Waste and Recycling",
-].map((label) => ({ label, value: label }));
-
-const FARM_TYPE_OPTIONS = [
-  { label: "Tractor", value: "tractor" },
-  { label: "Plough", value: "plough" },
-  { label: "Harvester", value: "harvester" },
-];
+const PLANT_TYPE_OPTIONS = PLANT_CONSTRUCTION_EQUIPMENT_TYPES.map(({ label, value }) => ({ label, value }));
+const FARM_TYPE_OPTIONS = FARM_AGRICULTURAL_EQUIPMENT_TYPES.map(({ label, value }) => ({ label, value }));
 
 export type LandingSearchCategoryConfig = {
   label: string;
@@ -136,12 +117,12 @@ export type LandingSearchCategoryConfig = {
 
 export const LANDING_SEARCH_CATEGORY_CONFIG: Record<ListingCategory, LandingSearchCategoryConfig> = {
   car: {
-    label: "Cars",
+    label: "Cars & Vans",
     brandLabel: "Brand",
     modelLabel: "Model",
-    resultLabelPlural: "cars",
-    searchPageTitle: "Cars for sale",
-    searchPageDescription: "Browse new and used car listings from dealers and private sellers.",
+    resultLabelPlural: "cars and vans",
+    searchPageTitle: "Cars & vans for sale",
+    searchPageDescription: "Browse new and used cars, vans, pickups, and utility vehicles from dealers and private sellers.",
     makeMode: "select",
     modelMode: "select",
     primaryField: {
@@ -248,9 +229,7 @@ export const LANDING_SEARCH_CATEGORY_CONFIG: Record<ListingCategory, LandingSear
 export const LANDING_SEARCH_CATEGORY_ORDER: ListingCategory[] = [
   "car",
   "motorbike",
-  "van",
   "truck",
   "plant_construction",
   "farm_agricultural",
 ];
-

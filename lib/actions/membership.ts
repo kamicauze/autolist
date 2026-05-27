@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SELLER_PACKAGE_BILLING_DAYS,
   SELLER_PACKAGE_FREE_TRIAL_DAYS,
+  SELLER_PACKAGE_FREE_TRIAL_MONTHS,
   getSellerPackagePlan,
 } from "@/lib/data/membership";
 import type { SellerPackagePlanId } from "@/lib/types/membership";
@@ -14,6 +15,20 @@ import type { SellerPackagePlanId } from "@/lib/types/membership";
 function addBillingDays(date: Date, days: number) {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function addBillingMonths(date: Date, months: number) {
+  const next = new Date(date);
+  const dayOfMonth = next.getUTCDate();
+
+  next.setUTCDate(1);
+  next.setUTCMonth(next.getUTCMonth() + months);
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  next.setUTCDate(Math.min(dayOfMonth, lastDayOfTargetMonth));
+
   return next;
 }
 
@@ -115,9 +130,9 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
     !hasUsedIntroTrial || activeEntitlementMetadata?.intro_trial === true;
   const entitlementEndsAtIso =
     shouldApplyIntroTrial && activeEntitlementMetadata?.intro_trial === true
-      ? activeEntitlement?.ends_at ?? addBillingDays(now, SELLER_PACKAGE_FREE_TRIAL_DAYS).toISOString()
+      ? activeEntitlement?.ends_at ?? addBillingMonths(now, SELLER_PACKAGE_FREE_TRIAL_MONTHS).toISOString()
       : shouldApplyIntroTrial
-        ? addBillingDays(now, SELLER_PACKAGE_FREE_TRIAL_DAYS).toISOString()
+        ? addBillingMonths(now, SELLER_PACKAGE_FREE_TRIAL_MONTHS).toISOString()
         : endsAtIso;
   const chargeAmountKes = shouldApplyIntroTrial ? 0 : plan.priceKes;
 
@@ -155,6 +170,9 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
         billing_days: shouldApplyIntroTrial
           ? SELLER_PACKAGE_FREE_TRIAL_DAYS
           : SELLER_PACKAGE_BILLING_DAYS,
+        billing_months: shouldApplyIntroTrial
+          ? SELLER_PACKAGE_FREE_TRIAL_MONTHS
+          : null,
         intro_trial: shouldApplyIntroTrial,
       },
     })
@@ -182,6 +200,9 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
         period_days: shouldApplyIntroTrial
           ? SELLER_PACKAGE_FREE_TRIAL_DAYS
           : SELLER_PACKAGE_BILLING_DAYS,
+        period_months: shouldApplyIntroTrial
+          ? SELLER_PACKAGE_FREE_TRIAL_MONTHS
+          : null,
         intro_trial: shouldApplyIntroTrial,
       },
       updated_at: nowIso,

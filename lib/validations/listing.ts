@@ -1,5 +1,6 @@
 
 import { z } from "zod";
+import { normalizePhoneInput, PHONE_REGEX } from "@/lib/utils/phone";
 
 const LISTING_CONDITIONS = ["new", "locally_used", "foreign_used"] as const;
 const LISTING_CATEGORIES = [
@@ -18,6 +19,23 @@ const normalizeCondition = (value: unknown) => {
   if (value === "used") return "locally_used";
   return value;
 };
+
+const normalizePhoneValue = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  return normalizePhoneInput(value);
+};
+
+const phoneSchema = z.preprocess(
+  normalizePhoneValue,
+  z
+    .string()
+    .trim()
+    .refine(
+      (value) => value.length === 0 || PHONE_REGEX.test(value),
+      "Enter a valid phone number."
+    )
+    .optional()
+);
 
 export const listingSchema = z.object({
   make: z.string().trim().min(2, "Make must be at least 2 characters"),
@@ -58,11 +76,19 @@ export const listingSchema = z.object({
   sellerType: z.enum(LISTING_SELLER_TYPES).optional(),
   useDealerAutoFill: z.boolean().optional(),
   contactName: z.string().trim().optional(),
-  phoneNumber: z.string().trim().optional(),
+  phoneNumber: phoneSchema,
   whatsappEnabled: z.boolean().optional(),
-  whatsappNumber: z.string().trim().optional(),
+  whatsappNumber: phoneSchema,
   allowPhoneCalls: z.boolean().optional(),
   hidePhoneNumber: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.whatsappEnabled && !data.whatsappNumber) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["whatsappNumber"],
+      message: "WhatsApp number is required when WhatsApp is enabled.",
+    });
+  }
 });
 
 export type ListingFormData = z.infer<typeof listingSchema>;

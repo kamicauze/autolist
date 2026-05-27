@@ -49,7 +49,9 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           <div>
             <label className={sellerLabelClass}>Category</label>
             <div className="flex h-12 items-center rounded-[14px] border border-[#ededed] bg-[#faf9f7] px-4 text-[14px] font-medium text-[#202224]">
-              {LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "Not selected"}
+              {draft.category === "car"
+                ? "Cars & Vans"
+                : LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "Not selected"}
             </div>
           </div>
 

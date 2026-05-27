@@ -56,10 +56,10 @@ export function BrandLogos() {
             What would you like to find?
           </h2>
           <Link
-            href="/search"
+            href="/brands"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            View All
+            Browse all brands
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
@@ -85,12 +85,12 @@ export function BrandLogos() {
             {brands.map((brand) => (
               <Link
                 key={brand.slug}
-                href={`/search?make=${brand.slug}`}
+                href={`/search?category=car&make=${encodeURIComponent(brand.name)}`}
                 className="flex-shrink-0 group"
               >
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl bg-white border border-gray-200 flex flex-col items-center justify-center gap-2 transition-all duration-200 hover:shadow-lg hover:border-primary/30 hover:-translate-y-1">
+                <div className="flex h-32 w-28 flex-col items-center justify-start gap-3 rounded-xl border border-gray-200 bg-white px-3 py-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg sm:h-36 sm:w-32">
                   {/* Brand Logo */}
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 relative flex items-center justify-center">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
                     <Image
                       src={brand.logo}
                       alt={brand.name}
@@ -108,7 +108,7 @@ export function BrandLogos() {
                       }}
                     />
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                  <span className="line-clamp-2 min-h-[36px] text-center text-xs font-medium leading-[18px] text-gray-700 transition-colors group-hover:text-primary sm:text-sm">
                     {brand.name}
                   </span>
                 </div>

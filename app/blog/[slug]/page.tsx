@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getPublishedContentPostBySlug } from "@/lib/data/content-posts";
+import type { ContentPostCategory } from "@/lib/types/content-posts";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -31,6 +32,19 @@ function getBodyParagraphs(body: string) {
     .filter(Boolean);
 }
 
+function getCategoryLabel(category: ContentPostCategory) {
+  switch (category) {
+    case "review":
+      return "Review";
+    case "news_advice":
+      return "News and advice";
+    case "faq":
+      return "FAQ";
+    default:
+      return "Blog";
+  }
+}
+
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
   const post = await getPublishedContentPostBySlug(slug);
@@ -46,7 +60,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <Header />
 
       <main className="flex-1 bg-gray-50">
-        <div className="mx-auto max-w-[980px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[900px] px-4 py-6 sm:px-6 lg:px-8">
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
@@ -61,15 +75,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <img
                 src={post.coverImageUrl}
                 alt={post.title}
-                className="h-72 w-full object-cover sm:h-96"
+                className="h-60 w-full object-cover sm:h-80"
               />
             ) : (
-              <div className="h-72 w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 sm:h-96" />
+              <div className="h-60 w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 sm:h-80" />
             )}
 
             <div className="px-6 py-8 sm:px-10">
               <p className="text-sm text-gray-500">
-                {formatDate(post.publishedAt)} • {post.author}
+                {getCategoryLabel(post.category)} • {formatDate(post.publishedAt)} • {post.author}
               </p>
               <h1 className="mt-3 text-3xl font-bold text-gray-900 sm:text-4xl">
                 {post.title}
@@ -88,6 +102,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   </p>
                 ))}
               </div>
+
+              {post.galleryImageUrls.length > 0 ? (
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  {post.galleryImageUrls.map((imageUrl, index) => (
+                    <img
+                      key={`${post.id}-gallery-${index}`}
+                      src={imageUrl}
+                      alt={`${post.title} photo ${index + 1}`}
+                      className="h-48 w-full rounded-[18px] object-cover sm:h-56"
+                    />
+                  ))}
+                </div>
+              ) : null}
 
               <div className="mt-8 border-t border-gray-200 pt-6">
                 <Link

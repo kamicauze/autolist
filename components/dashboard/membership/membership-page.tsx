@@ -144,6 +144,8 @@ export function MembershipPage() {
   }, []);
 
   const activePlanId = dashboardData.access.currentPlan?.id ?? null;
+  const isIntroTrialActive =
+    dashboardData.access.activeEntitlement?.metadata?.intro_trial === true;
   const membershipStats = [
     {
       label: "Available listing",
@@ -154,7 +156,7 @@ export function MembershipPage() {
       icon: <BadgeCheck className="h-5 w-5 text-[#2563eb]" />,
       accentClass: "bg-[#eef4ff]",
       note: dashboardData.access.currentPlan
-        ? `${dashboardData.access.currentPlan.name} plan`
+        ? `${dashboardData.access.currentPlan.name}${isIntroTrialActive ? " intro" : ""} plan`
         : "No active package",
     },
     {
@@ -179,7 +181,9 @@ export function MembershipPage() {
       icon: <WalletCards className="h-5 w-5 text-[#f04438]" />,
       accentClass: "bg-[#fff0ef]",
       note: dashboardData.access.currentPlan
-        ? `${dashboardData.access.currentPlan.priceLabel}${dashboardData.access.currentPlan.periodLabel}`
+        ? isIntroTrialActive
+          ? "First 6 months are free"
+          : `${dashboardData.access.currentPlan.priceLabel}${dashboardData.access.currentPlan.periodLabel}`
         : "No package charges recorded",
     },
   ];
@@ -314,9 +318,11 @@ export function MembershipPage() {
 
                   {isActive ? (
                     <p className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#2563eb]">
-                      {dashboardData.access.remainingListings === null
-                        ? "Unlimited listing access"
-                        : `${dashboardData.access.remainingListings ?? 0} listing slots left`}
+                      {isIntroTrialActive
+                        ? "Free intro active"
+                        : dashboardData.access.remainingListings === null
+                          ? "Unlimited listing access"
+                          : `${dashboardData.access.remainingListings ?? 0} listing slots left`}
                     </p>
                   ) : null}
 

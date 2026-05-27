@@ -26,6 +26,7 @@ import {
   trackCmsBannerClick,
   useCmsBannerImpressions,
 } from "@/components/cms/cms-tracking";
+import { cn } from "@/lib/utils";
 import {
   BusFront,
   CarFront,
@@ -166,6 +167,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
   const heroBannerIsExternal = heroBannerHref ? isExternalHref(heroBannerHref) : false;
   const heroImageUrl = heroBanner?.desktopImageUrl || activeHeroSlide.imageUrl;
   const heroImageAlt = heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
+  const hasSponsoredHero = Boolean(heroBanner);
 
   useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
 
@@ -342,6 +344,38 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     }
 
     router.push(`/search?${buildSearchParams().toString()}`);
+  };
+
+  const setBoundedRange = (
+    side: "from" | "to",
+    nextValue: string,
+    currentFrom: string,
+    currentTo: string,
+    setFrom: React.Dispatch<React.SetStateAction<string>>,
+    setTo: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const nextFrom = side === "from" ? nextValue : currentFrom;
+    const nextTo = side === "to" ? nextValue : currentTo;
+    const fromNumber = Number(nextFrom);
+    const toNumber = Number(nextTo);
+
+    if (
+      nextFrom !== "any" &&
+      nextTo !== "any" &&
+      Number.isFinite(fromNumber) &&
+      Number.isFinite(toNumber) &&
+      fromNumber > toNumber
+    ) {
+      setFrom(nextValue);
+      setTo(nextValue);
+      return;
+    }
+
+    if (side === "from") {
+      setFrom(nextValue);
+    } else {
+      setTo(nextValue);
+    }
   };
 
   const initialCarFilters = React.useMemo(
@@ -522,8 +556,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
 
   return (
     <section className="relative">
-      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-        <div className="relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]">
+      <div
+        className={cn(
+          "mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8",
+          hasSponsoredHero &&
+            "lg:grid lg:grid-cols-[minmax(390px,430px)_minmax(0,1fr)] lg:items-stretch lg:gap-5"
+        )}
+      >
+        <div
+          className={cn(
+            "relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]",
+            hasSponsoredHero &&
+              "order-1 h-[250px] rounded-[22px] sm:h-[330px] md:h-[390px] lg:order-2 lg:h-[520px]"
+          )}
+        >
           <Image
             key={heroBanner?.id ?? activeHeroSlide.id}
             src={heroImageUrl}
@@ -574,12 +620,32 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             </div>
           ) : null}
 
-          <div className="absolute inset-0 z-10 flex flex-col px-4 pb-6 pt-14 sm:px-6 sm:pt-16 md:pb-8 lg:px-8">
-            <div className="flex flex-1 flex-col items-center text-center">
-              <h1 className="max-w-4xl text-3xl font-bold italic text-white sm:text-4xl md:text-5xl lg:text-6xl">
+          <div
+            className={cn(
+              "absolute inset-0 z-10 flex flex-col px-4 pb-6 pt-14 sm:px-6 sm:pt-16 md:pb-8 lg:px-8",
+              hasSponsoredHero && "justify-end pt-10"
+            )}
+          >
+            <div
+              className={cn(
+                "flex flex-1 flex-col items-center text-center",
+                hasSponsoredHero && "items-start justify-end text-left"
+              )}
+            >
+              <h1
+                className={cn(
+                  "max-w-4xl text-3xl font-bold italic text-white sm:text-4xl md:text-5xl lg:text-6xl",
+                  hasSponsoredHero && "max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-[44px]"
+                )}
+              >
                 {heroContent.headline}
               </h1>
-              <p className="mt-3 max-w-2xl text-base text-white/86 sm:text-lg">
+              <p
+                className={cn(
+                  "mt-3 max-w-2xl text-base text-white/86 sm:text-lg",
+                  hasSponsoredHero && "max-w-xl text-sm leading-6 sm:text-base"
+                )}
+              >
                 {heroContent.subheading}
               </p>
               {heroBanner ? (
@@ -622,8 +688,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
           </div>
         </div>
 
-        <div className="relative z-10 -mt-20 sm:-mt-24 md:-mt-28">
-          <div className="mx-auto mb-3 flex max-w-[980px] justify-end">
+        <div
+          className={cn(
+            "relative z-10",
+            hasSponsoredHero
+              ? "order-2 mt-3 lg:order-1 lg:mt-0 lg:flex lg:h-full lg:items-center"
+              : "-mt-10 sm:-mt-12 md:-mt-14"
+          )}
+        >
+          <div
+            className={cn(
+              "mx-auto mb-3 flex max-w-[980px] justify-center",
+              hasSponsoredHero && "max-w-none"
+            )}
+          >
             <div className="flex flex-wrap items-center gap-2">
               {heroContent.quickSearchEnabled ? (
                 <button
@@ -640,11 +718,24 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
 
           <form
             onSubmit={handleSearch}
-            className="mx-auto max-w-[980px] overflow-hidden rounded-[18px] border border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]"
+            className={cn(
+              "mx-auto max-w-[980px] overflow-hidden rounded-[18px] border border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
+              hasSponsoredHero && "max-w-none lg:w-full"
+            )}
           >
             <div className="flex flex-col lg:flex-row">
-              <aside className="relative border-b border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r lg:bg-transparent">
-                <div className="grid grid-cols-3 gap-px bg-[#eef1f6] p-px lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3">
+              <aside
+                className={cn(
+                  "relative border-b border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r lg:bg-transparent",
+                  hasSponsoredHero && "lg:w-[58px]"
+                )}
+              >
+                <div
+                  className={cn(
+                    "grid grid-cols-3 gap-px bg-[#eef1f6] p-px lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3",
+                    hasSponsoredHero && "lg:p-2"
+                  )}
+                >
                   {LANDING_SEARCH_CATEGORY_ORDER.map((category) => {
                     const config = CATEGORY_CONFIG[category];
                     const Icon = config.icon;
@@ -659,24 +750,47 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                           isActive
                             ? "text-primary shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]"
                             : "text-[#7b8190] hover:text-[#202224]"
-                        } lg:h-[45px] lg:rounded-[12px]`}
+                        } lg:h-[45px] lg:rounded-[12px] ${hasSponsoredHero ? "lg:h-[40px]" : ""}`}
                         aria-pressed={isActive}
                         title={config.label}
                       >
-                        <Icon className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={1.7} />
+                        <Icon
+                          className={cn("h-6 w-6 sm:h-7 sm:w-7", hasSponsoredHero && "lg:h-5 lg:w-5")}
+                          strokeWidth={1.7}
+                        />
                       </button>
                     );
                   })}
                 </div>
               </aside>
 
-              <div className="flex-1 px-4 py-4 sm:px-5 lg:px-8 lg:py-6">
-                <div className="flex flex-col gap-3 border-b border-[#eef1f6] pb-4 md:flex-row md:items-start md:justify-between">
+              <div
+                className={cn(
+                  "flex-1 px-4 py-4 sm:px-5 lg:px-8 lg:py-6",
+                  hasSponsoredHero && "lg:px-4 lg:py-4"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex flex-col gap-3 border-b border-[#eef1f6] pb-4 md:flex-row md:items-start md:justify-between",
+                    hasSponsoredHero && "pb-3 md:flex-col"
+                  )}
+                >
                   <div>
-                    <h2 className="text-[22px] font-bold italic leading-[1.2] text-[#202224]">
+                    <h2
+                      className={cn(
+                        "text-[22px] font-bold italic leading-[1.2] text-[#202224]",
+                        hasSponsoredHero && "text-[20px]"
+                      )}
+                    >
                       {HERO_HEADLINES[activeCategory]}
                     </h2>
-                    <p className="mt-1 text-sm text-[#667085]">
+                    <p
+                      className={cn(
+                        "mt-1 text-sm text-[#667085]",
+                        hasSponsoredHero && "text-[13px] leading-5"
+                      )}
+                    >
                       {heroDescription}
                     </p>
                   </div>
@@ -687,7 +801,12 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-4 xl:grid-cols-4">
+                <div
+                  className={cn(
+                    "mt-4 grid gap-4 xl:grid-cols-4",
+                    hasSponsoredHero && "gap-3 sm:grid-cols-2 xl:grid-cols-2"
+                  )}
+                >
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Location
@@ -730,16 +849,21 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     </label>
                     {renderRangeField(
                       yearFrom,
-                      setYearFrom,
+                      (nextValue) => setBoundedRange("from", nextValue, yearFrom, yearTo, setYearFrom, setYearTo),
                       HERO_YEAR_FROM_OPTIONS,
                       yearTo,
-                      setYearTo,
+                      (nextValue) => setBoundedRange("to", nextValue, yearFrom, yearTo, setYearFrom, setYearTo),
                       HERO_YEAR_TO_OPTIONS
                     )}
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-4 xl:grid-cols-4">
+                <div
+                  className={cn(
+                    "mt-4 grid gap-4 xl:grid-cols-4",
+                    hasSponsoredHero && "mt-3 gap-3 sm:grid-cols-2 xl:grid-cols-2"
+                  )}
+                >
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Choose Mileage
@@ -758,10 +882,10 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     </label>
                     {renderRangeField(
                       priceFrom,
-                      setPriceFrom,
+                      (nextValue) => setBoundedRange("from", nextValue, priceFrom, priceTo, setPriceFrom, setPriceTo),
                       HERO_PRICE_FROM_OPTIONS,
                       priceTo,
-                      setPriceTo,
+                      (nextValue) => setBoundedRange("to", nextValue, priceFrom, priceTo, setPriceFrom, setPriceTo),
                       HERO_PRICE_TO_OPTIONS
                     )}
                   </div>

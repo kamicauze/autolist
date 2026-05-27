@@ -35,7 +35,7 @@ import { RecommendedCars } from "./recommended-cars";
 import { VehicleLoanCalculator } from "./vehicle-loan-calculator";
 import { ReviewsSection } from "./reviews-section";
 import { ReplyForm } from "./reply-form";
-import { getImageUrl } from "@/lib/utils/listings";
+import { getImageUrl, getStorageObjectUrl } from "@/lib/utils/listings";
 import { useCompare } from "@/lib/hooks/use-compare";
 import {
   PriceAdviserPanel,
@@ -239,25 +239,60 @@ function getVideoUrl(metadata: Listing["metadata"]) {
   return value?.startsWith("http") ? value : null;
 }
 
-function getYouTubeEmbedUrl(url: string) {
+function getYouTubeVideoId(url: string) {
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.replace(/^www\./, "");
 
     if (hostname === "youtu.be") {
-      const id = parsed.pathname.split("/").filter(Boolean)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+      return parsed.pathname.split("/").filter(Boolean)[0] || null;
     }
 
-    if (hostname === "youtube.com" || hostname === "m.youtube.com") {
-      const id = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop();
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+    if (
+      hostname === "youtube.com" ||
+      hostname === "m.youtube.com" ||
+      hostname === "youtube-nocookie.com"
+    ) {
+      const queryId = parsed.searchParams.get("v");
+      if (queryId) return queryId;
+
+      const segments = parsed.pathname.split("/").filter(Boolean);
+      if (segments[0] === "embed" || segments[0] === "shorts" || segments[0] === "live") {
+        return segments[1] || null;
+      }
     }
   } catch {
     return null;
   }
 
   return null;
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  const id = getYouTubeVideoId(url);
+  return id ? `https://www.youtube.com/embed/${id}` : null;
+}
+
+function getDocumentUrl(candidate: Record<string, unknown>) {
+  const directUrl =
+    typeof candidate.url === "string"
+      ? candidate.url
+      : typeof candidate.publicUrl === "string"
+        ? candidate.publicUrl
+        : "";
+
+  if (directUrl.startsWith("http")) {
+    return directUrl;
+  }
+
+  const storageKey =
+    typeof candidate.key === "string"
+      ? candidate.key
+      : typeof candidate.r2_key === "string"
+        ? candidate.r2_key
+        : "";
+  const storageUrl = getStorageObjectUrl(storageKey);
+  return storageUrl.startsWith("http") ? storageUrl : null;
 }
 
 function getListingDocuments(metadata: Listing["metadata"]): ListingDocument[] {
@@ -267,19 +302,33 @@ function getListingDocuments(metadata: Listing["metadata"]): ListingDocument[] {
     .map((document) => {
       if (!document || typeof document !== "object") return null;
       const candidate = document as Record<string, unknown>;
-      const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
-      const url = typeof candidate.url === "string" && candidate.url.startsWith("http")
-        ? candidate.url
-        : null;
+      const name =
+        typeof candidate.name === "string"
+          ? candidate.name.trim()
+          : typeof candidate.fileName === "string"
+            ? candidate.fileName.trim()
+            : typeof candidate.displayName === "string"
+              ? candidate.displayName.trim()
+              : "";
+      const url = getDocumentUrl(candidate);
       return name ? { name, url } : null;
     })
     .filter((document): document is ListingDocument => Boolean(document));
 
-  if (normalizedDocuments.length > 0) {
-    return normalizedDocuments.filter((document) => Boolean(document.url));
-  }
+  const namedDocuments = Array.isArray(record.documentNames)
+    ? record.documentNames
+        .map((name) => (typeof name === "string" ? name.trim() : ""))
+        .filter(Boolean)
+        .filter((name) => !normalizedDocuments.some((document) => document.name === name))
+        .map((name) => ({ name, url: null }))
+    : [];
 
-  return [];
+  return [...normalizedDocuments, ...namedDocuments].filter(
+    (document, index, allDocuments) =>
+      allDocuments.findIndex(
+        (candidate) => candidate.name === document.name && candidate.url === document.url
+      ) === index
+  );
 }
 
 function formatRegistrationStatus(listing: Listing) {
@@ -348,7 +397,13 @@ export function VehiclePageClient({
     feedback: enquiryFeedback,
     isSubmitting: isEnquirySubmitting,
     message: enquiryMessage,
+    contactName: enquiryContactName,
+    contactEmail: enquiryContactEmail,
+    contactPhone: enquiryContactPhone,
     setMessage: setEnquiryMessage,
+    setContactName: setEnquiryContactName,
+    setContactEmail: setEnquiryContactEmail,
+    setContactPhone: setEnquiryContactPhone,
     submitEnquiry,
   } = useListingEnquiry({
     listingId: listing.id,
@@ -562,23 +617,31 @@ export function VehiclePageClient({
                   <h2 className="text-base font-semibold text-gray-900">Video & Documents</h2>
                 </div>
                 {videoUrl ? (
-                  <div className="overflow-hidden rounded-xl border border-gray-100 bg-gray-950">
-                    {youtubeEmbedUrl ? (
-                      <iframe
-                        src={youtubeEmbedUrl}
-                        title={`${title} video`}
-                        className="aspect-video w-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video
-                        controls
-                        preload="metadata"
-                        src={videoUrl}
-                        className="aspect-video w-full bg-black"
-                      />
-                    )}
+                  <div className="space-y-3">
+                    <div className="overflow-hidden rounded-xl border border-gray-100 bg-gray-950">
+                      {youtubeEmbedUrl ? (
+                        <iframe
+                          src={youtubeEmbedUrl}
+                          title={`${title} video`}
+                          className="aspect-video w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          controls
+                          preload="metadata"
+                          src={videoUrl}
+                          className="aspect-video w-full bg-black"
+                        />
+                      )}
+                    </div>
+                    <Button asChild variant="outline" size="sm" className="w-full justify-center sm:w-auto">
+                      <a href={videoUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        {youtubeEmbedUrl ? "Open on YouTube" : "Open video"}
+                      </a>
+                    </Button>
                   </div>
                 ) : null}
                 {listingDocuments.length > 0 ? (
@@ -801,6 +864,26 @@ export function VehiclePageClient({
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>
+                <div className="mt-3 grid gap-2">
+                  <input
+                    value={enquiryContactName}
+                    onChange={(event) => setEnquiryContactName(event.target.value)}
+                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                    placeholder="Your name"
+                  />
+                  <input
+                    value={enquiryContactPhone}
+                    onChange={(event) => setEnquiryContactPhone(event.target.value)}
+                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                    placeholder="Phone number"
+                  />
+                  <input
+                    value={enquiryContactEmail}
+                    onChange={(event) => setEnquiryContactEmail(event.target.value)}
+                    className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-700 focus:border-primary focus:outline-none"
+                    placeholder="Email address"
+                  />
+                </div>
                 <textarea
                   value={enquiryMessage}
                   onChange={(event) => setEnquiryMessage(event.target.value)}

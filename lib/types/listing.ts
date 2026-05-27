@@ -73,6 +73,7 @@ export interface ListingFilters {
   make?: string | string[];
   model?: string | string[];
   origin?: string;
+  equipmentType?: string | string[];
   useCase?: string;
   intent?: string | string[];
   minPrice?: number;

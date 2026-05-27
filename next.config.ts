@@ -14,6 +14,17 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "250mb",
     },
   },
+  outputFileTracingExcludes: {
+    "/api/seed-images": [
+      "./next.config.ts",
+      "./.claude/**/*",
+      "./.git/**/*",
+      "./.next/**/*",
+      "./.next-dev/**/*",
+      "./.playwright-cli/**/*",
+      "./WhatsApp Chat with Autolist Dev Team/**/*",
+    ],
+  },
   images: {
     unoptimized: true,
     qualities: [75, 95],

@@ -76,7 +76,7 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
           type="button"
           onClick={handleGenerate}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d4fd8] disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d4fd8] disabled:opacity-60 sm:w-auto lg:shrink-0"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {isLoading ? "Generating..." : "Generate AI Description"}
@@ -110,7 +110,7 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
               <button
                 type="button"
                 onClick={() => updateField("description", result.description)}
-                className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-[#d9e6ff] bg-[#f7faff] px-3 py-2 text-[13px] font-semibold text-[#2563eb] hover:bg-[#eef4ff]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] border border-[#d9e6ff] bg-[#f7faff] px-3 py-2 text-[13px] font-semibold text-[#2563eb] hover:bg-[#eef4ff] sm:w-auto lg:shrink-0"
               >
                 <Wand2 className="h-4 w-4" />
                 Apply AI Description

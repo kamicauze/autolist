@@ -20,8 +20,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 
 const vehicleTypes = [
-  { name: "Cars", href: "/search?category=car", category: "car" },
-  { name: "Vans", href: "/search?category=van", category: "van" },
+  { name: "Cars & Vans", href: "/search?category=car", category: "car" },
   { name: "Motorbikes", href: "/search?category=motorbike&q=motorbike", category: "motorbike" },
   { name: "Trucks", href: "/search?category=truck&q=truck", category: "truck" },
   { name: "Farm", href: "/search?category=farm_agricultural&q=farm+agricultural", category: "farm_agricultural" },
@@ -105,7 +104,7 @@ function HeaderVehicleTypeNav() {
     if (legacyType === "farm") return "farm_agricultural";
 
     const bodyType = searchParams.get("bodyType");
-    if (bodyType === "Van") return "van";
+    if (bodyType === "Van") return "car";
     if (bodyType === "Truck") return "truck";
 
     return "car";

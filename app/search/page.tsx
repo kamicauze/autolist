@@ -44,6 +44,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     make: params.make as string,
     model: params.model as string,
     origin: params.origin as string,
+    equipmentType: parseArrayParam(params.equipmentType),
     useCase: params.useCase as string,
     intent: parseArrayParam(params.intent),
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,

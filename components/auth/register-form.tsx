@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import { USER_ROLE_OPTIONS, type UserRole } from "@/lib/constants/marketplace";
@@ -31,21 +32,23 @@ function inferRoleFromNextPath(nextPath: string): UserRole | null {
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedNextPath = sanitizeNextPath(searchParams.get("next"), "");
+  const requestedRole = searchParams.get("role");
+  const inferredRole = inferRoleFromNextPath(requestedNextPath);
+  const initialRole = requestedRole ? resolveRole(requestedRole) : inferredRole || "buyer";
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [selectedRole, setSelectedRole] = React.useState<UserRole>(initialRole);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
 
-  const requestedNextPath = sanitizeNextPath(searchParams.get("next"), "");
-  const selectedRole = React.useMemo(() => {
-    const explicitRole = searchParams.get("role");
-    if (explicitRole) return resolveRole(explicitRole);
-    return inferRoleFromNextPath(requestedNextPath) || "buyer";
-  }, [requestedNextPath, searchParams]);
+  React.useEffect(() => {
+    setSelectedRole(initialRole);
+  }, [initialRole]);
 
   const nextPath =
     selectedRole === "dealer"
@@ -75,6 +78,7 @@ export function RegisterForm() {
       email,
       password,
       options: {
+        emailRedirectTo: getAuthCallbackUrl(nextPath),
         data: {
           full_name: fullName.trim(),
           intended_role: selectedRole,
@@ -122,7 +126,7 @@ export function RegisterForm() {
     setSocialLoading(provider);
 
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const redirectTo = getAuthCallbackUrl(nextPath);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
@@ -136,6 +140,38 @@ export function RegisterForm() {
 
   return (
     <form className="space-y-6" onSubmit={handleRegister}>
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-[#24272C]">Account type</p>
+          <p className="mt-1 text-xs text-[#696665]">
+            Choose the path that matches how you want to use Autolist.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {USER_ROLE_OPTIONS.map((option) => {
+            const selected = selectedRole === option.value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`rounded-[14px] border p-3 text-left transition ${
+                  selected
+                    ? "border-primary bg-primary/5 text-[#24272C] shadow-sm"
+                    : "border-[#EDEDED] bg-white text-[#696665] hover:border-primary/40"
+                }`}
+                onClick={() => setSelectedRole(option.value)}
+                data-testid={`register-role-${option.value}`}
+                aria-pressed={selected}
+              >
+                <span className="block text-sm font-semibold">{option.label}</span>
+                <span className="mt-1 block text-xs leading-5">{option.description}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="space-y-4">
         <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="register-name">
           <span>User name</span>
@@ -210,12 +246,6 @@ export function RegisterForm() {
           </div>
         </label>
       </div>
-
-      {selectedRole !== "buyer" && (
-        <p className="text-xs text-[#696665]">
-          Role selected: <span className="font-semibold uppercase text-[#24272C]">{selectedRole}</span>
-        </p>
-      )}
 
       {errorMessage && (
         <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">

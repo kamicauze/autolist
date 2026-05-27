@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { CONTENT_POST_SELECT, normalizeContentPost } from "@/lib/data/content-posts";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
+  ContentPostCategory,
   ContentPost,
   ContentPostMutationResult,
   ContentPostRecord,
@@ -20,7 +21,9 @@ const updateContentPostSchema = z.object({
   slug: z.string().trim().max(160, "Slug is too long."),
   excerpt: z.string().trim().max(400, "Excerpt is too long."),
   body: z.string().trim().max(40000, "Body is too long."),
+  category: z.enum(["blog", "review", "news_advice", "faq"]),
   coverImageUrl: z.string().trim().max(2000, "Cover image URL is too long."),
+  galleryImageUrls: z.array(z.string().trim().max(2000, "Gallery image URL is too long.")).max(12, "Use up to 12 gallery images."),
   author: z.string().trim().min(2, "Author is required.").max(120, "Author is too long."),
 });
 
@@ -29,6 +32,14 @@ const contentPostIdSchema = z.object({
 });
 
 type ContentPostMetaRow = Pick<ContentPostRecord, "id" | "slug" | "status">;
+
+function isMissingContentPostsSchemaError(error: Parameters<typeof isMissingRelationError>[0]) {
+  return isMissingRelationError(error) || isMissingColumnError(error);
+}
+
+function missingContentPostsSchemaMessage() {
+  return "Content posts storage is not ready yet. Run the latest content_posts migration first.";
+}
 
 function normalizeBody(value: string) {
   return value.replace(/\r\n/g, "\n").trim();
@@ -64,6 +75,12 @@ function normalizeStoredCoverImageUrl(value: string | null) {
 
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function normalizeGalleryImageUrls(values: string[]) {
+  return values
+    .map((value) => normalizeOptionalCoverImageUrl(value))
+    .filter((value): value is string => Boolean(value));
 }
 
 function slugifyContentPostValue(value: string) {
@@ -155,8 +172,8 @@ async function getContentPostMeta(
     .maybeSingle<ContentPostMetaRow>();
 
   if (error) {
-    if (isMissingRelationError(error)) {
-      throw new Error("Content posts storage is not ready yet. Run the content_posts migration first.");
+    if (isMissingContentPostsSchemaError(error)) {
+      throw new Error(missingContentPostsSchemaMessage());
     }
 
     throw new Error(error.message || "Unable to load the selected post.");
@@ -184,8 +201,8 @@ async function getContentPostRecord(
     .maybeSingle<ContentPostRecord>();
 
   if (error) {
-    if (isMissingRelationError(error)) {
-      throw new Error("Content posts storage is not ready yet. Run the content_posts migration first.");
+    if (isMissingContentPostsSchemaError(error)) {
+      throw new Error(missingContentPostsSchemaMessage());
     }
 
     throw new Error(error.message || "Unable to load the selected post.");
@@ -237,7 +254,9 @@ export async function createContentPostDraft(): Promise<ContentPostMutationResul
         excerpt: "",
         body: "",
         status: "draft" as const,
+        category: "blog" satisfies ContentPostCategory,
         cover_image_url: null,
+        gallery_image_urls: [],
         published_at: null,
         author,
         created_by: context.user.id,
@@ -246,9 +265,9 @@ export async function createContentPostDraft(): Promise<ContentPostMutationResul
       .single<ContentPostRecord>();
 
     if (error) {
-      if (isMissingRelationError(error)) {
+      if (isMissingContentPostsSchemaError(error)) {
         return {
-          error: "Content posts storage is not ready yet. Run the content_posts migration first.",
+          error: missingContentPostsSchemaMessage(),
         };
       }
 
@@ -294,6 +313,7 @@ export async function updateContentPost(
       parsed.data.postId
     );
     const coverImageUrl = normalizeOptionalCoverImageUrl(parsed.data.coverImageUrl);
+    const galleryImageUrls = normalizeGalleryImageUrls(parsed.data.galleryImageUrls);
 
     const { data, error } = await context.supabase
       .from("content_posts")
@@ -302,7 +322,9 @@ export async function updateContentPost(
         slug,
         excerpt: parsed.data.excerpt.trim(),
         body: normalizeBody(parsed.data.body),
+        category: parsed.data.category,
         cover_image_url: coverImageUrl,
+        gallery_image_urls: galleryImageUrls,
         author: parsed.data.author.trim(),
       })
       .eq("id", parsed.data.postId)
@@ -310,9 +332,9 @@ export async function updateContentPost(
       .single<ContentPostRecord>();
 
     if (error) {
-      if (isMissingRelationError(error)) {
+      if (isMissingContentPostsSchemaError(error)) {
         return {
-          error: "Content posts storage is not ready yet. Run the content_posts migration first.",
+          error: missingContentPostsSchemaMessage(),
         };
       }
 
@@ -396,7 +418,9 @@ async function updateContentPostStatus(
         slug,
         excerpt: existingPost.excerpt.trim(),
         body: normalizeBody(existingPost.body),
+        category: existingPost.category ?? "blog",
         cover_image_url: normalizeStoredCoverImageUrl(existingPost.cover_image_url),
+        gallery_image_urls: existingPost.gallery_image_urls ?? [],
         author: existingPost.author.trim(),
         status,
         published_at: nextPublishedAt,
@@ -406,9 +430,9 @@ async function updateContentPostStatus(
       .single<ContentPostRecord>();
 
     if (error) {
-      if (isMissingRelationError(error)) {
+      if (isMissingContentPostsSchemaError(error)) {
         return {
-          error: "Content posts storage is not ready yet. Run the content_posts migration first.",
+          error: missingContentPostsSchemaMessage(),
         };
       }
 

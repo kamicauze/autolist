@@ -92,7 +92,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
             onClick={() => setShowAllImages(true)}
           >
             <Images className="h-4 w-4" />
-            All image
+            View gallery
           </Button>
         </div>
       </div>
@@ -114,7 +114,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
               src={image}
               alt={`${title} thumbnail ${index + 1}`}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="80px"
             />
           </button>
@@ -124,7 +124,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
             onClick={() => setShowAllImages(true)}
             className="relative flex h-20 w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-200 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-300"
           >
-            +{imageCount - 8}
+            View all
           </button>
         )}
       </div>
@@ -133,7 +133,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
       <Dialog open={showAllImages} onOpenChange={setShowAllImages}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{title} - All Images ({imageCount})</DialogTitle>
+            <DialogTitle>{title} gallery</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
             {displayImages.map((image, index) => (

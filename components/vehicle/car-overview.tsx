@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Calendar,
   Car,
   Fuel,
   Gauge,
@@ -33,7 +32,7 @@ interface CarOverviewProps {
 interface Item {
   label: string;
   value: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 function readMetadataValue(metadata: Listing["metadata"], key: string) {
@@ -49,7 +48,7 @@ function formatRegistrationStatus(listing: Listing) {
 function OverviewItem({ item }: { item: Item }) {
   return (
     <div className="flex gap-2 rounded-lg border border-gray-100 bg-white p-3">
-      <div className="mt-0.5 text-gray-400">{item.icon}</div>
+      {item.icon ? <div className="mt-0.5 text-gray-400">{item.icon}</div> : null}
       <div className="min-w-0">
         <p className="text-xs text-gray-500">{item.label}</p>
         <p className="truncate text-sm font-semibold text-gray-900">{item.value}</p>
@@ -68,7 +67,6 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
     {
       label: "Year",
       value: String(listing.year),
-      icon: <Calendar className="h-4 w-4" />,
     },
     {
       label: "Registration",

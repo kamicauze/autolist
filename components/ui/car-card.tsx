@@ -68,6 +68,9 @@ export function CarCard({
 
   const imageCount = images.length;
   const displayImages = imageCount > 0 ? images : ["/placeholder-car.jpg"];
+  const indicatorCount = Math.min(imageCount, 5);
+  const activeIndicatorIndex =
+    indicatorCount > 0 ? Math.min(selectedIndex, indicatorCount - 1) : 0;
   const inCompare = isInCompare(id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
 
@@ -211,7 +214,7 @@ export function CarCard({
                   src={imageUrl}
                   alt={`${title} - Image ${index + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 300px"
                 />
               </div>
@@ -284,7 +287,7 @@ export function CarCard({
 
         {imageCount > 1 && (
           <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-1.5">
-            {Array.from({ length: Math.min(imageCount, 5) }).map((_, index) => (
+            {Array.from({ length: indicatorCount }).map((_, index) => (
               <button
                 key={index}
                 onClick={(event) => {
@@ -294,14 +297,11 @@ export function CarCard({
                 }}
                 className={cn(
                   "h-2 w-2 rounded-full transition-all",
-                  selectedIndex === index ? "w-4 bg-white" : "bg-white/50 hover:bg-white/75"
+                  activeIndicatorIndex === index ? "w-4 bg-white" : "bg-white/50 hover:bg-white/75"
                 )}
                 aria-label={`Go to image ${index + 1}`}
               />
             ))}
-            {imageCount > 5 ? (
-              <span className="ml-1 text-xs font-medium text-white">+{imageCount - 5}</span>
-            ) : null}
           </div>
         )}
       </div>

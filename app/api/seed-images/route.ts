@@ -9,7 +9,9 @@ import nodeCrypto from "crypto";
 import path from "path";
 
 // Hardcoded path to images based on user info
-const IMAGE_DIR = process.env.SEED_IMAGE_DIR || path.join(process.cwd(), "WhatsApp Chat with Autolist Dev Team");
+const IMAGE_DIR =
+    process.env.SEED_IMAGE_DIR ||
+    "WhatsApp Chat with Autolist Dev Team";
 
 // Simplified JSON copy to avoid massive file reads, or read full file
 import listingsData from "@/listings.json";
@@ -62,13 +64,13 @@ export async function GET() {
 
         for (const [originalIndex, filename] of images.entries()) {
             const filePath = path.join(IMAGE_DIR, filename);
-            if (!fs.existsSync(filePath)) {
+            if (!fs.existsSync(/* turbopackIgnore: true */ filePath)) {
                 // console.warn(`File not found: ${filePath}`);
                 continue;
             }
 
             // Read file buffer
-            const fileBuffer = fs.readFileSync(filePath);
+            const fileBuffer = fs.readFileSync(/* turbopackIgnore: true */ filePath);
             const ext = path.extname(filename).substring(1);
             const contentType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/png";
 

@@ -12,6 +12,7 @@ import type {
 
 export const SELLER_PACKAGE_BILLING_DAYS = 30;
 export const SELLER_PACKAGE_FREE_TRIAL_DAYS = 180;
+export const SELLER_PACKAGE_FREE_TRIAL_MONTHS = 6;
 
 export const SELLER_PACKAGE_USAGE_STATUSES = [
   "draft",
@@ -251,7 +252,10 @@ export function deriveSellerPackageAccessState(
     hasActivePlan: true,
     canCreateListing: remainingListings === null || remainingListings > 0,
     renewalDateLabel: formatSellerPackageRenewalDate(activeEntitlement.ends_at),
-    billingCycleLabel: "Monthly",
+    billingCycleLabel:
+      activeEntitlement.metadata?.intro_trial === true
+        ? `${SELLER_PACKAGE_FREE_TRIAL_MONTHS}-month free intro`
+        : "Monthly",
   };
 }
 

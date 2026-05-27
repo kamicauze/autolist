@@ -5,6 +5,7 @@ import { useState, useTransition, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetFooter,
   SheetTitle,
@@ -29,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ChevronDown, Search, X } from "lucide-react";
 import {
-  BODY_TYPES,
+  BODY_TYPE_OPTIONS,
   TRANSMISSIONS,
   FUEL_TYPES,
   CONDITIONS,
@@ -180,6 +181,31 @@ function FilterSheetPanel({
   const [localFilters, setLocalFilters] = useState(initialLocalFilters);
   const [keywordInput, setKeywordInput] = useState("");
   const keywordTags = parseKeywordTags(localFilters.q);
+
+  const setBoundedRangeFilter = useCallback(
+    (key: "Year" | "Price", side: "min" | "max", value: string) => {
+      const minKey = key === "Year" ? "minYear" : "minPrice";
+      const maxKey = key === "Year" ? "maxYear" : "maxPrice";
+
+      setLocalFilters((prev) => {
+        const nextValue = value === "any" ? "" : value;
+        const next = { ...prev, [side === "min" ? minKey : maxKey]: nextValue };
+        const min = Number(next[minKey]);
+        const max = Number(next[maxKey]);
+
+        if (Number.isFinite(min) && Number.isFinite(max) && min > max) {
+          if (side === "min") {
+            next[maxKey] = nextValue;
+          } else {
+            next[minKey] = nextValue;
+          }
+        }
+
+        return next;
+      });
+    },
+    []
+  );
 
   const addKeywordTag = useCallback(() => {
     if (!keywordInput.trim()) {
@@ -333,6 +359,9 @@ function FilterSheetPanel({
     <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
       <SheetHeader className="px-6 py-4 border-b">
         <SheetTitle>Filter search</SheetTitle>
+        <SheetDescription>
+          Refine marketplace listings by make, model, location, price, year, body type, and more.
+        </SheetDescription>
       </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
@@ -504,9 +533,7 @@ function FilterSheetPanel({
             <div className="grid grid-cols-2 gap-3">
               <Select
                 value={localFilters.minYear || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, minYear: val === "any" ? "" : val }))
-                }
+                onValueChange={(val) => setBoundedRangeFilter("Year", "min", val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Min Year" />
@@ -522,9 +549,7 @@ function FilterSheetPanel({
               </Select>
               <Select
                 value={localFilters.maxYear || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, maxYear: val === "any" ? "" : val }))
-                }
+                onValueChange={(val) => setBoundedRangeFilter("Year", "max", val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Max Year" />
@@ -547,9 +572,7 @@ function FilterSheetPanel({
             <div className="grid grid-cols-2 gap-3">
               <Select
                 value={localFilters.minPrice || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, minPrice: val === "any" ? "" : val }))
-                }
+                onValueChange={(val) => setBoundedRangeFilter("Price", "min", val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Min Price" />
@@ -565,9 +588,7 @@ function FilterSheetPanel({
               </Select>
               <Select
                 value={localFilters.maxPrice || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, maxPrice: val === "any" ? "" : val }))
-                }
+                onValueChange={(val) => setBoundedRangeFilter("Price", "max", val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Max Price" />
@@ -631,14 +652,14 @@ function FilterSheetPanel({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Body Type</Label>
             <div className="flex flex-wrap gap-2">
-              {BODY_TYPES.map((type) => (
+              {BODY_TYPE_OPTIONS.map((type) => (
                 <FilterChip
-                  key={type}
-                  selected={localFilters.bodyTypes.includes(type)}
-                  onClick={() => toggleArrayFilter("bodyTypes", type)}
+                  key={type.value}
+                  selected={localFilters.bodyTypes.includes(type.value)}
+                  onClick={() => toggleArrayFilter("bodyTypes", type.value)}
                   size="sm"
                 >
-                  {type}
+                  {type.label}
                 </FilterChip>
               ))}
             </div>
@@ -816,7 +837,7 @@ function FilterSheetPanel({
           Reset all
         </Button>
         <Button onClick={applyFilters} disabled={isPending} className="flex-1">
-          Search {totalCount.toLocaleString()} cars
+          Search {totalCount.toLocaleString()} vehicles
         </Button>
       </SheetFooter>
     </SheetContent>

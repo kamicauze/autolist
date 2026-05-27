@@ -149,7 +149,19 @@ function getDealerHoursPresentation(socialLinks?: Record<string, unknown> | null
 
 export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { feedback, isSubmitting, message, setMessage, submitEnquiry } = useListingEnquiry({
+  const {
+    feedback,
+    isSubmitting,
+    message,
+    contactName,
+    contactEmail,
+    contactPhone,
+    setMessage,
+    setContactName,
+    setContactEmail,
+    setContactPhone,
+    submitEnquiry,
+  } = useListingEnquiry({
     listingId,
   });
   const isDealer = !!dealer;
@@ -280,15 +292,36 @@ export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
           <DialogHeader>
             <DialogTitle>Send an enquiry</DialogTitle>
             <DialogDescription>
-              This message will reach the seller and open a conversation thread.
+              This message is saved to Messages, logged in Admin &gt; Car Inquiries, and sent to the seller.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              value={contactName}
+              onChange={(event) => setContactName(event.target.value)}
+              placeholder="Your name"
+              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+            <input
+              value={contactPhone}
+              onChange={(event) => setContactPhone(event.target.value)}
+              placeholder="Phone number"
+              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+            <input
+              value={contactEmail}
+              onChange={(event) => setContactEmail(event.target.value)}
+              placeholder="Email address"
+              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:col-span-2"
+            />
+          </div>
 
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="Hi, I’m interested in this vehicle. Is it still available? Can you share the service history and best viewing time?"
-            className="min-h-[160px] w-full rounded-[14px] border border-[#d7dce5] bg-white px-4 py-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            className="min-h-[140px] w-full rounded-[14px] border border-[#d7dce5] bg-white px-4 py-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
 
           {feedback ? (

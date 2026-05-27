@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
   AdminContentPostsData,
   ContentPost,
@@ -7,6 +7,23 @@ import type {
 } from "@/lib/types/content-posts";
 
 export const CONTENT_POST_SELECT = [
+  "id",
+  "title",
+  "slug",
+  "excerpt",
+  "body",
+  "status",
+  "category",
+  "cover_image_url",
+  "gallery_image_urls",
+  "published_at",
+  "author",
+  "created_by",
+  "created_at",
+  "updated_at",
+].join(", ");
+
+const LEGACY_CONTENT_POST_SELECT = [
   "id",
   "title",
   "slug",
@@ -40,7 +57,9 @@ export function normalizeContentPost(record: ContentPostRecord): ContentPost {
     excerpt: record.excerpt,
     body: record.body,
     status: record.status,
+    category: record.category ?? "blog",
     coverImageUrl: record.cover_image_url,
+    galleryImageUrls: Array.isArray(record.gallery_image_urls) ? record.gallery_image_urls : [],
     publishedAt: record.published_at,
     author: record.author,
     createdBy: record.created_by,
@@ -71,6 +90,14 @@ function toContentPostRows(data: unknown): ContentPostRecord[] {
   return (data ?? []) as unknown as ContentPostRecord[];
 }
 
+function normalizeContentPostError(error: Parameters<typeof isMissingRelationError>[0]) {
+  if (isMissingRelationError(error) || isMissingColumnError(error)) {
+    return null;
+  }
+
+  return error;
+}
+
 export async function getAdminContentPostsData(): Promise<AdminContentPostsData> {
   const supabase = await createClient();
 
@@ -82,6 +109,28 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
   if (error) {
     if (isMissingRelationError(error)) {
       return EMPTY_ADMIN_CONTENT_POSTS_DATA;
+    }
+
+    if (isMissingColumnError(error)) {
+      const legacyResult = await supabase
+        .from("content_posts")
+        .select(LEGACY_CONTENT_POST_SELECT)
+        .order("updated_at", { ascending: false });
+
+      if (legacyResult.error) {
+        if (normalizeContentPostError(legacyResult.error) === null) {
+          return EMPTY_ADMIN_CONTENT_POSTS_DATA;
+        }
+        console.error("Error fetching admin content posts:", legacyResult.error);
+        return EMPTY_ADMIN_CONTENT_POSTS_DATA;
+      }
+
+      const legacyPosts = toContentPostRows(legacyResult.data).map(normalizeContentPost);
+      return {
+        schemaReady: false,
+        stats: calculateAdminContentPostStats(legacyPosts),
+        posts: legacyPosts,
+      };
     }
 
     console.error("Error fetching admin content posts:", error);
@@ -97,21 +146,49 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
   };
 }
 
-export async function getPublishedContentPosts(limit = 24): Promise<ContentPost[]> {
+export async function getPublishedContentPosts(limit = 24, category?: string): Promise<ContentPost[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("content_posts")
     .select(CONTENT_POST_SELECT)
     .eq("status", "published")
     .not("published_at", "is", null)
-    .lte("published_at", new Date().toISOString())
-    .order("published_at", { ascending: false })
-    .limit(limit);
+    .lte("published_at", new Date().toISOString());
+
+  if (category) {
+    query = query.eq("category", category);
+  }
+
+  const { data, error } = await query.order("published_at", { ascending: false }).limit(limit);
 
   if (error) {
     if (isMissingRelationError(error)) {
       return [];
+    }
+
+    if (isMissingColumnError(error)) {
+      const legacyQuery = supabase
+        .from("content_posts")
+        .select(LEGACY_CONTENT_POST_SELECT)
+        .eq("status", "published")
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString());
+
+      if (category && category !== "blog") {
+        return [];
+      }
+
+      const legacyResult = await legacyQuery.order("published_at", { ascending: false }).limit(limit);
+      if (legacyResult.error) {
+        if (normalizeContentPostError(legacyResult.error) === null) {
+          return [];
+        }
+        console.error("Error fetching published content posts:", legacyResult.error);
+        return [];
+      }
+
+      return toContentPostRows(legacyResult.data).map(normalizeContentPost);
     }
 
     console.error("Error fetching published content posts:", error);
@@ -140,6 +217,27 @@ export async function getPublishedContentPostBySlug(slug: string): Promise<Conte
   if (error) {
     if (isMissingRelationError(error)) {
       return null;
+    }
+
+    if (isMissingColumnError(error)) {
+      const legacyResult = await supabase
+        .from("content_posts")
+        .select(LEGACY_CONTENT_POST_SELECT)
+        .eq("slug", slug)
+        .eq("status", "published")
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (legacyResult.error) {
+        if (normalizeContentPostError(legacyResult.error) === null) {
+          return null;
+        }
+        console.error("Error fetching content post by slug:", legacyResult.error);
+        return null;
+      }
+
+      return legacyResult.data ? normalizeContentPost(legacyResult.data as unknown as ContentPostRecord) : null;
     }
 
     console.error("Error fetching content post by slug:", error);

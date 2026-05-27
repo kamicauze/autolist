@@ -13,30 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-
-const BODY_TYPES = [
-  "SUV",
-  "Sedan",
-  "Hatchback",
-  "Pickup",
-  "Coupe",
-  "Convertible",
-  "Van",
-  "Wagon",
-  "Crossover",
-  "Bus",
-  "Truck",
-];
-
-const TRANSMISSIONS = ["Automatic", "Manual", "CVT", "AMT", "Dual Clutch"];
-const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric"];
-const CONDITIONS = [
-  { value: "foreign_used", label: "Foreign used" },
-  { value: "locally_used", label: "Locally used" },
-  { value: "new", label: "Brand new" },
-];
-
-const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
+import {
+  BODY_TYPE_OPTIONS,
+  CONDITIONS,
+  FUEL_TYPES,
+  TRANSMISSION_OPTIONS,
+  YEARS,
+} from "@/lib/constants/filters";
 
 interface SearchFiltersProps {
   makes: string[];
@@ -59,6 +42,38 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
     } else {
       params.delete(key);
     }
+
+    startTransition(() => {
+      router.push(`/search?${params.toString()}`);
+    });
+  };
+
+  const updateBoundedRangeFilter = (
+    range: "Price" | "Year",
+    side: "min" | "max",
+    value: string | null
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", "1");
+
+    const minKey = range === "Price" ? "minPrice" : "minYear";
+    const maxKey = range === "Price" ? "maxPrice" : "maxYear";
+    const targetKey = side === "min" ? minKey : maxKey;
+
+    if (value) {
+      params.set(targetKey, value);
+    } else {
+      params.delete(targetKey);
+    }
+
+    const min = Number(params.get(minKey));
+    const max = Number(params.get(maxKey));
+    if (Number.isFinite(min) && Number.isFinite(max) && min > max) {
+      params.set(side === "min" ? maxKey : minKey, value || "");
+    }
+
+    if (!params.get(minKey)) params.delete(minKey);
+    if (!params.get(maxKey)) params.delete(maxKey);
 
     startTransition(() => {
       router.push(`/search?${params.toString()}`);
@@ -149,13 +164,13 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
             type="number"
             placeholder="Min"
             defaultValue={currentMinPrice}
-            onBlur={(e) => updateFilter("minPrice", e.target.value)}
+            onBlur={(e) => updateBoundedRangeFilter("Price", "min", e.target.value)}
           />
           <Input
             type="number"
             placeholder="Max"
             defaultValue={currentMaxPrice}
-            onBlur={(e) => updateFilter("maxPrice", e.target.value)}
+            onBlur={(e) => updateBoundedRangeFilter("Price", "max", e.target.value)}
           />
         </div>
       </div>
@@ -168,7 +183,9 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
         <div className="grid grid-cols-2 gap-2">
           <Select
             value={currentMinYear || "any"}
-            onValueChange={(val) => updateFilter("minYear", val === "any" ? null : val)}
+            onValueChange={(val) =>
+              updateBoundedRangeFilter("Year", "min", val === "any" ? null : val)
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Min Year" />
@@ -184,7 +201,9 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
           </Select>
           <Select
             value={currentMaxYear || "any"}
-            onValueChange={(val) => updateFilter("maxYear", val === "any" ? null : val)}
+            onValueChange={(val) =>
+              updateBoundedRangeFilter("Year", "max", val === "any" ? null : val)
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Max Year" />
@@ -215,9 +234,9 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Body Types</SelectItem>
-            {BODY_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
+            {BODY_TYPE_OPTIONS.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -259,7 +278,7 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Any</SelectItem>
-            {TRANSMISSIONS.map((t) => (
+            {TRANSMISSION_OPTIONS.map((t) => (
               <SelectItem key={t} value={t}>
                 {t}
               </SelectItem>

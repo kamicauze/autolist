@@ -4,6 +4,7 @@ import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
+import { NON_CAR_EQUIPMENT_TYPES_BY_CATEGORY } from "@/lib/constants/non-car-reference-data";
 import {
   getIntentScore,
   inferListingDriveTypes,
@@ -76,6 +77,10 @@ function parseRequestedValues(value?: string | string[]) {
 }
 
 function parseRequestedKeywords(value?: string | string[]) {
+  return parseRequestedValues(value);
+}
+
+function parseRequestedEquipmentTypes(value?: string | string[]) {
   return parseRequestedValues(value);
 }
 
@@ -163,7 +168,79 @@ function listingMatchesRequestedBodyTypes(listing: Listing, requestedBodyTypes: 
 
 function listingMatchesRequestedCategory(listing: Listing, requestedCategory?: ListingCategory) {
   if (!requestedCategory) return true;
+  if (requestedCategory === "car") {
+    const category = inferListingCategory(listing);
+    return category === "car" || category === "van";
+  }
   return inferListingCategory(listing) === requestedCategory;
+}
+
+function normalizeEquipmentTypeValue(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[_/-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b(excavators|bulldozers|loaders|cranes|forklifts|telehandlers|graders|generators|dumpers|compressors|tractors|ploughs|plows|harvesters|balers|cultivators|planters|sprayers|trailers|mowers)\b/g, (match) =>
+      match.endsWith("ies") ? `${match.slice(0, -3)}y` : match.slice(0, -1)
+    );
+}
+
+function getRequestedEquipmentTypeTerms(
+  requestedEquipmentTypes: string[],
+  category?: ListingCategory
+) {
+  const options = category ? NON_CAR_EQUIPMENT_TYPES_BY_CATEGORY[category] ?? [] : [];
+  const terms = new Set<string>();
+
+  for (const requested of requestedEquipmentTypes) {
+    const normalizedRequested = normalizeEquipmentTypeValue(requested);
+    if (!normalizedRequested) continue;
+    terms.add(normalizedRequested);
+
+    const matchedOption = options.find((option) => {
+      const optionTerms = [option.value, option.label, ...(option.aliases ?? [])]
+        .map(normalizeEquipmentTypeValue)
+        .filter(Boolean);
+      return optionTerms.includes(normalizedRequested);
+    });
+
+    if (matchedOption) {
+      [matchedOption.value, matchedOption.label, ...(matchedOption.aliases ?? [])]
+        .map(normalizeEquipmentTypeValue)
+        .filter(Boolean)
+        .forEach((term) => terms.add(term));
+    }
+  }
+
+  return Array.from(terms);
+}
+
+function listingMatchesRequestedEquipmentTypes(
+  listing: Listing,
+  requestedEquipmentTypes: string[],
+  category?: ListingCategory
+) {
+  if (requestedEquipmentTypes.length === 0) return true;
+
+  const requestedTerms = getRequestedEquipmentTypeTerms(requestedEquipmentTypes, category);
+  if (requestedTerms.length === 0) return true;
+
+  const listingTerms = [
+    getListingMetadataString(listing, "equipmentType"),
+    getListingMetadataString(listing, "equipment_type"),
+    listing.model,
+    listing.body_type,
+    listing.description,
+  ]
+    .filter(Boolean)
+    .map((value) => normalizeEquipmentTypeValue(String(value)))
+    .filter(Boolean);
+
+  return requestedTerms.some((requested) =>
+    listingTerms.some((term) => term === requested || term.includes(requested))
+  );
 }
 
 function listingMatchesVerifiedOnly(listing: Listing, verifiedOnly?: boolean) {
@@ -503,6 +580,7 @@ export async function searchListings({
   limit?: number;
 }): Promise<{ listings: Listing[]; total: number }> {
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requestedLocations = parseRequestedValues(filters?.location);
@@ -510,6 +588,7 @@ export async function searchListings({
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
+    requestedEquipmentTypes.length > 0 ||
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
     Boolean(filters?.location) ||
@@ -526,6 +605,11 @@ export async function searchListings({
     if (filters?.category) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedCategory(listing, filters.category)
+      );
+    }
+    if (requestedEquipmentTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedEquipmentTypes(listing, requestedEquipmentTypes, filters?.category)
       );
     }
     if (requestedBodyTypes.length > 0) {
@@ -595,6 +679,7 @@ export async function countMatchingListings(
   filters?: ListingFilters
 ): Promise<number> {
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requestedLocations = parseRequestedValues(filters?.location);
@@ -602,6 +687,7 @@ export async function countMatchingListings(
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
+    requestedEquipmentTypes.length > 0 ||
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
     Boolean(filters?.location) ||
@@ -621,6 +707,11 @@ export async function countMatchingListings(
     if (filters?.category) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedCategory(listing, filters.category)
+      );
+    }
+    if (requestedEquipmentTypes.length > 0) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesRequestedEquipmentTypes(listing, requestedEquipmentTypes, filters?.category)
       );
     }
     if (requestedBodyTypes.length > 0) {

@@ -173,13 +173,25 @@ export function StepVehicleDetails() {
     }
 
     if (field.key === "trim") {
+      const selectedTrimTokens = draft.details.trim
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const selectedTrimSet = new Set(selectedTrimTokens.map((value) => value.toLowerCase()));
+      const setTrimTokens = (tokens: string[]) => {
+        updateDetailField(
+          "trim",
+          Array.from(new Set(tokens.map((value) => value.trim()).filter(Boolean))).join(", ")
+        );
+      };
+
       return (
         <>
           <input
             list={`detail-trim-options-${draft.category || "car"}`}
             value={draft.details.trim}
             onChange={(event) => updateDetailField("trim", event.target.value)}
-            placeholder="Type trim or package, e.g. AMG Line, M Sport, TX"
+            placeholder="Type one or more trims/variants, e.g. AMG Line, M Sport, TX"
             className={cn(
               sellerInputClass,
               hasError && "border-[#f04438]"
@@ -193,9 +205,37 @@ export function StepVehicleDetails() {
             ))}
           </datalist>
           {draft.details.model && referenceOptions.trimOptions.length > 0 ? (
-            <p className="mt-2 text-[12px] text-[#767676]">
-              Suggestions are model-specific where available. Use this for trim, package, or grade, not engine displacement.
-            </p>
+            <div className="mt-3 space-y-2">
+              <p className="text-[12px] text-[#767676]">
+                Suggestions are model-specific where available. Select more than one trim or package when applicable.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {referenceOptions.trimOptions.slice(0, 10).map((trim) => {
+                  const selected = selectedTrimSet.has(trim.value.toLowerCase());
+                  return (
+                    <button
+                      key={`${trim.source}-${trim.value}`}
+                      type="button"
+                      onClick={() => {
+                        setTrimTokens(
+                          selected
+                            ? selectedTrimTokens.filter((value) => value.toLowerCase() !== trim.value.toLowerCase())
+                            : [...selectedTrimTokens, trim.value]
+                        );
+                      }}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition",
+                        selected
+                          ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
+                          : "border-[#d9d9d9] bg-white text-[#4b5565] hover:border-[#2563eb]"
+                      )}
+                    >
+                      {trim.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ) : null}
         </>
       );

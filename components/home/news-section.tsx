@@ -11,6 +11,7 @@ const NEWS_ARTICLES = [
     image: "/sample-car-1.jpg",
     date: "Jan 25, 2026",
     category: "News",
+    href: "/blog?category=news_advice",
   },
   {
     id: 2,
@@ -20,6 +21,7 @@ const NEWS_ARTICLES = [
     image: "/sample-car-2.jpg",
     date: "Jan 24, 2026",
     category: "Reviews",
+    href: "/blog?category=review",
   },
   {
     id: 3,
@@ -29,6 +31,7 @@ const NEWS_ARTICLES = [
     image: "/sample-car-3.jpg",
     date: "Jan 23, 2026",
     category: "Tips",
+    href: "/blog?category=news_advice",
   },
 ];
 
@@ -41,7 +44,7 @@ export function NewsSection() {
             Car News & Advice
           </h2>
           <Link
-            href="/news"
+            href="/blog?category=news_advice"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
             View all
@@ -53,7 +56,7 @@ export function NewsSection() {
           {NEWS_ARTICLES.map((article) => (
             <Link
               key={article.id}
-              href={`/news/${article.id}`}
+              href={article.href}
               className="group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
               <div className="relative h-48 overflow-hidden">

@@ -108,10 +108,10 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
                 ) : null}
 
                 <Link
-                  href="/search"
+                  href="/insurance"
                   className="inline-flex h-11 items-center rounded-[12px] border border-[#d0d5dd] px-5 text-[14px] font-semibold text-[#111827] transition hover:border-[#2563eb] hover:text-[#2563eb]"
                 >
-                  Browse inventory
+                  Car insurance
                 </Link>
               </div>
             </div>

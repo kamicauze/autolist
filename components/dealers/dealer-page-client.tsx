@@ -4,12 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
-  Link2,
   MapPin,
   MessageCircle,
   Phone,
-  Send,
-  Share2,
 } from "lucide-react";
 import type { Listing } from "@/lib/types/listing";
 import type { DealerProfile } from "@/lib/types/dealer";
@@ -99,35 +96,6 @@ function DealerInventory({ inventory }: { inventory: Listing[] }) {
   );
 }
 
-function ShareRow() {
-  const items = [
-    { label: "Share", icon: Share2 },
-    { label: "Link", icon: Link2 },
-    { label: "Send", icon: Send },
-    { label: "Chat", icon: MessageCircle },
-  ];
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-gray-700">Share this dealer page:</p>
-        <div className="flex items-center gap-2">
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
-              aria-label={item.label}
-            >
-              <item.icon className="h-4 w-4" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function DealerSidebar({
   dealer,
   recommendedListings,
@@ -204,8 +172,6 @@ function DealerSidebar({
           WhatsApp
         </Button>
       </div>
-
-      <ShareRow />
 
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h3 className="text-base font-semibold text-gray-900">Map to {dealer.name}</h3>

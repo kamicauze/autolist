@@ -83,6 +83,12 @@ export function ListingsSection({
                 value="featured"
                 className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
               >
+                Featured/sponsored
+              </TabsTrigger>
+              <TabsTrigger
+                value="viewed"
+                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+              >
                 Recently viewed
               </TabsTrigger>
               <TabsTrigger
@@ -101,20 +107,22 @@ export function ListingsSection({
               ) : null}
             </TabsList>
 
-            {/* Recently viewed placeholder uses the rotated featured set until personalized activity is available. */}
             <TabsContent value="featured">
               <ListingsGrid listings={rotatedFeatured} />
             </TabsContent>
 
-            {/* Recent — shows 4 */}
+            {/* Recently viewed placeholder uses newest listings until personalized activity is available. */}
+            <TabsContent value="viewed">
+              <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
+            </TabsContent>
+
             <TabsContent value="recent">
               <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
             </TabsContent>
 
-            {/* Favorites — shows 4 */}
             {sectionContent.showFavoritesTab ? (
               <TabsContent value="favorites">
-                <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
+                <ListingsGrid listings={newestListings.slice(0, 5)} />
               </TabsContent>
             ) : null}
           </Tabs>

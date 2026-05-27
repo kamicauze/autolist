@@ -8,18 +8,19 @@ export const MAKES = ALL_MAKES;
 
 // Body Types
 export const BODY_TYPES = [
-  "Sedan",
+  "Saloon",
   "SUV",
   "Hatchback",
-  "Truck",
   "Coupe",
   "Convertible",
-  "Van",
   "Wagon",
-  "Crossover",
   "Pickup",
-  "Bus",
 ] as const;
+
+export const BODY_TYPE_OPTIONS = BODY_TYPES.map((value) => ({
+  value,
+  label: value === "Wagon" ? "Station Wagon" : value,
+})) as Array<{ value: (typeof BODY_TYPES)[number]; label: string }>;
 
 // Transmissions
 export const TRANSMISSIONS = [

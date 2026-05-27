@@ -9,16 +9,23 @@ interface UseListingEnquiryOptions {
   redirectPath?: string;
 }
 
-async function readEnquiryPayload(response: Response) {
+type EnquiryPayload = {
+  error?: string;
+  success?: boolean;
+  message?: string;
+  threadId?: string;
+};
+
+async function readEnquiryPayload(response: Response): Promise<EnquiryPayload> {
   const text = await response.text();
   if (!text) {
-    return {} as { error?: string; success?: boolean };
+    return {};
   }
 
   try {
-    return JSON.parse(text) as { error?: string; success?: boolean };
+    return JSON.parse(text) as EnquiryPayload;
   } catch {
-    return {} as { error?: string; success?: boolean };
+    return {};
   }
 }
 
@@ -29,6 +36,9 @@ export function useListingEnquiry({
 }: UseListingEnquiryOptions) {
   const router = useRouter();
   const [message, setMessage] = useState(initialMessage);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,12 +56,18 @@ export function useListingEnquiry({
       const response = await fetch(`/api/listings/${listingId}/enquiry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({
+          message: trimmed,
+          contactName: contactName.trim(),
+          contactEmail: contactEmail.trim(),
+          contactPhone: contactPhone.trim(),
+        }),
       });
 
       const payload = await readEnquiryPayload(response);
 
       if (response.status === 401) {
+        setFeedback("Sign in to send enquiries. After login, we will bring you back to this listing.");
         const nextPath = redirectPath || `/vehicle/${listingId}`;
         router.push(`/login?next=${encodeURIComponent(nextPath)}`);
         return false;
@@ -61,7 +77,7 @@ export function useListingEnquiry({
         throw new Error(payload.error || "Unable to send enquiry.");
       }
 
-      setFeedback("Message sent. You can continue this conversation in Messages.");
+      setFeedback(payload.message || "Enquiry sent to the seller and saved under Messages.");
       setMessage("");
       return true;
     } catch (error) {
@@ -76,6 +92,12 @@ export function useListingEnquiry({
     feedback,
     isSubmitting,
     message,
+    contactName,
+    contactEmail,
+    contactPhone,
+    setContactName,
+    setContactEmail,
+    setContactPhone,
     setFeedback,
     setMessage,
     submitEnquiry,

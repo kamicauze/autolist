@@ -1,15 +1,8 @@
 "use client";
 
 import { useWizard } from "./wizard-context";
+import { MAX_PHONE_INPUT_LENGTH, normalizePhoneInput } from "@/lib/utils/phone";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
-
-function normalizePhoneInput(value: string) {
-  const trimmed = value.replace(/[^\d+]/g, "");
-  if (!trimmed) return "";
-  const hasPlus = trimmed.startsWith("+");
-  const digits = trimmed.replace(/\D/g, "").slice(0, 15);
-  return `${hasPlus ? "+" : ""}${digits}`;
-}
 
 export function StepSeller() {
   const {
@@ -33,14 +26,16 @@ export function StepSeller() {
       </div>
 
       <div className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-        <label className="mb-4 flex items-center gap-3 text-[13px] text-[#202224]">
+        <label className="mb-4 flex items-start gap-3 text-[13px] leading-5 text-[#202224]">
           <input
             type="checkbox"
             checked={draft.useDealerAutoFill}
             onChange={(event) => applyDealerAutofill(event.target.checked)}
-            className="h-4 w-4 rounded border-[#c8c8c8]"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#c8c8c8]"
           />
-          Use my saved account details (auto-fill for logged-in dealers or individuals)
+          <span className="min-w-0">
+            Use my saved account details (auto-fill for logged-in dealers or individuals)
+          </span>
         </label>
         {draft.useDealerAutoFill ? (
           <p className="-mt-2 mb-5 text-[13px] text-[#667085]">
@@ -78,7 +73,9 @@ export function StepSeller() {
             <label className={sellerLabelClass}>Phone Number</label>
             <input
               value={draft.phoneNumber}
-              maxLength={16}
+              maxLength={MAX_PHONE_INPUT_LENGTH}
+              inputMode="tel"
+              autoComplete="tel"
               onChange={(event) => updateField("phoneNumber", normalizePhoneInput(event.target.value))}
               className={sellerInputClass}
               placeholder="e.g., +254 712 345 678"
@@ -89,7 +86,9 @@ export function StepSeller() {
             <input
               value={draft.whatsappNumber}
               disabled={!draft.whatsappEnabled}
-              maxLength={16}
+              maxLength={MAX_PHONE_INPUT_LENGTH}
+              inputMode="tel"
+              autoComplete="tel"
               onChange={(event) => updateField("whatsappNumber", normalizePhoneInput(event.target.value))}
               className={`${sellerInputClass} ${!draft.whatsappEnabled ? "bg-[#f6f6f6]" : ""}`}
               placeholder="e.g., +254 712 345 678"
@@ -98,7 +97,8 @@ export function StepSeller() {
               <button
                 type="button"
                 onClick={() => updateField("whatsappNumber", draft.phoneNumber)}
-                className="mt-2 text-[13px] font-semibold text-[#2563eb] transition hover:text-[#1d4ed8]"
+                disabled={!draft.phoneNumber}
+                className="mt-2 inline-flex max-w-full items-center text-left text-[13px] font-semibold text-[#2563eb] transition hover:text-[#1d4ed8] disabled:cursor-not-allowed disabled:text-[#98a2b3]"
               >
                 Use the same number as phone
               </button>

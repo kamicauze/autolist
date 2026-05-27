@@ -186,13 +186,19 @@ function FigmaListingStatusPill({ status }: { status: Listing["status"] }) {
 function ListingViewTabs({
   activeTab,
   onSelectTab,
+  showAvailableBids,
 }: {
   activeTab: ListingTab;
   onSelectTab: (tab: ListingTab) => void;
+  showAvailableBids: boolean;
 }) {
+  const visibleTabs = showAvailableBids
+    ? tabs
+    : tabs.filter((tab) => tab.value !== "available-bids");
+
   return (
     <div className="flex items-center gap-[13px]">
-      {tabs.map((tab) => {
+      {visibleTabs.map((tab) => {
         const active = tab.value === activeTab;
 
         return (
@@ -797,6 +803,7 @@ export function MyListings({
   const [activeTab, setActiveTab] = React.useState<ListingTab>(() =>
     availableBids?.length ? "available-bids" : "all"
   );
+  const showAvailableBids = Boolean(availableBids?.length);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState<(typeof listingStatusOptions)[number]>("all");
   const [fromDate, setFromDate] = React.useState("");
@@ -980,7 +987,11 @@ export function MyListings({
         />
       ) : (
         <>
-          <ListingViewTabs activeTab={activeTab} onSelectTab={setActiveTab} />
+          <ListingViewTabs
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+            showAvailableBids={showAvailableBids}
+          />
 
           <section className="rounded-[20px] border border-[#ededed] bg-white px-[22px] py-[22px] shadow-[0_1px_2px_rgba(15,23,42,0.02)] xl:px-[30px] xl:py-[30px]">
             <div className="grid gap-[10px] lg:grid-cols-[1.05fr_1fr_1fr_1fr]">

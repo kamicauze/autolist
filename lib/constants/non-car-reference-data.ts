@@ -1,10 +1,54 @@
 import type { ListingCategory } from "@/lib/constants/marketplace";
 
+export type NonCarEquipmentTypeOption = {
+  value: string;
+  label: string;
+  aliases?: readonly string[];
+};
+
 export type NonCarReferenceConfig = {
   makes: string[];
   modelInputMode: "manual";
   makeHelperText: string;
   modelHelperText: string;
+};
+
+export const PLANT_CONSTRUCTION_EQUIPMENT_TYPES = [
+  { value: "excavator", label: "Excavator", aliases: ["excavators"] },
+  { value: "bulldozer", label: "Bulldozer", aliases: ["bulldozers", "dozer", "dozers"] },
+  { value: "loader", label: "Loader", aliases: ["loaders", "wheel loader", "wheel loaders"] },
+  { value: "backhoe_loader", label: "Backhoe Loader", aliases: ["backhoe", "backhoes"] },
+  { value: "crane", label: "Crane", aliases: ["cranes"] },
+  { value: "forklift", label: "Forklift", aliases: ["forklifts", "lift truck"] },
+  { value: "telehandler", label: "Telehandler", aliases: ["telehandlers"] },
+  { value: "grader", label: "Grader", aliases: ["graders", "motor grader"] },
+  { value: "roller_compactor", label: "Roller / Compactor", aliases: ["roller", "rollers", "compactor", "compactors"] },
+  { value: "generator", label: "Generator", aliases: ["generators", "genset", "gensets"] },
+  { value: "dumper", label: "Dumper", aliases: ["dumpers", "site dumper"] },
+  { value: "compressor", label: "Compressor", aliases: ["compressors", "air compressor"] },
+  { value: "concrete_mixer", label: "Concrete Mixer", aliases: ["concrete", "mixer", "mixers"] },
+  { value: "aerial_platform", label: "Aerial Platform", aliases: ["aerial platforms", "boom lift", "scissor lift"] },
+] as const satisfies readonly NonCarEquipmentTypeOption[];
+
+export const FARM_AGRICULTURAL_EQUIPMENT_TYPES = [
+  { value: "tractor", label: "Tractor", aliases: ["tractors"] },
+  { value: "plough", label: "Plough", aliases: ["plow", "ploughs", "plows"] },
+  { value: "harvester", label: "Harvester", aliases: ["harvesters", "combine", "combine harvester"] },
+  { value: "baler", label: "Baler", aliases: ["balers"] },
+  { value: "cultivator", label: "Cultivator", aliases: ["cultivators"] },
+  { value: "planter", label: "Planter", aliases: ["planters", "seed drill", "seed drills"] },
+  { value: "sprayer", label: "Sprayer", aliases: ["sprayers"] },
+  { value: "trailer", label: "Trailer", aliases: ["trailers", "farm trailer"] },
+  { value: "mower", label: "Mower", aliases: ["mowers"] },
+  { value: "irrigation_equipment", label: "Irrigation Equipment", aliases: ["irrigation"] },
+  { value: "feed_mixer", label: "Feed Mixer", aliases: ["feed mixers", "mixer wagon"] },
+] as const satisfies readonly NonCarEquipmentTypeOption[];
+
+export const NON_CAR_EQUIPMENT_TYPES_BY_CATEGORY: Partial<
+  Record<ListingCategory, readonly NonCarEquipmentTypeOption[]>
+> = {
+  plant_construction: PLANT_CONSTRUCTION_EQUIPMENT_TYPES,
+  farm_agricultural: FARM_AGRICULTURAL_EQUIPMENT_TYPES,
 };
 
 export const NON_CAR_REFERENCE_DATA: Partial<
@@ -382,5 +426,34 @@ export const NON_CAR_REFERENCE_DATA: Partial<
       "Suggested plant and construction makes are loaded from the operations catalog. If the make is missing, type it manually.",
     modelHelperText:
       "Plant and construction models remain manual for now. Enter the exact model or machine code from the seller record.",
+  },
+  farm_agricultural: {
+    makes: [
+      "Belarus",
+      "Case IH",
+      "Claas",
+      "Deutz-Fahr",
+      "Escorts",
+      "Fendt",
+      "Ford",
+      "John Deere",
+      "Kubota",
+      "Landini",
+      "Mahindra",
+      "Massey Ferguson",
+      "McCormick",
+      "New Holland",
+      "SAME",
+      "Sonalika",
+      "TAFE",
+      "Valtra",
+      "Yanmar",
+      "Zetor",
+    ],
+    modelInputMode: "manual",
+    makeHelperText:
+      "Suggested farm machinery makes are loaded from the operations catalog. If the make is missing, type it manually.",
+    modelHelperText:
+      "Farm machinery models remain manual for now. Enter the model, series, or implement code from the seller record.",
   },
 };

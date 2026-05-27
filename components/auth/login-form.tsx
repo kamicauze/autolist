@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { resolvePostAuthPath, sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import {
@@ -83,9 +84,7 @@ export function LoginForm() {
     setSocialLoading(provider);
 
     const supabase = createClient();
-    const redirectTo = safeNextPathForOAuth
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNextPathForOAuth)}`
-      : `${window.location.origin}/auth/callback`;
+    const redirectTo = getAuthCallbackUrl(safeNextPathForOAuth);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },

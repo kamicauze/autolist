@@ -19,7 +19,11 @@ import {
 } from "@/lib/actions/content-posts";
 import { AdminCmsMediaField } from "@/components/admin/admin-cms-media-library";
 import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
-import type { AdminContentPostsData, ContentPost } from "@/lib/types/content-posts";
+import type {
+  AdminContentPostsData,
+  ContentPost,
+  ContentPostCategory,
+} from "@/lib/types/content-posts";
 import { cn } from "@/lib/utils";
 import {
   AdminPageHeader,
@@ -46,9 +50,23 @@ type EditorState = {
   slug: string;
   excerpt: string;
   body: string;
+  category: ContentPostCategory;
   coverImageUrl: string;
+  galleryImageUrls: string[];
   author: string;
 };
+
+const CONTENT_CATEGORY_OPTIONS: Array<{ value: ContentPostCategory; label: string }> = [
+  { value: "blog", label: "Blog" },
+  { value: "review", label: "Review" },
+  { value: "news_advice", label: "News and advice" },
+  { value: "faq", label: "FAQ" },
+];
+const MAX_GALLERY_IMAGES = 12;
+
+function getCategoryLabel(category: ContentPostCategory) {
+  return CONTENT_CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? "Blog";
+}
 
 function createEditorState(post: ContentPost | null): EditorState {
   return {
@@ -56,7 +74,9 @@ function createEditorState(post: ContentPost | null): EditorState {
     slug: post?.slug ?? "",
     excerpt: post?.excerpt ?? "",
     body: post?.body ?? "",
+    category: post?.category ?? "blog",
     coverImageUrl: post?.coverImageUrl ?? "",
+    galleryImageUrls: post?.galleryImageUrls ?? [],
     author: post?.author ?? "",
   };
 }
@@ -174,7 +194,9 @@ export function AdminBlogsContentLive({
       slug: editor.slug,
       excerpt: editor.excerpt,
       body: editor.body,
+      category: editor.category,
       coverImageUrl: editor.coverImageUrl,
+      galleryImageUrls: editor.galleryImageUrls,
       author: editor.author,
     });
 
@@ -285,8 +307,8 @@ export function AdminBlogsContentLive({
 
       {!data.schemaReady ? (
         <div className="rounded-[16px] border border-[#fecaca] bg-[#fef2f2] px-5 py-4 text-[13px] text-[#991b1b]">
-          The <span className="font-mono">content_posts</span> table is not available yet. Apply the
-          latest Supabase migration before publishing blog content.
+          The <span className="font-mono">content_posts</span> table or its latest columns are not
+          available yet. Apply the latest Supabase migration before publishing blog content.
         </div>
       ) : null}
 
@@ -349,7 +371,7 @@ export function AdminBlogsContentLive({
                         {post.title}
                       </p>
                       <p className="mt-1 truncate text-[12px] text-[#6b7280]">
-                        {post.author} • /blog/{post.slug}
+                        {getCategoryLabel(post.category)} • {post.author} • /blog/{post.slug}
                       </p>
                     </div>
                     <AdminStatusPill
@@ -496,6 +518,107 @@ export function AdminBlogsContentLive({
                   onAssetUploaded={addMediaAsset}
                   onFeedback={setFeedback}
                 />
+
+                <label className="space-y-2">
+                  <span className="text-[13px] font-medium text-[#374151]">Category</span>
+                  <select
+                    value={editor.category}
+                    onChange={(event) =>
+                      setEditor((current) => ({
+                        ...current,
+                        category: event.target.value as ContentPostCategory,
+                      }))
+                    }
+                    className={adminInputClass}
+                  >
+                    {CONTENT_CATEGORY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="rounded-[16px] border border-[#e5e7eb] bg-[#fbfcfe] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-[#374151]">Additional photos</p>
+                    <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+                      Add up to {MAX_GALLERY_IMAGES} supporting images for the article body.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className={cn(
+                      adminGhostButtonClass,
+                      editor.galleryImageUrls.length >= MAX_GALLERY_IMAGES &&
+                        "cursor-not-allowed opacity-50 hover:border-[#d1d5db] hover:text-[#374151]"
+                    )}
+                    disabled={editor.galleryImageUrls.length >= MAX_GALLERY_IMAGES}
+                    onClick={() =>
+                      setEditor((current) => ({
+                        ...current,
+                        galleryImageUrls: [...current.galleryImageUrls, ""],
+                      }))
+                    }
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add photo
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  {editor.galleryImageUrls.length === 0 ? (
+                    <p className="rounded-[12px] border border-dashed border-[#cbd5e1] px-4 py-4 text-[13px] text-[#64748b]">
+                      No additional photos yet.
+                    </p>
+                  ) : null}
+
+                  {editor.galleryImageUrls.map((imageUrl, index) => (
+                    <div
+                      key={`${index}-${imageUrl}`}
+                      className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <AdminCmsMediaField
+                        assets={mediaAssets}
+                        schemaReady={mediaData.schemaReady}
+                        value={imageUrl}
+                        label={`Photo ${index + 1}`}
+                        description="Upload or choose an article gallery image."
+                        placeholder="/api/listing-image?key=..."
+                        usageContext="blog_cover"
+                        onChange={(nextImageUrl) =>
+                          setEditor((current) => ({
+                            ...current,
+                            galleryImageUrls: current.galleryImageUrls.map((item, itemIndex) =>
+                              itemIndex === index ? nextImageUrl : item
+                            ),
+                          }))
+                        }
+                        onAssetUploaded={addMediaAsset}
+                        onFeedback={setFeedback}
+                      />
+                      <button
+                        type="button"
+                        className={cn(
+                          adminGhostButtonClass,
+                          "self-end text-[#b42318] hover:text-[#991b1b]"
+                        )}
+                        onClick={() =>
+                          setEditor((current) => ({
+                            ...current,
+                            galleryImageUrls: current.galleryImageUrls.filter(
+                              (_item, itemIndex) => itemIndex !== index
+                            ),
+                          }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <label className="block space-y-2">
@@ -531,6 +654,13 @@ export function AdminBlogsContentLive({
                       tone={contentPostTone(selectedPost.status)}
                     />
                   </div>
+                </div>
+
+                <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">
+                  <p className="text-[12px] uppercase tracking-[0.16em] text-[#94a3b8]">Category</p>
+                  <p className="mt-3 text-[14px] font-medium text-[#111827]">
+                    {getCategoryLabel(editor.category)}
+                  </p>
                 </div>
 
                 <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">

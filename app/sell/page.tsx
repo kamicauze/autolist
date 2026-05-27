@@ -18,7 +18,7 @@ const sellingOptions = [
       "Full control over the sale",
     ],
     cta: "List as an individual",
-    href: "/dashboard/listings/new",
+    href: "/register?role=seller&next=/dashboard/listings/new",
   },
   {
     title: "Dealer Account",
@@ -31,7 +31,7 @@ const sellingOptions = [
       "Safe & secure transaction",
     ],
     cta: "Register dealership",
-    href: "/sell/dealer",
+    href: "/register?role=dealer",
   },
 ];
 

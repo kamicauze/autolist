@@ -32,6 +32,11 @@ function dedupeCandidates(rows: CandidateRow[]) {
   });
 }
 
+function isGenericEquipmentReference(input: PricePositioningInput) {
+  const make = input.make.trim().toLowerCase();
+  return make === "farm equipment" || make === "plant equipment";
+}
+
 async function fetchCandidateGroup(input: PricePositioningInput) {
   const supabase = await createClient();
   const queries = [];
@@ -73,12 +78,24 @@ async function fetchCandidateGroup(input: PricePositioningInput) {
 export async function getPricePositioning(
   input: PricePositioningInput
 ): Promise<PricePositioningResult> {
-  if (!input.make.trim() || !input.model.trim() || !Number.isFinite(input.price) || input.price <= 0) {
+  const hasValidYear =
+    typeof input.year === "number" && Number.isFinite(input.year) && input.year > 0;
+
+  if (
+    !input.make.trim() ||
+    !input.model.trim() ||
+    !hasValidYear ||
+    isGenericEquipmentReference(input) ||
+    !Number.isFinite(input.price) ||
+    input.price <= 0
+  ) {
     return {
       status: "insufficient_data",
       label: "Incomplete pricing data",
       tone: "neutral",
-      note: "Add make, model and a valid price to estimate market position.",
+      note: isGenericEquipmentReference(input)
+        ? "Add the actual make and model to compare against truly similar machinery."
+        : "Add make, model, year and a valid price to estimate market position.",
       confidence: "low",
       confidenceLabel: "Low confidence",
       basedOn: "missing listing details",

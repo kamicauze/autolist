@@ -25,6 +25,20 @@ function normalize(value: string | null | undefined) {
   return (value || "").trim().toLowerCase();
 }
 
+function hasValidYear(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isGenericEquipmentReference(input: PricePositioningInput) {
+  const make = normalize(input.make);
+  const model = normalize(input.model);
+
+  return (
+    (make === "farm equipment" || make === "plant equipment") &&
+    Boolean(model)
+  );
+}
+
 function median(values: number[]) {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -66,8 +80,9 @@ function getCandidateScore(candidate: CandidateListing, input: PricePositioningI
   if (candidateTransmission && inputTransmission && candidateTransmission === inputTransmission) score += 8;
   if (candidateFuel && inputFuel && candidateFuel === inputFuel) score += 8;
 
-  if (input.year && candidate.year) {
-    const difference = Math.abs(candidate.year - input.year);
+  const inputYear = hasValidYear(input.year) ? Number(input.year) : null;
+  if (inputYear !== null && hasValidYear(candidate.year)) {
+    const difference = Math.abs(candidate.year - inputYear);
     if (difference === 0) score += 12;
     else if (difference === 1) score += 9;
     else if (difference <= 2) score += 6;
@@ -95,6 +110,28 @@ export function computePricePositioning(
   input: PricePositioningInput,
   candidates: CandidateListing[]
 ): PricePositioningResult {
+  if (!hasValidYear(input.year) || isGenericEquipmentReference(input)) {
+    return {
+      status: "insufficient_data",
+      label: "Not enough data",
+      tone: "neutral",
+      note: isGenericEquipmentReference(input)
+        ? "Add the actual make and model to compare against truly similar machinery."
+        : "Add the model year to compare against listings within a +/- 1 year window.",
+      confidence: "low",
+      confidenceLabel: confidenceLabel("low"),
+      basedOn: "missing comparable details",
+      sampleSize: 0,
+      marketAverage: null,
+      marketMedian: null,
+      marketMin: null,
+      marketMax: null,
+      differenceFromMedian: null,
+      percentageFromMedian: null,
+      comparables: [],
+    };
+  }
+
   const validCandidates = candidates
     .filter((candidate) => candidate.id !== input.currentListingId)
     .filter((candidate) => Number.isFinite(candidate.price) && candidate.price > 0)
@@ -105,9 +142,8 @@ export function computePricePositioning(
     )
     .filter(
       (candidate) =>
-        !input.year ||
-        !candidate.year ||
-        Math.abs(candidate.year - input.year) <= 1
+        hasValidYear(candidate.year) &&
+        Math.abs(candidate.year - input.year!) <= 1
     )
     .map((candidate) => ({
       candidate,
@@ -133,7 +169,7 @@ export function computePricePositioning(
       note: "We need at least 3 active listings with the same make, same model and close model year to estimate a reliable market range.",
       confidence: "low",
       confidenceLabel: confidenceLabel("low"),
-      basedOn: buildBasedOnLabel(Boolean(input.year)),
+      basedOn: buildBasedOnLabel(true),
       sampleSize: filteredCandidates.length,
       marketAverage: null,
       marketMedian: null,
@@ -220,7 +256,7 @@ export function computePricePositioning(
     note,
     confidence,
     confidenceLabel: confidenceLabel(confidence),
-    basedOn: buildBasedOnLabel(Boolean(input.year)),
+    basedOn: buildBasedOnLabel(true),
     sampleSize: filteredCandidates.length,
     marketAverage,
     marketMedian,

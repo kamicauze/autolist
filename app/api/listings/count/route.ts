@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     make: params.get("make") || undefined,
     model: params.get("model") || undefined,
     origin: params.get("origin") || undefined,
+    equipmentType: parseArrayParam(params.get("equipmentType")),
     useCase: params.get("useCase") || undefined,
     intent: parseArrayParam(params.get("intent")),
     minPrice: params.get("minPrice") ? Number(params.get("minPrice")) : undefined,

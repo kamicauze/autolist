@@ -22,7 +22,12 @@ import {
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib/utils/vehicle-display";
 import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
+import { isValidPhoneNumber, normalizePhoneInput } from "@/lib/utils/phone";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
+import {
+  FARM_AGRICULTURAL_EQUIPMENT_TYPES,
+  PLANT_CONSTRUCTION_EQUIPMENT_TYPES,
+} from "@/lib/constants/non-car-reference-data";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -125,11 +130,11 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "make", label: "Make", type: "select", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "select", required: true, placeholder: "Corolla" },
     { key: "variant", label: "Model Variant", type: "text", required: false, placeholder: "C200, 320i, Cayenne S" },
-    { key: "trim", label: "Trim", type: "text", required: false, placeholder: "AMG Line, M Sport, TX" },
+    { key: "trim", label: "Trim / Variant", type: "text", required: false, placeholder: "AMG Line, M Sport, TX" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
     { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered" }, { value: "not_registered", label: "Not registered" }] },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
-    { key: "engineCapacity", label: "Engine Displacement", type: "text", required: false, placeholder: "2000cc or 2.0L" },
+    { key: "engineCapacity", label: "Engine (Optional)", type: "text", required: false, placeholder: "2000cc, 2.0L, V6, hybrid, or electric" },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "fwd", label: "FWD" }, { value: "rwd", label: "RWD" }, { value: "awd", label: "AWD" }, { value: "4wd", label: "4WD" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
@@ -167,7 +172,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "loadCapacity", label: "Load Capacity (tonnes)", type: "number", required: true, placeholder: "12" },
   ],
   plant_construction: [
-    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: [{ value: "excavator", label: "Excavator" }, { value: "bulldozer", label: "Bulldozer" }, { value: "loader", label: "Loader" }, { value: "crane", label: "Crane" }] },
+    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: PLANT_CONSTRUCTION_EQUIPMENT_TYPES.map(({ value, label }) => ({ value, label })) },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Caterpillar" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "320D" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2018" },
@@ -176,7 +181,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
   farm_agricultural: [
-    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: [{ value: "tractor", label: "Tractor" }, { value: "plough", label: "Plough" }, { value: "harvester", label: "Harvester" }] },
+    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: FARM_AGRICULTURAL_EQUIPMENT_TYPES.map(({ value, label }) => ({ value, label })) },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Massey Ferguson" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "MF 385" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2019" },
@@ -201,7 +206,6 @@ export const MIN_TOTAL_IMAGES = 3;
 export const MAX_GALLERY_IMAGES = 100;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_VIDEO_FILE_SIZE_BYTES = 200 * 1024 * 1024;
-export const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
 const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5] as const;
 const VIDEO_ACCEPTED_TYPES = new Set([
@@ -257,7 +261,7 @@ export function unformatPrice(value: string): string {
 }
 
 export function isValidPhone(value: string) {
-  return PHONE_REGEX.test(value.replace(/\s+/g, ""));
+  return isValidPhoneNumber(value);
 }
 
 function buildTrimTokens(value: string) {
@@ -857,7 +861,7 @@ export function WizardProvider({
         (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") ||
         "";
       const fallbackPhone =
-        (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone.trim() : "") ||
+        (typeof user.user_metadata?.phone === "string" ? normalizePhoneInput(user.user_metadata.phone) : "") ||
         "";
 
       let defaults: SellerAccountDefaults = {
@@ -886,12 +890,12 @@ export function WizardProvider({
           }>();
 
         const dealerPhone =
-          dealer?.contact_person?.mobile?.trim() ||
-          dealer?.mobile?.trim() ||
+          normalizePhoneInput(dealer?.contact_person?.mobile ?? "") ||
+          normalizePhoneInput(dealer?.mobile ?? "") ||
           fallbackPhone;
         const dealerWhatsapp =
-          dealer?.contact_person?.whatsapp?.trim() ||
-          dealer?.whatsapp?.trim() ||
+          normalizePhoneInput(dealer?.contact_person?.whatsapp ?? "") ||
+          normalizePhoneInput(dealer?.whatsapp ?? "") ||
           dealerPhone;
 
         defaults = {
@@ -928,10 +932,18 @@ export function WizardProvider({
 
       if (!isMounted) return;
       setSellerAccountDefaults(defaults);
-      setDraft((prev) => ({
-        ...prev,
-        sellerType: prev.sellerType === DEFAULT_DRAFT.sellerType ? defaults.sellerType : prev.sellerType,
-      }));
+      setDraft((prev) =>
+        prev.useDealerAutoFill
+          ? {
+              ...prev,
+              sellerType: defaults.sellerType,
+              contactName: defaults.contactName || prev.contactName,
+              phoneNumber: defaults.phoneNumber || prev.phoneNumber,
+              whatsappEnabled: defaults.whatsappEnabled,
+              whatsappNumber: defaults.whatsappNumber || prev.whatsappNumber,
+            }
+          : prev
+      );
     };
 
     void loadSellerDefaults();

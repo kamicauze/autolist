@@ -41,7 +41,7 @@ export function StepPriceIntelligence() {
       fuelType: draft.details.engineType || draft.details.fuelType || null,
     };
 
-    if (!payload.make || !payload.model || !payload.price) {
+    if (!payload.make || !payload.model || !payload.year || !payload.price) {
       setInsight(initialInsight);
       return;
     }
