@@ -49,6 +49,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
       description="Choose the account type that matches how you buy, sell, or manage inventory."
       imageAlt="Autolist registration"
       imageSrc="/sample-car-2.jpg"
+      className="max-w-[1420px] md:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]"
     >
       <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-gray-100" aria-hidden />}>
         <RegisterForm />
