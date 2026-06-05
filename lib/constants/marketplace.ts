@@ -21,23 +21,23 @@ export type UserRole = (typeof USER_ROLE_OPTIONS)[number]["value"];
 export const ONBOARDING_STEPS = [
   {
     id: "account",
-    title: "Account Setup",
-    description: "Create your profile and secure login credentials.",
+    title: "Profile",
+    description: "Confirm the public name and email tied to this account.",
   },
   {
     id: "role",
-    title: "Role Selection",
-    description: "Choose your account role to unlock relevant tools.",
+    title: "Account Path",
+    description: "Choose the tools and next steps that match this account.",
   },
   {
-    id: "verification",
-    title: "Verification",
-    description: "Provide identity and business details for trust signals.",
+    id: "contact",
+    title: "Contact Details",
+    description: "Save buyer-facing contact and location details.",
   },
   {
     id: "confirmation",
-    title: "Confirmation",
-    description: "Review and complete onboarding.",
+    title: "Review",
+    description: "Review saved profile details and continue.",
   },
 ] as const;
 
@@ -61,6 +61,11 @@ export const LISTING_WIZARD_STEPS = [
     id: "features",
     title: "Features & Specifications",
     description: "Select predefined feature IDs only.",
+  },
+  {
+    id: "description",
+    title: "Description",
+    description: "Write or generate buyer-facing listing copy.",
   },
   {
     id: "media",

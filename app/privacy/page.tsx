@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import {
   buildManagedContentPageMetadata,
   formatContentPageDate,
-  getContentPageParagraphs,
   getPublishedContentPageBySlug,
 } from "@/lib/data/content-pages";
 
@@ -21,8 +21,6 @@ export default async function PrivacyPage() {
   if (!page) {
     notFound();
   }
-
-  const paragraphs = getContentPageParagraphs(page.body);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -51,16 +49,7 @@ export default async function PrivacyPage() {
         <section className="py-12 sm:py-16">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] sm:p-10">
-              <div className="space-y-5">
-                {paragraphs.map((paragraph) => (
-                  <p
-                    key={paragraph}
-                    className="whitespace-pre-line text-[15px] leading-8 text-[#374151]"
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
+              <RichContentRenderer body={page.body} />
             </div>
           </div>
         </section>

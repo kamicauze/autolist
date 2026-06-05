@@ -44,7 +44,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
   return (
     <AuthModalShell
-      title="Register"
+      title="Create your account"
+      eyebrow="Join Autolist"
+      description="Choose the account type that matches how you buy, sell, or manage inventory."
       imageAlt="Autolist registration"
       imageSrc="/sample-car-2.jpg"
     >

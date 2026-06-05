@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Mail } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
@@ -31,6 +31,7 @@ export function LoginForm() {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const requestedNextPath = searchParams.get("next");
   const safeNextPathForOAuth = requestedNextPath
@@ -97,10 +98,10 @@ export function LoginForm() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleLogin}>
+    <form className="space-y-5" onSubmit={handleLogin}>
       <div className="space-y-4">
         <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="login-email">
-          <span>Account</span>
+          <span>Email address</span>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
             <Input
@@ -110,11 +111,14 @@ export function LoginForm() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] pl-11"
-              placeholder="support@carempire.com"
+              className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+              placeholder="name@example.com"
               data-testid="login-email"
             />
           </div>
+          <span className="block text-[12px] font-normal text-[#8a8a8a]">
+            Use the email connected to your buyer, seller, or dealer account.
+          </span>
         </label>
 
         <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="login-password">
@@ -123,34 +127,47 @@ export function LoginForm() {
             <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
             <Input
               id="login-password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] pl-11"
+              className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-[#2563eb]/30"
               placeholder="********"
               data-testid="login-password"
             />
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#8a8a8a] transition hover:bg-[#f3f4f6] hover:text-[#24272C]"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
         </label>
       </div>
 
-      <div className="text-right">
-        <Link href="/forgot-password" className="text-sm text-[#24272C] hover:text-primary">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[12px] text-[#8a8a8a]">Protected by Supabase Auth.</p>
+        <Link href="/forgot-password" className="text-sm font-semibold text-[#24272C] hover:text-primary">
           Forgot password
         </Link>
       </div>
 
       {errorMessage && (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {errorMessage}
-        </p>
+        <div
+          role="alert"
+          className="flex gap-2 rounded-[14px] border border-destructive/20 bg-destructive/10 px-3 py-3 text-sm leading-5 text-destructive"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{errorMessage}</p>
+        </div>
       )}
 
       <Button
         type="submit"
-        className="h-12 w-full rounded-[14px] text-base"
+        className="h-12 w-full rounded-[14px] text-base transition active:translate-y-px"
         disabled={isLoading || !!socialLoading}
         data-testid="login-submit"
       >

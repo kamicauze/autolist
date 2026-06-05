@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
 import { getPublishedContentPostBySlug } from "@/lib/data/content-posts";
 import type { ContentPostCategory } from "@/lib/types/content-posts";
 
@@ -23,13 +23,6 @@ function formatDate(value: string | null) {
     month: "long",
     year: "numeric",
   });
-}
-
-function getBodyParagraphs(body: string) {
-  return body
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
 }
 
 function getCategoryLabel(category: ContentPostCategory) {
@@ -52,8 +45,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) {
     notFound();
   }
-
-  const paragraphs = getBodyParagraphs(post.body);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -90,18 +81,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </h1>
               <p className="mt-4 text-lg leading-8 text-gray-600">{post.excerpt}</p>
 
-              <div className="mt-8 space-y-5 text-[16px] leading-8 text-gray-700">
-                {paragraphs.map((paragraph, paragraphIndex) => (
-                  <p key={`${post.id}-${paragraphIndex}`}>
-                    {paragraph.split("\n").map((line, lineIndex, lines) => (
-                      <Fragment key={`${post.id}-${paragraphIndex}-${lineIndex}`}>
-                        {line}
-                        {lineIndex < lines.length - 1 ? <br /> : null}
-                      </Fragment>
-                    ))}
-                  </p>
-                ))}
-              </div>
+              <RichContentRenderer body={post.body} className="mt-8 text-[16px] text-gray-700" />
 
               {post.galleryImageUrls.length > 0 ? (
                 <div className="mt-8 grid gap-4 sm:grid-cols-2">

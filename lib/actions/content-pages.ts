@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
+import { normalizeRichTextContent } from "@/lib/content-rich-text";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
   CONTENT_PAGE_DEFINITIONS,
@@ -103,7 +104,7 @@ export async function saveContentPage(input: SaveContentPageInput): Promise<Save
         slug: value.slug,
         title: value.title,
         summary: toNullableText(value.summary),
-        body: value.body,
+        body: normalizeRichTextContent(value.body),
         status: value.status,
         seo_title: toNullableText(value.seoTitle),
         seo_description: toNullableText(value.seoDescription),

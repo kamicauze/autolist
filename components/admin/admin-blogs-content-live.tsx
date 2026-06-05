@@ -17,6 +17,7 @@ import {
   unpublishContentPost,
   updateContentPost,
 } from "@/lib/actions/content-posts";
+import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import { AdminCmsMediaField } from "@/components/admin/admin-cms-media-library";
 import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
 import type {
@@ -24,6 +25,7 @@ import type {
   ContentPost,
   ContentPostCategory,
 } from "@/lib/types/content-posts";
+import { getContentSummary } from "@/lib/content-rich-text";
 import { cn } from "@/lib/utils";
 import {
   AdminPageHeader,
@@ -125,12 +127,7 @@ function getPostSummary(post: ContentPost) {
     return excerpt;
   }
 
-  const firstParagraph = post.body
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .find(Boolean);
-
-  return firstParagraph || "No excerpt yet. Open the editor to add a summary.";
+  return getContentSummary(post.body) || "No excerpt yet. Open the editor to add a summary.";
 }
 
 export function AdminBlogsContentLive({
@@ -633,17 +630,12 @@ export function AdminBlogsContentLive({
                 />
               </label>
 
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[#374151]">Body</span>
-                <textarea
-                  value={editor.body}
-                  onChange={(event) =>
-                    setEditor((current) => ({ ...current, body: event.target.value }))
-                  }
-                  className={cn(adminTextareaClass, "min-h-[320px]")}
-                  placeholder={"Write the article body here.\n\nSeparate paragraphs with blank lines."}
-                />
-              </label>
+              <AdminRichTextEditor
+                label="Body"
+                value={editor.body}
+                onChange={(body) => setEditor((current) => ({ ...current, body }))}
+                placeholder="Write the article body here. Add headings, lists, quotes, and links as needed."
+              />
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">

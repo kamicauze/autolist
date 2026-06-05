@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { saveCmsBlock } from "@/lib/actions/cms";
 import { saveContentPage } from "@/lib/actions/content-pages";
+import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import {
   AdminCmsMediaField,
   AdminCmsMediaLibrary,
@@ -1169,15 +1170,13 @@ export function AdminCmsLive({
               />
             </label>
 
-            <label className="space-y-2">
-              <span className="text-[13px] font-medium text-[#111827]">Body</span>
-              <textarea
-                value={contentEditor.body}
-                onChange={(event) => updateContentEditor({ body: event.target.value })}
-                className={cn(adminTextareaClass, "min-h-[280px]")}
-                placeholder="Plain text content. Separate paragraphs with blank lines."
-              />
-            </label>
+            <AdminRichTextEditor
+              label="Body"
+              value={contentEditor.body}
+              onChange={(body) => updateContentEditor({ body })}
+              placeholder="Write the page body here. Add headings, lists, quotes, and links as needed."
+              minHeightClassName="min-h-[280px]"
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">

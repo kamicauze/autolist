@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
+import { hasRichTextContent, normalizeRichTextContent } from "@/lib/content-rich-text";
 import { CONTENT_POST_SELECT, normalizeContentPost } from "@/lib/data/content-posts";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
@@ -42,7 +43,7 @@ function missingContentPostsSchemaMessage() {
 }
 
 function normalizeBody(value: string) {
-  return value.replace(/\r\n/g, "\n").trim();
+  return normalizeRichTextContent(value);
 }
 
 function normalizeOptionalCoverImageUrl(value: string) {
@@ -370,7 +371,7 @@ function validateReadyToPublish(post: ContentPostRecord) {
     return "Add an excerpt before publishing.";
   }
 
-  if (!normalizeBody(post.body)) {
+  if (!hasRichTextContent(post.body)) {
     return "Add body copy before publishing.";
   }
 

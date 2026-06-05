@@ -9,6 +9,7 @@ import type { Listing } from "@/lib/types/listing";
 import { WizardProvider, useWizard } from "./wizard-context";
 import { StepBasicInfo } from "./step-basic-info";
 import { StepCategory } from "./step-category";
+import { StepDescription } from "./step-description";
 import { StepFeatures } from "./step-features";
 import { StepMedia } from "./step-media";
 import { StepPriceIntelligence } from "./step-price-intelligence";
@@ -21,6 +22,7 @@ const STEP_COMPONENTS = [
   StepVehicleDetails,
   StepBasicInfo,
   StepFeatures,
+  StepDescription,
   StepMedia,
   StepSeller,
   StepPriceIntelligence,
@@ -63,7 +65,7 @@ function WizardContent({
   const footerMeta =
       activeStep === 3
       ? `${draft.selectedFeatureIds.length} features selected`
-      : activeStep === 4
+      : activeStep === 5
         ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length + draft.documentNames.length + (videoFile || draft.videoUrl ? 1 : 0)} media files added`
         : `Step ${activeStep + 1} of ${LISTING_WIZARD_STEPS.length}`;
 

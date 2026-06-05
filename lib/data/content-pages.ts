@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getContentPlainText } from "@/lib/content-rich-text";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
   CONTENT_PAGE_DEFINITIONS,
@@ -138,7 +139,7 @@ function toNullableText(value: string | null) {
 }
 
 function excerptBody(body: string) {
-  const normalized = body.replace(/\s+/g, " ").trim();
+  const normalized = getContentPlainText(body).replace(/\s+/g, " ").trim();
   if (normalized.length <= 160) return normalized;
   return `${normalized.slice(0, 157)}...`;
 }

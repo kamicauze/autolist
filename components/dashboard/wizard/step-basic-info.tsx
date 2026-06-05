@@ -3,11 +3,10 @@
 import { useDeferredValue } from "react";
 import { LISTING_CATEGORY_OPTIONS, LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
-import { formatKES, formatPriceInput, MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
-import { sellerInputClass, sellerLabelClass, sellerSelectClass, sellerTextareaClass } from "../seller-dashboard-ui";
+import { formatKES, formatPriceInput, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
+import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery } from "@/lib/google-maps";
-import { ListingCopyAssistant } from "./listing-copy-assistant";
 
 export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: string }) {
   const { draft, updateField, showValidationErrors } = useWizard();
@@ -205,26 +204,6 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
         </div>
       </section>
 
-      <section className="space-y-3 rounded-[14px] border border-[#ededed] bg-white p-4">
-        <div>
-          <label className={sellerLabelClass}>Description</label>
-          <textarea
-            value={draft.description}
-            maxLength={MAX_DESCRIPTION_LENGTH}
-            onChange={(event) => updateField("description", event.target.value)}
-            placeholder="Add relevant history, condition notes, ownership context, and selling points."
-            className={cn(
-              sellerTextareaClass,
-              showValidationErrors && !draft.description.trim() && "border-[#f04438]"
-            )}
-          />
-          <p className="mt-2 text-[12px] text-[#8a8a8a]">
-            {draft.description.length}/{MAX_DESCRIPTION_LENGTH}
-          </p>
-        </div>
-
-        <ListingCopyAssistant />
-      </section>
     </div>
   );
 }

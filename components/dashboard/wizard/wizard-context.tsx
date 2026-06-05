@@ -207,7 +207,7 @@ export const MAX_GALLERY_IMAGES = 100;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_VIDEO_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
-const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5] as const;
+const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
 const VIDEO_ACCEPTED_TYPES = new Set([
   "video/mp4",
   "video/webm",
@@ -694,7 +694,7 @@ const SUBMISSION_FIELD_METADATA: Record<
   color: { label: "Color", stepId: "details" },
   price: { label: "Price", stepId: "basics" },
   condition: { label: "Condition", stepId: "basics" },
-  description: { label: "Description", stepId: "basics" },
+  description: { label: "Description", stepId: "description" },
   features: { label: "Features", stepId: "features" },
   currency: { label: "Currency", stepId: "basics" },
 };
@@ -1360,10 +1360,11 @@ export function WizardProvider({
       if (!draft.category) return false;
       return DETAIL_FIELDS_BY_CATEGORY[draft.category].filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
     }
-    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim() && draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
+    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim());
     if (activeStep === 3) return draft.selectedFeatureIds.length > 0;
-    if (activeStep === 4) return !mediaValidationError;
-    if (activeStep === 5) return !sellerValidationError;
+    if (activeStep === 4) return Boolean(draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
+    if (activeStep === 5) return !mediaValidationError;
+    if (activeStep === 6) return !sellerValidationError;
     return true;
   }, [activeStep, draft, mediaValidationError, sellerValidationError]);
 
@@ -1384,15 +1385,17 @@ export function WizardProvider({
       Number(draft.priceKes) > 0 &&
       draft.country.trim() &&
       draft.cityTown.trim() &&
-      draft.locationArea.trim() &&
+      draft.locationArea.trim()
+    );
+    completion[3] = draft.selectedFeatureIds.length > 0;
+    completion[4] = Boolean(
       draft.description.trim() &&
       draft.description.trim().length <= MAX_DESCRIPTION_LENGTH
     );
-    completion[3] = draft.selectedFeatureIds.length > 0;
-    completion[4] = !mediaValidationError;
-    completion[5] = !sellerValidationError;
-    completion[6] = true;
-    completion[7] = SUBMITTABLE_STEP_INDICES.every((index) => completion[index]);
+    completion[5] = !mediaValidationError;
+    completion[6] = !sellerValidationError;
+    completion[7] = true;
+    completion[8] = SUBMITTABLE_STEP_INDICES.every((index) => completion[index]);
 
     return completion;
   }, [draft, mediaValidationError, selectedCategoryFields, sellerValidationError]);
@@ -1437,7 +1440,7 @@ export function WizardProvider({
           setSubmitIssues([
             {
               message: "Seller package access is still loading.",
-              stepIndex: 7,
+              stepIndex: 8,
             },
           ]);
           return;
@@ -1448,7 +1451,7 @@ export function WizardProvider({
           setSubmitIssues([
             {
               message: packageAccessError,
-              stepIndex: 7,
+              stepIndex: 8,
             },
           ]);
           return;
@@ -1459,7 +1462,7 @@ export function WizardProvider({
           setSubmitIssues([
             {
               message: "Activate a seller package from Membership before you submit this listing.",
-              stepIndex: 7,
+              stepIndex: 8,
             },
           ]);
           return;
@@ -1473,7 +1476,7 @@ export function WizardProvider({
           setSubmitIssues([
             {
               message: `Your ${currentPlanName} package has reached its listing limit.`,
-              stepIndex: 7,
+              stepIndex: 8,
             },
           ]);
           return;
@@ -1590,7 +1593,7 @@ export function WizardProvider({
             setSubmitError(videoUploadResult.error || "Unable to upload the video file.");
             setSubmitIssues(
               videoUploadResult.error
-                ? [{ message: videoUploadResult.error, stepIndex: 4 }]
+                ? [{ message: videoUploadResult.error, stepIndex: 5 }]
                 : []
             );
             setIsSubmitting(false);
@@ -1609,7 +1612,7 @@ export function WizardProvider({
             setSubmitError(documentUploadResult.error || "Unable to upload listing documents.");
             setSubmitIssues(
               documentUploadResult.error
-                ? [{ message: documentUploadResult.error, stepIndex: 4 }]
+                ? [{ message: documentUploadResult.error, stepIndex: 5 }]
                 : []
             );
             setIsSubmitting(false);
@@ -1653,7 +1656,7 @@ export function WizardProvider({
             setSubmitError(uploadResult.error || "Unable to upload listing images.");
             setSubmitIssues(
               uploadResult.error
-                ? [{ message: uploadResult.error, stepIndex: 4 }]
+                ? [{ message: uploadResult.error, stepIndex: 5 }]
                 : []
             );
             setIsSubmitting(false);
@@ -1669,7 +1672,7 @@ export function WizardProvider({
             setSubmitError(reorderResult.error || "Unable to update the listing cover.");
             setSubmitIssues(
               reorderResult.error
-                ? [{ message: reorderResult.error, stepIndex: 4 }]
+                ? [{ message: reorderResult.error, stepIndex: 5 }]
                 : []
             );
             setIsSubmitting(false);
@@ -1683,7 +1686,7 @@ export function WizardProvider({
             setSubmitError(submitResult.error || "Unable to submit listing for review.");
             setSubmitIssues(
               submitResult.error
-                ? [{ message: submitResult.error, stepIndex: 7 }]
+                ? [{ message: submitResult.error, stepIndex: 8 }]
                 : []
             );
             setIsSubmitting(false);

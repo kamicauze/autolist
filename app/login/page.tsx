@@ -27,7 +27,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthModalShell
-      title="Login"
+      title="Welcome back"
+      eyebrow="Secure login"
+      description="Continue to your saved searches, listings, inquiries, and account tools."
       imageAlt="Front view of a gold BMW X2"
       imageSrc="/auth/login-bmw-x2-front.jpg"
     >
