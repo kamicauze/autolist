@@ -4,6 +4,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import {
   AdminDataTable,
   AdminPageHeader,
@@ -70,12 +71,17 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
         title="Latest Accounts"
         description="Recent profiles with live role and inventory context."
       >
-        <AdminDataTable columns={["User", "Role", "Dealer status", "Listings", "Joined"]}>
+        <AdminDataTable columns={["User", "Role", "Dealer status", "Listings", "Joined", "Activity"]}>
           {data.users.map((user) => (
             <tr key={user.id} className="border-b border-[#f1f5f9] last:border-b-0">
               <td className="px-6 py-4">
                 <div>
-                  <p className="text-[14px] font-semibold text-[#111827]">{user.name}</p>
+                  <Link
+                    href={`/admin/users/${user.id}`}
+                    className="text-[14px] font-semibold text-[#111827] transition hover:text-[#2563eb]"
+                  >
+                    {user.name}
+                  </Link>
                   <p className="mt-1 text-[12px] text-[#6b7280]">{user.email || "No email"}</p>
                 </div>
               </td>
@@ -97,6 +103,14 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
                 <span className="block text-[12px] text-[#6b7280]">{user.activeListingCount} active</span>
               </td>
               <td className="px-6 py-4 text-[12px] text-[#6b7280]">{formatDate(user.joinedAt)}</td>
+              <td className="px-6 py-4 text-[13px]">
+                <Link
+                  href={`/admin/users/${user.id}`}
+                  className="font-medium text-[#2563eb] transition hover:text-[#1d4ed8]"
+                >
+                  View history
+                </Link>
+              </td>
             </tr>
           ))}
         </AdminDataTable>

@@ -235,7 +235,7 @@ export async function POST(
         success: true,
         ticketId,
         message:
-          "Enquiry sent. It is saved in Admin > Car Inquiries and delivered to the seller.",
+          "Enquiry sent. It is saved in Admin > Import Inquiries and delivered to the seller.",
       });
     }
 
@@ -381,7 +381,7 @@ export async function POST(
       success: true,
       threadId: thread.id,
       message:
-        "Enquiry sent. It is saved in Messages, logged in Admin > Car Inquiries, and delivered to the seller.",
+        "Enquiry sent. It is saved in Messages, logged in Admin > Import Inquiries, and delivered to the seller.",
     });
   } catch (error) {
     console.error("Failed to submit listing enquiry", error);

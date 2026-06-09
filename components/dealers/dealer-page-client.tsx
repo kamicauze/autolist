@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
+  Flag,
   MapPin,
   MessageCircle,
   Phone,
@@ -19,6 +21,7 @@ import { IconWhatsapp } from "@/components/ui/icons";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
+import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
 
 interface DealerPageClientProps {
   dealer: DealerProfile;
@@ -100,10 +103,12 @@ function DealerSidebar({
   dealer,
   recommendedListings,
   googleMapsApiKey,
+  onReportDealer,
 }: {
   dealer: DealerProfile;
   recommendedListings: Listing[];
   googleMapsApiKey: string;
+  onReportDealer: () => void;
 }) {
   const locationLabel =
     buildGoogleMapsQuery([dealer.address, dealer.location, dealer.city, "Kenya"]) ||
@@ -171,6 +176,16 @@ function DealerSidebar({
           <IconWhatsapp className="h-4 w-4" />
           WhatsApp
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-2 w-full gap-2 border-gray-300"
+          onClick={onReportDealer}
+        >
+          <Flag className="h-4 w-4" />
+          Report dealer
+        </Button>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -219,50 +234,62 @@ export function DealerPageClient({
   recommendedListings,
   googleMapsApiKey,
 }: DealerPageClientProps) {
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+
   return (
-    <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
-      <main className="space-y-8">
-        <section className="relative h-72 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50 sm:h-80">
-          <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-rose-200/60" />
-          <div className="absolute bottom-0 left-8 right-8 top-0 flex items-center">
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Authorized Dealer Profile</p>
-              <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">{dealer.name}</h1>
-              <p className="max-w-xl text-sm text-gray-600">
-                Explore the latest inventory, reviews, and contact options for {dealer.name}.
-              </p>
+    <>
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
+        <main className="space-y-8">
+          <section className="relative h-72 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50 sm:h-80">
+            <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-rose-200/60" />
+            <div className="absolute bottom-0 left-8 right-8 top-0 flex items-center">
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">Authorized Dealer Profile</p>
+                <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">{dealer.name}</h1>
+                <p className="max-w-xl text-sm text-gray-600">
+                  Explore the latest inventory, reviews, and contact options for {dealer.name}.
+                </p>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
-            {dealer.about_text ||
-              `${dealer.name} is a verified Autolist dealer offering quality inspected vehicles and trusted support through the buying process.`}
-          </p>
-        </section>
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+              {dealer.about_text ||
+                `${dealer.name} is a verified Autolist dealer offering quality inspected vehicles and trusted support through the buying process.`}
+            </p>
+          </section>
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Dealership inventory ({inventory.length})
-          </h2>
-          <div className="mt-4">
-            <DealerInventory inventory={inventory} />
-          </div>
-        </section>
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Dealership inventory ({inventory.length})
+            </h2>
+            <div className="mt-4">
+              <DealerInventory inventory={inventory} />
+            </div>
+          </section>
 
-        <section className="space-y-8">
-          <ReviewsSection />
-          <ReplyForm />
-        </section>
-      </main>
+          <section className="space-y-8">
+            <ReviewsSection />
+            <ReplyForm />
+          </section>
+        </main>
 
-      <DealerSidebar
-        dealer={dealer}
-        recommendedListings={recommendedListings}
-        googleMapsApiKey={googleMapsApiKey}
+        <DealerSidebar
+          dealer={dealer}
+          recommendedListings={recommendedListings}
+          googleMapsApiKey={googleMapsApiKey}
+          onReportDealer={() => setIsReportDialogOpen(true)}
+        />
+      </div>
+      <ReportAdDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        targetType="dealer"
+        dealerId={dealer.id}
+        targetLabel={dealer.name}
       />
-    </div>
+    </>
   );
 }

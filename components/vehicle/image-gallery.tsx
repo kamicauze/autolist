@@ -45,7 +45,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
           src={displayImages[selectedIndex]}
           alt={`${title} - Image ${selectedIndex + 1}`}
           fill
-          className="object-contain"
+          className="object-cover"
           sizes="(max-width: 768px) 100vw, 600px"
           priority
         />
@@ -114,7 +114,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
               src={image}
               alt={`${title} thumbnail ${index + 1}`}
               fill
-              className="object-contain"
+              className="object-cover"
               sizes="80px"
             />
           </button>
@@ -149,7 +149,7 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
                   src={image}
                   alt={`${title} - Image ${index + 1}`}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                 />
               </button>

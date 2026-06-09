@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import type { AdReportPriority, AdReportStatus, AdReportTargetType } from "@/lib/types/ad-report";
 import type { ListingStatus } from "@/lib/types/listing";
 
 export type AdminProfileRole =
@@ -267,6 +268,28 @@ type TicketEventRow = {
   actor: Array<{ full_name: string | null; email: string | null }> | null;
 };
 
+type ListingReportRow = {
+  id: string;
+  target_type: AdReportTargetType;
+  listing_id: string | null;
+  dealer_id: string | null;
+  reporter_name: string;
+  reporter_phone: string;
+  reporter_email: string;
+  reporter_location: string;
+  reason: string;
+  reason_label: string;
+  comments: string;
+  priority: AdReportPriority;
+  status: AdReportStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+  reporter_profile: Array<{ id: string; full_name: string | null; email: string | null }> | null;
+  listing: Array<{ id: string; make: string; model: string; year: number }> | null;
+  dealer: Array<{ id: string; name: string }> | null;
+};
+
 export type AdminAuditLogEntry = {
   id: string;
   action: string;
@@ -330,10 +353,12 @@ export type AdminPaymentsData = {
 
 export type AdminReportTicket = {
   id: string;
+  source: "support_ticket" | "ad_report";
+  targetType: AdReportTargetType | null;
   subject: string;
   category: string;
-  priority: ReportTicketRow["priority"];
-  status: ReportTicketRow["status"];
+  priority: ReportTicketRow["priority"] | AdReportPriority;
+  status: ReportTicketRow["status"] | AdReportStatus;
   customerSummary: string | null;
   internalNote: string | null;
   resolutionNote: string | null;
@@ -341,19 +366,25 @@ export type AdminReportTicket = {
   updatedAt: string;
   assignedTo: string | null;
   createdBy: string | null;
+  reporterPhone: string | null;
+  reporterEmail: string | null;
+  reporterLocation: string | null;
+  adminNote: string | null;
   listingTitle: string | null;
+  href: string;
 };
 
 export type AdminReportEvent = {
   id: string;
   ticketId: string;
   ticketSubject: string;
-  ticketPriority: ReportTicketRow["priority"] | null;
-  ticketStatus: ReportTicketRow["status"] | null;
-  eventType: TicketEventRow["event_type"];
+  ticketPriority: ReportTicketRow["priority"] | AdReportPriority | null;
+  ticketStatus: ReportTicketRow["status"] | AdReportStatus | null;
+  eventType: TicketEventRow["event_type"] | "ad_report_created";
   note: string | null;
   actorName: string;
   createdAt: string;
+  href: string;
 };
 
 export type AdminReportsData = {
@@ -720,6 +751,28 @@ function buildCompactListingTitle(listing: { year: number; make: string; model: 
   return [String(listing.year), listing.make, listing.model].filter(Boolean).join(" ");
 }
 
+function buildAdReportTargetTitle(report: ListingReportRow) {
+  const listing = firstRelation(report.listing);
+  if (listing) return buildCompactListingTitle(listing);
+
+  const dealer = firstRelation(report.dealer);
+  if (dealer) return dealer.name;
+
+  return report.target_type === "dealer" ? "Dealer profile" : "Listing";
+}
+
+function buildAdReportHref(report: Pick<ListingReportRow, "target_type" | "listing_id" | "dealer_id">) {
+  if (report.target_type === "dealer" && report.dealer_id) {
+    return `/dealers/${report.dealer_id}`;
+  }
+
+  if (report.listing_id) {
+    return `/vehicle/${report.listing_id}`;
+  }
+
+  return "/admin/reports";
+}
+
 function normalizeReportTicket(ticket: ReportTicketRow): AdminReportTicket {
   const assignee = firstRelation(ticket.assigned_to_profile);
   const creator = firstRelation(ticket.created_by_profile);
@@ -727,6 +780,8 @@ function normalizeReportTicket(ticket: ReportTicketRow): AdminReportTicket {
 
   return {
     id: ticket.id,
+    source: "support_ticket",
+    targetType: null,
     subject: ticket.subject,
     category: ticket.category,
     priority: ticket.priority,
@@ -738,7 +793,53 @@ function normalizeReportTicket(ticket: ReportTicketRow): AdminReportTicket {
     updatedAt: ticket.updated_at,
     assignedTo: assignee?.full_name || assignee?.email || null,
     createdBy: creator?.full_name || creator?.email || null,
+    reporterPhone: null,
+    reporterEmail: null,
+    reporterLocation: null,
+    adminNote: ticket.internal_note,
     listingTitle: buildCompactListingTitle(listing || null),
+    href: `/admin/car-inquiries?ticket=${ticket.id}`,
+  };
+}
+
+function normalizeListingReport(report: ListingReportRow): AdminReportTicket {
+  const reporterProfile = firstRelation(report.reporter_profile);
+  const targetTitle = buildAdReportTargetTitle(report);
+  const reporterName =
+    report.reporter_name ||
+    reporterProfile?.full_name ||
+    reporterProfile?.email ||
+    "Unknown reporter";
+
+  return {
+    id: report.id,
+    source: "ad_report",
+    targetType: report.target_type,
+    subject: `${report.reason_label} • ${targetTitle}`,
+    category: report.target_type === "dealer" ? "dealer_report" : "listing_report",
+    priority: report.priority,
+    status: report.status,
+    customerSummary: report.comments,
+    internalNote: [
+      `Reporter: ${reporterName}`,
+      `Phone: ${report.reporter_phone}`,
+      `Email: ${report.reporter_email}`,
+      `Location: ${report.reporter_location}`,
+      report.admin_note ? `Admin note: ${report.admin_note}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    resolutionNote: null,
+    createdAt: report.created_at,
+    updatedAt: report.updated_at,
+    assignedTo: null,
+    createdBy: reporterName,
+    reporterPhone: report.reporter_phone,
+    reporterEmail: report.reporter_email,
+    reporterLocation: report.reporter_location,
+    adminNote: report.admin_note,
+    listingTitle: targetTitle,
+    href: buildAdReportHref(report),
   };
 }
 
@@ -759,13 +860,37 @@ function normalizeReportEvent(
     note: event.note,
     actorName: actor?.full_name || actor?.email || "System",
     createdAt: event.created_at,
+    href: `/admin/car-inquiries?ticket=${event.ticket_id}`,
+  };
+}
+
+function normalizeListingReportEvent(report: ListingReportRow): AdminReportEvent {
+  const normalized = normalizeListingReport(report);
+
+  return {
+    id: `ad-report-${report.id}`,
+    ticketId: report.id,
+    ticketSubject: normalized.subject,
+    ticketPriority: normalized.priority,
+    ticketStatus: normalized.status,
+    eventType: "ad_report_created",
+    note: report.comments,
+    actorName: normalized.createdBy || "Unknown reporter",
+    createdAt: report.created_at,
+    href: normalized.href,
   };
 }
 
 function isOpenTicket(
-  status: ReportTicketRow["status"] | TicketRow["status"]
+  status: ReportTicketRow["status"] | TicketRow["status"] | AdReportStatus
 ) {
-  return status === "open" || status === "triaged" || status === "waiting_on_seller" || status === "waiting_on_buyer";
+  return (
+    status === "open" ||
+    status === "reviewing" ||
+    status === "triaged" ||
+    status === "waiting_on_seller" ||
+    status === "waiting_on_buyer"
+  );
 }
 
 function paymentCurrency(rows: Array<{ currency: string }>) {
@@ -875,6 +1000,7 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
       pendingDealers,
       openTickets,
       urgentReports,
+      urgentAdReportsResult,
       pendingPayments,
       insuranceCountResult,
     ] = await Promise.all([
@@ -893,6 +1019,11 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
           .in("priority", ["high", "urgent"])
       ),
+      supabase
+        .from("listing_reports")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["open", "reviewing"])
+        .in("priority", ["high", "urgent"]),
       readCount(
         supabase
           .from("payments")
@@ -924,9 +1055,18 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
       openInsuranceRequests = fallbackResult.count ?? 0;
     }
 
+    let urgentAdReports = urgentAdReportsResult.count ?? 0;
+    if (urgentAdReportsResult.error) {
+      if (!isMissingRelationError(urgentAdReportsResult.error)) {
+        throw new Error(urgentAdReportsResult.error.message);
+      }
+
+      urgentAdReports = 0;
+    }
+
     return {
       "/admin/review": pendingListings || undefined,
-      "/admin/reports": urgentReports || undefined,
+      "/admin/reports": urgentReports + urgentAdReports || undefined,
       "/admin/verification": pendingDealers || undefined,
       "/admin/insurance-requests": openInsuranceRequests || undefined,
       "/admin/car-inquiries": openTickets || undefined,
@@ -1516,7 +1656,7 @@ export const getAdminReportsData = cache(
     try {
       const supabase = await createAdminDataClient();
 
-      const [ticketsResult, eventsResult] = await Promise.all([
+      const [ticketsResult, eventsResult, listingReportsResult] = await Promise.all([
         supabase
           .from("support_tickets")
           .select(
@@ -1554,11 +1694,57 @@ export const getAdminReportsData = cache(
           )
           .order("created_at", { ascending: false })
           .limit(eventLimit),
+        supabase
+          .from("listing_reports")
+          .select(
+            `
+              id,
+              target_type,
+              listing_id,
+              dealer_id,
+              reporter_name,
+              reporter_phone,
+              reporter_email,
+              reporter_location,
+              reason,
+              reason_label,
+              comments,
+              priority,
+              status,
+              admin_note,
+              created_at,
+              updated_at,
+              reporter_profile:profiles!reporter_profile_id(id, full_name, email),
+              listing:listings(id, make, model, year),
+              dealer:dealers(id, name)
+            `
+          )
+          .order("updated_at", { ascending: false })
+          .limit(ticketLimit),
       ]);
 
       const today = new Date().toISOString().slice(0, 10);
-      const tickets = ((ticketsResult.data || []) as unknown as ReportTicketRow[]).map(normalizeReportTicket);
+      let listingReports: AdminReportTicket[] = [];
+      let listingReportEvents: AdminReportEvent[] = [];
+
+      if (listingReportsResult.error) {
+        if (!isMissingRelationError(listingReportsResult.error)) {
+          throw new Error(listingReportsResult.error.message);
+        }
+      } else {
+        const reportRows = (listingReportsResult.data || []) as unknown as ListingReportRow[];
+        listingReports = reportRows.map(normalizeListingReport);
+        listingReportEvents = reportRows.slice(0, eventLimit).map(normalizeListingReportEvent);
+      }
+
+      const supportTickets = ((ticketsResult.data || []) as unknown as ReportTicketRow[]).map(normalizeReportTicket);
+      const tickets = [...listingReports, ...supportTickets]
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+        .slice(0, ticketLimit);
       const ticketById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
+      const supportEvents = ((eventsResult.data || []) as unknown as TicketEventRow[]).map((event) =>
+        normalizeReportEvent(event, ticketById)
+      );
 
       return {
         stats: {
@@ -1568,14 +1754,15 @@ export const getAdminReportsData = cache(
           ).length,
           resolvedToday: tickets.filter(
             (ticket) =>
-              ["resolved", "closed"].includes(ticket.status) && ticket.updatedAt.slice(0, 10) === today
+              ["resolved", "closed", "dismissed"].includes(ticket.status) &&
+              ticket.updatedAt.slice(0, 10) === today
           ).length,
           unassigned: tickets.filter((ticket) => isOpenTicket(ticket.status) && !ticket.assignedTo).length,
         },
         tickets,
-        recentEvents: ((eventsResult.data || []) as unknown as TicketEventRow[]).map((event) =>
-          normalizeReportEvent(event, ticketById)
-        ),
+        recentEvents: [...listingReportEvents, ...supportEvents]
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+          .slice(0, eventLimit),
       };
     } catch (error) {
       console.warn(`Admin reports unavailable: ${describeError(error)}`);

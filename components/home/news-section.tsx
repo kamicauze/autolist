@@ -33,12 +33,22 @@ const NEWS_ARTICLES = [
     category: "Tips",
     href: "/blog?category=news_advice",
   },
+  {
+    id: 4,
+    title: "How to Check a Used Car Before You Buy",
+    excerpt:
+      "A practical checklist for documents, mileage, service history, and condition checks.",
+    image: "/sample-car-4.jpg",
+    date: "Jan 22, 2026",
+    category: "Advice",
+    href: "/blog?category=news_advice",
+  },
 ];
 
 export function NewsSection() {
   return (
     <section className="py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1285px] px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Car News & Advice
@@ -52,37 +62,39 @@ export function NewsSection() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {NEWS_ARTICLES.map((article) => (
-            <Link
-              key={article.id}
-              href={article.href}
-              className="group bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-            >
-              <div className="relative h-48 overflow-hidden">
-                <Image
-                  src={article.image}
-                  alt={article.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-3 left-3">
-                  <span className="px-3 py-1 bg-primary text-white text-xs font-medium rounded-full">
-                    {article.category}
-                  </span>
+        <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+          <div className="flex snap-x snap-mandatory gap-6">
+            {NEWS_ARTICLES.map((article) => (
+              <Link
+                key={article.id}
+                href={article.href}
+                className="group w-[280px] shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <Image
+                    src={article.image}
+                    alt={article.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute left-3 top-3">
+                    <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
+                      {article.category}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-4">
-                <p className="text-sm text-gray-500 mb-2">{article.date}</p>
-                <h3 className="font-semibold text-gray-900 mb-2 group-hover:text-primary transition-colors">
-                  {article.title}
-                </h3>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {article.excerpt}
-                </p>
-              </div>
-            </Link>
-          ))}
+                <div className="p-4">
+                  <p className="mb-2 text-sm text-gray-500">{article.date}</p>
+                  <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-primary">
+                    {article.title}
+                  </h3>
+                  <p className="line-clamp-2 text-sm text-gray-600">
+                    {article.excerpt}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </section>

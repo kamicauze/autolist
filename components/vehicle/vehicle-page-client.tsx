@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -42,6 +42,8 @@ import {
   PriceAdviserSummary,
 } from "./price-adviser-panel";
 import { FinancingRequestDialog } from "./financing-request-dialog";
+import { ReportAdDialog } from "./report-ad-dialog";
+import { QuickContactQr } from "./quick-contact-qr";
 import {
   getListingEngineDisplacement,
   getListingTrim,
@@ -143,6 +145,42 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
     reviews: true,
   },
 };
+
+function normalizeWhatsAppPhone(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  const phone = digits.startsWith("00") ? digits.slice(2) : digits;
+
+  if (!phone) {
+    return null;
+  }
+
+  if (phone.startsWith("0") && phone.length >= 10) {
+    return `254${phone.slice(1)}`;
+  }
+
+  if (/^[17]\d{8}$/.test(phone)) {
+    return `254${phone}`;
+  }
+
+  return phone;
+}
+
+function getConfiguredBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    (process.env.NEXT_PUBLIC_VERCEL_URL
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL.replace(/\/$/, "")}`
+      : "https://autolist.africa")
+  );
+}
+
+function getBrowserOrigin() {
+  return window.location.origin;
+}
+
+function subscribeToOrigin() {
+  return () => {};
+}
 
 function getPresetFromQuery(value: string | null): PageStatePreset {
   if (value === "about-open") return "about-open";
@@ -388,6 +426,7 @@ export function VehiclePageClient({
   const [isFinancingDialogOpen, setIsFinancingDialogOpen] = useState(
     preset === "most-open"
   );
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [accordionState, setAccordionState] = useState<Record<SectionKey, boolean>>(
     PRESET_STATES[preset]
   );
@@ -440,6 +479,27 @@ export function VehiclePageClient({
   const listingDocuments = getListingDocuments(listing.metadata);
   const hasSupportingMedia = Boolean(videoUrl) || listingDocuments.length > 0;
   const galleryRef = useRef<HTMLDivElement | null>(null);
+  const quickContactPhone = normalizeWhatsAppPhone(
+    listing.dealer?.whatsapp || listing.dealer?.mobile
+  );
+  const currentOrigin = useSyncExternalStore(
+    subscribeToOrigin,
+    getBrowserOrigin,
+    getConfiguredBaseUrl
+  );
+  const quickContactUrl = useMemo(() => {
+    const listingUrl = `${currentOrigin}/vehicle/${listing.id}`;
+
+    if (!quickContactPhone) {
+      return listingUrl;
+    }
+
+    const message = `Hi, I'm interested in ${title} listed on Autolist: ${listingUrl}`;
+    return `https://wa.me/${quickContactPhone}?text=${encodeURIComponent(message)}`;
+  }, [currentOrigin, listing.id, quickContactPhone, title]);
+  const quickContactCopy = quickContactPhone
+    ? "Scan to start a WhatsApp message about this vehicle."
+    : "Scan to open this listing on your phone.";
 
   const sortedImages = (listing.images || [])
     .sort((a, b) => a.image_order - b.image_order)
@@ -915,6 +975,7 @@ export function VehiclePageClient({
               <Button
                 variant="outline"
                 className="w-full border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => setIsReportDialogOpen(true)}
               >
                 <Flag className="h-4 w-4" />
                 Report Listing/Dealer
@@ -923,25 +984,18 @@ export function VehiclePageClient({
               <div className="rounded-xl border border-gray-200 bg-white p-5 text-center">
                 <div className="mb-3 text-left">
                   <h3 className="text-base font-semibold text-gray-900">Quick Contact</h3>
+                  <p className="mt-1 text-xs text-gray-500">{quickContactCopy}</p>
                 </div>
-                <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-lg bg-gray-100">
-                  <div className="grid h-40 w-40 grid-cols-7 gap-1 rounded bg-white p-3 shadow-sm">
-                    {Array.from({ length: 49 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className={`rounded-[2px] ${
-                          [0, 1, 2, 7, 14, 16, 28, 35, 42, 43, 44, 48, 40, 30, 18, 24, 32]
-                            .includes(index)
-                            ? "bg-gray-900"
-                            : "bg-gray-200"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="mt-3 text-xs text-gray-500">
-                  Scan this QR code with your phone to contact Autolist seller directly.
-                </p>
+                <QuickContactQr value={quickContactUrl} label={quickContactCopy} />
+                <Button
+                  asChild
+                  variant="outline"
+                  className="mt-3 w-full border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <a href={quickContactUrl} target="_blank" rel="noreferrer">
+                    Open contact link
+                  </a>
+                </Button>
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -965,6 +1019,16 @@ export function VehiclePageClient({
         open={isFinancingDialogOpen}
         onOpenChange={setIsFinancingDialogOpen}
         title={title}
+      />
+      <ReportAdDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        targetType="listing"
+        listingId={listing.id}
+        dealerId={listing.dealer_id}
+        targetLabel={title}
+        dealerLabel={listing.dealer?.name || null}
+        viewer={viewer}
       />
     </>
   );

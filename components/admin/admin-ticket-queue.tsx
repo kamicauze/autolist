@@ -52,7 +52,7 @@ function formatTime(value: string) {
 
 export function AdminTicketQueue({
   initialData,
-  title = "Car Inquiries",
+  title = "Import Inquiries",
   description = "Monitor escalated buyer-seller threads, assign staff ownership, and close the loop with a clean internal ticket trail.",
 }: AdminTicketQueueProps) {
   const searchParams = useSearchParams();

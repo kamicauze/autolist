@@ -621,8 +621,8 @@ export function AdminDashboardPage({
             {[
               ["Listing Review", `${pendingListings} waiting`, "Proceed to moderation"],
               ["KYC Verification", `${pendingDealers} dealer records`, "Documents need operator check"],
-              ["Car Inquiries", "23 unresolved", "Seller SLA at risk"],
-              ["Insurance Requests", "3 blocked", "Missing attachments"],
+              ["Import Inquiries", "23 unresolved", "Follow-up needed"],
+              ["Insurance Quotes", "3 blocked", "Missing attachments"],
             ].map(([label, value, note]) => (
               <div key={label} className="rounded-[14px] border border-[#e5e7eb] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
@@ -836,7 +836,7 @@ export function AdminInsuranceRequestsPage() {
     <div className="space-y-8">
       <AdminPreviewNotice />
       <QueueWorkspace
-        title="Insurance Requests"
+        title="Insurance Quotes"
         description="Track policy applications, missing documents, and insurer handoffs from one queue."
         stats={[
           { label: "Open Requests", value: "23", icon: <ReceiptText className="h-5 w-5" /> },
@@ -855,8 +855,8 @@ export function AdminCarInquiriesPage() {
     <div className="space-y-8">
       <AdminPreviewNotice />
       <QueueWorkspace
-        title="Car Inquiries"
-        description="Monitor buyer-to-seller conversations that need intervention, follow-up, or SLA protection."
+        title="Import Inquiries"
+        description="Monitor import inquiry conversations that need intervention, follow-up, or SLA protection."
         stats={[
           { label: "Open Threads", value: "23", icon: <MessageSquareText className="h-5 w-5" /> },
           { label: "Escalated", value: "05", icon: adminMetricIcons.warning },

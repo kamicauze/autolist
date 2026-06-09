@@ -292,7 +292,7 @@ export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
           <DialogHeader>
             <DialogTitle>Send an enquiry</DialogTitle>
             <DialogDescription>
-              This message is saved to Messages, logged in Admin &gt; Car Inquiries, and sent to the seller.
+              This message is saved to Messages, logged in Admin &gt; Import Inquiries, and sent to the seller.
             </DialogDescription>
           </DialogHeader>
 

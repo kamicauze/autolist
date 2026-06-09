@@ -214,7 +214,7 @@ export function CarCard({
                   src={imageUrl}
                   alt={`${title} - Image ${index + 1}`}
                   fill
-                  className="object-contain"
+                  className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 300px"
                 />
               </div>

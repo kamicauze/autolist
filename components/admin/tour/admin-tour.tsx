@@ -766,7 +766,7 @@ const FEATURED_LISTINGS_TOUR: ModuleTour = {
 const INSURANCE_REQUESTS_TOUR: ModuleTour = {
   id: "insurance-requests",
   pathnamePrefix: "/admin/insurance-requests",
-  label: "Insurance Requests",
+  label: "Insurance Quotes",
   steps: [
     {
       id: "header",
@@ -798,14 +798,14 @@ const INSURANCE_REQUESTS_TOUR: ModuleTour = {
 const CAR_INQUIRIES_TOUR: ModuleTour = {
   id: "car-inquiries",
   pathnamePrefix: "/admin/car-inquiries",
-  label: "Car Inquiries",
+  label: "Import Inquiries",
   steps: [
     {
       id: "header",
       selector: '[data-tour="admin-page-header"]',
-      title: "Buyer questions",
+      title: "Import inquiry follow-up",
       body:
-        "When a buyer messages a seller through Autolist, the conversation lands here too if it gets escalated. Use this to step in if someone's not getting a response or if the chat looks like a scam.",
+        "Import inquiry conversations land here when they need staff follow-up. Use this queue to track sourcing requests, customer details, and next actions.",
       placement: "bottom",
     },
     {

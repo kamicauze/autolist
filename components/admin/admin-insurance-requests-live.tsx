@@ -152,7 +152,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader title="Insurance Requests" />
+      <AdminPageHeader title="Insurance Quotes" />
 
       <div className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
