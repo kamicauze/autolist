@@ -48,7 +48,7 @@ export function SocialMediaSection() {
           All the latest news for you
         </p>
 
-        <div className="mt-10 flex items-center justify-center gap-10 sm:gap-16">
+        <div className="mt-10 grid grid-cols-2 justify-items-center gap-x-8 gap-y-6 sm:flex sm:items-center sm:justify-center sm:gap-16">
           {socialLinks.map((social) => {
             const Icon = social.icon;
             return (

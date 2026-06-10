@@ -43,6 +43,42 @@ export type AdminUserActivitySummaryItem = {
   note: string;
 };
 
+export type AdminUserActivityModuleCounts = {
+  timeline: number;
+  listings: number;
+  dealerDocuments: number;
+  sentEnquiries: number;
+  receivedEnquiries: number;
+  conversations: number;
+  messages: number;
+  supportTickets: number;
+  payments: number;
+  entitlements: number;
+  favorites: number;
+  reviewsWritten: number;
+  reviewsReceived: number;
+  offersMade: number;
+  offersReceived: number;
+  auditLogs: number;
+};
+
+export type AdminUserActivityModule = {
+  key:
+    | "timeline"
+    | "listings"
+    | "dealer"
+    | "enquiries"
+    | "messages"
+    | "commerce"
+    | "engagement"
+    | "audit";
+  label: string;
+  description: string;
+  count: number;
+  meta: string;
+  href: string;
+};
+
 export function sortAdminUserActivityTimeline(items: AdminUserActivityItem[]) {
   return items
     .slice()
@@ -90,6 +126,88 @@ export function summarizeAdminUserActivity(
       label: "Engagement",
       value: counts.favorites + totalReviews,
       note: `${counts.favorites} favorites / ${totalReviews} reviews`,
+    },
+  ];
+}
+
+export function buildAdminUserActivityModules(
+  counts: AdminUserActivityModuleCounts
+): AdminUserActivityModule[] {
+  const enquiryCount = counts.sentEnquiries + counts.receivedEnquiries;
+  const messageCount = counts.conversations + counts.messages;
+  const commerceCount =
+    counts.payments + counts.entitlements + counts.offersMade + counts.offersReceived;
+  const engagementCount =
+    counts.favorites +
+    counts.reviewsWritten +
+    counts.reviewsReceived +
+    counts.offersMade +
+    counts.offersReceived;
+
+  return [
+    {
+      key: "timeline",
+      label: "Timeline",
+      description: "Newest events across the account.",
+      count: counts.timeline,
+      meta: "events",
+      href: "#timeline",
+    },
+    {
+      key: "listings",
+      label: "Listings",
+      description: "Owned inventory and listing states.",
+      count: counts.listings,
+      meta: "records",
+      href: "#listings",
+    },
+    {
+      key: "dealer",
+      label: "Dealer / KYC",
+      description: "Dealer record and verification documents.",
+      count: counts.dealerDocuments,
+      meta: "documents",
+      href: "#dealer-verification",
+    },
+    {
+      key: "enquiries",
+      label: "Enquiries",
+      description: "Inbound and outbound buyer interest.",
+      count: enquiryCount,
+      meta: `${counts.sentEnquiries} sent / ${counts.receivedEnquiries} received`,
+      href: "#enquiries",
+    },
+    {
+      key: "messages",
+      label: "Messages",
+      description: "Threads, support context, and recent messages.",
+      count: messageCount,
+      meta: `${counts.conversations} threads`,
+      href: "#messages",
+    },
+    {
+      key: "commerce",
+      label: "Commerce",
+      description: "Payments, membership, offers, and tickets.",
+      count: commerceCount,
+      meta: `${counts.payments} payments`,
+      href: "#commerce",
+    },
+    {
+      key: "engagement",
+      label: "Engagement",
+      description: "Favorites, reviews, and dealer offers.",
+      count: engagementCount,
+      meta: `${counts.favorites} saved`,
+      href: "#engagement",
+    },
+    {
+      key: "audit",
+      label: "Audit",
+      description: "Operational logs tied to the user and entities.",
+      count: counts.auditLogs,
+      meta: "logs",
+      href: "#audit",
     },
   ];
 }

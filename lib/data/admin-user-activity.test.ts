@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  buildAdminUserActivityModules,
   summarizeAdminUserActivity,
   sortAdminUserActivityTimeline,
   type AdminUserActivityItem,
@@ -62,5 +63,36 @@ assert.deepEqual(
     { label: "Conversations", value: 5, note: "1 support tickets" },
     { label: "Commerce", value: 6, note: "2 payments / 4 offers" },
     { label: "Engagement", value: 17, note: "9 favorites / 8 reviews" },
+  ]
+);
+
+assert.deepEqual(
+  buildAdminUserActivityModules({
+    timeline: 14,
+    listings: 3,
+    dealerDocuments: 2,
+    sentEnquiries: 4,
+    receivedEnquiries: 7,
+    conversations: 5,
+    messages: 9,
+    supportTickets: 1,
+    payments: 2,
+    entitlements: 1,
+    favorites: 9,
+    reviewsWritten: 2,
+    reviewsReceived: 6,
+    offersMade: 1,
+    offersReceived: 3,
+    auditLogs: 8,
+  }).map((module) => [module.key, module.count, module.href]),
+  [
+    ["timeline", 14, "#timeline"],
+    ["listings", 3, "#listings"],
+    ["dealer", 2, "#dealer-verification"],
+    ["enquiries", 11, "#enquiries"],
+    ["messages", 14, "#messages"],
+    ["commerce", 7, "#commerce"],
+    ["engagement", 21, "#engagement"],
+    ["audit", 8, "#audit"],
   ]
 );

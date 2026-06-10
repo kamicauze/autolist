@@ -66,9 +66,9 @@ export function ListingsSection({
     <section className="py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="h4">{title}</h2>
-          <Link href="/search">
+          <Link href="/search" className="self-start sm:self-auto">
             <Button variant="ghost" className="gap-2">
               {sectionContent.viewAllLabel}
               <IconChevronRight className="h-4 w-4" />
@@ -78,34 +78,36 @@ export function ListingsSection({
 
         {tabsEnabled ? (
           <Tabs defaultValue="featured" className="w-full">
-            <TabsList className="mb-6 bg-transparent p-0 gap-2">
-              <TabsTrigger
-                value="featured"
-                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
-              >
-                Featured/sponsored
-              </TabsTrigger>
-              <TabsTrigger
-                value="viewed"
-                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
-              >
-                Recently viewed
-              </TabsTrigger>
-              <TabsTrigger
-                value="recent"
-                className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
-              >
-                Recently added
-              </TabsTrigger>
-              {sectionContent.showFavoritesTab ? (
+            <div className="-mx-4 mb-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mb-6 sm:px-0 sm:pb-0">
+              <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
                 <TabsTrigger
-                  value="favorites"
-                  className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white border border-border data-[state=active]:border-primary"
+                  value="featured"
+                  className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
                 >
-                  Favourites
+                  Featured/sponsored
                 </TabsTrigger>
-              ) : null}
-            </TabsList>
+                <TabsTrigger
+                  value="viewed"
+                  className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
+                >
+                  Recently viewed
+                </TabsTrigger>
+                <TabsTrigger
+                  value="recent"
+                  className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
+                >
+                  Recently added
+                </TabsTrigger>
+                {sectionContent.showFavoritesTab ? (
+                  <TabsTrigger
+                    value="favorites"
+                    className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
+                  >
+                    Favourites
+                  </TabsTrigger>
+                ) : null}
+              </TabsList>
+            </div>
 
             <TabsContent value="featured">
               <ListingsGrid listings={rotatedFeatured} />
@@ -152,7 +154,7 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
           "Private Seller";
 
         return (
-          <div key={listing.id} className="w-[82vw] shrink-0 snap-start sm:w-auto">
+          <div key={listing.id} className="w-[82vw] max-w-full shrink-0 snap-start sm:w-auto">
             <CarCard
               id={listing.id}
               title={getListingDisplayTitle(listing)}
