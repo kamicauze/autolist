@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import type {
   MessagingCenterData,
   MessagingViewer,
@@ -156,6 +157,13 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     threadQuery = threadQuery.eq("buyer_id", viewer.id);
   } else if (viewer.role === "seller" || viewer.role === "dealer") {
     threadQuery = threadQuery.eq("seller_id", viewer.id);
+  } else if (viewer.role === "sales_agent") {
+    // Reps only see their dealership's threads, and only with the permission.
+    const repContext = await getSalesAgentViewerContext();
+    if (!repContext || !repContext.permissions.includes("enquiries.respond")) {
+      return { viewer, threads: [], messagesByThread: {} };
+    }
+    threadQuery = threadQuery.eq("seller_id", repContext.principalProfileId);
   }
 
   const { data: threadRows, error: threadError } = await threadQuery;

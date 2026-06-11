@@ -11,8 +11,10 @@ import {
   CalendarDays,
   CarFront,
   ChevronDown,
+  ChevronRight,
   Clock3,
   Copy,
+  UserCircle2,
   DollarSign,
   Eye,
   Gauge,
@@ -29,6 +31,7 @@ import {
   submitListingForReview,
   updateOwnerListingStatus,
 } from "@/lib/actions/listings";
+import { assignListingToSalesRep } from "@/lib/actions/sales-agents";
 import {
   acceptListingOffer,
   counterListingOffer,
@@ -71,12 +74,16 @@ type OfferRow = {
   canCounter?: boolean;
 };
 
+type AssignableRep = { id: string; name: string };
+
 interface MyListingsProps {
   listings: Listing[];
   availableBids?: OfferRow[];
   yourBids?: OfferRow[];
   receivedOffers?: OfferRow[];
   offersLoading?: boolean;
+  salesReps?: AssignableRep[];
+  isSalesAgentView?: boolean;
 }
 
 const tabs: Array<{ value: ListingTab; label: string }> = [
@@ -279,6 +286,9 @@ function ListingRowActions({
   onDuplicate,
   onGoLive,
   onHold,
+  onAssign,
+  salesReps,
+  canManageOwner,
   isDeleting,
   isPending,
 }: {
@@ -287,6 +297,9 @@ function ListingRowActions({
   onDuplicate: (listing: Listing) => void;
   onGoLive: (listing: Listing) => void;
   onHold: (listing: Listing) => void;
+  onAssign: (listing: Listing, agentId: string | null) => void;
+  salesReps: AssignableRep[];
+  canManageOwner: boolean;
   isDeleting: boolean;
   isPending: boolean;
 }) {
@@ -343,22 +356,71 @@ function ListingRowActions({
           <Clock3 className="h-4 w-4" />
           {holdLabel}
         </DropdownMenu.Item>
-        <DropdownMenu.Item
-          onSelect={() => onDuplicate(listing)}
-          disabled={isPending}
-          className={itemClass}
-        >
-          <Copy className="h-4 w-4" />
-          Duplicate
-        </DropdownMenu.Item>
-        <DropdownMenu.Item
-          onSelect={() => onDelete(listing)}
-          disabled={isDeleting}
-          className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] outline-none hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
-        >
-          <Trash2 className="h-4 w-4" />
-          {isDeleting ? "Deleting..." : "Delete"}
-        </DropdownMenu.Item>
+        {canManageOwner ? (
+          <DropdownMenu.Item
+            onSelect={() => onDuplicate(listing)}
+            disabled={isPending}
+            className={itemClass}
+          >
+            <Copy className="h-4 w-4" />
+            Duplicate
+          </DropdownMenu.Item>
+        ) : null}
+        {salesReps.length > 0 ? (
+          <DropdownMenu.Sub>
+            <DropdownMenu.SubTrigger
+              disabled={isPending}
+              className={cn(itemClass, "justify-between")}
+            >
+              <span className="flex items-center gap-2">
+                <UserCircle2 className="h-4 w-4" />
+                Assign to rep
+              </span>
+              <ChevronRight className="h-4 w-4 text-[#9ca3af]" />
+            </DropdownMenu.SubTrigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.SubContent
+                sideOffset={4}
+                collisionPadding={16}
+                className="z-[100] w-[200px] rounded-[8px] border border-[#ededed] bg-white p-1 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+              >
+                <DropdownMenu.Item
+                  onSelect={() => onAssign(listing, null)}
+                  disabled={isPending || !listing.assigned_agent_id}
+                  className={itemClass}
+                >
+                  Unassigned
+                  {!listing.assigned_agent_id ? (
+                    <BadgeCheck className="ml-auto h-4 w-4 text-[#2563eb]" />
+                  ) : null}
+                </DropdownMenu.Item>
+                {salesReps.map((rep) => (
+                  <DropdownMenu.Item
+                    key={rep.id}
+                    onSelect={() => onAssign(listing, rep.id)}
+                    disabled={isPending || listing.assigned_agent_id === rep.id}
+                    className={itemClass}
+                  >
+                    <span className="truncate">{rep.name}</span>
+                    {listing.assigned_agent_id === rep.id ? (
+                      <BadgeCheck className="ml-auto h-4 w-4 shrink-0 text-[#2563eb]" />
+                    ) : null}
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.SubContent>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Sub>
+        ) : null}
+        {canManageOwner ? (
+          <DropdownMenu.Item
+            onSelect={() => onDelete(listing)}
+            disabled={isDeleting}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#dc2626] outline-none hover:bg-[#fff1f1] focus:bg-[#fff1f1] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isDeleting ? "Deleting..." : "Delete"}
+          </DropdownMenu.Item>
+        ) : null}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
@@ -797,9 +859,12 @@ export function MyListings({
   listings,
   availableBids,
   offersLoading = false,
+  salesReps = [],
+  isSalesAgentView = false,
 }: MyListingsProps) {
   const router = useRouter();
   const [listingItems, setListingItems] = React.useState(listings);
+  const [assignError, setAssignError] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<ListingTab>(() =>
     availableBids?.length ? "available-bids" : "all"
   );
@@ -972,11 +1037,39 @@ export function MyListings({
     void runListingAction(listing, () => updateOwnerListingStatus(listing.id, nextStatus));
   };
 
+  const handleAssign = (listing: Listing, agentId: string | null) => {
+    setAssignError(null);
+    const previous = listing.assigned_agent_id ?? null;
+    setListingItems((current) =>
+      current.map((item) =>
+        item.id === listing.id ? { ...item, assigned_agent_id: agentId } : item
+      )
+    );
+    void assignListingToSalesRep(listing.id, agentId).then((result) => {
+      if ("error" in result) {
+        setAssignError(result.error);
+        setListingItems((current) =>
+          current.map((item) =>
+            item.id === listing.id ? { ...item, assigned_agent_id: previous } : item
+          )
+        );
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-[30px]">
       <h1 className="font-heading text-[34px] font-semibold leading-none text-[#111827]">
         {activeTab === "available-bids" ? "All listings" : "All listing"}
       </h1>
+
+      {assignError ? (
+        <div className="rounded-[12px] border border-[#fecaca] bg-[#fff1f2] px-4 py-3 text-[13px] text-[#b42318]">
+          {assignError}
+        </div>
+      ) : null}
 
       {activeTab === "available-bids" ? (
         <BidsPlaceholder
@@ -1215,6 +1308,9 @@ export function MyListings({
                                 onDuplicate={handleDuplicate}
                                 onGoLive={handleGoLive}
                                 onHold={handleHold}
+                                onAssign={handleAssign}
+                                salesReps={salesReps}
+                                canManageOwner={!isSalesAgentView}
                                 isDeleting={deletingIds.includes(listing.id)}
                                 isPending={pendingIds.includes(listing.id)}
                               />

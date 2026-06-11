@@ -7,6 +7,7 @@ import { resolvePostAuthPath } from "@/lib/supabase/auth-routing";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
+import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 
 interface DashboardLayoutPageProps {
   children: ReactNode;
@@ -58,7 +59,7 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
     redirect(destination);
   }
 
-  const [profileResult, accountContext, packageAccessResult] = await Promise.all([
+  const [profileResult, accountContext, packageAccessResult, salesAgentContext] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, avatar_url")
@@ -66,6 +67,7 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
       .maybeSingle<DashboardProfileRow>(),
     getDashboardAccountContext(supabase, user.id),
     getSellerPackageAccessForUser(supabase, user.id),
+    getSalesAgentViewerContext(),
   ]);
 
   const profile = profileResult.data ?? null;
@@ -87,6 +89,7 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
       }}
       accountKind={accountContext.kind}
       packageAccess={packageAccessResult.access}
+      salesAgentPermissions={salesAgentContext?.permissions ?? null}
     >
       {children}
     </DashboardLayout>

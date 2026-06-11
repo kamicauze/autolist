@@ -5,19 +5,37 @@ import {
   getMyDealerOffers,
   getOffersReceivedByCurrentSeller,
 } from "@/lib/data/offers";
+import { getMySalesAgents } from "@/lib/data/sales-agents";
+import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
 export default async function DashboardListingsPage() {
-  const [{ data: listings }, availableBidListings, dealerOffers, receivedOffers] = await Promise.all([
+  const [
+    { data: listings },
+    availableBidListings,
+    dealerOffers,
+    receivedOffers,
+    salesAgents,
+    viewerRepContext,
+  ] = await Promise.all([
     getMyListings(),
     getAvailableBidListingsForCurrentDealer(),
     getMyDealerOffers(),
     getOffersReceivedByCurrentSeller(),
+    getMySalesAgents(),
+    getSalesAgentViewerContext(),
   ]);
+
+  const isSalesAgentView = Boolean(viewerRepContext);
+  const salesReps = salesAgents.agents
+    .filter((agent) => agent.status === "active")
+    .map((agent) => ({ id: agent.id, name: agent.name }));
 
   return (
     <MyListings
       listings={listings || []}
+      salesReps={salesReps}
+      isSalesAgentView={isSalesAgentView}
       availableBids={availableBidListings.map((listing) => ({
         id: listing.id,
         listingId: listing.id,

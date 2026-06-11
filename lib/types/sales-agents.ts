@@ -1,4 +1,7 @@
+import type { SalesAgentPermission } from "@/lib/constants/sales-agent-permissions";
+
 export type SalesAgentStatus = "active" | "inactive";
+export type SalesAgentListingsScope = "all" | "assigned";
 
 export interface SalesAgent {
   id: string;
@@ -12,6 +15,8 @@ export interface SalesAgent {
   is_verified: boolean;
   whatsapp_enabled: boolean;
   hide_phone_number: boolean;
+  permissions: SalesAgentPermission[];
+  listings_scope: SalesAgentListingsScope;
   invite_status: "not_sent" | "pending" | "accepted" | "expired" | "revoked";
   invite_expires_at: string | null;
   invite_sent_at: string | null;
@@ -36,6 +41,8 @@ export interface SalesAgentFormValues {
   is_verified: boolean;
   whatsapp_enabled: boolean;
   hide_phone_number: boolean;
+  permissions: SalesAgentPermission[];
+  listings_scope: SalesAgentListingsScope;
 }
 
 export type SalesAgentActionResult =

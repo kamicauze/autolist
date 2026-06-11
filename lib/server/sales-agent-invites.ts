@@ -4,7 +4,7 @@ import { createHash, randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const SALES_AGENT_SELECT =
-  "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at";
+  "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, permissions, listings_scope, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at";
 
 const INVITE_TTL_DAYS = 14;
 

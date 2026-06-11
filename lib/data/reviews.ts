@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { parseEnquiryReviewMessage } from "@/lib/reviews/enquiry-fallback";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import type {
   ListingReviewRecord,
   ListingReviewSummary,
@@ -190,10 +191,18 @@ export async function getSellerDashboardReviewsData(): Promise<SellerReviewDashb
     };
   }
 
+  // Reps with the permission see their dealership's reviews (keyed off the
+  // dealer owner's profile id); reps without it see nothing.
+  const repContext = await getSalesAgentViewerContext();
+  if (repContext && !repContext.permissions.includes("reviews.manage")) {
+    return { reviews: [], summary: { averageRating: 0, totalReviews: 0 } };
+  }
+  const sellerScopeId = repContext?.principalProfileId ?? user.id;
+
   const { data, error } = await supabase
     .from("listing_reviews")
     .select(REVIEW_SELECT)
-    .eq("seller_id", user.id)
+    .eq("seller_id", sellerScopeId)
     .order("created_at", { ascending: false });
 
   let primaryReviews: ListingReviewRecord[] = [];
@@ -206,7 +215,7 @@ export async function getSellerDashboardReviewsData(): Promise<SellerReviewDashb
   let fallbackReviews: ListingReviewRecord[] = [];
   try {
     const allFallbackReviews = await getFallbackEnquiryReviews();
-    fallbackReviews = allFallbackReviews.filter((review) => review.seller_id === user.id);
+    fallbackReviews = allFallbackReviews.filter((review) => review.seller_id === sellerScopeId);
   } catch (fallbackError) {
     console.error("Error fetching fallback seller dashboard reviews:", fallbackError);
   }

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { CheckCircle2, Mail, ShieldCheck, TriangleAlert } from "lucide-react";
-import { acceptSalesAgentInviteAction } from "@/lib/actions/sales-agent-invite-acceptance";
+import {
+  acceptSalesAgentInviteAction,
+  claimSalesAgentInviteAction,
+} from "@/lib/actions/sales-agent-invite-acceptance";
 import {
   firstRelation,
   getSalesAgentInviteByToken,
@@ -50,7 +53,6 @@ export default async function SalesAgentJoinPage({
   const dealer = invite ? firstRelation(invite.dealer) : null;
   const joinPath = `/join/sales-agent/${encodeURIComponent(token)}`;
   const loginHref = `/login?next=${encodeURIComponent(joinPath)}`;
-  const registerHref = `/register?next=${encodeURIComponent(joinPath)}`;
   const isExpired = invite ? isSalesAgentInviteExpired(invite.invite_expires_at) : false;
   const signedInEmail = user?.email?.toLowerCase() || "";
   const emailMatches = Boolean(invite && signedInEmail && signedInEmail === invite.email.toLowerCase());
@@ -114,34 +116,112 @@ export default async function SalesAgentJoinPage({
               </div>
 
               {!user ? (
-                <div className="rounded-[16px] border border-[#dbeafe] bg-[#eff6ff] px-5 py-4">
-                  <div className="flex gap-3">
-                    <Mail className="mt-0.5 h-5 w-5 shrink-0 text-[#2563eb]" />
-                    <div>
-                      <p className="text-[14px] font-semibold text-[#1d4ed8]">
-                        Continue with {invite.email}
-                      </p>
-                      <p className="mt-1 text-[13px] leading-5 text-[#315db5]">
-                        Use the same email on the invite so the dealership can link this rep to
-                        the correct account.
-                      </p>
+                isExpired || invite.invite_status !== "pending" ? (
+                  <div className="rounded-[16px] border border-[#fed7aa] bg-[#fff7ed] px-5 py-4 text-[14px] leading-6 text-[#9a3412]">
+                    This invite is {isExpired ? "expired" : invite.invite_status}. Ask the dealer to
+                    send a fresh invite.
+                  </div>
+                ) : (
+                  <div className="rounded-[16px] border border-[#dbeafe] bg-[#eff6ff] px-5 py-4">
+                    <div className="flex gap-3">
+                      <Mail className="mt-0.5 h-5 w-5 shrink-0 text-[#2563eb]" />
+                      <div>
+                        <p className="text-[14px] font-semibold text-[#1d4ed8]">
+                          Set up your sales rep account
+                        </p>
+                        <p className="mt-1 text-[13px] leading-5 text-[#315db5]">
+                          Choose a password for {invite.email}. We&apos;ll create your rep account
+                          and connect you to the dealership in one step — no email verification
+                          needed.
+                        </p>
+                      </div>
                     </div>
+
+                    <form action={claimSalesAgentInviteAction} className="mt-4 space-y-3">
+                      <input type="hidden" name="token" value={token} />
+                      <div>
+                        <label
+                          htmlFor="claim-name"
+                          className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748b]"
+                        >
+                          Full name
+                        </label>
+                        <input
+                          id="claim-name"
+                          name="fullName"
+                          type="text"
+                          required
+                          defaultValue={invite.name}
+                          className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={invite.email}
+                          readOnly
+                          className="mt-1 h-11 w-full cursor-not-allowed rounded-[12px] border border-[#e2e8f0] bg-[#f8fafc] px-3 text-[14px] text-[#64748b]"
+                        />
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label
+                            htmlFor="claim-password"
+                            className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748b]"
+                          >
+                            Password
+                          </label>
+                          <input
+                            id="claim-password"
+                            name="password"
+                            type="password"
+                            required
+                            minLength={8}
+                            autoComplete="new-password"
+                            className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="claim-confirm"
+                            className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#64748b]"
+                          >
+                            Confirm password
+                          </label>
+                          <input
+                            id="claim-confirm"
+                            name="confirmPassword"
+                            type="password"
+                            required
+                            minLength={8}
+                            autoComplete="new-password"
+                            className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[12px] leading-5 text-[#64748b]">
+                        Use at least 8 characters.
+                      </p>
+                      <button
+                        type="submit"
+                        className="inline-flex h-11 w-full items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8] sm:w-auto"
+                      >
+                        Create account &amp; accept invite
+                      </button>
+                    </form>
+
+                    <p className="mt-4 text-[13px] text-[#315db5]">
+                      Already have an account with {invite.email}?{" "}
+                      <Link href={loginHref} className="font-semibold text-[#1d4ed8] underline">
+                        Sign in
+                      </Link>{" "}
+                      to accept.
+                    </p>
                   </div>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <Link
-                      href={loginHref}
-                      className="inline-flex h-11 items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
-                    >
-                      Sign in
-                    </Link>
-                    <Link
-                      href={registerHref}
-                      className="inline-flex h-11 items-center justify-center rounded-[12px] border border-[#dbe3f5] bg-white px-4 text-[14px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff]"
-                    >
-                      Create account
-                    </Link>
-                  </div>
-                </div>
+                )
               ) : !emailMatches ? (
                 <div className="rounded-[16px] border border-[#fed7aa] bg-[#fff7ed] px-5 py-4 text-[14px] leading-6 text-[#9a3412]">
                   <div className="flex gap-3">

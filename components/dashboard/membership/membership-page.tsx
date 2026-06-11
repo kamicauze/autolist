@@ -71,6 +71,27 @@ async function loadMembershipForCurrentUser() {
     };
   }
 
+  // Sales reps view their dealership's membership (read-only) when granted
+  // billing.view. Their own linkage row is readable via RLS.
+  const { data: repRow } = await supabase
+    .from("dealer_sales_agents")
+    .select("permissions, profile_id")
+    .eq("agent_profile_id", user.id)
+    .eq("status", "active")
+    .eq("invite_status", "accepted")
+    .maybeSingle<{ permissions: string[] | null; profile_id: string }>();
+
+  if (repRow) {
+    if (!Array.isArray(repRow.permissions) || !repRow.permissions.includes("billing.view")) {
+      return {
+        data: EMPTY_MEMBERSHIP_DATA,
+        error: "You do not have access to dealership billing.",
+      };
+    }
+    const data = await getSellerMembershipDashboardData(supabase, repRow.profile_id);
+    return { data, error: null };
+  }
+
   const data = await getSellerMembershipDashboardData(supabase, user.id);
   return { data, error: null };
 }

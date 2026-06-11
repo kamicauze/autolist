@@ -14,6 +14,7 @@ import { nanoid } from "nanoid";
 
 import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
+import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 export type CreateListingInput = {
@@ -104,6 +105,7 @@ type EditableListingRecord = {
     id: string;
     seller_id: string;
     dealer_id: string | null;
+    assigned_agent_id: string | null;
     status: ListingStatus;
     make: string;
     model: string;
@@ -137,7 +139,7 @@ async function getEditableListingAccess(
 ) {
     const { data: listing, error } = await supabase
         .from("listings")
-        .select("id, seller_id, dealer_id, status, make, model, year, metadata")
+        .select("id, seller_id, dealer_id, assigned_agent_id, status, make, model, year, metadata")
         .eq("id", listingId)
         .maybeSingle<EditableListingRecord>();
 
@@ -152,6 +154,17 @@ async function getEditableListingAccess(
     const role = await getProfileRole(supabase, userId);
     if (role === "admin" || role === "super_admin") {
         return { listing, canAdminister: true } as const;
+    }
+
+    // Sales reps with scoped 'listings.manage' may edit their dealership's listings.
+    const repContext = await getSalesAgentViewerContext();
+    if (
+        repContext &&
+        repContext.permissions.includes("listings.manage") &&
+        listing.seller_id === repContext.principalProfileId &&
+        (repContext.listingsScope === "all" || listing.assigned_agent_id === repContext.id)
+    ) {
+        return { listing, canAdminister: false } as const;
     }
 
     return { error: "Listing not found or not editable." } as const;
@@ -716,23 +729,16 @@ export async function updateOwnerListingStatus(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    const { data: listing, error: listingError } = await supabase
-        .from("listings")
-        .select("id")
-        .eq("id", id)
-        .eq("seller_id", user.id)
-        .maybeSingle();
-
-    if (listingError || !listing) {
-        return { error: listingError?.message || "Listing not found." };
+    const access = await getEditableListingAccess(supabase, user.id, id);
+    if ("error" in access) {
+        return { error: access.error };
     }
 
-    const adminSupabase = createAdminClient();
-    const { error } = await adminSupabase
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const { error } = await writeSupabase
         .from("listings")
         .update({ status, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .eq("seller_id", user.id);
+        .eq("id", id);
 
     if (error) {
         return { error: error.message };
@@ -1411,19 +1417,17 @@ export async function submitListingForReview(listingId: string) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
 
-    // Fetch the draft listing to check for a linked dealer
-    const { data: listing, error: fetchError } = await supabase
-        .from('listings')
-        .select('id, dealer_id')
-        .eq('id', listingId)
-        .eq('seller_id', user.id)
-        .eq('status', 'draft')
-        .single();
-
-    if (fetchError || !listing) {
-        console.error("Submit for Review Error:", fetchError);
-        return { error: fetchError?.message || "Listing not found or not in draft status." };
+    // Resolve access (owner, admin, or a rep with scoped listings.manage)
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) {
+        console.error("Submit for Review Error:", access.error);
+        return { error: access.error };
     }
+    const listing = access.listing;
+    if (listing.status !== "draft") {
+        return { error: "Listing is not in draft status." };
+    }
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 
     const { count: imageCount, error: imageCountError } = await supabase
         .from('listing_images')
@@ -1454,7 +1458,7 @@ export async function submitListingForReview(listingId: string) {
 
     const newStatus = autoApproved ? 'active' : 'pending';
 
-    const { error } = await supabase
+    const { error } = await writeSupabase
         .from('listings')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', listingId)
@@ -1613,14 +1617,31 @@ export async function getMyListings() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized", data: [] };
 
-    const { data, error } = await supabase
+    // Sales reps see the dealership's listings they're permitted to manage
+    // (scoped to their assignments when listings_scope = 'assigned').
+    const repContext = await getSalesAgentViewerContext();
+
+    let query = supabase
         .from('listings')
         .select(`
             *,
             images:listing_images(id, r2_key, alt_text, image_order)
         `)
-        .eq('seller_id', user.id)
         .order('created_at', { ascending: false });
+
+    if (repContext) {
+        if (!repContext.permissions.includes("listings.manage")) {
+            return { data: [] };
+        }
+        query = query.eq('seller_id', repContext.principalProfileId);
+        if (repContext.listingsScope === 'assigned') {
+            query = query.eq('assigned_agent_id', repContext.id);
+        }
+    } else {
+        query = query.eq('seller_id', user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("Get My Listings Error:", error);

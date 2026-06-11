@@ -20,6 +20,7 @@ export interface Listing {
   id: string;
   seller_id: string;
   dealer_id: string | null;
+  assigned_agent_id?: string | null;
   status: ListingStatus;
 
   // Vehicle Data

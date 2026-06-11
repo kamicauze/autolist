@@ -22,6 +22,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 import type { DashboardAccountKind } from "@/lib/data/dashboard-account";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
+import type { SalesAgentPermission } from "@/lib/constants/sales-agent-permissions";
 import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 
 const sellerNav = [
@@ -35,6 +36,30 @@ const sellerNav = [
   { name: "Account Verification", href: "/dashboard/verification", icon: ShieldCheck },
 ];
 
+const salesAgentBaseNav = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Profile", href: "/dashboard/profile", icon: User },
+];
+
+// Maps a granted permission to the dashboard section it unlocks for a rep.
+const salesAgentPermissionNav: {
+  permission: SalesAgentPermission;
+  item: { name: string; href: string; icon: typeof LayoutDashboard };
+}[] = [
+  { permission: "listings.manage", item: { name: "Listings", href: "/dashboard/listings", icon: ListOrdered } },
+  { permission: "enquiries.respond", item: { name: "Messages", href: "/dashboard/messages", icon: MessageSquare } },
+  { permission: "reviews.manage", item: { name: "Reviews", href: "/dashboard/reviews", icon: Star } },
+  { permission: "billing.view", item: { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck } },
+];
+
+function buildSalesAgentNav(permissions: SalesAgentPermission[]) {
+  const permitted = salesAgentPermissionNav
+    .filter(({ permission }) => permissions.includes(permission))
+    .map(({ item }) => item);
+  // Keep Dashboard first, then permitted sections, then Profile.
+  return [salesAgentBaseNav[0], ...permitted, salesAgentBaseNav[1]];
+}
+
 const dealerOnlyNav = [
   { name: "Sales Agents", href: "/dashboard/sales-agents", icon: UsersRound },
 ];
@@ -47,21 +72,38 @@ interface SidebarProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
   accountKind: DashboardAccountKind;
   packageAccess: SellerPackageAccessState;
+  salesAgentPermissions?: SalesAgentPermission[] | null;
   open: boolean;
   onClose: () => void;
 }
 
-export function Sidebar({ user, accountKind, packageAccess, open, onClose }: SidebarProps) {
+export function Sidebar({
+  user,
+  accountKind,
+  packageAccess,
+  salesAgentPermissions,
+  open,
+  onClose,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
+  const isSalesAgent = Boolean(salesAgentPermissions);
   const displayName =
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
     "Seller";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-  const navItems = accountKind === "dealer" ? [...sellerNav, ...dealerOnlyNav] : sellerNav;
-  const menuLabel = accountKind === "dealer" ? "Dealer Menu" : "Seller Menu";
+  const navItems = isSalesAgent
+    ? buildSalesAgentNav(salesAgentPermissions ?? [])
+    : accountKind === "dealer"
+      ? [...sellerNav, ...dealerOnlyNav]
+      : sellerNav;
+  const menuLabel = isSalesAgent
+    ? "Sales Rep Menu"
+    : accountKind === "dealer"
+      ? "Dealer Menu"
+      : "Seller Menu";
   void packageAccess;
 
   const handleSignOut = async () => {

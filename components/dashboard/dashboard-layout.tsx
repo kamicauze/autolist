@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { DashboardAccountKind } from "@/lib/data/dashboard-account";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
+import type { SalesAgentPermission } from "@/lib/constants/sales-agent-permissions";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./topnav";
 
@@ -10,10 +11,17 @@ interface DashboardLayoutProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
   accountKind: DashboardAccountKind;
   packageAccess: SellerPackageAccessState;
+  salesAgentPermissions?: SalesAgentPermission[] | null;
   children: React.ReactNode;
 }
 
-export function DashboardLayout({ user, accountKind, packageAccess, children }: DashboardLayoutProps) {
+export function DashboardLayout({
+  user,
+  accountKind,
+  packageAccess,
+  salesAgentPermissions,
+  children,
+}: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
@@ -22,6 +30,7 @@ export function DashboardLayout({ user, accountKind, packageAccess, children }: 
         user={user}
         accountKind={accountKind}
         packageAccess={packageAccess}
+        salesAgentPermissions={salesAgentPermissions}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

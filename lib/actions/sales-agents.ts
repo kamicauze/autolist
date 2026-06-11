@@ -11,10 +11,15 @@ import {
   SALES_AGENT_SELECT,
 } from "@/lib/server/sales-agent-invites";
 import { createClient } from "@/lib/supabase/server";
+import {
+  sanitizeSalesAgentPermissions,
+  type SalesAgentPermission,
+} from "@/lib/constants/sales-agent-permissions";
 import type {
   DealerSalesAgentOwner,
   SalesAgent,
   SalesAgentActionResult,
+  SalesAgentListingsScope,
   SalesAgentStatus,
 } from "@/lib/types/sales-agents";
 
@@ -32,6 +37,8 @@ type AgentFormResult =
         is_verified: boolean;
         whatsapp_enabled: boolean;
         hide_phone_number: boolean;
+        permissions: SalesAgentPermission[];
+        listings_scope: SalesAgentListingsScope;
       };
     }
   | { error: string };
@@ -97,6 +104,10 @@ function validateAgentForm(formData: FormData): AgentFormResult {
       is_verified: readBoolean(formData, "is_verified"),
       whatsapp_enabled: readBoolean(formData, "whatsapp_enabled"),
       hide_phone_number: readBoolean(formData, "hide_phone_number"),
+      permissions: sanitizeSalesAgentPermissions(
+        formData.getAll("permissions").filter((value): value is string => typeof value === "string")
+      ),
+      listings_scope: readString(formData, "listings_scope") === "assigned" ? "assigned" : "all",
     },
   };
 }
@@ -303,6 +314,41 @@ export async function deactivateSalesAgent(agentId: string): Promise<SalesAgentA
 
   revalidatePath("/dashboard/sales-agents");
   return { success: true, agent: mapAgent(data) };
+}
+
+export async function assignListingToSalesRep(
+  listingId: string,
+  agentId: string | null
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient();
+  const owner = await getDealerOwner(supabase);
+  if ("error" in owner) return { error: owner.error };
+
+  if (agentId) {
+    const { data: agent, error: agentError } = await supabase
+      .from("dealer_sales_agents")
+      .select("id")
+      .eq("id", agentId)
+      .eq("dealer_id", owner.dealer.id)
+      .eq("profile_id", owner.userId)
+      .eq("status", "active")
+      .maybeSingle<{ id: string }>();
+
+    if (agentError) return { error: agentError.message };
+    if (!agent) return { error: "That sales rep is not part of your dealership." };
+  }
+
+  const { error } = await supabase
+    .from("listings")
+    .update({ assigned_agent_id: agentId, updated_at: new Date().toISOString() })
+    .eq("id", listingId)
+    .eq("seller_id", owner.userId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/listings");
+  revalidatePath("/dashboard/sales-agents");
+  return { success: true };
 }
 
 export async function resendSalesAgentInvite(agentId: string): Promise<SalesAgentActionResult> {

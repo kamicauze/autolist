@@ -47,6 +47,19 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
     return { error: "Unauthorized" };
   }
 
+  // billing.view is read-only — reps cannot purchase/activate the dealer's plan.
+  const { data: repRow } = await supabase
+    .from("dealer_sales_agents")
+    .select("id")
+    .eq("agent_profile_id", user.id)
+    .eq("status", "active")
+    .eq("invite_status", "accepted")
+    .maybeSingle<{ id: string }>();
+
+  if (repRow) {
+    return { error: "Sales reps have read-only access to dealership billing." };
+  }
+
   const plan = getSellerPackagePlan(planId);
   if (!plan) {
     return { error: "Unknown seller package." };

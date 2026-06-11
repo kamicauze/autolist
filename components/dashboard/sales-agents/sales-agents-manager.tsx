@@ -27,6 +27,7 @@ import type {
   SalesAgent,
   SalesAgentStatus,
 } from "@/lib/types/sales-agents";
+import { SALES_AGENT_PERMISSIONS } from "@/lib/constants/sales-agent-permissions";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -218,6 +219,55 @@ function SalesAgentForm({
             {item.label}
           </label>
         ))}
+      </div>
+
+      <div className="rounded-[14px] border border-[#ededed] bg-[#fafafa] p-4">
+        <p className="text-[13px] font-semibold text-[#24272c]">Dealership permissions</p>
+        <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+          Choose what this rep can do on behalf of the dealership. Adding or managing other sales
+          reps stays restricted to you.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {SALES_AGENT_PERMISSIONS.map((permission) => (
+            <label
+              key={permission.key}
+              className="flex items-start gap-3 rounded-[12px] border border-[#ededed] bg-white px-3 py-3 text-[13px] text-[#24272c]"
+            >
+              <input
+                type="checkbox"
+                name="permissions"
+                value={permission.key}
+                defaultChecked={agent?.permissions?.includes(permission.key) ?? false}
+                className="mt-0.5 h-4 w-4 rounded border-[#d1d5db] accent-[#2563eb]"
+              />
+              <span>
+                <span className="block font-medium">{permission.label}</span>
+                <span className="mt-0.5 block text-[12px] leading-5 text-[#6b7280]">
+                  {permission.description}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-3 border-t border-[#ededed] pt-3">
+          <label htmlFor={`${formId}-listings-scope`} className={sellerLabelClass}>
+            Listings access
+          </label>
+          <select
+            id={`${formId}-listings-scope`}
+            name="listings_scope"
+            defaultValue={agent?.listings_scope ?? "all"}
+            className={sellerSelectClass}
+          >
+            <option value="all">All dealership listings</option>
+            <option value="assigned">Only listings assigned to this rep</option>
+          </select>
+          <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+            Applies when “Manage listings” is enabled. Assign listings to a rep from the listings
+            page.
+          </p>
+        </div>
       </div>
 
       {error ? (
@@ -549,6 +599,22 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                               </span>
                             ) : null}
                           </div>
+                          {agent.permissions && agent.permissions.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {SALES_AGENT_PERMISSIONS.filter((permission) =>
+                                agent.permissions.includes(permission.key)
+                              ).map((permission) => (
+                                <span
+                                  key={permission.key}
+                                  className="inline-flex items-center rounded-full bg-[#eef4ff] px-2 py-0.5 text-[11px] font-medium text-[#2563eb]"
+                                >
+                                  {permission.label}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[11px] text-[#9ca3af]">No dealership permissions</p>
+                          )}
                         </div>
                       </div>
                     </td>
