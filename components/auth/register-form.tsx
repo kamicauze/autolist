@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
@@ -124,8 +125,9 @@ export function RegisterForm() {
     setIsLoading(true);
 
     const supabase = createClient();
+    const normalizedEmail = normalizeAuthEmail(email);
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: getAuthCallbackUrl(nextPath),

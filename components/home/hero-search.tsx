@@ -219,10 +219,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     });
   };
 
-  const formattedCount = React.useMemo(
-    () => new Intl.NumberFormat("en-US").format(matchingCount),
-    [matchingCount]
-  );
+  const browseAllHref = `/search?category=${encodeURIComponent(activeCategory)}`;
   const heroDescription =
     activeCategory === "car"
       ? "Narrow by location, make, model, year and the key car filters from the design."
@@ -693,12 +690,12 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             "relative z-10",
             hasSponsoredHero
               ? "order-2 mt-3 lg:order-1 lg:mt-0 lg:flex lg:h-full lg:items-center"
-              : "-mt-10 sm:-mt-12 md:-mt-14"
+              : "-mt-14 sm:-mt-16 md:-mt-30"
           )}
         >
           <div
             className={cn(
-              "mx-auto mb-3 flex max-w-[980px] justify-center",
+              "mx-auto mb-3 flex max-w-[980px] justify-end",
               hasSponsoredHero && "max-w-none"
             )}
           >
@@ -795,9 +792,12 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-[#d7dbe3] bg-[#f7f9fc] px-3 py-1.5 text-[12px] font-semibold text-[#202224]">
-                      {formattedCount} {activeConfig.resultLabelPlural} live
-                    </span>
+                    <Link
+                      href={browseAllHref}
+                      className="rounded-full border border-[#d7dbe3] bg-[#f7f9fc] px-3 py-1.5 text-[12px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
+                    >
+                      Browse all
+                    </Link>
                   </div>
                 </div>
 
