@@ -1434,65 +1434,6 @@ export function WizardProvider({
         return;
       }
 
-      if (!isEditing) {
-        if (isLoadingPackageAccess) {
-          setSubmitError("Checking your seller package access. Please try again in a moment.");
-          setSubmitIssues([
-            {
-              message: "Seller package access is still loading.",
-              stepIndex: 8,
-            },
-          ]);
-          return;
-        }
-
-        if (packageAccessError) {
-          setSubmitError(packageAccessError);
-          setSubmitIssues([
-            {
-              message: packageAccessError,
-              stepIndex: 8,
-            },
-          ]);
-          return;
-        }
-
-        if (!packageAccess?.hasActivePlan) {
-          setSubmitError("Choose a seller package before publishing this listing.");
-          setSubmitIssues([
-            {
-              message: "Activate a seller package from Membership before you submit this listing.",
-              stepIndex: 8,
-            },
-          ]);
-          return;
-        }
-
-        if (!packageAccess.canCreateListing) {
-          const currentPlanName = packageAccess.currentPlan?.name || "current";
-          setSubmitError(
-            `Your ${currentPlanName} package has no listing slots left. Upgrade or switch package before publishing this listing.`
-          );
-          setSubmitIssues([
-            {
-              message: `Your ${currentPlanName} package has reached its listing limit.`,
-              stepIndex: 8,
-            },
-          ]);
-          return;
-        }
-      }
-
-      const {
-        createListing,
-        submitListingForReview,
-        updateListing,
-        uploadListingDocuments,
-        uploadListingImages,
-        uploadListingVideo,
-        reorderListingImages,
-      } = await import("@/lib/actions/listings");
-
       const shouldSubmitVariant = draft.category !== "car" || isComplexVariantMake(draft.details.make);
       const submissionDetails = {
         ...draft.details,
@@ -1541,6 +1482,16 @@ export function WizardProvider({
       setSubmitError(null);
       setSubmitIssues([]);
       try {
+        const {
+          createListing,
+          submitListingForReview,
+          updateListing,
+          uploadListingDocuments,
+          uploadListingImages,
+          uploadListingVideo,
+          reorderListingImages,
+        } = await import("@/lib/actions/listings");
+
         let listingId = editingListingId;
 
         if (isEditing && listingId) {
@@ -1700,7 +1651,8 @@ export function WizardProvider({
 
         localStorage.removeItem(storageKey);
         setSubmitted(true);
-      } catch {
+      } catch (error) {
+        console.error("Listing submission failed", error);
         setSubmitError("An unexpected error occurred. Please try again.");
         setSubmitIssues([]);
       } finally {

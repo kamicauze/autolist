@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
-import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { revalidatePath } from "next/cache";
 import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
 import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notifications";
@@ -373,24 +372,6 @@ export async function createListing(input: ListingFormData) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return { error: "Unauthorized" };
-
-    const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id);
-    if (packageAccessResult.error) {
-        return { error: packageAccessResult.error };
-    }
-
-    if (!packageAccessResult.access.hasActivePlan) {
-        return {
-            error: "Choose a seller package before creating a new listing.",
-        };
-    }
-
-    if (!packageAccessResult.access.canCreateListing) {
-        const currentPlanName = packageAccessResult.access.currentPlan?.name || "current";
-        return {
-            error: `Your ${currentPlanName} package has no listing slots left. Upgrade or switch package to add another listing.`,
-        };
-    }
 
     // Check if the user is a dealer and fetch their dealer record
     const { data: dealer } = await supabase
@@ -1455,24 +1436,6 @@ export async function submitListingForReview(listingId: string) {
 
     if ((imageCount ?? 0) < 3) {
         return { error: "Minimum 3 listing images are required before submission." };
-    }
-
-    const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id, {
-        ignoreListingId: listingId,
-    });
-    if (packageAccessResult.error) {
-        return { error: packageAccessResult.error };
-    }
-
-    if (!packageAccessResult.access.hasActivePlan) {
-        return { error: "Choose a seller package before publishing this listing." };
-    }
-
-    if (!packageAccessResult.access.canCreateListing) {
-        const currentPlanName = packageAccessResult.access.currentPlan?.name || "current";
-        return {
-            error: `Your ${currentPlanName} package has reached its listing limit. Upgrade or remove another listing before publishing this one.`,
-        };
     }
 
     // Check if linked dealer is verified → auto-approve

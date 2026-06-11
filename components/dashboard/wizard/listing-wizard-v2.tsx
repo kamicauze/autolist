@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,13 @@ function WizardContent({
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
   const isAdminMode = mode === "admin";
+
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (submitError) {
+      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [submitError]);
 
   const footerMeta =
       activeStep === 3
@@ -263,7 +271,7 @@ function WizardContent({
         }
       >
         {submitError ? (
-          <div className="mb-5 rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-4 text-[14px] text-[#d92d20]">
+          <div ref={errorRef} className="mb-5 rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-4 text-[14px] text-[#d92d20]">
             <p className="font-semibold text-[#d92d20]">Submission Error</p>
             <p className="mt-1">{submitError}</p>
             {submitIssues.length > 0 ? (
