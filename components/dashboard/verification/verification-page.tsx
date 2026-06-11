@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   UploadCloud,
 } from "lucide-react";
+import Image from "next/image";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import {
   SellerPageHeader,
@@ -259,16 +260,31 @@ export async function VerificationPage() {
             </h2>
             <div className="mt-5 space-y-4">
               <div className="rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Dealer</p>
-                <p className="mt-3 text-[15px] font-semibold text-[#202224]">
-                  {dealer?.name || "Not created yet"}
-                </p>
-                <p className="mt-1 text-[14px] text-[#707070]">
-                  {dealer?.email || "Complete dealer registration to attach business details."}
-                </p>
-                {dealer?.mobile ? (
-                  <p className="mt-1 text-[14px] text-[#707070]">{dealer.mobile}</p>
-                ) : null}
+                <div className="flex items-start gap-4">
+                  {dealer?.logo_url ? (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-[#e6e6e6] bg-white">
+                      <Image
+                        src={dealer.logo_url}
+                        alt={`${dealer.name} logo`}
+                        fill
+                        sizes="64px"
+                        className="object-contain p-2"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Dealer</p>
+                    <p className="mt-3 text-[15px] font-semibold text-[#202224]">
+                      {dealer?.name || "Not created yet"}
+                    </p>
+                    <p className="mt-1 text-[14px] text-[#707070]">
+                      {dealer?.email || "Complete dealer registration to attach business details."}
+                    </p>
+                    {dealer?.mobile ? (
+                      <p className="mt-1 text-[14px] text-[#707070]">{dealer.mobile}</p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
               <div className="rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Timeline</p>

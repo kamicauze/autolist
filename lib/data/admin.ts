@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { filterAdminVisibleSupportTickets } from "@/lib/data/support-ticket-filters";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import type { AdReportPriority, AdReportStatus, AdReportTargetType } from "@/lib/types/ad-report";
 import type { ListingStatus } from "@/lib/types/listing";
@@ -59,6 +60,7 @@ type ListingRow = {
 type TicketRow = {
   id: string;
   subject: string;
+  category: string;
   priority: "low" | "medium" | "high" | "urgent";
   status: "open" | "triaged" | "waiting_on_seller" | "waiting_on_buyer" | "resolved" | "closed";
   updated_at: string;
@@ -1011,6 +1013,8 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+          .neq("category", "listing_enquiry")
+          .neq("category", "public_listing_enquiry")
       ),
       readCount(
         supabase
@@ -1018,6 +1022,8 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
           .in("priority", ["high", "urgent"])
+          .neq("category", "listing_enquiry")
+          .neq("category", "public_listing_enquiry")
       ),
       supabase
         .from("listing_reports")
@@ -1102,6 +1108,8 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+          .neq("category", "listing_enquiry")
+          .neq("category", "public_listing_enquiry")
       ),
       supabase
         .from("listings")
@@ -1148,6 +1156,7 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
           `
             id,
             subject,
+            category,
             priority,
             status,
             updated_at,
@@ -1204,7 +1213,9 @@ export const getAdminDashboardData = cache(async (): Promise<AdminDashboardData>
       recentUsers: ((recentProfilesResult.data || []) as ProfileRow[]).map((profile) =>
         normalizeUser(profile, dealerByProfileId, listingCountsBySellerId)
       ),
-      recentTickets: ((recentTicketsResult.data || []) as unknown as TicketRow[]).map(normalizeTicket),
+      recentTickets: filterAdminVisibleSupportTickets(
+        (recentTicketsResult.data || []) as unknown as TicketRow[]
+      ).map(normalizeTicket),
       pendingDealers: ((pendingDealersResult.data || []) as unknown as DealerRow[]).map((dealer) => {
         const profile = firstRelation(dealer.profile);
         return {
@@ -1737,14 +1748,16 @@ export const getAdminReportsData = cache(
         listingReportEvents = reportRows.slice(0, eventLimit).map(normalizeListingReportEvent);
       }
 
-      const supportTickets = ((ticketsResult.data || []) as unknown as ReportTicketRow[]).map(normalizeReportTicket);
+      const supportTickets = filterAdminVisibleSupportTickets(
+        (ticketsResult.data || []) as unknown as ReportTicketRow[]
+      ).map(normalizeReportTicket);
       const tickets = [...listingReports, ...supportTickets]
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
         .slice(0, ticketLimit);
       const ticketById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
-      const supportEvents = ((eventsResult.data || []) as unknown as TicketEventRow[]).map((event) =>
-        normalizeReportEvent(event, ticketById)
-      );
+      const supportEvents = ((eventsResult.data || []) as unknown as TicketEventRow[])
+        .filter((event) => ticketById.has(event.ticket_id))
+        .map((event) => normalizeReportEvent(event, ticketById));
 
       return {
         stats: {
@@ -1812,6 +1825,8 @@ export const getAdminAnalyticsData = cache(async (): Promise<AdminAnalyticsData>
           .from("support_tickets")
           .select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+          .neq("category", "listing_enquiry")
+          .neq("category", "public_listing_enquiry")
       ),
       supabase
         .from("profiles")
@@ -1823,7 +1838,7 @@ export const getAdminAnalyticsData = cache(async (): Promise<AdminAnalyticsData>
         .gte("created_at", activityCutoff),
       supabase
         .from("support_tickets")
-        .select("created_at, status, priority"),
+        .select("created_at, status, priority, category"),
       supabase
         .from("payments")
         .select("amount, currency, status, purpose, provider, created_at"),
@@ -1832,11 +1847,12 @@ export const getAdminAnalyticsData = cache(async (): Promise<AdminAnalyticsData>
     ]);
 
     const paymentRows = (paymentSummaryResult.data || []) as unknown as PaymentRow[];
-    const ticketRows = (ticketSummaryResult.data || []) as Array<{
+    const ticketRows = filterAdminVisibleSupportTickets((ticketSummaryResult.data || []) as Array<{
       created_at: string;
       status: ReportTicketRow["status"];
       priority: ReportTicketRow["priority"];
-    }>;
+      category: string;
+    }>);
     const profileActivityRows = (profileActivityResult.data || []) as Array<{ created_at: string }>;
     const listingActivityRows = (listingActivityResult.data || []) as Array<{ created_at: string }>;
     const primaryCurrency = paymentCurrency(paymentRows);

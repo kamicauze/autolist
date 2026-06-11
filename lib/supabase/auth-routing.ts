@@ -19,6 +19,16 @@ export function sanitizeNextPath(
   return nextPath;
 }
 
+export function resolveDealerRegistrationPath(
+  dealerStatus: DealerStatus | null | undefined
+): string | null {
+  if (!dealerStatus) {
+    return null;
+  }
+
+  return dealerStatus === "APPROVED" ? "/dashboard" : "/dashboard/verification";
+}
+
 export async function resolvePostAuthPath(
   supabase: SupabaseClient,
   userId: string,
@@ -52,7 +62,7 @@ export async function resolvePostAuthPath(
       return "/register/dealer";
     }
 
-    return dealerProfile.status === "APPROVED" ? "/dashboard" : "/dashboard/verification";
+    return resolveDealerRegistrationPath(dealerProfile.status) ?? "/dashboard/verification";
   }
 
   if (profile.role === "admin" || profile.role === "super_admin") {

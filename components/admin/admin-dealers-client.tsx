@@ -131,17 +131,32 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        Dealership
-                      </p>
-                      <div className="mt-3 space-y-1 text-sm text-slate-700">
-                        <p>{dealer.business_name || dealer.name}</p>
-                        <p>{dealer.address || "No address provided"}</p>
-                        <p>
-                          {[dealer.city, dealer.location].filter(Boolean).join(" • ") || "No location"}
-                        </p>
-                        <p>{dealer.email}</p>
-                        <p>{dealer.mobile}</p>
+                      <div className="flex items-start gap-3">
+                        {dealer.logo_url ? (
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                            <Image
+                              src={dealer.logo_url}
+                              alt={`${dealer.name} logo`}
+                              fill
+                              sizes="56px"
+                              className="object-contain p-2"
+                            />
+                          </div>
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Dealership
+                          </p>
+                          <div className="mt-3 space-y-1 text-sm text-slate-700">
+                            <p>{dealer.business_name || dealer.name}</p>
+                            <p>{dealer.address || "No address provided"}</p>
+                            <p>
+                              {[dealer.city, dealer.location].filter(Boolean).join(" • ") || "No location"}
+                            </p>
+                            <p>{dealer.email}</p>
+                            <p>{dealer.mobile}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 

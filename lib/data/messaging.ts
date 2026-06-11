@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
+import { filterAdminVisibleSupportTickets } from "@/lib/data/support-ticket-filters";
 import type {
   MessagingCenterData,
   MessagingViewer,
@@ -319,56 +320,59 @@ export const getSupportQueueData = cache(async (): Promise<SupportQueueData | nu
     };
   }
 
-  const tickets = ((data || []) as unknown as TicketRow[]).map((ticket) => {
-    const assignee = firstRelation(ticket.assigned_to_profile);
-    const creator = firstRelation(ticket.created_by_profile);
-    const listing = firstRelation(ticket.listing);
-    const thread = firstRelation(ticket.thread);
-    const threadBuyer = firstRelation(thread?.buyer);
-    const threadSeller = firstRelation(thread?.seller);
+  const tickets = filterAdminVisibleSupportTickets((data || []) as unknown as TicketRow[]).map(
+    (ticket) => {
+      const assignee = firstRelation(ticket.assigned_to_profile);
+      const creator = firstRelation(ticket.created_by_profile);
+      const listing = firstRelation(ticket.listing);
+      const thread = firstRelation(ticket.thread);
+      const threadBuyer = firstRelation(thread?.buyer);
+      const threadSeller = firstRelation(thread?.seller);
 
-    return ({
-    id: ticket.id,
-    threadId: ticket.thread_id,
-    subject: ticket.subject,
-    category: ticket.category,
-    priority: ticket.priority,
-    status: ticket.status,
-    customerSummary: ticket.customer_summary,
-    internalNote: ticket.internal_note,
-    resolutionNote: ticket.resolution_note,
-    createdAt: ticket.created_at,
-    updatedAt: ticket.updated_at,
-    assignedTo: assignee
-      ? {
-          id: assignee.id,
-          fullName: assignee.full_name,
-          email: assignee.email,
-        }
-      : null,
-    createdBy: creator
-      ? {
-          id: creator.id,
-          fullName: creator.full_name,
-          email: creator.email,
-        }
-      : null,
-    listing: listing
-      ? {
-          id: listing.id,
-          title: threadListingTitle([listing]),
-        }
-      : null,
-    thread: thread
-      ? {
-          id: thread.id,
-          status: thread.status,
-          buyerName: threadBuyer?.full_name || null,
-          sellerName: threadSeller?.full_name || null,
-          lastMessagePreview: thread.last_message_preview,
-        }
-      : null,
-  })});
+      return {
+        id: ticket.id,
+        threadId: ticket.thread_id,
+        subject: ticket.subject,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: ticket.status,
+        customerSummary: ticket.customer_summary,
+        internalNote: ticket.internal_note,
+        resolutionNote: ticket.resolution_note,
+        createdAt: ticket.created_at,
+        updatedAt: ticket.updated_at,
+        assignedTo: assignee
+          ? {
+              id: assignee.id,
+              fullName: assignee.full_name,
+              email: assignee.email,
+            }
+          : null,
+        createdBy: creator
+          ? {
+              id: creator.id,
+              fullName: creator.full_name,
+              email: creator.email,
+            }
+          : null,
+        listing: listing
+          ? {
+              id: listing.id,
+              title: threadListingTitle([listing]),
+            }
+          : null,
+        thread: thread
+          ? {
+              id: thread.id,
+              status: thread.status,
+              buyerName: threadBuyer?.full_name || null,
+              sellerName: threadSeller?.full_name || null,
+              lastMessagePreview: thread.last_message_preview,
+            }
+          : null,
+      };
+    }
+  );
 
   const today = new Date().toISOString().slice(0, 10);
 

@@ -5,6 +5,11 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { r2 } from "@/lib/r2";
 import { requireAdminAction } from "@/lib/admin/guard";
+import {
+  isDealerVerificationDocumentsUnavailable,
+  schemaErrorIncludes,
+  type PostgrestSchemaError,
+} from "@/lib/data/dealer-verification-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/utils/listings";
@@ -41,13 +46,6 @@ const DOC_ACCEPTED_TYPES = new Set([
 ]);
 const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-type PostgrestSchemaError = {
-  message?: string | null;
-  details?: string | null;
-  hint?: string | null;
-  code?: string | null;
-};
-
 function requiredString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
@@ -71,13 +69,6 @@ function sanitizeFileName(fileName: string) {
   return fileName.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
 }
 
-function schemaErrorIncludes(error: PostgrestSchemaError | null | undefined, value: string) {
-  if (!error) return false;
-  return [error.message, error.details, error.hint].some((part) =>
-    typeof part === "string" ? part.includes(value) : false
-  );
-}
-
 function omitUpdateKeys(source: Record<string, unknown>, keys: string[]) {
   const next = { ...source };
   for (const key of keys) {
@@ -98,7 +89,7 @@ function isMissingDealerWorkflowColumns(error: PostgrestSchemaError | null | und
 }
 
 function isMissingDealerVerificationDocumentsTable(error: PostgrestSchemaError | null | undefined) {
-  return schemaErrorIncludes(error, "dealer_verification_documents");
+  return isDealerVerificationDocumentsUnavailable(error);
 }
 
 function isMissingDealerDocumentColumn(error: PostgrestSchemaError | null | undefined) {

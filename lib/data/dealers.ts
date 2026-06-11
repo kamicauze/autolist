@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isDealerVerificationSchemaMismatch } from "@/lib/data/dealer-verification-schema";
 import type { Listing } from "@/lib/types/listing";
 import type {
   DealerProfile,
@@ -92,32 +93,6 @@ const DEALER_VERIFICATION_LEGACY_SELECT = `
   *,
   profile:profiles!profile_id(id, full_name, email)
 `;
-
-type PostgrestSchemaError = {
-  message?: string | null;
-  details?: string | null;
-  hint?: string | null;
-  code?: string | null;
-};
-
-function schemaErrorIncludes(error: PostgrestSchemaError | null | undefined, value: string) {
-  if (!error) return false;
-  return [error.message, error.details, error.hint].some((part) =>
-    typeof part === "string" ? part.includes(value) : false
-  );
-}
-
-function isDealerVerificationSchemaMismatch(error: PostgrestSchemaError | null | undefined) {
-  return [
-    "dealer_verification_documents",
-    "submitted_at",
-    "reviewed_by",
-    "reviewed_at",
-    "review_notes",
-    "verification_notes",
-    "preferred_confirmation_channel",
-  ].some((value) => schemaErrorIncludes(error, value));
-}
 
 function buildLegacyDocuments(record: DealerProfile): DealerVerificationDocument[] {
   const contactPhotoUrl = record.contact_person?.photo_url ?? null;
