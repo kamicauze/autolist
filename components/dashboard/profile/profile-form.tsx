@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { deactivateMyAccount } from "@/lib/actions/account";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
@@ -721,6 +722,83 @@ export function ProfileForm({
           </div>
         </form>
       </SellerSurface>
+
+      <DeactivateAccountSection />
     </div>
+  );
+}
+
+function DeactivateAccountSection() {
+  const router = useRouter();
+  const [confirming, setConfirming] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleDeactivate = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await deactivateMyAccount();
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      router.replace("/account-deactivated");
+      router.refresh();
+    });
+  };
+
+  return (
+    <SellerSurface className="mt-6 border-[#fecaca] p-6">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fef2f2] text-[#dc2626]">
+          <ShieldAlert className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Deactivate account</h2>
+          <p className="mt-1 text-[13px] leading-6 text-[#7b7b7b]">
+            Deactivating signs you out and disables sign-in for this account. Your listings and data
+            are kept, but the account can only be reactivated by contacting support.
+          </p>
+
+          {error ? (
+            <p className="mt-3 rounded-[12px] border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-[13px] text-[#b42318]">
+              {error}
+            </p>
+          ) : null}
+
+          {confirming ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <span className="text-[13px] font-medium text-[#202224]">
+                Are you sure? This will sign you out immediately.
+              </span>
+              <button
+                type="button"
+                onClick={handleDeactivate}
+                disabled={isPending}
+                className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#dc2626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPending ? "Deactivating..." : "Yes, deactivate"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={isPending}
+                className="inline-flex h-10 items-center justify-center rounded-[12px] border border-[#dbe3f5] bg-white px-4 text-[13px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff]"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-[12px] border border-[#fecaca] bg-white px-4 text-[13px] font-semibold text-[#dc2626] transition hover:bg-[#fff1f2]"
+            >
+              Deactivate account
+            </button>
+          )}
+        </div>
+      </div>
+    </SellerSurface>
   );
 }

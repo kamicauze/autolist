@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { DealerSalesAgentOwner, SalesAgent } from "@/lib/types/sales-agents";
 
-type SalesAgentRow = Omit<SalesAgent, "listing_count">;
+type AgentProfileRelation = { deactivated_at: string | null };
+type SalesAgentRow = Omit<SalesAgent, "listing_count" | "account_deactivated"> & {
+  agent: AgentProfileRelation | AgentProfileRelation[] | null;
+};
 
 export async function getMyDealerForSalesAgents(): Promise<DealerSalesAgentOwner | null> {
   const supabase = await createClient();
@@ -63,7 +66,7 @@ export async function getMySalesAgents(): Promise<{
   const { data, error } = await supabase
     .from("dealer_sales_agents")
     .select(
-      "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, permissions, listings_scope, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at"
+      "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, permissions, listings_scope, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at, agent:profiles!agent_profile_id(deactivated_at)"
     )
     .eq("dealer_id", dealer.id)
     .eq("profile_id", user.id)
@@ -77,6 +80,13 @@ export async function getMySalesAgents(): Promise<{
 
   return {
     dealer,
-    agents: (data ?? []).map((agent) => ({ ...agent, listing_count: 0 })),
+    agents: (data ?? []).map(({ agent, ...row }) => {
+      const profile = Array.isArray(agent) ? agent[0] : agent;
+      return {
+        ...row,
+        listing_count: 0,
+        account_deactivated: Boolean(profile?.deactivated_at),
+      };
+    }),
   };
 }

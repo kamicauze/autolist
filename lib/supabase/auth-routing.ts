@@ -34,18 +34,23 @@ export async function resolvePostAuthPath(
   userId: string,
   requestedPath?: string | null
 ) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, deactivated_at")
+    .eq("id", userId)
+    .maybeSingle<{ role: ProfileRole; deactivated_at: string | null }>();
+
+  // Deactivated accounts are blocked regardless of any requested destination.
+  if (profile?.deactivated_at) {
+    return "/account-deactivated";
+  }
+
   const hasRequestedPath = Boolean(requestedPath);
   const safeRequestedPath = sanitizeNextPath(requestedPath, "");
   const requestedBasePath = safeRequestedPath.split("?")[0];
   if (hasRequestedPath && safeRequestedPath && !AUTH_PATHS.has(requestedBasePath)) {
     return safeRequestedPath;
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", userId)
-    .maybeSingle<{ role: ProfileRole }>();
 
   if (!profile) {
     return "/register/onboarding";

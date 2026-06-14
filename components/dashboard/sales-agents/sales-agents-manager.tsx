@@ -3,11 +3,13 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
+  Ban,
   CheckCircle2,
   Copy,
   Edit3,
   EyeOff,
   Link2,
+  LockOpen,
   MessageCircle,
   Plus,
   Search,
@@ -20,6 +22,7 @@ import {
   createSalesAgent,
   deactivateSalesAgent,
   resendSalesAgentInvite,
+  setSalesRepAccountDeactivated,
   updateSalesAgent,
 } from "@/lib/actions/sales-agents";
 import type {
@@ -300,6 +303,8 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
   const [isDeactivating, startDeactivateTransition] = React.useTransition();
   const [resendingId, setResendingId] = React.useState<string | null>(null);
   const [isResending, startResendTransition] = React.useTransition();
+  const [accountTogglingId, setAccountTogglingId] = React.useState<string | null>(null);
+  const [isTogglingAccount, startAccountToggleTransition] = React.useTransition();
 
   React.useEffect(() => {
     setItems(agents);
@@ -368,6 +373,35 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
         });
       }
 
+      router.refresh();
+    });
+  };
+
+  const handleToggleAccount = (agent: SalesAgent) => {
+    const nextDeactivated = !agent.account_deactivated;
+    const confirmed = window.confirm(
+      nextDeactivated
+        ? `Deactivate ${agent.name}'s account? They will be signed out and unable to log in until reactivated.`
+        : `Reactivate ${agent.name}'s account? They will be able to log in again.`
+    );
+    if (!confirmed) return;
+
+    setAccountTogglingId(agent.id);
+    setActionError(null);
+    startAccountToggleTransition(async () => {
+      const result = await setSalesRepAccountDeactivated(agent.id, nextDeactivated);
+      setAccountTogglingId(null);
+
+      if ("error" in result) {
+        setActionError(result.error);
+        return;
+      }
+
+      if (result.agent) {
+        setItems((current) =>
+          current.map((item) => (item.id === result.agent?.id ? result.agent : item))
+        );
+      }
       router.refresh();
     });
   };
@@ -682,6 +716,35 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                               ? "Saving..."
                               : "Deactivate"}
                         </button>
+                        {agent.invite_status === "accepted" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAccount(agent)}
+                            disabled={isTogglingAccount && accountTogglingId === agent.id}
+                            className={cn(
+                              "inline-flex h-10 items-center gap-2 rounded-[12px] border px-3 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+                              agent.account_deactivated
+                                ? "border-[#bbf7d0] bg-white text-[#16a34a] hover:bg-[#f0fdf4]"
+                                : "border-[#fed7aa] bg-white text-[#c2410c] hover:bg-[#fff7ed]"
+                            )}
+                            title={
+                              agent.account_deactivated
+                                ? "Re-enable this rep's login"
+                                : "Disable this rep's login"
+                            }
+                          >
+                            {agent.account_deactivated ? (
+                              <LockOpen className="h-4 w-4" />
+                            ) : (
+                              <Ban className="h-4 w-4" />
+                            )}
+                            {isTogglingAccount && accountTogglingId === agent.id
+                              ? "Saving..."
+                              : agent.account_deactivated
+                                ? "Reactivate account"
+                                : "Deactivate account"}
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

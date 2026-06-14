@@ -64,7 +64,14 @@ export function LoginForm() {
     });
 
     if (error) {
-      setErrorMessage(error.message);
+      const isDeactivated =
+        (error as { code?: string }).code === "user_banned" ||
+        /banned|deactiv/i.test(error.message);
+      setErrorMessage(
+        isDeactivated
+          ? "This account has been deactivated. Contact support to reactivate it."
+          : error.message
+      );
       setIsLoading(false);
       return;
     }

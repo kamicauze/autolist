@@ -27,6 +27,7 @@ import {
   type AdminUserActivityModule,
 } from "@/lib/data/admin-user-activity";
 import type { AdminUserActivityData } from "@/lib/data/admin-user-detail";
+import { AdminUserDeactivateControl } from "@/components/admin/admin-user-deactivate-control";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not set";
@@ -283,9 +284,15 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
       <AdminPageHeader
         title="User Activity"
         action={
-          <Link href="/admin/users" className={adminGhostButtonClass}>
-            Back to users
-          </Link>
+          <div className="flex items-center gap-3">
+            <AdminUserDeactivateControl
+              userId={profile.id}
+              isDeactivated={Boolean(profile.deactivated_at)}
+            />
+            <Link href="/admin/users" className={adminGhostButtonClass}>
+              Back to users
+            </Link>
+          </div>
         }
       />
 
@@ -311,6 +318,9 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
                     <AdminStatusPill label={profile.role} tone={statusTone(profile.role)} />
                     {dealer ? (
                       <AdminStatusPill label={dealer.status.toLowerCase()} tone={statusTone(dealer.status)} />
+                    ) : null}
+                    {profile.deactivated_at ? (
+                      <AdminStatusPill label="deactivated" tone="red" />
                     ) : null}
                   </div>
                   <p className="mt-2 max-w-[68ch] text-[13px] leading-6 text-[#475569]">

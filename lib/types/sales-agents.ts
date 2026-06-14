@@ -17,6 +17,7 @@ export interface SalesAgent {
   hide_phone_number: boolean;
   permissions: SalesAgentPermission[];
   listings_scope: SalesAgentListingsScope;
+  account_deactivated: boolean;
   invite_status: "not_sent" | "pending" | "accepted" | "expired" | "revoked";
   invite_expires_at: string | null;
   invite_sent_at: string | null;

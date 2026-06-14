@@ -11,6 +11,8 @@ import {
   SALES_AGENT_SELECT,
 } from "@/lib/server/sales-agent-invites";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { setAccountActivation } from "@/lib/server/account";
 import {
   sanitizeSalesAgentPermissions,
   type SalesAgentPermission,
@@ -23,7 +25,7 @@ import type {
   SalesAgentStatus,
 } from "@/lib/types/sales-agents";
 
-type SalesAgentRow = Omit<SalesAgent, "listing_count">;
+type SalesAgentRow = Omit<SalesAgent, "listing_count" | "account_deactivated">;
 type DealerOwnerResult =
   | { dealer: DealerSalesAgentOwner; userId: string }
   | { error: string };
@@ -142,8 +144,8 @@ async function getDealerOwner(
   return { dealer, userId: user.id };
 }
 
-function mapAgent(row: SalesAgentRow): SalesAgent {
-  return { ...row, listing_count: 0 };
+function mapAgent(row: SalesAgentRow, accountDeactivated = false): SalesAgent {
+  return { ...row, listing_count: 0, account_deactivated: accountDeactivated };
 }
 
 function buildInviteDraft(origin: string | null) {
@@ -349,6 +351,72 @@ export async function assignListingToSalesRep(
   revalidatePath("/dashboard/listings");
   revalidatePath("/dashboard/sales-agents");
   return { success: true };
+}
+
+export async function setSalesRepAccountDeactivated(
+  agentId: string,
+  deactivated: boolean
+): Promise<SalesAgentActionResult> {
+  const supabase = await createClient();
+  const owner = await getDealerOwner(supabase);
+  if ("error" in owner) return { error: owner.error };
+
+  const { data: agentRow, error: lookupError } = await supabase
+    .from("dealer_sales_agents")
+    .select("id, agent_profile_id")
+    .eq("id", agentId)
+    .eq("dealer_id", owner.dealer.id)
+    .eq("profile_id", owner.userId)
+    .maybeSingle<{ id: string; agent_profile_id: string | null }>();
+
+  if (lookupError) return { error: lookupError.message };
+  if (!agentRow) return { error: "Sales rep not found." };
+  if (!agentRow.agent_profile_id) {
+    return { error: "This rep hasn't set up their account yet." };
+  }
+
+  // Safety: only act on accounts that are actually sales-rep accounts.
+  let adminClient: ReturnType<typeof createAdminClient>;
+  try {
+    adminClient = createAdminClient();
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Account management is not configured.",
+    };
+  }
+
+  const { data: targetProfile } = await adminClient
+    .from("profiles")
+    .select("role")
+    .eq("id", agentRow.agent_profile_id)
+    .maybeSingle<{ role: string }>();
+
+  if (targetProfile && targetProfile.role !== "sales_agent") {
+    return { error: "This account is not a sales rep account." };
+  }
+
+  const result = await setAccountActivation({
+    userId: agentRow.agent_profile_id,
+    deactivated,
+    actorId: owner.userId,
+    reason: deactivated ? "Deactivated by dealership" : undefined,
+  });
+
+  if ("error" in result) return result;
+
+  const { data, error } = await supabase
+    .from("dealer_sales_agents")
+    .update({ status: deactivated ? "inactive" : "active" })
+    .eq("id", agentId)
+    .eq("dealer_id", owner.dealer.id)
+    .eq("profile_id", owner.userId)
+    .select(SALES_AGENT_SELECT)
+    .single<SalesAgentRow>();
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/sales-agents");
+  return { success: true, agent: mapAgent(data, deactivated) };
 }
 
 export async function resendSalesAgentInvite(agentId: string): Promise<SalesAgentActionResult> {

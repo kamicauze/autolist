@@ -35,6 +35,7 @@ type ProfileDetailRow = {
   city: string | null;
   address: string | null;
   website: string | null;
+  deactivated_at: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -350,7 +351,7 @@ export const getAdminUserActivityData = cache(
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(
-        "id, email, full_name, role, avatar_url, phone, whatsapp, bio, city, address, website, created_at, updated_at"
+        "id, email, full_name, role, avatar_url, phone, whatsapp, bio, city, address, website, deactivated_at, created_at, updated_at"
       )
       .eq("id", profileId)
       .maybeSingle<ProfileDetailRow>();
