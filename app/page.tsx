@@ -141,10 +141,6 @@ export default async function Home() {
         {/* Discover More from Autolist */}
         {cmsContent.sections.showDiscoverMore ? <DiscoverMore /> : null}
 
-        <Suspense fallback={<div className="h-[260px]" aria-hidden />}>
-          <PopularSearchesData />
-        </Suspense>
-
         {/* Sell Your Vehicle Section */}
         {cmsContent.sections.showSellVehicle ? <SellVehicleSection /> : null}
 
@@ -156,6 +152,10 @@ export default async function Home() {
 
         {/* News Section */}
         {cmsContent.sections.showNews ? <NewsSection /> : null}
+
+        <Suspense fallback={<div className="h-[260px]" aria-hidden />}>
+          <PopularSearchesData />
+        </Suspense>
 
         {/* What would you like to find? */}
         {cmsContent.sections.showBrandLogos ? <BrandLogos /> : null}
