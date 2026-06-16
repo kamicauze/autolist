@@ -89,6 +89,29 @@ const POPULAR_MAKES = new Set([
   "Isuzu",
 ]);
 
+// Most-searched models in the Kenya market — keyed "Make|Model" with the exact
+// names from the catalogue. Array order sets each model's sort_order so the
+// homepage shows them most-popular-first.
+const POPULAR_MODELS = [
+  "Toyota|Corolla",
+  "Nissan|X-Trail",
+  "Mazda|Demio",
+  "Subaru|Forester",
+  "Toyota|Harrier",
+  "Honda|Fit/Jazz",
+  "Toyota|Land Cruiser Prado",
+  "Nissan|Note",
+  "Toyota|Premio",
+  "Toyota|Probox",
+  "Mazda|CX-5",
+  "Subaru|Outback",
+  "Toyota|Hilux",
+  "Honda|Vezel",
+  "Mitsubishi|Outlander",
+  "Toyota|Corolla Fielder",
+];
+const POPULAR_MODEL_RANK = new Map(POPULAR_MODELS.map((key, i) => [key, i]));
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -136,6 +159,11 @@ async function main() {
 
     // ── Insert models ────────────────────────────────────────────────────
     for (const modelData of makeData.models) {
+      const popularRank = POPULAR_MODEL_RANK.get(
+        `${makeData.name}|${modelData.name}`
+      );
+      const isPopularModel = popularRank !== undefined;
+
       const { data: model, error: modelError } = await supabase
         .from("car_models")
         .upsert(
@@ -143,6 +171,8 @@ async function main() {
             make_id: makeId,
             name: modelData.name,
             slug: toSlug(modelData.name),
+            is_popular: isPopularModel,
+            ...(isPopularModel ? { sort_order: popularRank } : {}),
           },
           { onConflict: "make_id,slug" }
         )

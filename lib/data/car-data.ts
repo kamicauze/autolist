@@ -8,6 +8,8 @@ import {
 } from "@/lib/data/vehicle-reference-catalog";
 import { shapeVariantOptionsForMake } from "@/lib/utils/vehicle-variant-visibility";
 
+export type PopularModel = { make: string; model: string };
+
 // ── Server-side fetchers for car reference data ─────────────────────────────
 // These tables are small (~57 makes, ~850 models) so direct queries are fast.
 // Next.js request-level deduplication prevents redundant calls in the same render.
@@ -49,6 +51,30 @@ export async function getPopularMakes(): Promise<CarMake[]> {
   }
 
   return data as CarMake[];
+}
+
+/**
+ * Returns popular models (is_popular = true) with their make name,
+ * sorted by sort_order then name.
+ */
+export async function getPopularModels(): Promise<PopularModel[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("car_models")
+    .select("name, sort_order, make:car_makes!inner(name)")
+    .eq("is_popular", true)
+    .order("sort_order")
+    .order("name");
+
+  if (error) {
+    console.error("getPopularModels error:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    make: (row.make as unknown as { name: string }).name,
+    model: row.name,
+  }));
 }
 
 /**

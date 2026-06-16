@@ -19,7 +19,7 @@ import {
   getNewestListings,
 } from "@/lib/data/listings";
 import { getHomepageFeaturedListings } from "@/lib/data/featured-listing-pins";
-import { getAllMakeNames, getPopularMakes } from "@/lib/data/car-data";
+import { getAllMakeNames, getPopularMakes, getPopularModels } from "@/lib/data/car-data";
 import { getHomepageCmsContent } from "@/lib/data/cms";
 import { getActiveCmsBanners } from "@/lib/data/cms-banners";
 import type { HomepageCmsContent } from "@/lib/types/cms";
@@ -60,7 +60,7 @@ async function HeroSearchWithData({ content }: { content: HomepageCmsContent["he
   );
 }
 
-const POPULAR_SEARCH_FALLBACKS = [
+const POPULAR_MAKE_FALLBACKS = [
   "Toyota",
   "Nissan",
   "Mazda",
@@ -71,11 +71,26 @@ const POPULAR_SEARCH_FALLBACKS = [
   "Volkswagen",
 ];
 
+const POPULAR_MODEL_FALLBACKS: Array<{ make: string; model: string }> = [
+  { make: "Toyota", model: "Corolla" },
+  { make: "Nissan", model: "X-Trail" },
+  { make: "Mazda", model: "Demio" },
+  { make: "Subaru", model: "Forester" },
+  { make: "Toyota", model: "Harrier" },
+  { make: "Honda", model: "Fit/Jazz" },
+  { make: "Toyota", model: "Land Cruiser Prado" },
+  { make: "Nissan", model: "Note" },
+];
+
 async function PopularSearchesData() {
-  const popularMakes = await getPopularMakes();
-  const searches = (popularMakes.length > 0
+  const [popularMakes, popularModels] = await Promise.all([
+    getPopularMakes(),
+    getPopularModels(),
+  ]);
+
+  const makes = (popularMakes.length > 0
     ? popularMakes.map((make) => make.name)
-    : POPULAR_SEARCH_FALLBACKS
+    : POPULAR_MAKE_FALLBACKS
   )
     .slice(0, 8)
     .map((make) => ({
@@ -83,7 +98,17 @@ async function PopularSearchesData() {
       href: `/search?make=${encodeURIComponent(make)}`,
     }));
 
-  return <PopularSearches searches={searches} />;
+  const models = (popularModels.length > 0
+    ? popularModels
+    : POPULAR_MODEL_FALLBACKS
+  )
+    .slice(0, 8)
+    .map(({ make, model }) => ({
+      label: `${make} ${model}`,
+      href: `/search?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`,
+    }));
+
+  return <PopularSearches makes={makes} models={models} />;
 }
 
 export default async function Home() {
