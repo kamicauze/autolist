@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
 import type { Listing } from "@/lib/types/listing";
+import type { ListingFeatureSuggestionResult } from "@/lib/types/listing-feature-suggestions";
 import {
   getListingMetadataBoolean,
   getListingMetadataDetails,
@@ -225,6 +226,13 @@ export type WizardIssue = {
   stepIndex: number | null;
 };
 
+export type FeatureSuggestionState = {
+  status: "idle" | "loading" | "applied" | "unavailable" | "error";
+  count: number;
+  provider: ListingFeatureSuggestionResult["provider"] | null;
+  reason: string | null;
+};
+
 type AuthenticatedProfileRole =
   | "buyer"
   | "seller"
@@ -418,6 +426,7 @@ interface WizardContextValue {
   showFeatureIds: boolean;
   expandedFeatureGroups: Record<string, boolean>;
   selectedFeatureIdSet: Set<string>;
+  featureSuggestion: FeatureSuggestionState;
 
   // Actions
   updateField: <K extends keyof ListingDraft>(key: K, value: ListingDraft[K]) => void;
@@ -787,6 +796,12 @@ export function WizardProvider({
   const [isLoadingPackageAccess, setIsLoadingPackageAccess] = React.useState(!isEditing);
   const [packageAccessError, setPackageAccessError] = React.useState<string | null>(null);
   const [featureQuery, setFeatureQuery] = React.useState("");
+  const [featureSuggestion, setFeatureSuggestion] = React.useState<FeatureSuggestionState>({
+    status: "idle",
+    count: 0,
+    provider: null,
+    reason: null,
+  });
   const [showFeatureIds, setShowFeatureIds] = React.useState(false);
   const [expandedFeatureGroups, setExpandedFeatureGroups] = React.useState<Record<string, boolean>>({});
   const [presetUndoSelection, setPresetUndoSelection] = React.useState<string[] | null>(null);
@@ -989,7 +1004,14 @@ export function WizardProvider({
   React.useEffect(() => {
     if (activeStep !== WIZARD_STEP_INDEX_BY_ID.features) return;
     if (!draft.category || !selectedFeatureGroups || !selectedFeatureGroupDefinition) return;
-    if (draft.selectedFeatureIds.length > 0) return;
+    if (draft.selectedFeatureIds.length > 0) {
+      setFeatureSuggestion((prev) =>
+        prev.status === "loading"
+          ? { status: "idle", count: 0, provider: null, reason: null }
+          : prev
+      );
+      return;
+    }
 
     const anchor = [
       draft.category,
@@ -1009,28 +1031,129 @@ export function WizardProvider({
     if (!hasSuggestionAnchor) return;
 
     smartFeatureSuggestionSignatureRef.current = anchor;
-    const suggestedFeatureIds = buildSmartFeatureSuggestionIds(
+    const fallbackFeatureIds = buildSmartFeatureSuggestionIds(
       draft,
       selectedFeatureGroups,
       selectedFeatureGroupDefinition
     );
-
-    if (suggestedFeatureIds.length === 0) return;
-
-    setDraft((prev) =>
-      prev.selectedFeatureIds.length > 0
-        ? prev
-        : { ...prev, selectedFeatureIds: suggestedFeatureIds }
+    const allowedFeatureIds = new Set(
+      selectedFeatureGroupDefinition.order.flatMap((groupKey) =>
+        (selectedFeatureGroups[groupKey] ?? []).map((feature) => feature.id)
+      )
     );
+    const controller = new AbortController();
+
+    const applySuggestions = (
+      featureIds: string[],
+      status: FeatureSuggestionState["status"],
+      provider: FeatureSuggestionState["provider"],
+      reason: string | null
+    ) => {
+      const sanitizedFeatureIds = Array.from(
+        new Set(featureIds.filter((featureId) => allowedFeatureIds.has(featureId)))
+      ).slice(0, SMART_FEATURE_LIMIT);
+
+      if (sanitizedFeatureIds.length === 0) {
+        setFeatureSuggestion({
+          status: "unavailable",
+          count: 0,
+          provider: null,
+          reason: "No reliable feature suggestions are available yet. Select the confirmed equipment manually.",
+        });
+        return;
+      }
+
+      setDraft((prev) =>
+        prev.selectedFeatureIds.length > 0
+          ? prev
+          : { ...prev, selectedFeatureIds: sanitizedFeatureIds }
+      );
+      setFeatureSuggestion({
+        status,
+        count: sanitizedFeatureIds.length,
+        provider,
+        reason,
+      });
+    };
+
+    setFeatureSuggestion({
+      status: "loading",
+      count: 0,
+      provider: null,
+      reason: "Checking likely features for this make and model.",
+    });
+
+    void fetch("/api/ai/listing-feature-suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        category: draft.category,
+        make: draft.details.make,
+        model: draft.details.model,
+        trim: draft.details.trim,
+        variant: draft.details.variant,
+        year: draft.details.year ? Number(draft.details.year) : null,
+        bodyType: draft.details.bodyType || draft.details.bodyStyle || null,
+        fuelType: draft.details.engineType || draft.details.fuelType || null,
+        transmission: draft.details.transmission || null,
+        equipmentType: draft.details.equipmentType || null,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Feature suggestion request failed.");
+        }
+
+        return (await response.json()) as ListingFeatureSuggestionResult;
+      })
+      .then((result) => {
+        applySuggestions(
+          Array.isArray(result.featureIds) ? result.featureIds : [],
+          "applied",
+          result.provider,
+          result.reason
+        );
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+
+        applySuggestions(
+          fallbackFeatureIds,
+          fallbackFeatureIds.length > 0 ? "applied" : "error",
+          "rules",
+          fallbackFeatureIds.length > 0
+            ? "Preselected common features from the local rule set. Confirm the exact equipment before publishing."
+            : "Feature suggestions are unavailable right now. Select the confirmed equipment manually."
+        );
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [
     activeStep,
     draft,
+    draft.category,
+    draft.details.bodyStyle,
+    draft.details.bodyType,
+    draft.details.engineType,
+    draft.details.equipmentType,
+    draft.details.fuelType,
+    draft.details.make,
+    draft.details.model,
+    draft.details.transmission,
+    draft.details.trim,
+    draft.details.variant,
+    draft.details.year,
+    draft.selectedFeatureIds.length,
     selectedFeatureGroups,
     selectedFeatureGroupDefinition,
   ]);
 
   React.useEffect(() => {
     setFeatureQuery("");
+    setFeatureSuggestion({ status: "idle", count: 0, provider: null, reason: null });
     setPresetUndoSelection(null);
   }, [draft.category]);
 
@@ -1673,7 +1796,7 @@ export function WizardProvider({
     draft, activeStep, showValidationErrors, isSubmitting, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
     galleryFiles, documentFiles, videoFile,
-    featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,
+    featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet, featureSuggestion,
     updateField, updateDetailField, toggleFeature, setFeatureQuery, setShowFeatureIds,
     toggleFeatureGroupExpansion, applyFeaturePreset, undoFeaturePreset, clearFeatureSelection, setFeatureSelection,
     handleGallerySelection, selectExistingGalleryCover, removeGalleryFile, moveGalleryImage, reorderGalleryImages, handleDocumentSelection, removeDocumentFile, handleVideoSelection, removeVideoFile,
