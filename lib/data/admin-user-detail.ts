@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type { AdminProfileRole } from "@/lib/data/admin";
 import {
   sortAdminUserActivityTimeline,
@@ -64,6 +64,27 @@ type DealerDetailRow = {
   created_at: string;
   updated_at: string;
 };
+
+type DealerDetailQueryRow = Omit<
+  DealerDetailRow,
+  | "submitted_at"
+  | "reviewed_at"
+  | "verified_at"
+  | "rejection_reason"
+  | "review_notes"
+  | "verification_notes"
+> &
+  Partial<
+    Pick<
+      DealerDetailRow,
+      | "submitted_at"
+      | "reviewed_at"
+      | "verified_at"
+      | "rejection_reason"
+      | "review_notes"
+      | "verification_notes"
+    >
+  >;
 
 type DealerDocumentRow = {
   id: string;
@@ -275,6 +296,50 @@ export type AdminUserActivityData = {
   errors: string[];
 };
 
+const DEALER_DETAIL_SELECT = `
+  id,
+  profile_id,
+  name,
+  business_name,
+  status,
+  address,
+  city,
+  location,
+  mobile,
+  email,
+  whatsapp,
+  website,
+  about_text,
+  contact_person,
+  submitted_at,
+  reviewed_at,
+  verified_at,
+  rejection_reason,
+  review_notes,
+  verification_notes,
+  created_at,
+  updated_at
+`;
+
+const DEALER_DETAIL_LEGACY_SELECT = `
+  id,
+  profile_id,
+  name,
+  business_name,
+  status,
+  address,
+  city,
+  location,
+  mobile,
+  email,
+  whatsapp,
+  website,
+  about_text,
+  contact_person,
+  created_at,
+  updated_at
+`;
+
 async function createAdminDetailClient() {
   return createOptionalAdminClient() ?? (await createClient());
 }
@@ -312,8 +377,7 @@ async function readRows<T>(
   const { data, error } = await query;
 
   if (error) {
-    if (optional && isMissingRelationError(error)) {
-      errors.push(`${label} is not available in this database.`);
+    if (shouldIgnoreOptionalMissingHistoryError(error, optional)) {
       return [];
     }
 
@@ -322,6 +386,44 @@ async function readRows<T>(
   }
 
   return data || [];
+}
+
+export function shouldIgnoreOptionalMissingHistoryError(
+  error: QueryError | null | undefined,
+  optional: boolean
+) {
+  return optional && isMissingRelationError(error);
+}
+
+export function isMissingDealerDetailWorkflowColumn(error: QueryError | null | undefined) {
+  if (!isMissingColumnError(error)) return false;
+
+  return [
+    "submitted_at",
+    "reviewed_at",
+    "verified_at",
+    "rejection_reason",
+    "review_notes",
+    "verification_notes",
+  ].some((column) =>
+    [error?.message, error?.details, error?.hint].some((part) => part?.includes(column))
+  );
+}
+
+export function normalizeAdminDealerDetailRow(
+  row: DealerDetailQueryRow | null | undefined
+): DealerDetailRow | null {
+  if (!row) return null;
+
+  return {
+    ...row,
+    submitted_at: row.submitted_at ?? null,
+    reviewed_at: row.reviewed_at ?? null,
+    verified_at: row.verified_at ?? null,
+    rejection_reason: row.rejection_reason ?? null,
+    review_notes: row.review_notes ?? null,
+    verification_notes: row.verification_notes ?? null,
+  };
 }
 
 function mergeById<T extends { id: string }>(...groups: T[][]) {
@@ -398,40 +500,28 @@ export const getAdminUserActivityData = cache(
       };
     }
 
-    const { data: dealer, error: dealerError } = await supabase
+    let { data: dealerRow, error: dealerError } = await supabase
       .from("dealers")
-      .select(
-        `
-          id,
-          profile_id,
-          name,
-          business_name,
-          status,
-          address,
-          city,
-          location,
-          mobile,
-          email,
-          whatsapp,
-          website,
-          about_text,
-          contact_person,
-          submitted_at,
-          reviewed_at,
-          verified_at,
-          rejection_reason,
-          review_notes,
-          verification_notes,
-          created_at,
-          updated_at
-        `
-      )
+      .select(DEALER_DETAIL_SELECT)
       .eq("profile_id", profileId)
-      .maybeSingle<DealerDetailRow>();
+      .maybeSingle<DealerDetailQueryRow>();
+
+    if (dealerError && isMissingDealerDetailWorkflowColumn(dealerError)) {
+      const fallback = await supabase
+        .from("dealers")
+        .select(DEALER_DETAIL_LEGACY_SELECT)
+        .eq("profile_id", profileId)
+        .maybeSingle<DealerDetailQueryRow>();
+
+      dealerRow = fallback.data;
+      dealerError = fallback.error;
+    }
 
     if (dealerError) {
       errors.push(`Dealer profile: ${dealerError.message}`);
     }
+
+    const dealer = normalizeAdminDealerDetailRow(dealerRow);
 
     const listings = await readRows<ListingDetailRow>(
       supabase
