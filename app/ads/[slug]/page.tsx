@@ -53,7 +53,7 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
                 <p className="w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
-                  Sponsored
+                  Featured
                 </p>
                 <h1 className="mt-4 max-w-3xl font-heading text-[30px] font-semibold leading-tight text-white sm:text-[42px]">
                   {banner.title}

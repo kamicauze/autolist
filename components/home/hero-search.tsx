@@ -656,7 +656,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                       className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur transition hover:bg-black/35"
                     >
                       <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
-                        Sponsored
+                        Featured
                       </span>
                       <span className="truncate">{heroBanner.title}</span>
                     </a>
@@ -667,7 +667,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                       className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur transition hover:bg-black/35"
                     >
                       <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
-                        Sponsored
+                        Featured
                       </span>
                       <span className="truncate">{heroBanner.title}</span>
                     </Link>
@@ -675,7 +675,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                 ) : (
                   <div className="mt-5 inline-flex max-w-full items-center gap-3 rounded-full border border-white/25 bg-black/25 px-4 py-2 text-left text-[13px] font-semibold text-white shadow-sm backdrop-blur">
                     <span className="shrink-0 rounded-full bg-white/18 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em]">
-                      Sponsored
+                      Featured
                     </span>
                     <span className="truncate">{heroBanner.title}</span>
                   </div>

@@ -76,7 +76,7 @@ function PublicCmsBannerCard({
         )}
       >
         <p className="w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] backdrop-blur">
-          Sponsored
+          Featured
         </p>
         <div
           className={cn(

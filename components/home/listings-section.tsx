@@ -84,7 +84,7 @@ export function ListingsSection({
                   value="featured"
                   className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
                 >
-                  Featured/sponsored
+                  Featured
                 </TabsTrigger>
                 <TabsTrigger
                   value="viewed"
