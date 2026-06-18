@@ -28,8 +28,9 @@ type ThreadRow = {
   subject: string | null;
   last_message_at: string;
   last_message_preview: string | null;
-  buyer: Array<{ id: string; full_name: string | null; email: string | null }> | null;
-  seller: Array<{ id: string; full_name: string | null; email: string | null }> | null;
+  last_message_sender_id: string | null;
+  buyer: Array<{ id: string; full_name: string | null; email: string | null; phone: string | null; whatsapp: string | null }> | null;
+  seller: Array<{ id: string; full_name: string | null; email: string | null; phone: string | null; whatsapp: string | null }> | null;
   listing: Array<{ id: string; make: string; model: string; year: number | null }> | null;
   tickets: Array<{ id: string; status: string }> | null;
 };
@@ -144,10 +145,11 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
         subject,
         last_message_at,
         last_message_preview,
+        last_message_sender_id,
         buyer_id,
         seller_id,
-        buyer:profiles!buyer_id(id, full_name, email),
-        seller:profiles!seller_id(id, full_name, email),
+        buyer:profiles!buyer_id(id, full_name, email, phone, whatsapp),
+        seller:profiles!seller_id(id, full_name, email, phone, whatsapp),
         listing:listings(id, make, model, year),
         tickets:support_tickets(id, status)
       `
@@ -188,8 +190,11 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
       id: thread.id,
       listingId: thread.listing_id,
       listingTitle: threadListingTitle(thread.listing),
+      lastMessageSenderId: thread.last_message_sender_id,
       counterpartName: counterpart?.full_name || counterpart?.email || "Conversation",
       counterpartEmail: counterpart?.email || null,
+      counterpartPhone: counterpart?.phone || null,
+      counterpartWhatsapp: counterpart?.whatsapp || null,
       status: thread.status,
       source: thread.source,
       subject: thread.subject,

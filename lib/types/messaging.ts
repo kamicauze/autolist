@@ -18,8 +18,11 @@ export type ThreadListItem = {
   id: string;
   listingId: string;
   listingTitle: string;
+  lastMessageSenderId: string | null;
   counterpartName: string;
   counterpartEmail: string | null;
+  counterpartPhone: string | null;
+  counterpartWhatsapp: string | null;
   status: string;
   source: string;
   subject: string | null;
