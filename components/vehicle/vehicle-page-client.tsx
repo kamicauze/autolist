@@ -560,7 +560,7 @@ export function VehiclePageClient({
                 ) : null}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
                   variant={inCompare ? "default" : "outline"}
@@ -572,22 +572,30 @@ export function VehiclePageClient({
                       ? `You can compare up to ${maxItems} vehicles`
                       : undefined
                   }
-                  className="h-9 w-9 rounded-full"
+                  className={`h-8 w-8 rounded-full shadow-sm ${
+                    inCompare
+                      ? ""
+                      : "border-white/40 bg-white/70 backdrop-blur-sm hover:bg-white/90"
+                  }`}
                 >
-                  {inCompare ? <Check className="h-4 w-4" /> : <GitCompare className="h-4 w-4" />}
-                </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-gray-300">
-                  <Share2 className="h-4 w-4 text-gray-600" />
+                  {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompare className="h-3.5 w-3.5" />}
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full border-gray-300"
+                  className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
+                >
+                  <Share2 className="h-3.5 w-3.5 text-gray-600" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
                   onClick={() => void handleWishlistToggle()}
                   disabled={isWishlistPending}
                 >
                   <Heart
-                    className={`h-4 w-4 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+                    className={`h-3.5 w-3.5 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
                   />
                 </Button>
               </div>

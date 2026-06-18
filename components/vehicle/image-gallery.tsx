@@ -55,32 +55,32 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
           <>
             <button
               onClick={scrollPrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+              className="absolute left-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/55 text-gray-800 shadow-sm backdrop-blur-md transition-colors hover:bg-white/70 sm:left-4 sm:h-9 sm:w-9"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-6 w-6 text-gray-700" />
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button
               onClick={scrollNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md hover:bg-white transition-colors"
+              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/35 bg-white/55 text-gray-800 shadow-sm backdrop-blur-md transition-colors hover:bg-white/70 sm:right-4 sm:h-9 sm:w-9"
               aria-label="Next image"
             >
-              <ChevronRight className="h-6 w-6 text-gray-700" />
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </>
         )}
 
         {/* Action buttons overlay */}
-        <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+        <div className="absolute bottom-3 left-3 z-10 flex gap-2 sm:bottom-4 sm:left-4">
           {videoUrl ? (
             <Button
               asChild
               variant="secondary"
               size="sm"
-              className="h-9 bg-white/90 text-black hover:bg-white"
+              className="h-8 rounded-full border border-white/25 bg-black/35 px-3 text-xs text-white shadow-sm backdrop-blur-md hover:bg-black/45"
             >
               <a href="#listing-video">
-                <Play className="h-4 w-4" />
+                <Play className="h-3.5 w-3.5" />
                 Video
               </a>
             </Button>
@@ -88,10 +88,10 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
           <Button
             variant="secondary"
             size="sm"
-            className="h-9 bg-white/90 text-black hover:bg-white"
+            className="h-8 rounded-full border border-white/25 bg-black/35 px-3 text-xs text-white shadow-sm backdrop-blur-md hover:bg-black/45"
             onClick={() => setShowAllImages(true)}
           >
-            <Images className="h-4 w-4" />
+            <Images className="h-3.5 w-3.5" />
             View gallery
           </Button>
         </div>
