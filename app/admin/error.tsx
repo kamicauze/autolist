@@ -29,13 +29,13 @@ export default function AdminError({
           <button
             type="button"
             onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+            className="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-hover"
           >
             Retry
           </button>
           <Link
             href="/admin/dashboard"
-            className="inline-flex items-center justify-center rounded-[10px] border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+            className="inline-flex items-center justify-center rounded-[10px] border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#374151] transition hover:border-primary hover:text-primary"
           >
             Back to dashboard
           </Link>

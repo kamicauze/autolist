@@ -156,7 +156,7 @@ export function AdminPaymentsLive({ data }: { data: AdminPaymentsData }) {
                       <p className="font-heading text-[16px] font-semibold text-[#111827]">
                         {item.label}
                       </p>
-                      <p className="text-[14px] font-semibold text-[#2563eb]">
+                      <p className="text-[14px] font-semibold text-primary">
                         {formatCurrency(item.amount, item.currency)}
                       </p>
                     </div>

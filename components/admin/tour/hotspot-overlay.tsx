@@ -296,7 +296,7 @@ export function HotspotOverlay({
         ) : null}
 
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#2563eb]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
             Step {stepIndex + 1} of {steps.length}
           </p>
           <button
@@ -321,8 +321,8 @@ export function HotspotOverlay({
               key={s.id}
               className={cn(
                 "h-1.5 flex-1 rounded-full transition",
-                i < stepIndex && "bg-[#2563eb]",
-                i === stepIndex && "bg-[#2563eb]",
+                i < stepIndex && "bg-primary",
+                i === stepIndex && "bg-primary",
                 i > stepIndex && "bg-[#e5e7eb]"
               )}
             />
@@ -350,7 +350,7 @@ export function HotspotOverlay({
             <button
               type="button"
               onClick={isLast ? onFinish : onNext}
-              className="inline-flex h-9 items-center gap-1 rounded-[8px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-9 items-center gap-1 rounded-[8px] bg-primary px-4 text-[13px] font-semibold text-white transition hover:bg-brand-hover"
             >
               {isLast ? "Got it" : "Next"}
               {!isLast ? <ArrowRight className="h-3.5 w-3.5" /> : null}

@@ -174,7 +174,7 @@ export function AdminSettingsLive({
             className={cn(
               "rounded-[10px] px-4 py-2 text-[12px]",
               schemaReady
-                ? "border border-[#dbeafe] bg-[#eff6ff] text-[#1d4ed8]"
+                ? "border border-brand-muted-border bg-brand-tint text-brand-hover"
                 : "border border-[#fed7aa] bg-[#fff7ed] text-[#c2410c]"
             )}
           >

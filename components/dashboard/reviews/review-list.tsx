@@ -49,7 +49,7 @@ export function ReviewList({
             <div>
               <p className="text-[14px] text-[#7a7a7a]">{summary.totalReviews} total reviews</p>
             </div>
-            <div className="rounded-full bg-[#eef4ff] px-4 py-2 text-[13px] font-semibold text-[#2563eb]">
+            <div className="rounded-full bg-brand-tint px-4 py-2 text-[13px] font-semibold text-primary">
               {summary.totalReviews > 0
                 ? `${summary.averageRating.toFixed(1)} / 5.0 rating`
                 : "No ratings yet"}

@@ -91,7 +91,7 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
                       href={ctaHref}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                      className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
                     >
                       {ctaLabel}
                       <ArrowUpRight className="h-4 w-4" />
@@ -99,7 +99,7 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
                   ) : (
                     <Link
                       href={ctaHref}
-                      className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                      className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
                     >
                       {ctaLabel}
                       <ArrowUpRight className="h-4 w-4" />
@@ -109,7 +109,7 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
 
                 <Link
                   href="/insurance"
-                  className="inline-flex h-11 items-center rounded-[12px] border border-[#d0d5dd] px-5 text-[14px] font-semibold text-[#111827] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                  className="inline-flex h-11 items-center rounded-[12px] border border-[#d0d5dd] px-5 text-[14px] font-semibold text-[#111827] transition hover:border-primary hover:text-primary"
                 >
                   Car insurance
                 </Link>

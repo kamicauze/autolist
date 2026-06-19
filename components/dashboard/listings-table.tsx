@@ -182,7 +182,7 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                       <DropdownMenu.Trigger asChild>
                         <button
                           type="button"
-                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#ededed] text-[#727272] transition hover:border-primary hover:text-primary"
                           aria-label="Listing actions"
                         >
                           <MoreHorizontal className="h-4 w-4" />
@@ -199,7 +199,7 @@ export function ListingsTable({ listings: initialListings = [] }: { listings?: L
                           <DropdownMenu.Item
                             disabled={pendingId === listing.id}
                             onSelect={() => void runAction(listing, () => submitListingForReview(listing.id))}
-                            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#2563eb] outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
+                            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-[13px] font-medium text-primary outline-none hover:bg-[#f4f7fb] focus:bg-[#f4f7fb] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
                           >
                             <Rocket className="h-4 w-4" />
                             Go Live

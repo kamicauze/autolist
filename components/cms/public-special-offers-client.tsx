@@ -23,7 +23,7 @@ function SpecialOfferCard({ offer }: { offer: CmsSpecialOffer }) {
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
         <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-[#111827] shadow-sm backdrop-blur">
-          <Tag className="h-3.5 w-3.5 text-[#2563eb]" />
+          <Tag className="h-3.5 w-3.5 text-primary" />
           {offer.audience}
         </div>
       </div>
@@ -34,7 +34,7 @@ function SpecialOfferCard({ offer }: { offer: CmsSpecialOffer }) {
         <p className="mt-2 line-clamp-3 text-[14px] leading-6 text-[#6b7280]">
           {offer.description}
         </p>
-        <span className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-[#2563eb]">
+        <span className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-primary">
           View offer
           <ArrowUpRight className="h-4 w-4" />
         </span>
@@ -76,7 +76,7 @@ export function PublicSpecialOffersList({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Special Offers
             </p>
             <h2 className="mt-2 font-heading text-[28px] font-semibold text-[#111827]">

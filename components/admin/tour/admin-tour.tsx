@@ -1127,7 +1127,7 @@ export function AdminTourHelpButton({ className }: { className?: string }) {
       title="Replay tour"
       className={
         className ||
-        "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+        "inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#374151] transition hover:border-primary hover:text-primary"
       }
     >
       <HelpCircle className="h-5 w-5" />

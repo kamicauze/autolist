@@ -19,8 +19,8 @@ const VISIBLE_LISTING_CATEGORIES = LISTING_CATEGORY_OPTIONS.filter(
 );
 
 const CATEGORY_ACCENT_CLASSES: Record<ListingCategory, { icon: string; selectedIcon: string }> = {
-  car: { icon: "bg-[#eef4ff] text-[#2563eb]", selectedIcon: "bg-[#2563eb] text-white" },
-  van: { icon: "bg-[#eef4ff] text-[#2563eb]", selectedIcon: "bg-[#2563eb] text-white" },
+  car: { icon: "bg-brand-tint text-primary", selectedIcon: "bg-primary text-white" },
+  van: { icon: "bg-brand-tint text-primary", selectedIcon: "bg-primary text-white" },
   motorbike: { icon: "bg-[#fff7ed] text-[#ea580c]", selectedIcon: "bg-[#ea580c] text-white" },
   truck: { icon: "bg-[#f0fdf4] text-[#16a34a]", selectedIcon: "bg-[#16a34a] text-white" },
   plant_construction: { icon: "bg-[#f8fafc] text-[#475569]", selectedIcon: "bg-[#475569] text-white" },
@@ -59,7 +59,7 @@ export function StepCategory() {
               className={cn(
                 "rounded-[14px] border bg-white p-4 text-left transition",
                 selected
-                  ? "border-[#2563eb] bg-[#eef4ff] shadow-[0_16px_32px_rgba(37,99,235,0.10)]"
+                  ? "border-primary bg-brand-tint shadow-[0_16px_32px_rgb(var(--primary-rgb)/0.10)]"
                   : "border-[#ededed] hover:border-[#cfdaf7] hover:bg-[#fbfdff]",
                 showValidationErrors && !draft.category && "border-[#f04438]"
               )}
@@ -76,7 +76,7 @@ export function StepCategory() {
                 <span
                   className={cn(
                     "inline-flex rounded-full px-3 py-1 text-[12px] font-semibold",
-                    selected ? "bg-white text-[#2563eb]" : "bg-[#f5f5f5] text-[#848484]"
+                    selected ? "bg-white text-primary" : "bg-[#f5f5f5] text-[#848484]"
                   )}
                 >
                   {selected ? "Selected" : "Available"}

@@ -30,7 +30,7 @@ export function ReviewsSection({
       <div>
         <h2 className="mb-2 text-xl font-bold text-gray-900">Car User Reviews & Rating</h2>
 
-        <div className="mb-6 flex items-center gap-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
+        <div className="mb-6 flex items-center gap-4 rounded-lg border border-brand-muted-border bg-brand-tint p-4">
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg bg-white p-2">
               <Star className="h-6 w-6 fill-current text-primary" />

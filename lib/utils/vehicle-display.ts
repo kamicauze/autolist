@@ -1,5 +1,5 @@
 import type { Listing } from "@/lib/types/listing";
-import { getListingMetadataString } from "@/lib/utils/listing-details";
+import { formatListingLabel, getListingMetadataString } from "@/lib/utils/listing-details";
 
 export function getListingTrim(listing: Listing) {
   return getListingMetadataString(listing, "trim");
@@ -60,9 +60,66 @@ export function getListingDisplayLocation(
 export function getListingSubtitle(listing: Listing) {
   const parts = [
     getListingVariant(listing),
-    getListingMetadataString(listing, "bodyType") ?? getListingMetadataString(listing, "body_type") ?? listing.body_type,
+    getListingBodyTypeLabel(listing, ""),
     getListingDisplayLocation(listing, { fallback: "" }),
   ].filter(Boolean);
 
   return parts.join(" • ");
+}
+
+function formatMileageValue(value: number | string | null | undefined) {
+  if (value == null) return "";
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? `${value.toLocaleString("en-KE")} km` : "";
+  }
+
+  const normalized = value.trim();
+  if (!normalized) return "";
+
+  const numeric = Number(normalized.replace(/,/g, ""));
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return `${numeric.toLocaleString("en-KE")} km`;
+  }
+
+  return normalized;
+}
+
+export function getListingMileageLabel(listing: Listing, fallback = "Mileage pending") {
+  return (
+    formatMileageValue(listing.mileage) ||
+    formatMileageValue(getListingMetadataString(listing, "mileage")) ||
+    fallback
+  );
+}
+
+export function getListingFuelTypeLabel(listing: Listing, fallback = "Fuel pending") {
+  return (
+    formatListingLabel(
+      listing.fuel_type ??
+        getListingMetadataString(listing, "fuelType") ??
+        getListingMetadataString(listing, "fuel_type") ??
+        getListingMetadataString(listing, "engineType")
+    ) || fallback
+  );
+}
+
+export function getListingTransmissionLabel(listing: Listing, fallback = "Transmission pending") {
+  return (
+    formatListingLabel(
+      listing.transmission ?? getListingMetadataString(listing, "transmission")
+    ) || fallback
+  );
+}
+
+export function getListingBodyTypeLabel(listing: Listing, fallback = "Vehicle") {
+  const label = formatListingLabel(
+    listing.body_type ??
+      getListingMetadataString(listing, "bodyType") ??
+      getListingMetadataString(listing, "body_type") ??
+      getListingMetadataString(listing, "bodyStyle")
+  );
+
+  if (label.toLowerCase() === "suv") return "SUV";
+  return label || fallback;
 }

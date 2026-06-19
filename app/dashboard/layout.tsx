@@ -74,9 +74,11 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
   const userMetadata = {
     ...(user.user_metadata ?? {}),
     full_name:
+      (accountContext.kind === "dealer" ? accountContext.dealerName : null) ||
       profile?.full_name ||
       (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null),
     avatar_url:
+      (accountContext.kind === "dealer" ? accountContext.dealerLogoUrl : null) ||
       profile?.avatar_url ||
       (typeof user.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null),
   };

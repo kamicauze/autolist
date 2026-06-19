@@ -90,7 +90,7 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
             Notification Center
           </p>
           <h1 className="mt-2 text-[32px] font-semibold text-[#111827]">Updates that need your attention</h1>
@@ -113,7 +113,7 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
       <div className="mt-8 rounded-[28px] border border-[#e5e7eb] bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#eaecf0] px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
               <BellRing className="h-5 w-5" />
             </div>
             <div>
@@ -131,14 +131,14 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`px-6 py-5 transition ${notification.readAt ? "bg-white" : "bg-[#f8fbff]"}`}
+              className={`px-6 py-5 transition ${notification.readAt ? "bg-white" : "bg-brand-soft-surface"}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
                     <p className="text-[15px] font-semibold text-[#111827]">{notification.title}</p>
                     {!notification.readAt ? (
-                      <span className="inline-flex rounded-full bg-[#dbeafe] px-2 py-0.5 text-[11px] font-semibold text-[#1d4ed8]">
+                      <span className="inline-flex rounded-full bg-brand-tint-strong px-2 py-0.5 text-[11px] font-semibold text-brand-hover">
                         New
                       </span>
                     ) : null}
@@ -166,7 +166,7 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
                           void markRead(notification.id);
                         }
                       }}
-                      className="inline-flex items-center gap-1 rounded-full bg-[#2563eb] px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                      className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-brand-hover"
                     >
                       Open
                       <ChevronRight className="h-3.5 w-3.5" />

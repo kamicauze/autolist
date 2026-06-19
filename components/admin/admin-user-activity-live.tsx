@@ -152,7 +152,7 @@ function SummaryMetric({
   return (
     <div className="border-t border-[#e5e7eb] py-4">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f8fafc] text-[#2563eb]">
+        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f8fafc] text-primary">
           {icon}
         </div>
         <div className="min-w-0">
@@ -200,12 +200,12 @@ function ModuleLauncher({ modules }: { modules: AdminUserActivityModule[] }) {
             <Link
               key={module.key}
               href={module.href}
-              className={`group min-h-[132px] rounded-[14px] border border-[#e5e7eb] bg-[#fbfdff] p-4 transition duration-200 hover:-translate-y-[1px] hover:border-[#2563eb] hover:bg-white hover:shadow-[0_16px_36px_-30px_rgba(37,99,235,0.9)] active:translate-y-[1px] ${
+              className={`group min-h-[132px] rounded-[14px] border border-[#e5e7eb] bg-[#fbfdff] p-4 transition duration-200 hover:-translate-y-[1px] hover:border-primary hover:bg-white hover:shadow-[0_16px_36px_-30px_rgb(var(--primary-rgb)/0.9)] active:translate-y-[1px] ${
                 index === 0 ? "xl:col-span-2" : ""
               }`}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dbeafe] bg-[#eff6ff] text-[#2563eb] transition group-hover:border-[#bfdbfe] group-hover:bg-[#dbeafe]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-muted-border bg-brand-tint text-primary transition group-hover:border-brand-muted-border group-hover:bg-brand-tint-strong">
                   <ModuleIcon moduleKey={module.key} />
                 </div>
                 <div className="text-right">
@@ -471,7 +471,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
                     key={item.id}
                     className="grid gap-3 px-6 py-4 transition hover:bg-[#f8fafc] md:grid-cols-[36px_minmax(0,1fr)_170px]"
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#eff6ff] text-[#2563eb]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-tint text-primary">
                       <ActivityIcon source={item.source} />
                     </div>
                     <div className="min-w-0">
@@ -479,7 +479,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
                         {item.href ? (
                           <Link
                             href={item.href}
-                            className="text-[13px] font-semibold text-[#111827] transition hover:text-[#2563eb]"
+                            className="text-[13px] font-semibold text-[#111827] transition hover:text-primary"
                           >
                             {item.title}
                           </Link>
@@ -510,7 +510,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
                   data.listings.map((listing) => (
                     <tr key={listing.id} className="border-b border-[#f1f5f9] last:border-b-0">
                       <td className="px-6 py-4">
-                        <Link href={`/vehicle/${listing.id}`} className="text-[13px] font-semibold text-[#111827] hover:text-[#2563eb]">
+                        <Link href={`/vehicle/${listing.id}`} className="text-[13px] font-semibold text-[#111827] hover:text-primary">
                           {compactListingTitle(listing)}
                         </Link>
                         <p className="mt-1 text-[12px] text-[#6b7280]">{firstRelation(listing.dealer)?.name || "Private seller"}</p>

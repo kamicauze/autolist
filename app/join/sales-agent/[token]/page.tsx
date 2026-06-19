@@ -64,11 +64,11 @@ export default async function SalesAgentJoinPage({
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <section className="w-full max-w-[720px] rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-8">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[#eff6ff] text-[#2563eb]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-brand-tint text-primary">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#2563eb]">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-primary">
                 Sales rep invite
               </p>
               <h1 className="mt-2 font-heading text-[30px] font-semibold leading-tight text-[#111827]">
@@ -122,11 +122,11 @@ export default async function SalesAgentJoinPage({
                     send a fresh invite.
                   </div>
                 ) : (
-                  <div className="rounded-[16px] border border-[#dbeafe] bg-[#eff6ff] px-5 py-4">
+                  <div className="rounded-[16px] border border-brand-muted-border bg-brand-tint px-5 py-4">
                     <div className="flex gap-3">
-                      <Mail className="mt-0.5 h-5 w-5 shrink-0 text-[#2563eb]" />
+                      <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                       <div>
-                        <p className="text-[14px] font-semibold text-[#1d4ed8]">
+                        <p className="text-[14px] font-semibold text-brand-hover">
                           Set up your sales rep account
                         </p>
                         <p className="mt-1 text-[13px] leading-5 text-[#315db5]">
@@ -152,7 +152,7 @@ export default async function SalesAgentJoinPage({
                           type="text"
                           required
                           defaultValue={invite.name}
-                          className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                          className="mt-1 h-11 w-full rounded-[12px] border border-brand-muted-border bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-primary"
                         />
                       </div>
                       <div>
@@ -181,7 +181,7 @@ export default async function SalesAgentJoinPage({
                             required
                             minLength={8}
                             autoComplete="new-password"
-                            className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                            className="mt-1 h-11 w-full rounded-[12px] border border-brand-muted-border bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-primary"
                           />
                         </div>
                         <div>
@@ -198,7 +198,7 @@ export default async function SalesAgentJoinPage({
                             required
                             minLength={8}
                             autoComplete="new-password"
-                            className="mt-1 h-11 w-full rounded-[12px] border border-[#cdddf5] bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-[#2563eb]"
+                            className="mt-1 h-11 w-full rounded-[12px] border border-brand-muted-border bg-white px-3 text-[14px] text-[#111827] outline-none focus:border-primary"
                           />
                         </div>
                       </div>
@@ -207,7 +207,7 @@ export default async function SalesAgentJoinPage({
                       </p>
                       <button
                         type="submit"
-                        className="inline-flex h-11 w-full items-center justify-center rounded-[12px] bg-[#2563eb] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8] sm:w-auto"
+                        className="inline-flex h-11 w-full items-center justify-center rounded-[12px] bg-primary px-4 text-[14px] font-semibold text-white transition hover:bg-brand-hover sm:w-auto"
                       >
                         Create account &amp; accept invite
                       </button>
@@ -215,7 +215,7 @@ export default async function SalesAgentJoinPage({
 
                     <p className="mt-4 text-[13px] text-[#315db5]">
                       Already have an account with {invite.email}?{" "}
-                      <Link href={loginHref} className="font-semibold text-[#1d4ed8] underline">
+                      <Link href={loginHref} className="font-semibold text-brand-hover underline">
                         Sign in
                       </Link>{" "}
                       to accept.

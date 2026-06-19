@@ -89,10 +89,10 @@ export function PriceAdviserSummary({
   const isInsufficient = pricePositioning.status === "insufficient_data";
 
   return (
-    <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+    <div className="mt-5 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <CircleCheckBig className="mt-0.5 h-5 w-5 text-blue-600" />
+          <CircleCheckBig className="mt-0.5 h-5 w-5 text-primary" />
           <div>
             <p className="text-sm font-semibold text-gray-900">{pricePositioning.label}</p>
             <p className="text-sm text-gray-600">{pricePositioning.note}</p>
@@ -109,7 +109,7 @@ export function PriceAdviserSummary({
           <button
             type="button"
             onClick={onOpenDetails}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-brand-hover"
           >
             Details
             <ChevronRight className="h-4 w-4" />
@@ -175,9 +175,9 @@ export function PriceAdviserPanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="rounded-xl border border-brand-muted-border bg-brand-tint p-4">
             <div className="flex items-center gap-2">
-              <CircleAlert className="h-5 w-5 text-blue-600" />
+              <CircleAlert className="h-5 w-5 text-primary" />
               <h4 className="text-base font-semibold text-gray-900">Price Insight</h4>
             </div>
             <p className="mt-2 text-sm text-gray-600">

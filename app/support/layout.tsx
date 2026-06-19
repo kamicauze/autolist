@@ -10,7 +10,7 @@ export default async function SupportLayout({ children }: { children: ReactNode 
       <header className="border-b border-[#e5e7eb] bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
               Support Workspace
             </p>
             <h1 className="mt-1 text-[28px] font-semibold">Buyer & Seller Support</h1>

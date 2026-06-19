@@ -217,7 +217,7 @@ export default function CalculatorPage() {
           <div className="mt-10 grid gap-6 sm:grid-cols-3 sm:gap-8">
             {benefits.map((benefit) => (
               <div key={benefit.title} className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-tint">
                   <benefit.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 font-semibold text-foreground">{benefit.title}</h3>
@@ -249,7 +249,7 @@ export default function CalculatorPage() {
           </div>
         </section>
 
-        <section className="bg-[#eef4ff] py-12 md:py-16">
+        <section className="bg-brand-tint py-12 md:py-16">
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Ready to find your car?</h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">

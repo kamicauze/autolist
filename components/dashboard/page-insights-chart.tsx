@@ -51,7 +51,7 @@ export function PageInsightsChart() {
       <div className="p-5">
         <div className="mb-4 flex flex-wrap items-center gap-5 text-[13px] text-[#777]">
           <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#2563eb]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
             Page view
           </span>
           <span className="inline-flex items-center gap-2">
@@ -64,8 +64,8 @@ export function PageInsightsChart() {
           <svg viewBox="0 0 640 260" className="h-[280px] w-full">
             <defs>
               <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
-                <stop offset="100%" stopColor="#2563eb" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
               </linearGradient>
             </defs>
 
@@ -85,7 +85,7 @@ export function PageInsightsChart() {
             <path
               d={linePath}
               fill="none"
-              stroke="#2563eb"
+              stroke="var(--primary)"
               strokeWidth="4"
               strokeLinecap="round"
             />
@@ -98,7 +98,7 @@ export function PageInsightsChart() {
 
               return (
                 <g key={labels[index]}>
-                  <circle cx={x} cy={y} r="6" fill="#fff" stroke="#2563eb" strokeWidth="3" />
+                  <circle cx={x} cy={y} r="6" fill="#fff" stroke="var(--primary)" strokeWidth="3" />
                   <text x={x} y="252" textAnchor="middle" fontSize="12" fill="#8c8c8c">
                     {labels[index]}
                   </text>

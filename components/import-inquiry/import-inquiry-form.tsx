@@ -61,7 +61,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
       {/* How it works info bar */}
-      <div className="mb-8 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+      <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <p className="text-sm leading-relaxed text-gray-600">
           <span className="font-semibold text-gray-900">How it works:</span>{" "}

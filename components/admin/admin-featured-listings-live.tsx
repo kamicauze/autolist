@@ -161,7 +161,7 @@ function ListingSummary({
         <p className="mt-1 truncate text-[12px] text-[#6b7280]">
           {getListingSubtitle(listing) || getSellerName(listing)}
         </p>
-        <p className="mt-1 text-[12px] font-semibold text-[#2563eb]">
+        <p className="mt-1 text-[12px] font-semibold text-primary">
           {formatCurrency(listing.price, listing.currency)}
         </p>
       </div>
@@ -581,14 +581,14 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
                       className={cn(
                         "rounded-[14px] border bg-white p-3 text-left transition",
                         isSelected
-                          ? "border-[#2563eb] shadow-[0_0_0_3px_rgba(37,99,235,0.10)]"
-                          : "border-[#e5e7eb] hover:border-[#bfdbfe]"
+                          ? "border-primary shadow-[0_0_0_3px_rgb(var(--primary-rgb)/0.10)]"
+                          : "border-[#e5e7eb] hover:border-brand-muted-border"
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <ListingSummary listing={candidate.listing} compact />
                         {isPinned ? (
-                          <span className="shrink-0 rounded-full bg-[#dbeafe] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#1d4ed8]">
+                          <span className="shrink-0 rounded-full bg-brand-tint-strong px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-hover">
                             Pinned
                           </span>
                         ) : null}
@@ -606,7 +606,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
 
           <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] p-4">
             <div className="mb-4 flex items-center gap-2">
-              <CarFront className="h-4 w-4 text-[#2563eb]" />
+              <CarFront className="h-4 w-4 text-primary" />
               <h3 className="text-[14px] font-semibold text-[#111827]">Selected listing</h3>
             </div>
 
@@ -702,7 +702,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
         description="Listings appear in ascending sort order when active and inside their date window."
         action={
           <div className="flex items-center gap-2 text-[12px] font-medium text-[#6b7280]">
-            <ListOrdered className="h-4 w-4 text-[#2563eb]" />
+            <ListOrdered className="h-4 w-4 text-primary" />
             {sortedPins.length.toLocaleString("en-KE")} pinned
           </div>
         }

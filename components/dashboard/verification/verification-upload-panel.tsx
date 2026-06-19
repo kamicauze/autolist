@@ -147,13 +147,13 @@ export function VerificationUploadPanel({
               className={cn(
                 "rounded-[20px] border bg-[#faf9f7] p-4 transition",
                 selectedName
-                  ? "border-[#2563eb]/30 bg-[#f5f8ff]"
+                  ? "border-primary/30 bg-brand-soft-surface"
                   : "border-[#ededed]"
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#2563eb]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-primary">
                     {currentDocument || selectedName ? (
                       <CheckCircle2 className="h-4 w-4" />
                     ) : (
@@ -180,7 +180,7 @@ export function VerificationUploadPanel({
                   href={getImageUrl(currentDocument.r2_key)}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 flex items-center justify-between gap-3 rounded-[14px] border border-[#e6e6e6] bg-white px-3 py-3 text-[13px] transition hover:border-[#2563eb]/30"
+                  className="mt-4 flex items-center justify-between gap-3 rounded-[14px] border border-[#e6e6e6] bg-white px-3 py-3 text-[13px] transition hover:border-primary/30"
                 >
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-[#202224]">
@@ -190,17 +190,17 @@ export function VerificationUploadPanel({
                       {formatFileSize(currentDocument.size_bytes) || "Uploaded"}
                     </span>
                   </span>
-                  <ExternalLink className="h-4 w-4 shrink-0 text-[#2563eb]" />
+                  <ExternalLink className="h-4 w-4 shrink-0 text-primary" />
                 </a>
               ) : null}
 
               <label
                 className={cn(
-                  "mt-4 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[16px] border border-dashed border-[#d8d8d8] bg-white px-4 py-4 text-center transition hover:border-[#2563eb]/40",
+                  "mt-4 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[16px] border border-dashed border-[#d8d8d8] bg-white px-4 py-4 text-center transition hover:border-primary/40",
                   (!canUpload || isApproved) && "cursor-not-allowed opacity-60"
                 )}
               >
-                <UploadCloud className="h-5 w-5 text-[#2563eb]" />
+                <UploadCloud className="h-5 w-5 text-primary" />
                 <span className="mt-2 text-[13px] font-semibold text-[#202224]">
                   {selectedName || "Choose replacement file"}
                 </span>

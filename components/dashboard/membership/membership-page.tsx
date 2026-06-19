@@ -174,8 +174,8 @@ export function MembershipPage() {
         dashboardData.access.remainingListings === null
           ? "Unlimited"
           : String(dashboardData.access.remainingListings ?? 0),
-      icon: <BadgeCheck className="h-5 w-5 text-[#2563eb]" />,
-      accentClass: "bg-[#eef4ff]",
+      icon: <BadgeCheck className="h-5 w-5 text-primary" />,
+      accentClass: "bg-brand-tint",
       note: dashboardData.access.currentPlan
         ? `${dashboardData.access.currentPlan.name}${isIntroTrialActive ? " intro" : ""} plan`
         : "No active package",
@@ -277,7 +277,7 @@ export function MembershipPage() {
       ) : null}
 
       {dashboardData.entitlements.length === 0 ? (
-        <div className="rounded-[18px] border border-[#dbe8ff] bg-[#f5f9ff] px-4 py-3 text-[14px] text-[#1d4ed8]">
+        <div className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[14px] text-brand-hover">
           First activation on a seller account runs as a free 6-month intro membership.
         </div>
       ) : null}
@@ -320,11 +320,11 @@ export function MembershipPage() {
                   className={[
                     "rounded-[26px] border p-6 transition",
                     highlighted
-                      ? "border-[#2563eb] bg-[#eef4ff] shadow-[0_18px_36px_rgba(37,99,235,0.12)]"
+                      ? "border-primary bg-brand-tint shadow-[0_18px_36px_rgb(var(--primary-rgb)/0.12)]"
                       : "border-[#ededed] bg-white",
                   ].join(" ")}
                 >
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
                     {isActive ? "Active package" : highlighted ? "Recommended" : "Seller package"}
                   </p>
                   <h3 className="mt-4 font-heading text-[28px] font-semibold text-[#202224]">
@@ -338,7 +338,7 @@ export function MembershipPage() {
                   </p>
 
                   {isActive ? (
-                    <p className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#2563eb]">
+                    <p className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-primary">
                       {isIntroTrialActive
                         ? "Free intro active"
                         : dashboardData.access.remainingListings === null
@@ -350,7 +350,7 @@ export function MembershipPage() {
                   <ul className="mt-6 space-y-3 text-[14px] leading-6 text-[#666]">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex gap-3">
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[#2563eb]" />
+                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -363,8 +363,8 @@ export function MembershipPage() {
                     className={[
                       "mt-8 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
                       highlighted
-                        ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                        : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-[#2563eb] hover:text-[#2563eb]",
+                        ? "bg-primary text-white hover:bg-brand-hover"
+                        : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-primary hover:text-primary",
                     ].join(" ")}
                   >
                     {selectedPlanId === plan.id && isPending

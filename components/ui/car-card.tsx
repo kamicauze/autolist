@@ -204,8 +204,8 @@ export function CarCard({
   );
 
   const cardContent = (
-    <div className="group overflow-hidden rounded-xl border border-gray-4 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <div className="relative h-56 w-full overflow-hidden bg-gray-5">
+    <div className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative h-56 w-full overflow-hidden bg-muted">
         <div className="h-full overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
             {displayImages.map((imageUrl, index) => (
@@ -226,17 +226,17 @@ export function CarCard({
           <>
             <button
               onClick={scrollPrev}
-              className="absolute left-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 transition-opacity hover:bg-white group-hover:opacity-100"
+              className="absolute left-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 shadow-md opacity-0 transition-opacity hover:bg-card group-hover:opacity-100"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-1" />
+              <ChevronLeft className="h-5 w-5 text-card-foreground" />
             </button>
             <button
               onClick={scrollNext}
-              className="absolute right-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md opacity-0 transition-opacity hover:bg-white group-hover:opacity-100"
+              className="absolute right-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 shadow-md opacity-0 transition-opacity hover:bg-card group-hover:opacity-100"
               aria-label="Next image"
             >
-              <ChevronRight className="h-5 w-5 text-gray-1" />
+              <ChevronRight className="h-5 w-5 text-card-foreground" />
             </button>
           </>
         )}
@@ -263,7 +263,7 @@ export function CarCard({
                   : "Add to compare"
             }
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-primary shadow-md transition-colors hover:bg-white",
+              "flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-primary shadow-md transition-colors hover:bg-card",
               (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
             )}
           >
@@ -276,8 +276,8 @@ export function CarCard({
             disabled={isWishlistPending}
             aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-primary shadow-md transition-colors hover:bg-white hover:text-red-500",
-              isLiked && "text-red-500",
+              "flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-primary shadow-md transition-colors hover:bg-card hover:text-destructive",
+              isLiked && "text-destructive",
               isWishlistPending && "cursor-wait opacity-80"
             )}
           >
@@ -307,18 +307,18 @@ export function CarCard({
       </div>
 
       <div className="p-4">
-        <span className="text-[14px] font-normal leading-[19.6px] text-[#333333]">{bodyType}</span>
+        <span className="text-[14px] font-normal leading-[19.6px] text-muted-foreground">{bodyType}</span>
 
-        <h3 className="mt-1 line-clamp-1 text-[18px] font-medium leading-[25.2px] text-[#242720]">
+        <h3 className="mt-1 line-clamp-1 text-[18px] font-medium leading-[25.2px] text-card-foreground">
           {title}
         </h3>
         {subtitle ? (
-          <p className="mt-1 line-clamp-1 text-[13px] font-medium leading-[18px] text-[#696665]">
+          <p className="mt-1 line-clamp-1 text-[13px] font-medium leading-[18px] text-muted-foreground">
             {subtitle}
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-[#696665]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <IconSpeedometer className="h-4 w-4" />
             <span>{mileage}</span>
@@ -334,12 +334,12 @@ export function CarCard({
         </div>
 
         <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-[20px] font-bold leading-[28px] text-[#333333]">
+          <span className="text-[20px] font-bold leading-[28px] text-card-foreground">
             {currency}
             {formattedPrice}
           </span>
           {formattedOriginalPrice ? (
-            <span className="text-[13px] font-medium leading-[19.6px] text-[#B6B6B6] line-through">
+            <span className="text-[13px] font-medium leading-[19.6px] text-muted-foreground line-through">
               {currency}
               {formattedOriginalPrice}
             </span>

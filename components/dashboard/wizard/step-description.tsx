@@ -22,8 +22,8 @@ export function StepDescription() {
       </div>
 
       <section className="space-y-4 rounded-[14px] border border-[#ededed] bg-white p-4">
-        <div className="rounded-[14px] border border-[#e4edff] bg-[#f7faff] px-4 py-3">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#2563eb]">
+        <div className="rounded-[14px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
             Feature context ready
           </p>
           <p className="mt-2 text-[13px] leading-5 text-[#61708a]">

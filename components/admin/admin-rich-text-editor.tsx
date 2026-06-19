@@ -142,8 +142,8 @@ export function AdminRichTextEditor({
             onInput={emitChange}
             onBlur={emitChange}
             className={cn(
-              "rich-content-editor w-full bg-white px-4 py-4 text-[14px] leading-7 text-[#273041] outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/20",
-              "[&_a]:font-semibold [&_a]:text-[#2563eb] [&_blockquote]:border-l-4 [&_blockquote]:border-[#dbe8ff] [&_blockquote]:bg-[#f7faff] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:text-[#475467]",
+              "rich-content-editor w-full bg-white px-4 py-4 text-[14px] leading-7 text-[#273041] outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
+              "[&_a]:font-semibold [&_a]:text-primary [&_blockquote]:border-l-4 [&_blockquote]:border-brand-muted-border [&_blockquote]:bg-brand-soft-surface [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:text-[#475467]",
               "[&_h2]:mt-5 [&_h2]:font-heading [&_h2]:text-[24px] [&_h2]:font-semibold [&_h2]:leading-8 [&_h2]:text-[#111827] [&_h3]:mt-4 [&_h3]:font-heading [&_h3]:text-[18px] [&_h3]:font-semibold [&_h3]:text-[#111827]",
               "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-6",
               minHeightClassName

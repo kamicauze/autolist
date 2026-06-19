@@ -186,7 +186,7 @@ function FeatureTagsComparison({ listings }: { listings: Listing[] }) {
                   {features.map((feature) => (
                     <span
                       key={`${listing?.id}-${feature}`}
-                      className="rounded-full border border-[#d8e3ff] bg-[#f8fbff] px-3 py-1.5 text-xs font-medium text-[#3157c8]"
+                      className="rounded-full border border-[#d8e3ff] bg-brand-soft-surface px-3 py-1.5 text-xs font-medium text-primary"
                     >
                       {feature}
                     </span>
@@ -217,10 +217,10 @@ function AiComparisonCard({
   onGenerate: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-[#dbe7ff] bg-[#f8fbff] p-5 sm:p-6">
+    <div className="rounded-2xl border border-brand-muted-border bg-brand-soft-surface p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2563eb]">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             <Sparkles className="h-4 w-4" />
             AI comparison
           </div>
@@ -245,7 +245,7 @@ function AiComparisonCard({
       </div>
 
       {!canGenerate && (
-        <div className="mt-4 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm text-blue-700">
+        <div className="mt-4 rounded-xl border border-brand-muted-border bg-white px-4 py-3 text-sm text-primary">
           Select at least two vehicles to generate an AI comparison.
         </div>
       )}
@@ -259,7 +259,7 @@ function AiComparisonCard({
       {comparison && (
         <div className="mt-5 space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-            <span className="rounded-full border border-[#d9e6ff] bg-white px-3 py-1">
+            <span className="rounded-full border border-brand-muted-border bg-white px-3 py-1">
               {comparison.provider === "openai"
                 ? `OpenAI via ${comparison.model}`
                 : comparison.provider === "local_llm"
@@ -297,12 +297,12 @@ function AiComparisonCard({
               </div>
               <div className="mt-3 space-y-4">
                 {comparison.modelInsights.map((item) => (
-                  <article key={item.vehicleId} className="rounded-xl border border-[#d9e6ff] bg-white p-5">
+                  <article key={item.vehicleId} className="rounded-xl border border-brand-muted-border bg-white p-5">
                     <h4 className="text-base font-semibold text-gray-900">{item.title}</h4>
                     <p className="mt-3 text-sm leading-7 text-gray-700">{item.modelSummary}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.75fr)]">
-                      <div className="rounded-lg bg-[#f8fbff] px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#2563eb]">
+                      <div className="rounded-lg bg-brand-soft-surface px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
                           Buyer fit
                         </p>
                         <p className="mt-2 text-sm leading-6 text-gray-700">{item.buyerFit}</p>
@@ -630,7 +630,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
                 <Link
                   key={`slot-${index}`}
                   href="/search"
-                  className="flex h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-center transition-colors hover:border-primary hover:bg-blue-50"
+                  className="flex h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-center transition-colors hover:border-primary hover:bg-brand-tint"
                 >
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500">
                     <Plus className="h-5 w-5" />

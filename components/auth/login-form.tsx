@@ -122,7 +122,7 @@ export function LoginForm() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+              className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
               placeholder="name@example.com"
               data-testid="login-email"
             />
@@ -143,7 +143,7 @@ export function LoginForm() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+              className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-primary/30"
               placeholder="********"
               data-testid="login-password"
             />

@@ -5,15 +5,19 @@
    Based on Figma UI Style Guidelines
    ============================================ */
 
-:root {
+:root,
+[data-theme="autolist"] {
   /* Brand Colors */
   --primary: #2563EB;
+  --primary-rgb: 37 99 235;
   --primary-foreground: #FFFFFF;
   --secondary: #F2994A;
+  --secondary-rgb: 242 153 74;
   --secondary-foreground: #FFFFFF;
 
   /* State Colors */
   --info: #2563EB;
+  --info-rgb: 37 99 235;
   --success: #16A34A;
   --warning: #F59E0B;
   --destructive: #FA2529;
@@ -47,6 +51,134 @@
 
   /* Dashboard Sidebar */
   --sidebar-bg: #24272C;
+  --brand-tint: #EEF4FF;
+  --brand-tint-strong: #DBEAFE;
+  --brand-soft-surface: #F7FAFF;
+  --brand-muted-border: #CFE0FF;
+  --brand-hover: #1D4ED8;
+  --brand-link: var(--primary);
+  --brand-link-hover: var(--brand-hover);
+  --brand-logo-mark: var(--primary);
+  --brand-logo-text: #000000;
+  --brand-logo-accent: var(--destructive);
+}
+
+[data-theme="navy-red"] {
+  /* Brand Colors */
+  --primary: #14213D;
+  --primary-rgb: 20 33 61;
+  --primary-foreground: #FFFFFF;
+  --secondary: #B73843;
+  --secondary-rgb: 183 56 67;
+  --secondary-foreground: #FFFFFF;
+
+  /* State Colors */
+  --info: #14213D;
+  --info-rgb: 20 33 61;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --destructive: #B73843;
+  --destructive-foreground: #FFFFFF;
+
+  /* Grayscale */
+  --black-1: #1A1A1A;
+  --black-2: #101827;
+  --black-3: #1A2740;
+  --white: #FFFFFF;
+  --gray-1: #273041;
+  --gray-2: #667085;
+  --gray-3: #98A2B3;
+  --gray-4: #DDE3EC;
+  --gray-5: #F4F6F9;
+
+  /* shadcn semantic tokens */
+  --background: var(--white);
+  --foreground: var(--black-1);
+  --card: var(--white);
+  --card-foreground: var(--black-1);
+  --popover: var(--white);
+  --popover-foreground: var(--black-1);
+  --muted: var(--gray-5);
+  --muted-foreground: var(--gray-2);
+  --accent: #F7EDEE;
+  --accent-foreground: var(--secondary);
+  --border: var(--gray-4);
+  --input: var(--gray-4);
+  --ring: var(--primary);
+
+  /* Dashboard Sidebar */
+  --sidebar-bg: var(--primary);
+  --brand-tint: #F7EDEE;
+  --brand-tint-strong: #EFD4D7;
+  --brand-soft-surface: #FBFCFE;
+  --brand-muted-border: #E5EBF3;
+  --brand-hover: #0F1A30;
+  --brand-link: var(--primary);
+  --brand-link-hover: var(--secondary);
+  --brand-logo-mark: var(--primary);
+  --brand-logo-text: var(--black-1);
+  --brand-logo-accent: var(--secondary);
+}
+
+[data-theme="navy-red-dark"] {
+  /* Brand Colors */
+  --primary: #B73843;
+  --primary-rgb: 183 56 67;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F4F6F9;
+  --secondary-rgb: 244 246 249;
+  --secondary-foreground: #14213D;
+
+  /* State Colors */
+  --info: #8EA5C7;
+  --info-rgb: 142 165 199;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --destructive: #C6535D;
+  --destructive-foreground: #FFFFFF;
+
+  /* Grayscale */
+  --black-1: #F4F6F9;
+  --black-2: #0B1224;
+  --black-3: #101A33;
+  --white: #FFFFFF;
+  --gray-1: #E7ECF5;
+  --gray-2: #B7C2D6;
+  --gray-3: #8EA0BD;
+  --gray-4: #344461;
+  --gray-5: #14213D;
+
+  /* shadcn semantic tokens */
+  --background: #0B1224;
+  --foreground: #F4F6F9;
+  --card: #14213D;
+  --card-foreground: #F4F6F9;
+  --popover: #14213D;
+  --popover-foreground: #F4F6F9;
+  --muted: #101A33;
+  --muted-foreground: #B7C2D6;
+  --accent: #1E2E50;
+  --accent-foreground: #F4F6F9;
+  --border: #344461;
+  --input: #344461;
+  --ring: var(--primary);
+
+  /* Dashboard Sidebar */
+  --sidebar-bg: #081020;
+  --brand-tint: #251B2B;
+  --brand-tint-strong: #3C2434;
+  --brand-soft-surface: #101A33;
+  --brand-muted-border: #344461;
+  --brand-hover: #9F2F3A;
+  --brand-link: #D88990;
+  --brand-link-hover: #FFFFFF;
+  --brand-logo-mark: #FFFFFF;
+  --brand-logo-text: #F4F6F9;
+  --brand-logo-accent: var(--primary);
+}
+
+:root {
+  /* Dashboard Sidebar */
   --sidebar-width: 280px;
 
   /* Border Radius */
@@ -55,7 +187,7 @@
 
 @theme inline {
   /* Font Family */
-  --font-sans: var(--font-outfit), system-ui, sans-serif;
+  --font-sans: var(--font-poppins), system-ui, sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
 
   /* Brand Colors */
@@ -63,6 +195,12 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-tint-strong: var(--brand-tint-strong);
+  --color-brand-soft-surface: var(--brand-soft-surface);
+  --color-brand-muted-border: var(--brand-muted-border);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-link: var(--brand-link);
 
   /* State Colors */
   --color-info: var(--info);
@@ -148,11 +286,47 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+[data-theme="navy-red-dark"] body {
+  background:
+    radial-gradient(circle at 16% 0%, rgb(var(--primary-rgb) / 0.16), transparent 28rem),
+    linear-gradient(180deg, #0B1224 0%, #14213D 100%);
+}
+
+[data-theme="navy-red-dark"] :is(.bg-white, .bg-gray-50, .bg-white\/70, .bg-white\/95, .bg-\[\#fbfdff\]) {
+  background-color: var(--card) !important;
+}
+
+[data-theme="navy-red-dark"] :is(.bg-\[\#f7f9fc\], .bg-\[\#f8fafc\], .bg-\[\#fafcff\], .bg-\[\#f4f7fb\], .bg-\[\#f1f5f9\]) {
+  background-color: var(--muted) !important;
+}
+
+[data-theme="navy-red-dark"] :is(.text-gray-900, .text-gray-950, .text-\[\#111827\], .text-\[\#202224\], .text-\[\#212121\], .text-\[\#242720\], .text-\[\#24272C\], .text-\[\#24272c\], .text-\[\#273041\], .text-\[\#333333\], .text-\[\#374151\]) {
+  color: var(--foreground) !important;
+}
+
+[data-theme="navy-red-dark"] :is(.text-gray-700, .text-gray-600, .text-gray-500, .text-\[\#4b5563\], .text-\[\#4b5565\], .text-\[\#667085\], .text-\[\#696665\], .text-\[\#6b7280\], .text-\[\#707070\], .text-\[\#747474\], .text-\[\#7b8190\], .text-\[\#8b93a7\], .text-\[\#B6B6B6\]) {
+  color: var(--muted-foreground) !important;
+}
+
+[data-theme="navy-red-dark"] :is(.border-gray-100, .border-gray-200, .border-gray-300, .border-\[\#d1d5db\], .border-\[\#d1d5dc\], .border-\[\#d7dbe3\], .border-\[\#d9d9d9\], .border-\[\#e5e7eb\], .border-\[\#e7ebf1\], .border-\[\#ededed\]) {
+  border-color: var(--border) !important;
+}
+
+[data-theme="navy-red-dark"] :is(input, select, textarea) {
+  background-color: var(--muted);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+[data-theme="navy-red-dark"] ::placeholder {
+  color: var(--muted-foreground);
 }
 
 .font-heading {
-  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
 .font-body {

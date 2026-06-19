@@ -212,7 +212,7 @@ export function RegisterForm() {
                   type="button"
                   className={`group grid min-h-[156px] grid-rows-[auto_1fr_auto] gap-3 rounded-[14px] border px-3.5 py-3 text-left transition-[border-color,background-color,transform] duration-200 active:translate-y-px ${
                     selected
-                      ? "border-primary bg-white text-[#24272C] shadow-[0_10px_28px_rgba(37,99,235,0.08)]"
+                      ? "border-primary bg-white text-[#24272C] shadow-[0_10px_28px_rgb(var(--primary-rgb)/0.08)]"
                       : "border-[#EDEDED] bg-white/70 text-[#696665] hover:border-primary/40 hover:bg-white"
                   }`}
                   onClick={() => setSelectedRole(option.value)}
@@ -245,12 +245,12 @@ export function RegisterForm() {
           </div>
         </div>
 
-        <aside className="grid gap-3 rounded-[16px] border border-[#dbe8ff] bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start xl:block">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#eef4ff] text-primary">
+        <aside className="grid gap-3 rounded-[16px] border border-brand-muted-border bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start xl:block">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-brand-tint text-primary">
             <SelectedRoleIcon className="h-5 w-5" />
           </div>
           <div className="min-w-0 xl:mt-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
               Selected path
             </p>
             <h2 className="mt-2 font-heading text-[20px] font-semibold text-[#24272C]">
@@ -294,7 +294,7 @@ export function RegisterForm() {
                 required
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+                className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="Your name"
                 data-testid="register-full-name"
               />
@@ -315,7 +315,7 @@ export function RegisterForm() {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+                className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="name@example.com"
                 data-testid="register-email"
               />
@@ -336,7 +336,7 @@ export function RegisterForm() {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+                className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="********"
                 data-testid="register-password"
               />
@@ -388,7 +388,7 @@ export function RegisterForm() {
                 required
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-[#2563eb]/30"
+                className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="********"
                 data-testid="register-confirm-password"
               />

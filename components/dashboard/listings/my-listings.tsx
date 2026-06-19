@@ -137,7 +137,7 @@ function getFigmaListingStatus(status: Listing["status"]) {
     case "reserved":
       return {
         label: "Reserved",
-        className: "border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb]",
+        className: "border-brand-muted-border bg-brand-tint text-primary",
       };
     case "rejected":
       return {
@@ -216,7 +216,7 @@ function ListingViewTabs({
             className={cn(
               "inline-flex h-[45px] items-center justify-center rounded-[10px] px-[18px] text-[16px] font-medium leading-6 transition",
               active
-                ? "bg-[#2563eb] text-white shadow-[0_10px_15px_rgba(37,99,235,0.3),0_4px_6px_rgba(37,99,235,0.3)]"
+                ? "bg-primary text-white shadow-[0_10px_15px_rgb(var(--primary-rgb)/0.3),0_4px_6px_rgb(var(--primary-rgb)/0.3)]"
                 : "border border-[#e5e7eb] bg-white text-[#364153] hover:border-[#cbd5e1]"
             )}
           >
@@ -313,7 +313,7 @@ function ListingRowActions({
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className="flex h-[40px] w-[104px] cursor-pointer items-center justify-center gap-1 rounded-[8px] border border-[#2563eb] bg-white text-[13px] font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+          className="flex h-[40px] w-[104px] cursor-pointer items-center justify-center gap-1 rounded-[8px] border border-primary bg-white text-[13px] font-medium text-primary transition hover:bg-brand-tint"
         >
           Actions
           <ChevronDown className="h-4 w-4" />
@@ -330,7 +330,7 @@ function ListingRowActions({
           <DropdownMenu.Item
             onSelect={() => onGoLive(listing)}
             disabled={isPending}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-[#2563eb] outline-none hover:bg-[#eff6ff] focus:bg-[#eff6ff] data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[13px] font-medium text-primary outline-none hover:bg-brand-tint focus:bg-brand-tint data-[disabled]:pointer-events-none data-[disabled]:opacity-60"
           >
             <Rocket className="h-4 w-4" />
             Submit for review
@@ -391,7 +391,7 @@ function ListingRowActions({
                 >
                   Unassigned
                   {!listing.assigned_agent_id ? (
-                    <BadgeCheck className="ml-auto h-4 w-4 text-[#2563eb]" />
+                    <BadgeCheck className="ml-auto h-4 w-4 text-primary" />
                   ) : null}
                 </DropdownMenu.Item>
                 {salesReps.map((rep) => (
@@ -403,7 +403,7 @@ function ListingRowActions({
                   >
                     <span className="truncate">{rep.name}</span>
                     {listing.assigned_agent_id === rep.id ? (
-                      <BadgeCheck className="ml-auto h-4 w-4 shrink-0 text-[#2563eb]" />
+                      <BadgeCheck className="ml-auto h-4 w-4 shrink-0 text-primary" />
                     ) : null}
                   </DropdownMenu.Item>
                 ))}
@@ -589,14 +589,14 @@ function BidsPlaceholder({
           <div className="flex min-h-[47px] flex-wrap items-center gap-5 rounded-[12px] border border-[#e5e7eb] bg-white px-5 shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]">
             <span className="text-[14px] font-medium text-[#4a5565]">Filter by Status:</span>
             <label className="flex items-center gap-2 text-[14px] font-medium text-[#101828]">
-              <input type="checkbox" checked readOnly className="h-[18px] w-[18px] accent-[#2563eb]" />
+              <input type="checkbox" checked readOnly className="h-[18px] w-[18px] accent-primary" />
               Available
               <span className="rounded-full bg-[#f0fdf4] px-2 py-0.5 text-[12px] font-medium text-[#008236]">
                 {availableCount}
               </span>
             </label>
             <label className="flex items-center gap-2 text-[14px] font-medium text-[#101828]">
-              <input type="checkbox" checked readOnly className="h-[18px] w-[18px] accent-[#2563eb]" />
+              <input type="checkbox" checked readOnly className="h-[18px] w-[18px] accent-primary" />
               Claimed
               <span className="rounded-full bg-[#fef2f2] px-2 py-0.5 text-[12px] font-medium text-[#c10007]">
                 {claimedCount}
@@ -766,7 +766,7 @@ function BidsPlaceholder({
                     type="button"
                     onClick={() => handleMakeOffer(offer)}
                     disabled={pendingActionId === offer.id}
-                    className="inline-flex h-9 items-center justify-center rounded-[6px] bg-[#2563eb] px-3 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-9 items-center justify-center rounded-[6px] bg-primary px-3 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {pendingActionId === offer.id ? "Saving..." : "Make offer"}
                   </button>
@@ -796,7 +796,7 @@ function BidsPlaceholder({
                         type="button"
                         onClick={() => handleCounterOffer(offer)}
                         disabled={pendingActionId === offer.id}
-                        className="inline-flex h-9 items-center justify-center rounded-[6px] border border-[#bfdbfe] bg-white px-3 text-[13px] font-semibold text-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-9 items-center justify-center rounded-[6px] border border-brand-muted-border bg-white px-3 text-[13px] font-semibold text-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Counter
                       </button>
@@ -840,7 +840,7 @@ function BidMetric({
       className={cn(
         "min-h-[82px] rounded-[10px] border px-5 py-4",
         highlight
-          ? "border-[#bedbff] bg-[linear-gradient(160deg,#eff6ff_0%,#dbeafe_100%)]"
+          ? "border-brand-muted-border bg-[linear-gradient(160deg,var(--brand-tint)_0%,var(--brand-tint-strong)_100%)]"
           : "border-[#f3f4f6] bg-[#f9fafb]"
       )}
     >
@@ -1154,7 +1154,7 @@ export function MyListings({
             </div>
 
             <div className="mt-[21px] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[12px] font-medium text-[#2563eb]">
+              <p className="text-[12px] font-medium text-primary">
                 {displayListings.length} results found
               </p>
 
@@ -1176,7 +1176,7 @@ export function MyListings({
               {selectedIds.length > 0 ? (
                 <div className="absolute left-[18px] top-[300px] z-30 flex min-h-[96px] w-[min(640px,calc(100vw-96px))] flex-wrap items-center gap-4 rounded-[20px] border border-[rgba(255,255,255,0.1)] bg-[#24272c] px-5 py-4 shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
                   <div className="flex h-12 items-center gap-3 border-r border-[rgba(255,255,255,0.2)] pr-6">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2563eb] text-[18px] font-bold text-white">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-[18px] font-bold text-white">
                       {selectedIds.length}
                     </span>
                     <span>
@@ -1237,7 +1237,7 @@ export function MyListings({
                         checked={allVisibleSelected}
                         onChange={toggleVisibleSelection}
                         aria-label="Select all listings"
-                        className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-[#2563eb]"
+                        className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
                       />
                     </th>
                     <th className="px-0">Listing</th>
@@ -1267,7 +1267,7 @@ export function MyListings({
                               checked={selected}
                               onChange={() => toggleListingSelection(listing.id)}
                               aria-label={`Select ${title}`}
-                              className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-[#2563eb]"
+                              className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
                             />
                           </td>
                           <td className="border-b border-[#ededed] py-3 pr-3 align-top">
@@ -1288,7 +1288,7 @@ export function MyListings({
                                 <p className="mt-1 truncate text-[11px] leading-[1.35] text-[#696665]">
                                   {subtitle}
                                 </p>
-                                <p className="mt-2 text-[13px] font-medium leading-[1.4] text-[#2563eb]">
+                                <p className="mt-2 text-[13px] font-medium leading-[1.4] text-primary">
                                   {formatListingPrice(listing)}
                                 </p>
                               </div>
@@ -1333,7 +1333,7 @@ export function MyListings({
                   className={cn(
                     "flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-[#ededed] text-[16px] font-medium leading-[1.4]",
                     item === "3"
-                      ? "border-[#2563eb] bg-[#2563eb] text-white"
+                      ? "border-primary bg-primary text-white"
                       : "bg-white text-[#24272c] disabled:text-[#24272c]"
                   )}
                 >

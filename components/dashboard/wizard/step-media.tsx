@@ -35,7 +35,7 @@ function ExistingImageCard({
           unoptimized
         />
         {badge ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[#2563eb] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white">
             {badge}
           </span>
         ) : null}
@@ -102,7 +102,7 @@ function GalleryPreview({
           <Image src={previewUrl} alt={file.name} fill unoptimized className="object-cover" />
         ) : null}
         {badge ? (
-          <span className="absolute left-3 top-3 rounded-full bg-[#2563eb] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white">
             {badge}
           </span>
         ) : null}
@@ -201,7 +201,7 @@ export function StepMedia() {
       <div className="space-y-4 rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         <div className="space-y-4">
           {isEditing && !hasReplacementMedia ? (
-            <div className="rounded-[12px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[12px] leading-5 text-[#3157c8]">
+            <div className="rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[12px] leading-5 text-primary">
               Current listing media is preserved as-is. Choose any existing photo as the new cover, or
               upload a new photo set if you want to replace the existing photos.
             </div>
@@ -256,10 +256,10 @@ export function StepMedia() {
                   <ExistingImageCard image={existingCoverRef} badge="Cover" />
                 ) : (
                   // Create flow: we only have the local File name until upload.
-                  <div className="overflow-hidden rounded-[12px] border border-[#2563eb]/20 bg-[#eef4ff] p-3">
+                  <div className="overflow-hidden rounded-[12px] border border-primary/20 bg-brand-tint p-3">
                     <div className="flex h-full min-h-[120px] flex-col justify-between rounded-[10px] border border-dashed border-[#b7cdfd] bg-white/70 p-3">
                       <div>
-                        <span className="rounded-full bg-[#2563eb] px-3 py-1 text-[11px] font-semibold text-white">
+                        <span className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white">
                           Cover
                         </span>
                         <p className="mt-4 line-clamp-2 text-[14px] font-semibold text-[#202224]">

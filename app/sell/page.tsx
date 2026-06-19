@@ -166,7 +166,7 @@ export default function SellPage() {
                   key={benefit.title}
                   className="flex flex-col items-center text-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-tint">
                     <benefit.icon className="h-7 w-7 text-primary" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-foreground">

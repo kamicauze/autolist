@@ -8,8 +8,8 @@ const tools = [
     description:
       "Estimate maintenance and service costs for any vehicle to plan your budget.",
     href: "/tools/autocare",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
+    iconBg: "bg-brand-tint",
+    iconColor: "text-primary",
   },
   {
     icon: Calculator,

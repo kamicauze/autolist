@@ -178,7 +178,7 @@ export function AdminRolesPermissionsLive({
       <AdminPageHeader
         title="Roles & Permissions"
         action={
-          <div className="rounded-[10px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-2 text-[12px] text-[#1d4ed8]">
+          <div className="rounded-[10px] border border-brand-muted-border bg-brand-tint px-4 py-2 text-[12px] text-brand-hover">
             {canManageRoles
               ? "Super admin mode: role and permission changes are enabled."
               : "Read-only mode: super admin is required for role and permission changes."}
@@ -366,11 +366,11 @@ export function AdminRolesPermissionsLive({
                             className={cn(
                               "mx-auto flex h-8 w-8 items-center justify-center rounded-[8px] border text-[13px] font-semibold transition",
                               checked
-                                ? "border-[#2563eb] bg-[#2563eb] text-white"
+                                ? "border-primary bg-primary text-white"
                                 : "border-[#d1d5db] bg-white text-[#94a3b8]",
                               locked || isPending
                                 ? "cursor-not-allowed opacity-70"
-                                : "hover:border-[#2563eb] hover:text-[#2563eb]"
+                                : "hover:border-primary hover:text-primary"
                             )}
                             aria-label={`${checked ? "Disable" : "Enable"} ${permission.label} for ${role.label}`}
                           >

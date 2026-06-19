@@ -75,7 +75,7 @@ export function SearchPageClient({
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-[14px] bg-[#2563eb] px-4 text-white hover:bg-[#1d4ed8]"
+            className="h-11 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
             onClick={() => setIsQuickSearchOpen(true)}
           >
             <Sparkles className="mr-2 h-4 w-4" />

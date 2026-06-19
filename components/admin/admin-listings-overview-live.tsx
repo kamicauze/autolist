@@ -222,7 +222,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
             type="button"
             onClick={clearFilters}
             disabled={!hasActiveFilters}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-[#d1d5db] bg-white px-4 text-[13px] font-semibold text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb] disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-[#d1d5db] bg-white px-4 text-[13px] font-semibold text-[#374151] transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
           >
             <X className="h-4 w-4" />
             Clear
@@ -235,7 +235,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
             {data.listings.length.toLocaleString("en-KE")} loaded listings
           </span>
           {hasActiveFilters ? (
-            <span className="font-medium text-[#2563eb]">Filters active</span>
+            <span className="font-medium text-primary">Filters active</span>
           ) : null}
         </div>
 
@@ -251,7 +251,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                       <button
                         type="button"
                         onClick={() => toggleExpanded(listing.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#d1d5db] bg-white text-[#6b7280] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#d1d5db] bg-white text-[#6b7280] transition hover:border-primary hover:text-primary"
                         aria-label={`${isExpanded ? "Collapse" : "Expand"} ${listing.title}`}
                         aria-expanded={isExpanded}
                       >
@@ -265,7 +265,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                         <div className="flex items-center gap-2">
                           <p className="text-[14px] font-semibold text-[#111827]">{listing.title}</p>
                           {listing.isFeatured ? (
-                            <span className="rounded-full bg-[#dbeafe] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#1d4ed8]">
+                            <span className="rounded-full bg-brand-tint-strong px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-hover">
                               Featured
                             </span>
                           ) : null}
@@ -304,7 +304,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.8fr)_minmax(240px,0.8fr)]">
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <CarFront className="h-4 w-4 text-[#2563eb]" />
+                              <CarFront className="h-4 w-4 text-primary" />
                               Listing detail
                             </p>
                             <div className="mt-3 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
@@ -349,7 +349,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <UserRound className="h-4 w-4 text-[#2563eb]" />
+                              <UserRound className="h-4 w-4 text-primary" />
                               Seller
                             </p>
                             <div className="mt-3 space-y-2 text-[13px] text-[#374151]">
@@ -367,7 +367,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <Hash className="h-4 w-4 text-[#2563eb]" />
+                              <Hash className="h-4 w-4 text-primary" />
                               Admin metadata
                             </p>
                             <div className="mt-3 space-y-2 text-[13px] text-[#374151]">

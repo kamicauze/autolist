@@ -318,7 +318,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                       onClick={() => setActiveTab(tab.key as ConversationTab)}
                       className={`h-9 rounded-full text-[12px] font-semibold transition ${
                         active
-                          ? "bg-[#2563eb] text-white"
+                          ? "bg-primary text-white"
                           : "bg-[#f3f6fb] text-[#667085] hover:bg-[#e9eef8]"
                       }`}
                     >
@@ -352,13 +352,13 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                       alt={conversation.counterpartName}
                       fallback={getInitials(conversation.counterpartName)}
                       size="md"
-                      className="shrink-0 bg-[#eef4ff] text-[#2563eb]"
+                      className="shrink-0 bg-brand-tint text-primary"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            {unread ? <span className="h-2 w-2 rounded-full bg-[#2563eb]" /> : null}
+                            {unread ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
                             <p className="text-[14px] font-semibold text-[#202224]">
                               {conversation.counterpartName}
                             </p>
@@ -375,7 +375,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                           {formatStatusLabel(conversation.status)}
                         </span>
                         {unread ? (
-                          <span className="rounded-full bg-[#eaf1ff] px-2 py-1 text-[11px] font-medium text-[#1d4ed8]">
+                          <span className="rounded-full bg-brand-tint px-2 py-1 text-[11px] font-medium text-brand-hover">
                             unread
                           </span>
                         ) : null}
@@ -397,7 +397,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                         alt={activeConversation.counterpartName}
                         fallback={getInitials(activeConversation.counterpartName)}
                         size="md"
-                        className="bg-[#eef4ff] text-[#2563eb]"
+                        className="bg-brand-tint text-primary"
                       />
                       <div className="min-w-0">
                         <p className="text-[15px] font-semibold text-[#202224]">
@@ -425,14 +425,14 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     ) : null}
                   </div>
 
-                  <div className="mt-4 grid gap-3 rounded-[18px] border border-[#e7edf6] bg-[#f8fbff] p-4 text-[13px] text-[#475467] md:grid-cols-2">
+                  <div className="mt-4 grid gap-3 rounded-[18px] border border-brand-muted-border bg-brand-soft-surface p-4 text-[13px] text-[#475467] md:grid-cols-2">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
                         Listing
                       </p>
                       <Link
                         href={`/vehicle/${activeConversation.listingId}`}
-                        className="mt-1 block truncate text-[14px] font-semibold text-[#2563eb] hover:underline"
+                        className="mt-1 block truncate text-[14px] font-semibold text-primary hover:underline"
                       >
                         {activeConversation.listingTitle}
                       </Link>
@@ -513,7 +513,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                       type="button"
                       onClick={() => void sendMessage()}
                       disabled={isSending || !message.trim()}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2563eb] text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
                     </button>
@@ -581,7 +581,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
 
               {agentResult ? (
                 <div className="mt-5 space-y-4">
-                  <div className="rounded-[18px] border border-[#e6ebf5] bg-[#f8fbff] p-4">
+                  <div className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface p-4">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5d6b82]">
                       Summary
                     </p>
@@ -591,7 +591,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     </p>
                   </div>
 
-                  <div className="rounded-[18px] border border-[#e6ebf5] bg-white p-4">
+                  <div className="rounded-[18px] border border-brand-muted-border bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5d6b82]">
                         Suggested Reply
@@ -607,7 +607,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     </p>
                   </div>
 
-                  <div className="rounded-[18px] border border-[#e6ebf5] bg-white p-4">
+                  <div className="rounded-[18px] border border-brand-muted-border bg-white p-4">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5d6b82]">
                       Seller Checklist
                     </p>

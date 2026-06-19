@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock3, Heart, ListOrdered, Star, UploadCloud } from "lucide-react";
+import { Clock3, Heart, ListOrdered, Star } from "lucide-react";
 import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { ListingsTable } from "@/components/dashboard/listings-table";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
@@ -53,8 +53,8 @@ export default async function DashboardPage() {
     {
       label: "Your listing",
       value: quotaValue,
-      icon: <ListOrdered className="h-5 w-5 text-[#2563eb]" />,
-      accentClass: "bg-[#eef4ff]",
+      icon: <ListOrdered className="h-5 w-5 text-primary" />,
+      accentClass: "bg-brand-tint",
       note: packageAccess?.currentPlan ? packageAccess.currentPlan.name : "No active package",
     },
     {
@@ -66,8 +66,8 @@ export default async function DashboardPage() {
     {
       label: "Favorites",
       value: String(favoritesResult.count ?? 0).padStart(2, "0"),
-      icon: <Heart className="h-5 w-5 text-[#2563eb]" />,
-      accentClass: "bg-[#eef4ff]",
+      icon: <Heart className="h-5 w-5 text-primary" />,
+      accentClass: "bg-brand-tint",
     },
     {
       label: "Reviews",
@@ -78,8 +78,8 @@ export default async function DashboardPage() {
               maximumFractionDigits: 1,
             })
           : "0",
-      icon: <Star className="h-5 w-5 text-[#2563eb]" />,
-      accentClass: "bg-[#eef4ff]",
+      icon: <Star className="h-5 w-5 text-primary" />,
+      accentClass: "bg-brand-tint",
       note:
         reviewsData.summary.totalReviews === 1
           ? "1 review"
@@ -92,15 +92,6 @@ export default async function DashboardPage() {
       <SellerPageHeader
         title="Dashboard"
         description="Track seller listings, package capacity, buyer engagement, and account verification."
-        action={
-          <Link
-            href="/dashboard/listings/new"
-            className="inline-flex h-11 items-center gap-2 rounded-[8px] bg-[#2563eb] px-4 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
-          >
-            <UploadCloud className="h-4 w-4" />
-            Add listing
-          </Link>
-        }
       />
 
       <VerificationBanner />

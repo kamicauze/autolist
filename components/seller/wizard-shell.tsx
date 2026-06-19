@@ -52,7 +52,7 @@ export function WizardShell({
         <div className="rounded-[16px] border border-[#ededed] bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                 {eyebrow}
               </p>
               <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
@@ -74,7 +74,7 @@ export function WizardShell({
 
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#dfe8f8]">
             <div
-              className="h-full rounded-full bg-[#2563eb] transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -94,12 +94,12 @@ export function WizardShell({
                     className={cn(
                       "flex h-12 min-w-[132px] items-center gap-2 rounded-[10px] border px-3 text-left transition",
                       active
-                        ? "border-[#2563eb] bg-[#eef4ff] text-[#1d4ed8]"
+                        ? "border-primary bg-brand-tint text-brand-hover"
                         : complete
-                          ? "border-[#cfe0ff] bg-white text-[#2563eb]"
+                          ? "border-brand-muted-border bg-white text-primary"
                           : "border-[#e7e7e7] bg-white text-[#4b5563]",
                       onStepSelect &&
-                        "hover:border-[#2563eb] hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2",
+                        "hover:border-primary hover:bg-brand-soft-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                       !onStepSelect && "cursor-default"
                     )}
                   >
@@ -107,9 +107,9 @@ export function WizardShell({
                       className={cn(
                         "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold",
                         active
-                          ? "bg-[#2563eb] text-white"
+                          ? "bg-primary text-white"
                           : complete
-                            ? "bg-[#e6efff] text-[#2563eb]"
+                            ? "bg-brand-tint text-primary"
                             : "bg-[#f3f4f6] text-[#737780]"
                       )}
                     >
@@ -119,7 +119,7 @@ export function WizardShell({
                   </button>
 
                   {step.description ? (
-                    <div className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 w-64 translate-y-1 rounded-[10px] border border-[#dbe8ff] bg-white px-3 py-2 text-[12px] leading-5 text-[#5f6673] opacity-0 shadow-[0_16px_32px_rgba(15,23,42,0.14)] transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    <div className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 w-64 translate-y-1 rounded-[10px] border border-brand-muted-border bg-white px-3 py-2 text-[12px] leading-5 text-[#5f6673] opacity-0 shadow-[0_16px_32px_rgba(15,23,42,0.14)] transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
                       {step.description}
                     </div>
                   ) : null}
@@ -152,7 +152,7 @@ export function WizardShell({
     >
       <aside className="rounded-[28px] border border-[#ededed] bg-white p-6 shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#2563eb]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
             {eyebrow}
           </p>
           <h1 className="font-heading text-[34px] font-semibold leading-none text-[#202224]">
@@ -173,7 +173,7 @@ export function WizardShell({
           </div>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#dfe8f8]">
             <div
-              className="h-full rounded-full bg-[#2563eb] transition-all"
+              className="h-full rounded-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -191,7 +191,7 @@ export function WizardShell({
                     aria-hidden
                     className={cn(
                       "absolute left-[20px] top-11 h-[calc(100%-12px)] w-px",
-                      complete ? "bg-[#2563eb]/30" : "bg-[#e5e7eb]"
+                      complete ? "bg-primary/30" : "bg-[#e5e7eb]"
                     )}
                   />
                 ) : null}
@@ -201,9 +201,9 @@ export function WizardShell({
                     className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-full text-[14px] font-semibold transition",
                       active
-                        ? "bg-[#2563eb] text-white shadow-[0_10px_24px_rgba(37,99,235,0.22)]"
+                        ? "bg-primary text-white shadow-[0_10px_24px_rgb(var(--primary-rgb)/0.22)]"
                         : complete
-                          ? "bg-[#e6efff] text-[#2563eb]"
+                          ? "bg-brand-tint text-primary"
                           : "bg-white text-[#737780] ring-1 ring-[#e7e7e7]"
                     )}
                   >
@@ -219,7 +219,7 @@ export function WizardShell({
                     "w-full rounded-[18px] pb-8 text-left transition",
                     !onStepSelect && "cursor-default",
                     onStepSelect &&
-                      "hover:bg-[#f8fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
+                      "hover:bg-brand-soft-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   )}
                 >
                   <p

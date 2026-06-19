@@ -103,7 +103,7 @@ const HERO_MILEAGE_OPTIONS = MILEAGE_RANGES.map((range, index) => ({
 }));
 
 const PANEL_INPUT_CLASS =
-  "h-[42px] w-full rounded-[12px] border border-[#d1d5dc] bg-white px-3.5 text-[14px] text-[#202224] placeholder:text-[#8b93a7] outline-none transition focus:border-primary/70";
+  "h-[42px] w-full rounded-[12px] border-[0.5px] border-[#d1d5dc] bg-white px-3.5 text-[14px] text-[#202224] placeholder:text-[#8b93a7] outline-none transition focus:border-primary/70";
 const PANEL_ICON_CLASS =
   "pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b93a7]";
 const PANEL_CHEVRON_CLASS =
@@ -577,7 +577,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             sizes="(min-width: 1280px) 1280px, 100vw"
             className="absolute inset-0 object-cover"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,12,16,0.22)_0%,rgba(12,12,16,0.74)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,9,18,0.12)_0%,rgba(5,9,18,0.58)_100%)]" />
 
           {carouselEnabled ? (
             <div className="absolute inset-x-3 top-1/2 z-20 hidden -translate-y-1/2 items-center justify-between sm:flex">
@@ -631,7 +631,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             >
               <h1
                 className={cn(
-                  "max-w-4xl text-3xl font-bold italic text-white sm:text-4xl md:text-5xl lg:text-6xl",
+                  "max-w-4xl text-3xl font-bold text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.34)] sm:text-4xl md:text-5xl lg:text-6xl",
                   hasSponsoredHero && "max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-[44px]"
                 )}
               >
@@ -639,7 +639,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               </h1>
               <p
                 className={cn(
-                  "mt-3 max-w-2xl text-base text-white/86 sm:text-lg",
+                  "mt-3 max-w-2xl text-base text-white/88 drop-shadow-[0_1px_12px_rgba(0,0,0,0.34)] sm:text-lg",
                   hasSponsoredHero && "max-w-xl text-sm leading-6 sm:text-base"
                 )}
               >
@@ -704,7 +704,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                 <button
                   type="button"
                   onClick={() => setIsQuickSearchOpen(true)}
-                  className="inline-flex h-9 items-center gap-2 rounded-full border border-[#d7dbe3] bg-white px-3.5 text-[13px] font-medium text-[#202224] transition hover:border-[#c8cfda] hover:bg-[#f7f9fc]"
+                  className="inline-flex h-9 items-center gap-2 rounded-full border-[0.5px] border-[#d7dbe3] bg-white px-3.5 text-[13px] font-medium text-[#202224] transition hover:border-[#c8cfda] hover:bg-[#f7f9fc]"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   Quick search
@@ -716,20 +716,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
           <form
             onSubmit={handleSearch}
             className={cn(
-              "mx-auto max-w-[980px] overflow-hidden rounded-[18px] border border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
+              "mx-auto max-w-[980px] overflow-hidden rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
               hasSponsoredHero && "max-w-none lg:w-full"
             )}
           >
             <div className="flex flex-col lg:flex-row">
               <aside
                 className={cn(
-                  "relative border-b border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r lg:bg-transparent",
+                  "relative border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
                   hasSponsoredHero && "lg:w-[58px]"
                 )}
               >
                 <div
                   className={cn(
-                    "grid grid-cols-3 gap-px bg-[#eef1f6] p-px lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3",
+                    "grid grid-cols-3 gap-[0.5px] bg-border/70 p-[0.5px] lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3",
                     hasSponsoredHero && "lg:p-2"
                   )}
                 >
@@ -745,7 +745,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                         onClick={() => setActiveCategory(category)}
                         className={`flex min-h-[45px] items-center justify-center bg-white transition ${
                           isActive
-                            ? "text-primary shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]"
+                            ? "text-primary shadow-[inset_0_0_0_1px_rgb(var(--primary-rgb)/0.12)]"
                             : "text-[#7b8190] hover:text-[#202224]"
                         } lg:h-[45px] lg:rounded-[12px] ${hasSponsoredHero ? "lg:h-[40px]" : ""}`}
                         aria-pressed={isActive}
@@ -769,14 +769,14 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               >
                 <div
                   className={cn(
-                    "flex flex-col gap-3 border-b border-[#eef1f6] pb-4 md:flex-row md:items-start md:justify-between",
+                    "flex flex-col gap-3 border-b-[0.5px] border-[#eef1f6] pb-4 md:flex-row md:items-start md:justify-between",
                     hasSponsoredHero && "pb-3 md:flex-col"
                   )}
                 >
                   <div>
                     <h2
                       className={cn(
-                        "text-[22px] font-bold italic leading-[1.2] text-[#202224]",
+                        "text-[22px] font-bold leading-[1.2] text-[#202224]",
                         hasSponsoredHero && "text-[20px]"
                       )}
                     >
@@ -794,7 +794,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={browseAllHref}
-                      className="rounded-full border border-[#d7dbe3] bg-[#f7f9fc] px-3 py-1.5 text-[12px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
+                      className="rounded-full border-[0.5px] border-[#d7dbe3] bg-[#f7f9fc] px-3 py-1.5 text-[12px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
                     >
                       Browse all
                     </Link>
@@ -894,7 +894,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     <button
                       type="button"
                       onClick={handleMoreFilters}
-                      className="inline-flex h-[42px] items-center justify-center gap-2 rounded-[12px] border border-[#d7dbe3] bg-[#f7f9fc] px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
+                      className="inline-flex h-[42px] items-center justify-center gap-2 rounded-[12px] border-[0.5px] border-[#d7dbe3] bg-[#f7f9fc] px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
                     >
                       <SlidersHorizontal className="h-4 w-4 text-primary" />
                       More Filters

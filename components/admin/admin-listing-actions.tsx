@@ -91,7 +91,7 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-[9px] border border-[#d1d5db] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+            className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-[9px] border border-[#d1d5db] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-primary hover:text-primary"
           >
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             Actions
@@ -168,7 +168,7 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
               disabled={isPending}
               className={itemClass}
             >
-              <Star className="h-4 w-4 text-[#2563eb]" />
+              <Star className="h-4 w-4 text-primary" />
               {listing.isFeatured ? "Remove featured" : "Feature listing"}
             </DropdownMenu.Item>
 

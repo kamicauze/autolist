@@ -7,6 +7,8 @@ export type DashboardAccountContext = {
   profileRole: string | null;
   dealerId: string | null;
   dealerStatus: string | null;
+  dealerName: string | null;
+  dealerLogoUrl: string | null;
 };
 
 type DashboardProfileRow = {
@@ -15,7 +17,9 @@ type DashboardProfileRow = {
 
 type DashboardDealerRow = {
   id: string;
+  name: string | null;
   status: string | null;
+  logo_url: string | null;
 };
 
 export async function getDashboardAccountContext(
@@ -30,7 +34,7 @@ export async function getDashboardAccountContext(
       .maybeSingle<DashboardProfileRow>(),
     supabase
       .from("dealers")
-      .select("id, status")
+      .select("id, name, status, logo_url")
       .eq("profile_id", userId)
       .maybeSingle<DashboardDealerRow>(),
   ]);
@@ -44,5 +48,7 @@ export async function getDashboardAccountContext(
     profileRole,
     dealerId: dealer?.id ?? null,
     dealerStatus: dealer?.status ?? null,
+    dealerName: dealer?.name ?? null,
+    dealerLogoUrl: dealer?.logo_url ?? null,
   };
 }

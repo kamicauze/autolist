@@ -154,7 +154,7 @@ export function StepReview() {
               {selectedFeatureLabels.map((featureLabel) => (
                 <span
                   key={featureLabel}
-                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8]"
+                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-medium text-primary"
                 >
                   {featureLabel}
                 </span>

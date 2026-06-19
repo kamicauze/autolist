@@ -203,7 +203,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
                   }}
                   className={cn(
                     "w-full px-6 py-5 text-left transition",
-                    isActive ? "bg-[#f8fbff]" : "bg-white hover:bg-[#fafcff]"
+                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

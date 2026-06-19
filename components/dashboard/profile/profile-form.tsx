@@ -123,7 +123,7 @@ function verificationSummary(
   if (!verification) {
     if (role === "seller") {
       return {
-        icon: <ShieldCheck className="h-5 w-5 text-[#2563eb]" />,
+        icon: <ShieldCheck className="h-5 w-5 text-primary" />,
         title: "Individual seller account",
         description:
           "Dealer verification is not required for individual sellers. Keep your profile details current so buyers can contact you confidently.",
@@ -159,7 +159,7 @@ function verificationSummary(
   }
 
   return {
-    icon: <Clock3 className="h-5 w-5 text-[#2563eb]" />,
+    icon: <Clock3 className="h-5 w-5 text-primary" />,
     title: "Verification under review",
     description:
       "Your documents are with the Autolist review team. Use the verification page to track progress and open the submitted files.",
@@ -196,7 +196,10 @@ export function ProfileForm({
   googleMapsApiKey = null,
 }: ProfileFormProps) {
   const router = useRouter();
-  const avatarUrl = profile?.avatar_url || undefined;
+  const avatarUrl =
+    profile?.role === "dealer"
+      ? verification?.logo_url || profile?.avatar_url || undefined
+      : profile?.avatar_url || undefined;
   const accountType = accountTypeLabel(profile?.role ?? null, verification);
   const initialForm: SellerProfileFormState = {
     fullName: profile?.full_name || user.email?.split("@")[0] || "",
@@ -338,7 +341,7 @@ export function ProfileForm({
                     alt={displayName}
                     size="lg"
                     fallback={getInitials(displayName)}
-                    className="h-24 w-24 bg-[#eef4ff] text-[#2563eb]"
+                    className="h-24 w-24 bg-brand-tint text-primary"
                   />
 
                   <div className="min-w-0 flex-1">
@@ -349,7 +352,7 @@ export function ProfileForm({
                       {form.email || "No email found"}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-[#eef4ff] px-4 py-2 text-[13px] font-medium text-[#2563eb]">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-brand-tint px-4 py-2 text-[13px] font-medium text-primary">
                         <ShieldCheck className="h-4 w-4" />
                         {accountType}
                       </span>
@@ -481,7 +484,7 @@ export function ProfileForm({
                       href={mapUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[12px] font-semibold text-[#24272c] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                      className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[12px] font-semibold text-[#24272c] transition hover:border-primary hover:text-primary"
                     >
                       Open in Maps
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -496,7 +499,7 @@ export function ProfileForm({
                     fallback={
                       <div className="flex h-full items-center justify-center p-6 text-center">
                         <div>
-                          <MapPin className="mx-auto h-8 w-8 text-[#2563eb]" />
+                          <MapPin className="mx-auto h-8 w-8 text-primary" />
                           <p className="mt-3 text-[14px] font-semibold text-[#202224]">
                             {mapQuery || "Location not set"}
                           </p>
@@ -517,7 +520,7 @@ export function ProfileForm({
               <div className="rounded-[24px] border border-[#ededed] bg-white p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
                       {verificationState.icon}
                     </div>
                     <div>
@@ -567,7 +570,7 @@ export function ProfileForm({
                           key={document.id}
                           className="flex items-center gap-3 rounded-[16px] border border-[#ededed] bg-[#faf9f7] px-3 py-3"
                         >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#2563eb]">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary">
                             <FileText className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
@@ -593,7 +596,7 @@ export function ProfileForm({
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     href="/dashboard/verification"
-                    className="inline-flex h-11 items-center justify-center rounded-[12px] bg-[#2563eb] px-5 text-[13px] font-semibold text-white"
+                    className="inline-flex h-11 items-center justify-center rounded-[12px] bg-primary px-5 text-[13px] font-semibold text-white"
                   >
                     {verification ? "Open Verification" : "Start Verification"}
                   </Link>
@@ -602,7 +605,7 @@ export function ProfileForm({
 
               <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
                     <Link2 className="h-5 w-5" />
                   </div>
                   <div>
@@ -695,13 +698,13 @@ export function ProfileForm({
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link
                     href="/dashboard/change-password"
-                    className="inline-flex h-11 items-center justify-center rounded-[12px] bg-[#2563eb] px-5 text-[13px] font-semibold text-white"
+                    className="inline-flex h-11 items-center justify-center rounded-[12px] bg-primary px-5 text-[13px] font-semibold text-white"
                   >
                     Open Change Password
                   </Link>
                   <Link
                     href="/dashboard/verification"
-                    className="inline-flex h-11 items-center justify-center rounded-[12px] border border-[#dbe3f5] bg-white px-5 text-[13px] font-semibold text-[#2563eb]"
+                    className="inline-flex h-11 items-center justify-center rounded-[12px] border border-brand-muted-border bg-white px-5 text-[13px] font-semibold text-primary"
                   >
                     Open Verification
                   </Link>
@@ -783,7 +786,7 @@ function DeactivateAccountSection() {
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={isPending}
-                className="inline-flex h-10 items-center justify-center rounded-[12px] border border-[#dbe3f5] bg-white px-4 text-[13px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff]"
+                className="inline-flex h-10 items-center justify-center rounded-[12px] border border-brand-muted-border bg-white px-4 text-[13px] font-semibold text-primary transition hover:bg-brand-soft-surface"
               >
                 Cancel
               </button>

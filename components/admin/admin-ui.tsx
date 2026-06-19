@@ -84,19 +84,19 @@ export const adminSurfaceClass =
   "rounded-[16px] border border-[#e5e7eb] bg-white shadow-[0_12px_30px_rgba(15,23,42,0.04)]";
 
 export const adminInputClass =
-  "h-10 w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[14px] text-[#1f2937] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10 placeholder:text-[#9ca3af]";
+  "h-10 w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[14px] text-[#1f2937] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 placeholder:text-[#9ca3af]";
 
 export const adminSelectClass =
-  "h-10 w-full appearance-none rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[14px] text-[#1f2937] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10";
+  "h-10 w-full appearance-none rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[14px] text-[#1f2937] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const adminTextareaClass =
-  "min-h-[96px] w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 py-2 text-[14px] text-[#1f2937] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10 placeholder:text-[#9ca3af]";
+  "min-h-[96px] w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 py-2 text-[14px] text-[#1f2937] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 placeholder:text-[#9ca3af]";
 
 export const adminPrimaryButtonClass =
-  "inline-flex items-center justify-center rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]";
+  "inline-flex items-center justify-center rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-hover";
 
 export const adminGhostButtonClass =
-  "inline-flex items-center justify-center rounded-[10px] border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb]";
+  "inline-flex items-center justify-center rounded-[10px] border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#374151] transition hover:border-primary hover:text-primary";
 
 export type AdminFeedbackState =
   | {
@@ -139,7 +139,7 @@ export function AdminStatCard({
   return (
     <div className="rounded-[16px] bg-[#fff7ed] px-5 py-4">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#2563eb] shadow-[0_8px_20px_rgba(37,99,235,0.08)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-[0_8px_20px_rgb(var(--primary-rgb)/0.08)]">
           {icon}
         </div>
         <div className="min-w-0">
@@ -356,7 +356,7 @@ export function AdminStatusPill({
   tone: "blue" | "green" | "amber" | "red" | "slate";
 }) {
   const tones: Record<typeof tone, string> = {
-    blue: "bg-[#dbeafe] text-[#1d4ed8]",
+    blue: "bg-brand-tint-strong text-brand-hover",
     green: "bg-[#d1fae5] text-[#059669]",
     amber: "bg-[#fef3c7] text-[#d97706]",
     red: "bg-[#fee2e2] text-[#dc2626]",
@@ -414,7 +414,7 @@ export function AdminPagination({ label = "Showing 1 to 8 of 24,387 records" }: 
             type="button"
             className={cn(
               "flex h-8 min-w-8 items-center justify-center rounded-[8px] border border-[#e5e7eb] px-2 text-[12px] font-medium",
-              item === "3" ? "border-[#2563eb] bg-[#2563eb] text-white" : "bg-white text-[#6b7280]"
+              item === "3" ? "border-primary bg-primary text-white" : "bg-white text-[#6b7280]"
             )}
           >
             {item}
@@ -454,7 +454,7 @@ export function AdminNavLink({
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-[10px] px-4 py-3 text-[14px] font-medium transition",
-        active ? "bg-[#2563eb] text-white" : "text-white/90 hover:bg-white/6"
+        active ? "bg-primary text-white" : "text-white/90 hover:bg-white/6"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -493,7 +493,7 @@ export function AdminTopNavigation() {
       className="hidden items-center gap-6 text-[12px] text-[#111827] xl:flex"
     >
       {links.map((link) => (
-        <Link key={link.href} href={link.href} className="transition hover:text-[#2563eb]">
+        <Link key={link.href} href={link.href} className="transition hover:text-primary">
           {link.label}
         </Link>
       ))}
@@ -505,7 +505,7 @@ export function AdminActionLink({ href, children }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 text-[13px] font-medium text-[#2563eb] transition hover:text-[#1d4ed8]"
+      className="inline-flex items-center gap-2 text-[13px] font-medium text-primary transition hover:text-brand-hover"
     >
       {children}
     </Link>

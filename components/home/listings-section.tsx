@@ -10,10 +10,13 @@ import {
 } from "@/lib/types/cms";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
+  getListingBodyTypeLabel,
   getListingDisplayTitle,
+  getListingFuelTypeLabel,
+  getListingMileageLabel,
   getListingSubtitle,
+  getListingTransmissionLabel,
 } from "@/lib/utils/vehicle-display";
-import { formatListingLabel } from "@/lib/utils/listing-details";
 
 interface ListingsSectionProps {
   title: string;
@@ -159,15 +162,11 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
               id={listing.id}
               title={getListingDisplayTitle(listing)}
               subtitle={getListingSubtitle(listing)}
-              bodyType={formatListingLabel(listing.body_type) || "Vehicle"}
+              bodyType={getListingBodyTypeLabel(listing)}
               year={listing.year}
-              mileage={
-                listing.mileage
-                  ? `${listing.mileage.toLocaleString()} kms`
-                  : "N/A"
-              }
-              fuelType={formatListingLabel(listing.fuel_type) || "N/A"}
-              transmission={formatListingLabel(listing.transmission) || "N/A"}
+              mileage={getListingMileageLabel(listing)}
+              fuelType={getListingFuelTypeLabel(listing)}
+              transmission={getListingTransmissionLabel(listing)}
               price={listing.price}
               currency={listing.currency}
               images={

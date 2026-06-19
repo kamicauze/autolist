@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { AutolistLogo } from "@/components/brand/autolist-logo";
 import {
   BadgeCheck,
   Heart,
@@ -129,7 +129,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-[#24272c] transition-transform duration-300 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-sidebar-bg transition-transform duration-300 lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -141,13 +141,8 @@ export function Sidebar({
         </button>
 
         <div className="flex items-center gap-2 px-7 pb-6 pt-7">
-          <Image
-            src="/autolist-logo.svg"
-            alt="Autolist"
-            width={154}
-            height={44}
-            priority
-            className="h-9 w-auto brightness-0 invert"
+          <AutolistLogo
+            className="h-9 w-auto [--brand-logo-accent:#FFFFFF] [--brand-logo-mark:#FFFFFF] [--brand-logo-text:#FFFFFF]"
           />
         </div>
 
@@ -180,7 +175,7 @@ export function Sidebar({
                   className={cn(
                     sellerSidebarLinkClass,
                     active
-                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
@@ -205,7 +200,7 @@ export function Sidebar({
                   className={cn(
                     sellerSidebarLinkClass,
                     active
-                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >

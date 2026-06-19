@@ -19,7 +19,7 @@ const initialResult: ListingQualityResult = {
 
 function gradeTone(grade: ListingQualityResult["grade"]) {
   if (grade === "excellent") return "bg-[#eaf7ef] text-[#2f9e63]";
-  if (grade === "good") return "bg-[#eef4ff] text-[#2563eb]";
+  if (grade === "good") return "bg-brand-tint text-primary";
   if (grade === "fair") return "bg-[#fff4e8] text-[#e28a23]";
   return "bg-[#fff0ef] text-[#f04438]";
 }
@@ -111,7 +111,7 @@ export function ListingQualityPanel() {
     <div className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             Listing Quality Assistant
           </p>
           <h3 className="mt-1 font-heading text-[20px] font-semibold text-[#202224]">

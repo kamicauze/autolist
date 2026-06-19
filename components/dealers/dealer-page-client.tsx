@@ -65,7 +65,7 @@ function DealerInventory({ inventory }: { inventory: Listing[] }) {
               >
                 <Image src={image} alt={title} fill className="object-cover" />
                 {listing.is_featured && (
-                  <span className="absolute left-2 top-2 rounded bg-blue-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  <span className="absolute left-2 top-2 rounded bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
                     Featured
                   </span>
                 )}
@@ -194,7 +194,7 @@ function DealerSidebar({
           <MapPin className="h-4 w-4 text-gray-400" />
           <span>{locationLabel}</span>
         </div>
-        <div className="mt-3 h-80 overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-green-100 via-blue-100 to-gray-100">
+        <div className="mt-3 h-80 overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-green-100 via-brand-tint to-gray-100">
           <GoogleMapEmbed
             apiKey={googleMapsApiKey}
             query={locationLabel}

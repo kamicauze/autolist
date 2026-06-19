@@ -27,6 +27,8 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
     "Seller";
+  const avatarUrl =
+    typeof user.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#ebebeb] bg-[#f6f4ef]/85 backdrop-blur">
@@ -45,7 +47,7 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "text-[14px] font-medium transition-colors hover:text-[#2563eb]",
+                  "text-[14px] font-medium transition-colors hover:text-primary",
                   pathname === item.href ? "text-[#202224]" : "text-[#7d7d7d]"
                 )}
               >
@@ -63,7 +65,7 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
           <Link href="/dashboard/listings/new">
             <Button
               size="sm"
-              className="h-12 rounded-full bg-[#2563eb] px-4 text-[14px] font-semibold text-white hover:bg-[#1d4ed8]"
+              className="h-12 rounded-full bg-primary px-4 text-[14px] font-semibold text-white hover:bg-brand-hover"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Listing</span>
@@ -71,7 +73,7 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
           </Link>
 
           <div className="hidden lg:flex">
-            <SellerUserChip name={displayName} email={user.email} />
+            <SellerUserChip name={displayName} email={user.email} avatarUrl={avatarUrl} />
           </div>
         </div>
       </div>

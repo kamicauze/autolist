@@ -7,10 +7,13 @@ import { CarCard } from "@/components/ui/car-card";
 import { Pagination } from "@/components/ui/pagination";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
+  getListingBodyTypeLabel,
   getListingDisplayTitle,
+  getListingFuelTypeLabel,
+  getListingMileageLabel,
   getListingSubtitle,
+  getListingTransmissionLabel,
 } from "@/lib/utils/vehicle-display";
-import { formatListingLabel } from "@/lib/utils/listing-details";
 import { cn } from "@/lib/utils";
 
 interface SearchResultsProps {
@@ -67,11 +70,11 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
               id={listing.id}
               title={getListingDisplayTitle(listing)}
               subtitle={getListingSubtitle(listing)}
-              bodyType={formatListingLabel(listing.body_type) || "Vehicle"}
+              bodyType={getListingBodyTypeLabel(listing)}
               year={listing.year}
-              mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}
-              fuelType={formatListingLabel(listing.fuel_type) || "N/A"}
-              transmission={formatListingLabel(listing.transmission) || "N/A"}
+              mileage={getListingMileageLabel(listing)}
+              fuelType={getListingFuelTypeLabel(listing)}
+              transmission={getListingTransmissionLabel(listing)}
               price={listing.price}
               currency={listing.currency}
               images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}

@@ -1625,7 +1625,9 @@ export async function getMyListings() {
         .from('listings')
         .select(`
             *,
-            images:listing_images(id, r2_key, alt_text, image_order)
+            images:listing_images(id, r2_key, alt_text, image_order),
+            seller:profiles!seller_id(id, full_name, avatar_url, email),
+            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .order('created_at', { ascending: false });
 
@@ -1638,7 +1640,15 @@ export async function getMyListings() {
             query = query.eq('assigned_agent_id', repContext.id);
         }
     } else {
-        query = query.eq('seller_id', user.id);
+        const { data: dealer } = await supabase
+            .from('dealers')
+            .select('id')
+            .eq('profile_id', user.id)
+            .maybeSingle<{ id: string }>();
+
+        query = dealer?.id
+            ? query.or(`seller_id.eq.${user.id},dealer_id.eq.${dealer.id}`)
+            : query.eq('seller_id', user.id);
     }
 
     const { data, error } = await query;

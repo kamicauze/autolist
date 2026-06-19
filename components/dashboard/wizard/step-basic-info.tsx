@@ -115,8 +115,8 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
                     className={cn(
                     "inline-flex h-9 min-w-[78px] items-center justify-center rounded-[10px] border px-3 text-[13px] font-semibold transition",
                       active
-                        ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
-                        : "border-[#d9d9d9] bg-white text-[#202224] hover:border-[#2563eb]"
+                        ? "border-primary bg-brand-tint text-primary"
+                        : "border-[#d9d9d9] bg-white text-[#202224] hover:border-primary"
                     )}
                   >
                     {option.label}

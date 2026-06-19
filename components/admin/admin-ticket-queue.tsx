@@ -175,7 +175,7 @@ export function AdminTicketQueue({
                   onClick={() => setSelectedId(ticket.id)}
                   className={cn(
                     "w-full px-6 py-5 text-left transition",
-                    active ? "bg-[#f8fbff]" : "bg-white hover:bg-[#fafcff]"
+                    active ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

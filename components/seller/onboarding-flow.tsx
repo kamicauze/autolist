@@ -87,9 +87,9 @@ const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
 const FIELD_LABEL_CLASS = "text-[13px] font-semibold text-[#24272C]";
 const FIELD_HELP_CLASS = "mt-1 text-[12px] leading-5 text-[#8a8a8a]";
 const FIELD_INPUT_CLASS =
-  "h-12 rounded-[14px] border-[#EDEDED] text-[15px] focus-visible:ring-[#2563eb]/30";
+  "h-12 rounded-[14px] border-[#EDEDED] text-[15px] focus-visible:ring-primary/30";
 const FIELD_TEXTAREA_CLASS =
-  "min-h-[118px] rounded-[14px] border-[#EDEDED] text-[15px] leading-6 focus-visible:ring-[#2563eb]/30";
+  "min-h-[118px] rounded-[14px] border-[#EDEDED] text-[15px] leading-6 focus-visible:ring-primary/30";
 
 interface OnboardingFlowProps {
   previewMode?: boolean;
@@ -303,15 +303,15 @@ export function OnboardingFlow({
   if (isSubmitted) {
     return (
       <section
-        className="overflow-hidden rounded-[28px] border border-[#dbe8ff] bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]"
+        className="overflow-hidden rounded-[28px] border border-brand-muted-border bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]"
         data-testid="onboarding-success"
       >
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="p-6 sm:p-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#eef4ff] text-[#2563eb]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-brand-tint text-primary">
               <CheckCircle2 className="h-7 w-7" />
             </div>
-            <p className="mt-5 text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+            <p className="mt-5 text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Onboarding complete
             </p>
             <h2 className="mt-2 font-heading text-[34px] font-semibold leading-tight text-[#202224]">
@@ -437,11 +437,11 @@ export function OnboardingFlow({
               </div>
             </section>
 
-            <aside className="rounded-[18px] border border-[#dbe8ff] bg-[#f7faff] p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-white text-[#2563eb] shadow-[0_10px_28px_rgba(37,99,235,0.08)]">
+            <aside className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface p-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-white text-primary shadow-[0_10px_28px_rgb(var(--primary-rgb)/0.08)]">
                 <span className="text-[16px] font-semibold">{getInitials(formData.fullName)}</span>
               </div>
-              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2563eb]">
+              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
                 Profile preview
               </p>
               <p className="mt-2 text-[18px] font-semibold text-[#202224]">
@@ -478,7 +478,7 @@ export function OnboardingFlow({
                       className={cn(
                         "grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border px-4 py-4 text-left transition active:translate-y-px",
                         selected
-                          ? "border-[#2563eb] bg-[#f7faff] text-[#202224] shadow-[0_12px_28px_rgba(37,99,235,0.08)]"
+                          ? "border-primary bg-brand-soft-surface text-[#202224] shadow-[0_12px_28px_rgb(var(--primary-rgb)/0.08)]"
                           : "border-[#ededed] bg-white text-[#696665] hover:border-[#bfd3ff]"
                       )}
                       onClick={() => updateField("role", option.value)}
@@ -488,7 +488,7 @@ export function OnboardingFlow({
                       <span
                         className={cn(
                           "flex h-11 w-11 items-center justify-center rounded-[14px]",
-                          selected ? "bg-[#2563eb] text-white" : "bg-[#f1f5f9] text-[#64748b]"
+                          selected ? "bg-primary text-white" : "bg-[#f1f5f9] text-[#64748b]"
                         )}
                       >
                         <OptionIcon className="h-5 w-5" />
@@ -498,7 +498,7 @@ export function OnboardingFlow({
                         <span className="mt-1 block text-[13px] leading-5">{rolePresentation.summary}</span>
                       </span>
                       {selected ? (
-                        <CheckCircle2 className="h-5 w-5 text-[#2563eb]" />
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
                       ) : (
                         <ArrowRight className="h-5 w-5 text-[#c3c7cf]" />
                       )}
@@ -509,7 +509,7 @@ export function OnboardingFlow({
             </section>
 
             <aside className="rounded-[18px] border border-[#eef2f7] bg-white p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[#eef4ff] text-[#2563eb]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-brand-tint text-primary">
                 <RoleIcon className="h-5 w-5" />
               </div>
               <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">
@@ -529,7 +529,7 @@ export function OnboardingFlow({
           <div className="space-y-5" data-testid="onboarding-step-contact">
             <div className="rounded-[18px] border border-[#eef2f7] bg-[#fbfcfe] p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-[#2563eb]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-primary">
                   <Phone className="h-5 w-5" />
                 </span>
                 <div>
@@ -651,15 +651,15 @@ export function OnboardingFlow({
               </div>
             </section>
 
-            <aside className="rounded-[18px] border border-[#dbe8ff] bg-[#f7faff] p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-white text-[#2563eb]">
+            <aside className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-white text-primary">
                 {formData.role === "dealer" ? (
                   <ShieldCheck className="h-5 w-5" />
                 ) : (
                   <BadgeCheck className="h-5 w-5" />
                 )}
               </div>
-              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#2563eb]">
+              <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
                 What happens next
               </p>
               <p className="mt-2 text-[13px] leading-6 text-[#61708a]">

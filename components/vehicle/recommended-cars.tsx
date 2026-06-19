@@ -10,9 +10,13 @@ import type { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
+  getListingBodyTypeLabel,
   getListingDisplayLocation,
   getListingDisplayTitle,
+  getListingFuelTypeLabel,
+  getListingMileageLabel,
   getListingSubtitle,
+  getListingTransmissionLabel,
 } from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
 import { useCompare } from "@/lib/hooks/use-compare";
@@ -205,11 +209,11 @@ export function RecommendedCars({
                 id={listing.id}
                 title={getListingDisplayTitle(listing)}
                 subtitle={getListingSubtitle(listing)}
-                bodyType={listing.body_type || "Vehicle"}
+                bodyType={getListingBodyTypeLabel(listing)}
                 year={listing.year}
-                mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}
-                fuelType={listing.fuel_type || "N/A"}
-                transmission={listing.transmission || "N/A"}
+                mileage={getListingMileageLabel(listing)}
+                fuelType={getListingFuelTypeLabel(listing)}
+                transmission={getListingTransmissionLabel(listing)}
                 price={listing.price}
                 currency={listing.currency}
                 images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}

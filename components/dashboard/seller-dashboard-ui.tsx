@@ -12,22 +12,22 @@ export const sellerMutedSurfaceClass =
   "rounded-[20px] border border-[#ededed] bg-[#f8f8f8]";
 
 export const sellerInputClass =
-  "h-12 w-full rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10";
+  "h-12 w-full rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerTextareaClass =
-  "min-h-[132px] w-full rounded-[18px] border border-[#e7e7e7] bg-white px-4 py-3 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10";
+  "min-h-[132px] w-full rounded-[18px] border border-[#e7e7e7] bg-white px-4 py-3 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerSelectClass =
-  "h-12 w-full appearance-none rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10";
+  "h-12 w-full appearance-none rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerLabelClass =
   "mb-2 block text-[13px] font-medium text-[#24272c]";
 
 export const sellerGhostButtonClass =
-  "inline-flex items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-4 py-3 text-[14px] font-medium text-[#24272c] transition hover:border-[#2563eb] hover:text-[#2563eb]";
+  "inline-flex items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-4 py-3 text-[14px] font-medium text-[#24272c] transition hover:border-primary hover:text-primary";
 
 export const sellerPrimaryButtonClass =
-  "inline-flex items-center justify-center rounded-[14px] bg-[#2563eb] px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-[14px] bg-primary px-5 py-3 text-[14px] font-semibold text-primary-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50";
 
 export const sellerSidebarLinkClass =
   "flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium transition";
@@ -150,7 +150,7 @@ export function SellerTabs({
             onClick={() => onChange(tab.value)}
             className={cn(
               "rounded-full px-4 py-2 text-[13px] font-medium transition",
-              active ? "bg-[#eef4ff] text-[#2563eb]" : "text-[#747474] hover:text-[#2563eb]"
+              active ? "bg-brand-tint text-primary" : "text-[#747474] hover:text-primary"
             )}
           >
             {tab.label}
@@ -170,7 +170,7 @@ export function SellerStatusPill({
 }) {
   const styles: Record<typeof tone, string> = {
     neutral: "bg-[#f4f4f4] text-[#6d6d6d]",
-    blue: "bg-[#eef4ff] text-[#2563eb]",
+    blue: "bg-brand-tint text-primary",
     green: "bg-[#eaf7ef] text-[#2f9e63]",
     amber: "bg-[#fff4e8] text-[#e28a23]",
     red: "bg-[#ffeceb] text-[#f04438]",
@@ -224,8 +224,8 @@ export function SellerPagination() {
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-full border text-[13px] font-medium transition",
               index === 0
-                ? "border-[#2563eb] bg-[#2563eb] text-white"
-                : "border-[#e6e6e6] bg-white text-[#707070] hover:border-[#2563eb] hover:text-[#2563eb]"
+                ? "border-primary bg-primary text-white"
+                : "border-[#e6e6e6] bg-white text-[#707070] hover:border-primary hover:text-primary"
             )}
           >
             {page}
@@ -292,7 +292,7 @@ export function SellerReviewStars({ rating }: { rating: number }) {
           key={index}
           className={cn(
             "h-4 w-4",
-            index < rating ? "fill-[#2563eb] text-[#2563eb]" : "fill-[#d6d6d6] text-[#d6d6d6]"
+            index < rating ? "fill-primary text-primary" : "fill-[#d6d6d6] text-[#d6d6d6]"
           )}
         />
       ))}
@@ -488,7 +488,7 @@ export const membershipPlans = [
   {
     id: "basic",
     name: "Basic",
-    accent: "border-[#2563eb]",
+    accent: "border-primary",
     badgeTone: "blue" as const,
     price: "KES 15,000",
     period: "/month",
@@ -562,13 +562,21 @@ export function SellerMiniMeta({
 export function SellerUserChip({
   name,
   email,
+  avatarUrl,
 }: {
   name: string;
   email?: string | null;
+  avatarUrl?: string | null;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-full border border-[#ededed] bg-white px-3 py-2">
-      <Avatar fallback={getInitials(name)} alt={name} size="sm" className="bg-[#f1f5ff]" />
+      <Avatar
+        src={avatarUrl || undefined}
+        fallback={getInitials(name)}
+        alt={name}
+        size="sm"
+        className="bg-[#f1f5ff]"
+      />
       <div className="min-w-0">
         <p className="truncate text-[13px] font-semibold text-[#202224]">{name}</p>
         {email ? <p className="truncate text-[11px] text-[#8a8a8a]">{email}</p> : null}
@@ -587,8 +595,8 @@ export const sellerSummaryCards = [
   {
     label: "Unread Message",
     value: "18",
-    icon: <MessageCircle className="h-5 w-5 text-[#2563eb]" />,
-    accentClass: "bg-[#eef4ff]",
+    icon: <MessageCircle className="h-5 w-5 text-primary" />,
+    accentClass: "bg-brand-tint",
   },
   {
     label: "Total Favorites",
@@ -632,7 +640,7 @@ export function SellerReviewSnippet({ review }: { review: SellerReview }) {
 
 export function SellerLinkArrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#2563eb]">
+    <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-primary">
       {children}
       <ArrowRight className="h-4 w-4" />
     </span>

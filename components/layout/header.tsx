@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, GitCompare, LogOut, Plus } from "lucide-react";
+import { AutolistLogo } from "@/components/brand/autolist-logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { useCompare } from "@/lib/hooks/use-compare";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 
 const vehicleTypes = [
@@ -61,8 +62,8 @@ const desktopLinks = [
 
 function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory | null }) {
   return (
-    <div className="hidden lg:block border-b border-gray-100">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="hidden xl:block border-b border-gray-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <nav className="flex items-center gap-2 text-[12px]">
           {vehicleTypes.map((type) => (
             <Link
@@ -224,20 +225,13 @@ export function Header() {
         <HeaderVehicleTypeNav />
       </React.Suspense>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/autolist-logo.svg"
-              alt="Autolist"
-              width={154}
-              height={44}
-              priority
-              className="h-8 w-auto"
-            />
+            <AutolistLogo className="h-8 w-auto" />
           </Link>
 
-          <nav ref={desktopNavRef} className="hidden items-center gap-1 lg:flex">
+          <nav ref={desktopNavRef} className="hidden items-center gap-1 xl:flex">
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 const isOpen = openMenu === item.key;
@@ -310,7 +304,9 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <ThemeSwitcher />
+
+            <Button variant="ghost" size="icon" className="xl:hidden">
               <IconSearch className="h-5 w-5" />
             </Button>
 
@@ -402,7 +398,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="xl:hidden"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
             >
               {mobileMenuOpen ? <IconX className="h-6 w-6" /> : <IconMenu className="h-6 w-6" />}
@@ -412,31 +408,31 @@ export function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-gray-100 lg:hidden">
-          <div className="max-h-[calc(100vh-4rem)] space-y-3 overflow-y-auto px-4 py-4">
-            <div className="flex flex-col gap-3 border-b border-gray-200 pb-4">
+        <div className="border-t border-border bg-card shadow-[0_18px_48px_rgb(var(--primary-rgb)/0.18)] xl:hidden">
+          <div className="max-h-[calc(100dvh-4rem)] space-y-5 overflow-y-auto px-4 py-5">
+            <div className="space-y-3 border-b border-border pb-5">
               {user ? (
-                <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-800">
+                <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted p-3">
+                  <div className="flex items-center gap-3 px-1 py-1 text-sm font-semibold text-foreground">
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
                       {userInitial}
                     </span>
                     <span className="min-w-0 truncate">{userLabel}</span>
                   </div>
                   <Link href="/dashboard/profile" className="block" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
+                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2 border-border bg-card text-foreground hover:bg-muted">
                       <IconUser className="h-4 w-4" />
                       Account details
                     </Button>
                   </Link>
                   <Link href="/dashboard" className="block" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
+                    <Button variant="outline" className="min-h-11 w-full justify-start gap-2 border-border bg-card text-foreground hover:bg-muted">
                       Dashboard
                     </Button>
                   </Link>
                   <Button
                     variant="outline"
-                    className="min-h-11 w-full justify-start gap-2"
+                    className="min-h-11 w-full justify-start gap-2 border-border bg-card text-foreground hover:bg-muted"
                     onClick={() => {
                       handleSignOut();
                       setMobileMenuOpen(false);
@@ -447,67 +443,107 @@ export function Header() {
                   </Button>
                 </div>
               ) : (
-                <Link href="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="min-h-11 w-full">Login / Register</Button>
-                </Link>
+                <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
+                  <Link href="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="min-h-11 w-full border-primary text-primary hover:bg-brand-tint">
+                      Login / Register
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="min-h-11 w-full bg-primary text-primary-foreground hover:bg-brand-hover">
+                      <Plus className="h-4 w-4" />
+                      Add listing
+                    </Button>
+                  </Link>
+                </div>
               )}
-              <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="min-h-11 w-full">Add listing</Button>
-              </Link>
+              {user ? (
+                <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="min-h-11 w-full bg-primary text-primary-foreground hover:bg-brand-hover">
+                    <Plus className="h-4 w-4" />
+                    Add listing
+                  </Button>
+                </Link>
+              ) : null}
             </div>
 
-            {desktopLinks.map((item) => {
-              if ("menu" in item) {
-                const isMobileSectionOpen = mobileOpenMenu === item.key;
+            <div className="space-y-2">
+              <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Vehicle categories
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {vehicleTypes.map((type) => (
+                  <Link
+                    key={type.name}
+                    href={type.href}
+                    className="rounded-xl border border-border bg-muted px-3 py-3 text-sm font-semibold text-foreground transition hover:border-primary/40 hover:text-primary"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {type.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <ThemeSwitcher layout="mobile" />
+
+            <nav className="space-y-2" aria-label="Mobile menu">
+              {desktopLinks.map((item) => {
+                if ("menu" in item) {
+                  const isMobileSectionOpen = mobileOpenMenu === item.key;
+
+                  return (
+                    <Collapsible
+                      key={item.name}
+                      open={isMobileSectionOpen}
+                      onOpenChange={(open) => setMobileOpenMenu(open ? item.key : null)}
+                      className="overflow-hidden rounded-xl border border-border bg-card"
+                    >
+                      <CollapsibleTrigger className="flex min-h-12 w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-foreground transition hover:bg-muted">
+                        {item.name}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="border-t border-border bg-muted/55">
+                        <div className="flex flex-col gap-1 p-2">
+                          {item.menu.map((menuItem) => (
+                            <Link
+                              key={menuItem.name}
+                              href={menuItem.href}
+                              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-card hover:text-foreground"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              {menuItem.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                }
 
                 return (
-                  <Collapsible
+                  <Link
                     key={item.name}
-                    open={isMobileSectionOpen}
-                    onOpenChange={(open) => setMobileOpenMenu(open ? item.key : null)}
-                    className="rounded-lg border border-gray-200"
+                    href={item.href}
+                    className={cn(
+                      "block rounded-xl px-4 py-3 text-sm font-semibold transition",
+                      pathname === item.href
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setMobileMenuOpen(false)}
                   >
-                    <CollapsibleTrigger className="px-3 py-3 text-left text-sm font-semibold text-gray-800">
-                      {item.name}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="border-t border-gray-100">
-                      <div className="flex flex-col gap-1 px-2">
-                        {item.menu.map((menuItem) => (
-                          <Link
-                            key={menuItem.name}
-                            href={menuItem.href}
-                            className="block rounded-md px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            {menuItem.name}
-                          </Link>
-                        ))}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                    {item.name}
+                  </Link>
                 );
-              }
+              })}
+            </nav>
 
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "block rounded-lg px-3 py-2 text-sm font-medium",
-                    pathname === item.href
-                      ? "bg-primary text-white"
-                      : "text-gray-800 hover:bg-gray-50"
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
-
-            <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
+            <div className="border-t border-border pt-5">
               <Link href="/compare" className="block" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="min-h-11 w-full justify-start gap-2">
+                <Button
+                  variant="outline"
+                  className="min-h-11 w-full justify-start gap-2 border-primary text-primary hover:bg-brand-tint"
+                >
                   <GitCompare className="h-4 w-4" />
                   Compare{ids.length > 0 ? ` (${ids.length})` : ""}
                 </Button>

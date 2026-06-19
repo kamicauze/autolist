@@ -172,7 +172,7 @@ export default function ValuationPage() {
                 key={benefit.title}
                 className="rounded-xl border border-border bg-white p-5 text-center shadow-sm"
               >
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-tint">
                   <benefit.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="mt-4 font-semibold text-foreground">

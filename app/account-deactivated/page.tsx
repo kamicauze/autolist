@@ -32,7 +32,7 @@ export default function AccountDeactivatedPage() {
           <div className="mt-6 flex justify-center">
             <Link
               href="/"
-              className="inline-flex h-11 items-center justify-center rounded-[12px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-11 items-center justify-center rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
             >
               Back to home
             </Link>

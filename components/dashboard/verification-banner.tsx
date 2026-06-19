@@ -102,7 +102,7 @@ export async function VerificationBanner() {
   return (
     <SellerSurface className="border-[#d4e4ff] bg-[#f4f8ff]">
       <div className="flex items-start gap-4 p-5 lg:p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e2edff] text-[#2563eb]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-tint text-primary">
           <Clock3 className="h-5 w-5" />
         </div>
         <div className="space-y-2">

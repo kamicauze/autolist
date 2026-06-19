@@ -217,7 +217,7 @@ function SalesAgentForm({
               type="checkbox"
               name={item.name}
               defaultChecked={item.defaultChecked}
-              className="h-4 w-4 rounded border-[#d1d5db] accent-[#2563eb]"
+              className="h-4 w-4 rounded border-[#d1d5db] accent-primary"
             />
             {item.label}
           </label>
@@ -241,7 +241,7 @@ function SalesAgentForm({
                 name="permissions"
                 value={permission.key}
                 defaultChecked={agent?.permissions?.includes(permission.key) ?? false}
-                className="mt-0.5 h-4 w-4 rounded border-[#d1d5db] accent-[#2563eb]"
+                className="mt-0.5 h-4 w-4 rounded border-[#d1d5db] accent-primary"
               />
               <span>
                 <span className="block font-medium">{permission.label}</span>
@@ -465,7 +465,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
               setActionError(null);
               setModal({ mode: "create" });
             }}
-            className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+            className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
           >
             <Plus className="h-4 w-4" />
             Add Sales Rep
@@ -483,7 +483,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
               never need to assign or share passwords.
             </p>
           </div>
-          <div className="rounded-[14px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-[12px] leading-5 text-[#1d4ed8]">
+          <div className="rounded-[14px] border border-brand-muted-border bg-brand-tint px-4 py-3 text-[12px] leading-5 text-brand-hover">
             Email sending uses <span className="font-semibold">RESEND_API_KEY</span>. If it is not
             configured, copy the invite link here and send it manually. WhatsApp delivery uses the
             Meta Cloud API env vars when the rep has WhatsApp enabled.
@@ -552,17 +552,17 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
         ) : null}
 
         {inviteNotice ? (
-          <div className="border-b border-[#dbeafe] bg-[#eff6ff] px-5 py-4">
+          <div className="border-b border-brand-muted-border bg-brand-tint px-5 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-[#1d4ed8]">
+                <p className="text-[13px] font-semibold text-brand-hover">
                   Invite ready for {inviteNotice.name}
                 </p>
                 <p className="mt-1 text-[12px] leading-5 text-[#315db5]">
                   Send this link to {inviteNotice.email}. They should sign in or create an account
                   with that email, then accept the invite.
                 </p>
-                <div className="mt-3 flex min-w-0 items-center gap-2 rounded-[12px] border border-[#bfdbfe] bg-white px-3 py-2 text-[12px] text-[#1e3a8a]">
+                <div className="mt-3 flex min-w-0 items-center gap-2 rounded-[12px] border border-brand-muted-border bg-white px-3 py-2 text-[12px] text-primary">
                   <Link2 className="h-4 w-4 shrink-0" />
                   <span className="truncate">{inviteNotice.inviteUrl}</span>
                 </div>
@@ -570,7 +570,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
               <button
                 type="button"
                 onClick={copyInviteUrl}
-                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-primary px-4 text-[13px] font-semibold text-white transition hover:bg-brand-hover"
               >
                 <Copy className="h-4 w-4" />
                 Copy link
@@ -612,7 +612,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                   <tr key={agent.id} className="text-[14px] text-[#202224]">
                     <td className="px-5 py-4">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-[#eef4ff] text-[13px] font-semibold text-[#2563eb]">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-brand-tint text-[13px] font-semibold text-primary">
                           {getInitials(agent.name)}
                         </div>
                         <div className="min-w-0">
@@ -640,7 +640,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                               ).map((permission) => (
                                 <span
                                   key={permission.key}
-                                  className="inline-flex items-center rounded-full bg-[#eef4ff] px-2 py-0.5 text-[11px] font-medium text-[#2563eb]"
+                                  className="inline-flex items-center rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-medium text-primary"
                                 >
                                   {permission.label}
                                 </span>
@@ -678,7 +678,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                         <button
                           type="button"
                           onClick={() => setModal({ mode: "edit", agent })}
-                          className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[#dbe3f5] bg-white px-3 text-[13px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff]"
+                          className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-brand-muted-border bg-white px-3 text-[13px] font-semibold text-primary transition hover:bg-brand-soft-surface"
                         >
                           <Edit3 className="h-4 w-4" />
                           Edit
@@ -688,7 +688,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                             type="button"
                             onClick={() => handleResendInvite(agent)}
                             disabled={isResending && resendingId === agent.id}
-                            className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[#dbe3f5] bg-white px-3 text-[13px] font-semibold text-[#2563eb] transition hover:bg-[#f5f9ff] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-brand-muted-border bg-white px-3 text-[13px] font-semibold text-primary transition hover:bg-brand-soft-surface disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Send className="h-4 w-4" />
                             {isResending && resendingId === agent.id ? "Sending..." : "Invite"}

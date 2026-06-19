@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -26,6 +25,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { AutolistLogo } from "@/components/brand/autolist-logo";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { ChangePasswordForm } from "@/components/dashboard/change-password/change-password-form";
@@ -223,13 +223,8 @@ export function SalesRepDashboardLayout({
         </button>
 
         <div className="px-7 pb-6 pt-7">
-          <Image
-            src="/autolist-logo.svg"
-            alt="Autolist"
-            width={154}
-            height={44}
-            priority
-            className="h-9 w-auto brightness-0 invert"
+          <AutolistLogo
+            className="h-9 w-auto [--brand-logo-accent:#FFFFFF] [--brand-logo-mark:#FFFFFF] [--brand-logo-text:#FFFFFF]"
           />
         </div>
 
@@ -263,7 +258,7 @@ export function SalesRepDashboardLayout({
                   className={cn(
                     "flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium transition",
                     active
-                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
@@ -295,7 +290,7 @@ export function SalesRepDashboardLayout({
                   className={cn(
                     "flex items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium transition",
                     active
-                      ? "bg-[#2563eb] text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
+                      ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
@@ -336,7 +331,7 @@ export function SalesRepDashboardLayout({
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="text-[14px] font-medium text-[#7d7d7d] transition-colors hover:text-[#2563eb]"
+                    className="text-[14px] font-medium text-[#7d7d7d] transition-colors hover:text-primary"
                   >
                     {item.name}
                   </Link>
@@ -351,7 +346,7 @@ export function SalesRepDashboardLayout({
               </button>
 
               <Link href="/sell/dashboard/add-listing">
-                <button className="inline-flex h-12 items-center gap-2 rounded-full bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]">
+                <button className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover">
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Add listing</span>
                 </button>
@@ -522,13 +517,13 @@ function OfferModal({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-[16px] bg-[#f5f9ff] px-4 py-3">
+              <div className="mt-4 rounded-[16px] bg-brand-soft-surface px-4 py-3">
                 <p className="text-[12px] font-semibold text-[#4f6eb4]">Dealer note</p>
                 <p className="mt-1 text-[13px] leading-6 text-[#5f6a7e]">{offer.message}</p>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3">
-                <button className="inline-flex h-11 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[13px] font-semibold text-white">
+                <button className="inline-flex h-11 items-center justify-center rounded-[14px] bg-primary px-5 text-[13px] font-semibold text-white">
                   Accept offer
                 </button>
                 <button className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[13px] font-semibold text-[#202224]">
@@ -580,7 +575,7 @@ export function SalesRepListingsPage() {
 
         <Link
           href="/sell/dashboard/add-listing"
-          className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white"
+          className="inline-flex h-12 items-center justify-center rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white"
         >
           Add listing
         </Link>
@@ -648,7 +643,7 @@ export function SalesRepListingsPage() {
                         <div className="max-w-[420px]">
                           <p className="text-[18px] font-semibold text-[#202224]">{listing.title}</p>
                           <p className="mt-2 text-[13px] text-[#757575]">{listing.blurb}</p>
-                          <p className="mt-3 text-[15px] font-semibold text-[#2563eb]">
+                          <p className="mt-3 text-[15px] font-semibold text-primary">
                             {formatDashboardCurrency(listing.price)}
                           </p>
                         </div>
@@ -710,7 +705,7 @@ export function SalesRepListingsPage() {
                 <button
                   type="button"
                   onClick={() => setOfferBidId(bid.id)}
-                  className="inline-flex h-11 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[13px] font-semibold text-white"
+                  className="inline-flex h-11 items-center justify-center rounded-[14px] bg-primary px-5 text-[13px] font-semibold text-white"
                 >
                   View offers
                 </button>
@@ -756,10 +751,10 @@ export function SalesRepAddListingPage() {
               key={plan.id}
               className={cn(
                 "p-6",
-                featured && "border-[#2563eb] bg-[#eef4ff] shadow-[0_18px_36px_rgba(37,99,235,0.12)]"
+                featured && "border-primary bg-brand-tint shadow-[0_18px_36px_rgb(var(--primary-rgb)/0.12)]"
               )}
             >
-              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
                 {featured ? "Recommended" : "Package"}
               </p>
               <h2 className="mt-4 font-heading text-[28px] font-semibold text-[#202224]">{plan.name}</h2>
@@ -771,7 +766,7 @@ export function SalesRepAddListingPage() {
               <ul className="mt-6 space-y-3 text-[14px] leading-6 text-[#666]">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex gap-3">
-                    <CheckCircle2 className="mt-1 h-4 w-4 text-[#2563eb]" />
+                    <CheckCircle2 className="mt-1 h-4 w-4 text-primary" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -782,8 +777,8 @@ export function SalesRepAddListingPage() {
                 className={cn(
                   "mt-8 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold transition",
                   featured
-                    ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
-                    : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-[#2563eb] hover:text-[#2563eb]"
+                    ? "bg-primary text-white hover:bg-brand-hover"
+                    : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-primary hover:text-primary"
                 )}
               >
                 Get started
@@ -808,7 +803,7 @@ export function SalesRepVerificationPage() {
         <SellerSurface className="p-5 lg:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
                 Verification status
               </p>
               <h2 className="mt-2 font-heading text-[28px] font-semibold text-[#202224]">
@@ -829,7 +824,7 @@ export function SalesRepVerificationPage() {
                 className="flex flex-col gap-3 rounded-[20px] border border-[#ededed] bg-[#faf9f7] px-4 py-4 md:flex-row md:items-center md:justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#2563eb]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
@@ -862,7 +857,7 @@ export function SalesRepVerificationPage() {
                 "Publishing restrictions are lifted",
               ].map((step, index) => (
                 <div key={step} className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef4ff] text-[13px] font-semibold text-[#2563eb]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-tint text-[13px] font-semibold text-primary">
                     {index + 1}
                   </div>
                   <p className="pt-1 text-[14px] leading-6 text-[#6f6f6f]">{step}</p>
@@ -879,7 +874,7 @@ export function SalesRepVerificationPage() {
             </p>
             <Link
               href="/sell/dashboard/messages"
-              className="mt-5 inline-flex items-center gap-2 text-[14px] font-semibold text-[#2563eb]"
+              className="mt-5 inline-flex items-center gap-2 text-[14px] font-semibold text-primary"
             >
               Open support chat
               <ArrowRight className="h-4 w-4" />

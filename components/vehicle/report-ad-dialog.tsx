@@ -218,7 +218,7 @@ export function ReportAdDialog({
                           }}
                           className={`rounded-[14px] border px-4 py-3 text-left text-sm transition active:scale-[0.98] ${
                             selectedTargetType === option
-                              ? "border-primary bg-white text-gray-950 shadow-[0_10px_30px_rgba(37,99,235,0.08)]"
+                              ? "border-primary bg-white text-gray-950 shadow-[0_10px_30px_rgb(var(--primary-rgb)/0.08)]"
                               : "border-gray-200 bg-white/70 text-gray-600 hover:border-primary/40"
                           }`}
                         >

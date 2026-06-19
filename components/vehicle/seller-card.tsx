@@ -203,7 +203,7 @@ export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
 
         <div className="mt-3 flex flex-wrap gap-2">
           {isDealer && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-primary">
               <BadgeCheck className="h-3.5 w-3.5" />
               Verified dealer
             </span>

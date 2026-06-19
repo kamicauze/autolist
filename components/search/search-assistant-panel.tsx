@@ -531,7 +531,7 @@ export function SearchAssistantPanel({
               key={prompt}
               type="button"
               onClick={() => void runAssistantSearch(prompt)}
-              className="shrink-0 rounded-full border border-[#d6e2ff] bg-[#f8fbff] px-2.5 py-1 text-[11px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+              className="shrink-0 rounded-full border border-brand-muted-border bg-brand-soft-surface px-2.5 py-1 text-[11px] font-medium text-primary transition hover:border-primary hover:text-primary"
             >
               {prompt}
             </button>
@@ -559,7 +559,7 @@ export function SearchAssistantPanel({
                   "max-w-[85%] rounded-[22px] px-4 py-3 text-[14px] leading-6 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]",
                   message.role === "assistant"
                     ? "rounded-bl-[10px] border border-[#dde5f0] bg-white text-[#243041]"
-                    : "rounded-br-[10px] bg-[#2563eb] text-white"
+                    : "rounded-br-[10px] bg-primary text-white"
                 )}
               >
                 <p>{message.content}</p>
@@ -578,7 +578,7 @@ export function SearchAssistantPanel({
                         onClick={() =>
                           router.push(message.result?.searchUrl || "/search")
                         }
-                        className="rounded-full bg-[#2563eb] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                        className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-hover"
                       >
                         Show probable matches
                       </button>
@@ -594,7 +594,7 @@ export function SearchAssistantPanel({
                               currentParams: message.result?.params,
                             })
                           }
-                          className="rounded-full border border-[#c9d9ff] bg-white px-3 py-1.5 text-[12px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+                          className="rounded-full border border-brand-muted-border bg-white px-3 py-1.5 text-[12px] font-medium text-primary transition hover:border-primary hover:text-primary"
                         >
                           {option.label}
                         </button>
@@ -604,7 +604,7 @@ export function SearchAssistantPanel({
                 ) : null}
               </div>
               {message.role === "user" ? (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#dbeafe] text-[#1d4ed8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-tint-strong text-brand-hover">
                   <User2 className="h-4 w-4" />
                 </div>
               ) : null}
@@ -645,7 +645,7 @@ export function SearchAssistantPanel({
                     value ? (
                       <span
                         key={key}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e2ff] bg-[#f6f9ff] py-1 pl-2.5 pr-1 text-[11px] font-medium text-[#3157c8]"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-brand-muted-border bg-brand-soft-surface py-1 pl-2.5 pr-1 text-[11px] font-medium text-primary"
                       >
                         <span>
                           {FILTER_KEY_LABELS[key] || key}: {formatParamValue(key, value)}
@@ -653,7 +653,7 @@ export function SearchAssistantPanel({
                         <button
                           type="button"
                           onClick={() => void removeFilter(key)}
-                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[#3157c8] transition hover:bg-[#dbe6ff]"
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-primary transition hover:bg-[#dbe6ff]"
                           aria-label={`Remove ${FILTER_KEY_LABELS[key] || key} filter`}
                         >
                           <X className="h-3 w-3" />
@@ -662,14 +662,14 @@ export function SearchAssistantPanel({
                     ) : null
                   )
                 ) : (
-                  <span className="rounded-full border border-[#d6e2ff] bg-[#f6f9ff] px-2.5 py-1 text-[11px] font-medium text-[#3157c8]">
+                  <span className="rounded-full border border-brand-muted-border bg-brand-soft-surface px-2.5 py-1 text-[11px] font-medium text-primary">
                     No filters
                   </span>
                 )}
               </div>
 
               {activeFollowUp ? (
-                <div className="mt-3 rounded-[14px] border border-[#dbe6ff] bg-[#f7faff] p-3">
+                <div className="mt-3 rounded-[14px] border border-brand-muted-border bg-brand-soft-surface p-3">
                   <p className="text-[13px] font-semibold text-[#274690]">
                     {activeFollowUp.question}
                   </p>
@@ -679,7 +679,7 @@ export function SearchAssistantPanel({
                         key={`${option.label}-${option.query}`}
                         type="button"
                         onClick={() => void runAssistantSearch(option.query)}
-                        className="rounded-full border border-[#c9d9ff] bg-white px-2.5 py-1 text-[11px] font-medium text-[#3157c8] transition hover:border-primary hover:text-primary"
+                        className="rounded-full border border-brand-muted-border bg-white px-2.5 py-1 text-[11px] font-medium text-primary transition hover:border-primary hover:text-primary"
                       >
                         {option.label}
                       </button>
@@ -699,7 +699,7 @@ export function SearchAssistantPanel({
           {lastResult ? (
             <Button
               type="button"
-              className="h-10 rounded-[14px] bg-[#2563eb] px-4 text-white hover:bg-[#1d4ed8]"
+              className="h-10 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
               onClick={() => router.push(lastResult.searchUrl)}
             >
               Apply To Results

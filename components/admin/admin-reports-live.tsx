@@ -187,7 +187,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
                     </td>
                     <td className="px-6 py-4 text-[13px] text-[#6b7280]">
                       {ticket.href ? (
-                        <Link href={ticket.href} className="font-medium text-[#2563eb] hover:underline">
+                        <Link href={ticket.href} className="font-medium text-primary hover:underline">
                           {ticket.listingTitle || "Open target"}
                         </Link>
                       ) : (
@@ -209,7 +209,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
                         {ticket.source === "ad_report" ? (
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-[8px] border border-[#d1d5db] px-2.5 py-1.5 text-[12px] font-medium text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb] active:scale-[0.98]"
+                            className="inline-flex items-center gap-1 rounded-[8px] border border-[#d1d5db] px-2.5 py-1.5 text-[12px] font-medium text-[#374151] transition hover:border-primary hover:text-primary active:scale-[0.98]"
                             onClick={() => setExpandedId((current) => (current === ticket.id ? null : ticket.id))}
                           >
                             Details
@@ -267,7 +267,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
                               <select
                                 value={statusDrafts[ticket.id] || ticket.status}
                                 onChange={(event) => updateDraftStatus(ticket.id, event.target.value)}
-                                className="h-10 w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/10"
+                                className="h-10 w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
                               >
                                 <option value="open">Open</option>
                                 <option value="reviewing">Reviewing</option>
@@ -285,7 +285,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
                               />
                             </label>
                             <div className="mt-4 flex items-center justify-between gap-3">
-                              <Link href={ticket.href} className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2563eb]">
+                              <Link href={ticket.href} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary">
                                 Open target
                                 <ArrowUpRight className="h-3.5 w-3.5" />
                               </Link>
@@ -355,7 +355,7 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
                           tone={ticketStatusTone(event.ticketStatus)}
                         />
                       ) : null}
-                      <Link href={event.href} className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2563eb]">
+                      <Link href={event.href} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary">
                         Open
                         <ArrowUpRight className="h-3.5 w-3.5" />
                       </Link>

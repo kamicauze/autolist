@@ -180,7 +180,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
             type="button"
             onClick={clearFilters}
             disabled={!hasActiveFilters}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-[#d1d5db] bg-white px-4 text-[13px] font-semibold text-[#374151] transition hover:border-[#2563eb] hover:text-[#2563eb] disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-[#d1d5db] bg-white px-4 text-[13px] font-semibold text-[#374151] transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
           >
             <X className="h-4 w-4" />
             Clear
@@ -193,7 +193,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
             {data.users.length.toLocaleString("en-KE")} loaded users
           </span>
           {hasActiveFilters ? (
-            <span className="font-medium text-[#2563eb]">Filters active</span>
+            <span className="font-medium text-primary">Filters active</span>
           ) : null}
         </div>
 
@@ -205,7 +205,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
                   <div>
                     <Link
                       href={`/admin/users/${user.id}`}
-                      className="text-[14px] font-semibold text-[#111827] transition hover:text-[#2563eb]"
+                      className="text-[14px] font-semibold text-[#111827] transition hover:text-primary"
                     >
                       {user.name}
                     </Link>
@@ -235,7 +235,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
                 <td className="px-6 py-4 text-[13px]">
                   <Link
                     href={`/admin/users/${user.id}`}
-                    className="font-medium text-[#2563eb] transition hover:text-[#1d4ed8]"
+                    className="font-medium text-primary transition hover:text-brand-hover"
                   >
                     View history
                   </Link>

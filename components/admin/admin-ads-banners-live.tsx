@@ -394,7 +394,7 @@ export function AdminAdsBannersLive({
                   }}
                   className={cn(
                     "w-full px-5 py-4 text-left transition",
-                    isActive ? "bg-[#f8fbff]" : "bg-white hover:bg-[#fafcff]"
+                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

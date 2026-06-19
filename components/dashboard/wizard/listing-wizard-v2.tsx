@@ -88,9 +88,9 @@ function WizardContent({
           buttonLabel: "Checking...",
           buttonHref: "/dashboard/membership",
           buttonDisabled: true,
-          wrapperClass: "border border-[#dbe8ff] bg-[#f5f9ff]",
-          iconClass: "bg-[#eef4ff] text-[#2563eb]",
-          buttonClass: "bg-[#2563eb] text-white",
+          wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
+          iconClass: "bg-brand-tint text-primary",
+          buttonClass: "bg-primary text-white",
         }
       : packageAccessError
         ? {
@@ -138,16 +138,16 @@ function WizardContent({
                 buttonLabel: "Manage Package",
                 buttonHref: "/dashboard/membership",
                 buttonDisabled: false,
-                wrapperClass: "border border-[#dbe8ff] bg-[#f5f9ff]",
-                iconClass: "bg-[#eef4ff] text-[#2563eb]",
-                buttonClass: "bg-[#2563eb] text-white hover:bg-[#1d4ed8]",
+                wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
+                iconClass: "bg-brand-tint text-primary",
+                buttonClass: "bg-primary text-white hover:bg-brand-hover",
               };
 
   if (submitted) {
     return (
       <section className="space-y-6">
-        <div className="rounded-[28px] border border-[#dbe8ff] bg-white p-8 text-center shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+        <div className="rounded-[28px] border border-brand-muted-border bg-white p-8 text-center shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-tint text-primary">
             <CheckCircle2 className="h-7 w-7" />
           </div>
           <h2 className="mt-5 font-heading text-[34px] font-semibold text-[#202224]">
@@ -166,13 +166,13 @@ function WizardContent({
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
               href={isAdminMode ? "/admin/listings" : "/dashboard/listings"}
-              className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-12 items-center justify-center rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
             >
               {isAdminMode ? "Back to Admin Listings" : "View My Listings"}
             </Link>
             <Link
               href={isAdminMode && editingListingId ? `/vehicle/${editingListingId}` : "/dashboard"}
-              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[14px] font-semibold text-[#202224] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[14px] font-semibold text-[#202224] transition hover:border-primary hover:text-primary"
             >
               {isAdminMode ? "View Listing" : "Back to Dashboard"}
             </Link>
@@ -227,7 +227,7 @@ function WizardContent({
             <Button
               type="button"
               variant="outline"
-              className="h-9 rounded-[10px] border-[#d9d9d9] px-3 text-[13px] text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
+              className="h-9 rounded-[10px] border-[#d9d9d9] px-3 text-[13px] text-[#202224] hover:border-primary hover:bg-white hover:text-primary"
               onClick={() => {
                 if (window.confirm("Clear the saved draft and start this listing from scratch?")) {
                   resetDraft();
@@ -253,7 +253,7 @@ function WizardContent({
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-[10px] border-[#d9d9d9] px-4 text-[13px] text-[#202224] hover:border-[#2563eb] hover:bg-white hover:text-[#2563eb]"
+              className="h-10 rounded-[10px] border-[#d9d9d9] px-4 text-[13px] text-[#202224] hover:border-primary hover:bg-white hover:text-primary"
               disabled={activeStep === 0 || isSubmitting}
               onClick={handleBack}
             >
@@ -261,7 +261,7 @@ function WizardContent({
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-[10px] bg-[#2563eb] px-4 text-[13px] text-white hover:bg-[#1d4ed8]"
+              className="h-10 rounded-[10px] bg-primary px-4 text-[13px] text-white hover:bg-brand-hover"
               onClick={handleContinue}
               disabled={isSubmitting}
             >

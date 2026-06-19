@@ -463,7 +463,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
             ))}
           </div>
 
-          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="mt-6 rounded-xl border border-brand-muted-border bg-brand-tint p-4">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <p className="text-sm leading-relaxed text-gray-700">
@@ -768,7 +768,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   "flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center transition active:scale-[0.99]",
                   photos.length >= MIN_PHOTOS
                     ? "border-green-300 bg-green-50"
-                    : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-blue-50/40"
+                    : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-brand-tint/40"
                 )}
               >
                 <Camera className="h-7 w-7 text-primary" />

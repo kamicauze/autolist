@@ -33,7 +33,7 @@ function BreakdownList({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <BarChart3 className="h-4 w-4 text-[#2563eb]" />
+        <BarChart3 className="h-4 w-4 text-primary" />
         <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#475467]">
           {title}
         </p>
@@ -56,7 +56,7 @@ function BreakdownList({
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[#eef2ff]">
               <div
-                className="h-full rounded-full bg-[#2563eb]"
+                className="h-full rounded-full bg-primary"
                 style={{ width: breakdownBarWidth(item.value, maxValue) }}
               />
             </div>
@@ -116,7 +116,7 @@ export function AdminAnalyticsLive({ data }: { data: AdminAnalyticsData }) {
             <>
               <div className="mb-5 flex flex-wrap gap-3 text-[12px] text-[#6b7280]">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#2563eb]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
                   Users
                 </span>
                 <span className="inline-flex items-center gap-2">
@@ -133,7 +133,7 @@ export function AdminAnalyticsLive({ data }: { data: AdminAnalyticsData }) {
                 </span>
               </div>
 
-              <div className="h-[280px] rounded-[18px] bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_100%)] p-5">
+              <div className="h-[280px] rounded-[18px] bg-[linear-gradient(180deg,var(--brand-tint)_0%,#ffffff_100%)] p-5">
                 <div className="flex h-full items-end gap-3">
                   {data.activity.map((day) => {
                     const userHeight = (day.users / maxActivity) * 100;
@@ -150,10 +150,10 @@ export function AdminAnalyticsLive({ data }: { data: AdminAnalyticsData }) {
                               <div style={{ height: `${ticketHeight}%` }} className="bg-[#ef4444]" />
                               <div style={{ height: `${paymentHeight}%` }} className="bg-[#f59e0b]" />
                               <div style={{ height: `${listingHeight}%` }} className="bg-[#22c55e]" />
-                              <div style={{ height: `${userHeight}%` }} className="bg-[#2563eb]" />
+                              <div style={{ height: `${userHeight}%` }} className="bg-primary" />
                             </>
                           ) : (
-                            <div className="h-1 rounded-t-[12px] bg-[#dbeafe]" />
+                            <div className="h-1 rounded-t-[12px] bg-brand-tint-strong" />
                           )}
                         </div>
                         <div className="space-y-1 text-center">

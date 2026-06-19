@@ -133,7 +133,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
               </p>
               <Link
                 href="/search"
-                className="inline-flex h-11 items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-[14px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                className="inline-flex h-11 items-center justify-center rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
               >
                 Browse vehicles
               </Link>
@@ -183,7 +183,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
                           {getListingDisplayTitle(listing)}
                         </h2>
                       </Link>
-                      <p className="mt-2 text-[14px] font-semibold text-[#2563eb]">
+                      <p className="mt-2 text-[14px] font-semibold text-primary">
                         {formatDashboardCurrency(listing.price)}
                       </p>
                     </div>
@@ -210,7 +210,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
                       </div>
                       <Link
                         href={`/vehicle/${listing.id}`}
-                        className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[#2563eb] px-4 text-[13px] font-semibold text-white transition hover:bg-[#1d4ed8]"
+                        className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-primary px-4 text-[13px] font-semibold text-white transition hover:bg-brand-hover"
                       >
                         <MessageSquare className="h-4 w-4" />
                         Open listing

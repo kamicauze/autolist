@@ -123,7 +123,7 @@ export async function VerificationPage() {
         />
 
         <SummaryCard
-          icon={<ShieldCheck className="h-5 w-5 text-[#2563eb]" />}
+          icon={<ShieldCheck className="h-5 w-5 text-primary" />}
           title="Individual seller account"
           description="This account is set up as an individual seller. Dealership verification only applies when you register a dealer business profile."
           tone="blue"
@@ -142,7 +142,7 @@ export async function VerificationPage() {
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="/dashboard/profile"
-                className="inline-flex h-11 items-center justify-center rounded-[12px] bg-[#2563eb] px-5 text-[13px] font-semibold text-white"
+                className="inline-flex h-11 items-center justify-center rounded-[12px] bg-primary px-5 text-[13px] font-semibold text-white"
               >
                 Update seller profile
               </a>
@@ -165,7 +165,7 @@ export async function VerificationPage() {
                 return (
                   <div key={item.title} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-tint text-primary">
                         <Icon className="h-4 w-4" />
                       </div>
                       {index < SELLER_TIMELINE.length - 1 ? (
@@ -227,7 +227,7 @@ export async function VerificationPage() {
         />
       ) : (
         <SummaryCard
-          icon={<Clock3 className="h-5 w-5 text-[#2563eb]" />}
+          icon={<Clock3 className="h-5 w-5 text-primary" />}
           title="Verification in progress"
           description="Your seller documents are with the review team. We’ll notify you as soon as the verification process is complete."
           tone="blue"
@@ -319,7 +319,7 @@ export async function VerificationPage() {
                 return (
                   <div key={item.title} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef4ff] text-[#2563eb]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-tint text-primary">
                         <Icon className="h-4 w-4" />
                       </div>
                       {index < TIMELINE.length - 1 ? (

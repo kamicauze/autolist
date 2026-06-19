@@ -743,7 +743,7 @@ export function AdminCmsLive({
                 {editor.featuredLimit} featured and {editor.recentLimit} recent listings requested.
               </p>
             </div>
-            <span className="rounded-[999px] border border-[#dbeafe] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2563eb]">
+            <span className="rounded-[999px] border border-brand-muted-border bg-white px-3 py-1.5 text-[12px] font-semibold text-primary">
               {editor.showTabs ? "Tabs enabled" : "Single rail"}
             </span>
           </div>
@@ -956,7 +956,7 @@ export function AdminCmsLive({
                   }}
                   className={cn(
                     "w-full px-5 py-4 text-left transition",
-                    isActive ? "bg-[#f8fbff]" : "bg-white hover:bg-[#fafcff]"
+                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -1057,7 +1057,7 @@ export function AdminCmsLive({
                   onClick={() => setSelectedSlug(page.slug)}
                   className={cn(
                     "w-full px-5 py-4 text-left transition",
-                    isActive ? "bg-[#f8fbff]" : "bg-white hover:bg-[#fafcff]"
+                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -1257,7 +1257,7 @@ export function AdminCmsLive({
                   onClick={() => setActiveArea(item.key)}
                   className={cn(
                     "inline-flex h-9 items-center gap-2 rounded-[9px] px-3 text-[13px] font-semibold transition",
-                    isActive ? "bg-[#2563eb] text-white" : "text-[#4b5563] hover:bg-[#f8fafc]"
+                    isActive ? "bg-primary text-white" : "text-[#4b5563] hover:bg-[#f8fafc]"
                   )}
                 >
                   <Icon className="h-4 w-4" />

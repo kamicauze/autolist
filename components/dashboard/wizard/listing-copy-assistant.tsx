@@ -57,10 +57,10 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
   }
 
   return (
-    <div className="rounded-[14px] border border-[#e4edff] bg-[#f7faff] p-4">
+    <div className="rounded-[14px] border border-brand-muted-border bg-brand-soft-surface p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
             Copy Assistant
           </p>
           <h3 className="mt-1 font-heading text-[18px] font-semibold text-[#202224]">
@@ -76,7 +76,7 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
           type="button"
           onClick={handleGenerate}
           disabled={isLoading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#2563eb] px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#1d4fd8] disabled:opacity-60 sm:w-auto lg:shrink-0"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover disabled:opacity-60 sm:w-auto lg:shrink-0"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {isLoading ? "Generating..." : "Generate AI Description"}
@@ -92,7 +92,7 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
       {result ? (
         <div className="mt-5 space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-[12px] text-[#7a7a7a]">
-            <span className="rounded-full border border-[#d9e6ff] bg-white px-3 py-1">
+            <span className="rounded-full border border-brand-muted-border bg-white px-3 py-1">
               {result.provider === "openai"
                 ? `OpenAI via ${result.model}`
                 : result.provider === "local_llm"
@@ -110,7 +110,7 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
               <button
                 type="button"
                 onClick={() => updateField("description", result.description)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] border border-[#d9e6ff] bg-[#f7faff] px-3 py-2 text-[13px] font-semibold text-[#2563eb] hover:bg-[#eef4ff] sm:w-auto lg:shrink-0"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-3 py-2 text-[13px] font-semibold text-primary hover:bg-brand-tint sm:w-auto lg:shrink-0"
               >
                 <Wand2 className="h-4 w-4" />
                 Apply AI Description

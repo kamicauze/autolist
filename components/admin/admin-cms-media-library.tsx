@@ -200,8 +200,8 @@ function CmsMediaAssetGrid({
                 onClick={() => onSelect?.(asset)}
                 className={cn(
                   "overflow-hidden rounded-[14px] border bg-white text-left transition",
-                  onSelect ? "hover:border-[#2563eb] hover:shadow-sm" : "cursor-default",
-                  isSelected ? "border-[#2563eb] ring-2 ring-[#2563eb]/20" : "border-[#e5e7eb]"
+                  onSelect ? "hover:border-primary hover:shadow-sm" : "cursor-default",
+                  isSelected ? "border-primary ring-2 ring-primary/20" : "border-[#e5e7eb]"
                 )}
               >
                 <div className="relative aspect-[16/10] bg-[#f1f5f9]">
@@ -211,7 +211,7 @@ function CmsMediaAssetGrid({
                     className="h-full w-full object-cover"
                   />
                   {isSelected ? (
-                    <span className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#2563eb] text-white shadow-sm">
+                    <span className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-sm">
                       <Check className="h-4 w-4" />
                     </span>
                   ) : null}

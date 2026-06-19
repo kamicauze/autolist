@@ -61,7 +61,7 @@ export function AuthModalShell({
             <IconX className="h-5 w-5" />
           </Link>
           <div className="max-w-[520px] pr-12">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               {eyebrow}
             </p>
             <h1 className="mt-3 font-heading text-[32px] font-semibold leading-tight text-[#24272C] sm:text-[36px]">

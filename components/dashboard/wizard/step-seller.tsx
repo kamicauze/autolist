@@ -98,7 +98,7 @@ export function StepSeller() {
                 type="button"
                 onClick={() => updateField("whatsappNumber", draft.phoneNumber)}
                 disabled={!draft.phoneNumber}
-                className="mt-2 inline-flex max-w-full items-center text-left text-[13px] font-semibold text-[#2563eb] transition hover:text-[#1d4ed8] disabled:cursor-not-allowed disabled:text-[#98a2b3]"
+                className="mt-2 inline-flex max-w-full items-center text-left text-[13px] font-semibold text-primary transition hover:text-brand-hover disabled:cursor-not-allowed disabled:text-[#98a2b3]"
               >
                 Use the same number as phone
               </button>
@@ -136,7 +136,7 @@ export function StepSeller() {
           </label>
         </div>
 
-        <div className="mt-4 rounded-[12px] border border-[#e7edf6] bg-[#f8fbff] px-4 py-3">
+        <div className="mt-4 rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
@@ -154,7 +154,7 @@ export function StepSeller() {
             <button
               type="button"
               onClick={() => goToStep(2, { showValidationErrors: true })}
-              className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#d6dce8] bg-white px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+              className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#d6dce8] bg-white px-4 text-[14px] font-semibold text-[#202224] transition hover:border-primary hover:text-primary"
             >
               Edit Location
             </button>

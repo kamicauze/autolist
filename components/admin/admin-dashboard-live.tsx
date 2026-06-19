@@ -133,7 +133,7 @@ export function AdminDashboardLive({ data }: { data: AdminDashboardData }) {
                 <td className="px-6 py-4 text-right">
                   <Link
                     href={`/vehicle/${listing.id}`}
-                    className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2563eb]"
+                    className="inline-flex items-center gap-1 text-[12px] font-medium text-primary"
                   >
                     Open
                     <ArrowUpRight className="h-3.5 w-3.5" />

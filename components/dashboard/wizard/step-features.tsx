@@ -62,7 +62,7 @@ export function StepFeatures() {
       <div className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Listing equipment
             </p>
             <p className="text-[15px] text-[#636363]">
@@ -88,7 +88,7 @@ export function StepFeatures() {
         </div>
 
         {featureSuggestion.status !== "idle" ? (
-          <div className="mt-3 rounded-[10px] border border-[#dbe8ff] bg-[#f5f9ff] px-3 py-2 text-[13px] leading-5 text-[#344054]">
+          <div className="mt-3 rounded-[10px] border border-brand-muted-border bg-brand-soft-surface px-3 py-2 text-[13px] leading-5 text-[#344054]">
             {featureSuggestion.status === "loading" ? (
               <span>Checking likely features for this make and model...</span>
             ) : featureSuggestion.status === "applied" ? (
@@ -127,18 +127,18 @@ export function StepFeatures() {
                 <button
                   type="button"
                   onClick={() => setFeatureSelection(group.features.map((feature) => feature.id), "add")}
-                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#2563eb] transition hover:bg-[#eef4ff]"
+                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-semibold text-primary transition hover:bg-brand-tint"
                 >
                   Select all
                 </button>
                 <button
                   type="button"
                   onClick={() => setFeatureSelection(group.features.map((feature) => feature.id), "remove")}
-                  className="rounded-full border border-[#d9d9d9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#5d6678] transition hover:border-[#2563eb] hover:text-[#2563eb]"
+                  className="rounded-full border border-[#d9d9d9] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#5d6678] transition hover:border-primary hover:text-primary"
                 >
                   Clear group
                 </button>
-                <div className="rounded-full bg-[#eef4ff] px-3 py-1.5 text-[12px] font-semibold text-[#2563eb]">
+                <div className="rounded-full bg-brand-tint px-3 py-1.5 text-[12px] font-semibold text-primary">
                   {group.features.filter((item) => selectedFeatureIdSet.has(item.id)).length} selected
                 </div>
               </div>
@@ -152,7 +152,7 @@ export function StepFeatures() {
                     key={feature.id}
                     className={`flex items-start gap-3 rounded-[10px] border px-3 py-2.5 text-[13px] transition ${
                       selected
-                        ? "border-[#2563eb] bg-[#eef4ff]"
+                        ? "border-primary bg-brand-tint"
                         : "border-[#ededed] bg-white hover:border-[#cfdaf7] hover:bg-[#fafcff]"
                     }`}
                   >

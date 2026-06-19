@@ -239,7 +239,7 @@ export function AdminUsersClient() {
               <td className="px-6 py-4 text-[13px] text-[#6b7280]">{row.joined}</td>
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3 text-[#6b7280]">
-                  <button type="button" aria-label="View user" className="hover:text-[#2563eb]">
+                  <button type="button" aria-label="View user" className="hover:text-primary">
                     <Eye className="h-4 w-4" />
                   </button>
                   <button type="button" aria-label="Verify user" className="hover:text-[#10b981]">

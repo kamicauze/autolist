@@ -226,8 +226,8 @@ export function StepVehicleDetails() {
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition",
                         selected
-                          ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
-                          : "border-[#d9d9d9] bg-white text-[#4b5565] hover:border-[#2563eb]"
+                          ? "border-primary bg-brand-tint text-primary"
+                          : "border-[#d9d9d9] bg-white text-[#4b5565] hover:border-primary"
                       )}
                     >
                       {trim.label}
@@ -287,8 +287,8 @@ export function StepVehicleDetails() {
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition",
                     isSelected
-                      ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
-                      : "border-[#e4e7ec] bg-white text-[#202224] hover:border-[#2563eb]"
+                      ? "border-primary bg-brand-tint text-primary"
+                      : "border-[#e4e7ec] bg-white text-[#202224] hover:border-primary"
                   )}
                 >
                   <span
@@ -305,8 +305,8 @@ export function StepVehicleDetails() {
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-medium transition",
                 isCustomColor
-                  ? "border-[#2563eb] bg-[#eef4ff] text-[#2563eb]"
-                  : "border-[#e4e7ec] bg-white text-[#202224] hover:border-[#2563eb]"
+                  ? "border-primary bg-brand-tint text-primary"
+                  : "border-[#e4e7ec] bg-white text-[#202224] hover:border-primary"
               )}
             >
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[conic-gradient(from_90deg,#ef4444,#f59e0b,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444)] text-white">
@@ -349,7 +349,7 @@ export function StepVehicleDetails() {
       ) : null}
 
       {isCarCategory ? (
-        <div className="rounded-[12px] border border-[#dbe8ff] bg-[#f6f9ff] px-4 py-3 text-[12px] leading-5 text-[#3157c8]">
+        <div className="rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[12px] leading-5 text-primary">
           Step 3 now uses a structured vehicle catalog: make leads to model, then trim and
           engine-specific variants. Every trim is loaded against the selected model, with inherited
           shared trims clearly labeled.

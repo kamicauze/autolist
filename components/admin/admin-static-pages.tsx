@@ -420,7 +420,7 @@ function StatGrid({ items }: { items: StatItem[] }) {
 
 function AdminPreviewNotice() {
   return (
-    <div className="rounded-[14px] border border-[#bfdbfe] bg-[#eff6ff] px-4 py-4 text-[13px] leading-6 text-[#1e40af]">
+    <div className="rounded-[14px] border border-brand-muted-border bg-brand-tint px-4 py-4 text-[13px] leading-6 text-[#1e40af]">
       This section is visually implemented and ready for backend wiring. The current figures and rows
       are representative admin data, not yet live operational records.
     </div>
@@ -544,8 +544,8 @@ function QueueWorkspace({
                 className={cn(
                   "w-full rounded-[14px] border px-4 py-4 text-left transition",
                   selected?.id === item.id
-                    ? "border-[#2563eb] bg-[#eff6ff]"
-                    : "border-[#e5e7eb] bg-white hover:border-[#bfdbfe]"
+                    ? "border-primary bg-brand-tint"
+                    : "border-[#e5e7eb] bg-white hover:border-brand-muted-border"
                 )}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -627,9 +627,9 @@ export function AdminDashboardPage({
               <div key={label} className="rounded-[14px] border border-[#e5e7eb] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-heading text-[16px] font-semibold text-[#111827]">{label}</p>
-                  <ArrowUpRight className="h-4 w-4 text-[#2563eb]" />
+                  <ArrowUpRight className="h-4 w-4 text-primary" />
                 </div>
-                <p className="mt-1 text-[14px] font-medium text-[#2563eb]">{value}</p>
+                <p className="mt-1 text-[14px] font-medium text-primary">{value}</p>
                 <p className="mt-1 text-[13px] text-[#6b7280]">{note}</p>
               </div>
             ))}
@@ -709,12 +709,12 @@ export function AdminAnalyticsSurface() {
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <AdminSectionCard title="Traffic & Revenue Trend" description="Last 30 days of marketplace activity.">
-          <div className="h-[280px] rounded-[18px] bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_100%)] p-5">
+          <div className="h-[280px] rounded-[18px] bg-[linear-gradient(180deg,var(--brand-tint)_0%,#ffffff_100%)] p-5">
             <div className="flex h-full items-end gap-3">
               {[46, 52, 41, 64, 72, 58, 76, 84, 62, 68, 79, 88].map((value, index) => (
                 <div key={index} className="flex-1">
                   <div
-                    className="rounded-t-[10px] bg-[#2563eb]/90"
+                    className="rounded-t-[10px] bg-primary/90"
                     style={{ height: `${value}%` }}
                   />
                 </div>
@@ -733,7 +733,7 @@ export function AdminAnalyticsSurface() {
               <div key={label} className="rounded-[14px] border border-[#e5e7eb] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-heading text-[16px] font-semibold text-[#111827]">{label}</p>
-                  <p className="text-[15px] font-semibold text-[#2563eb]">{value}</p>
+                  <p className="text-[15px] font-semibold text-primary">{value}</p>
                 </div>
                 <p className="mt-1 text-[13px] text-[#6b7280]">{note}</p>
               </div>
@@ -1169,7 +1169,7 @@ export function AdminSettingsPage() {
           <div className="space-y-4">
             <div className="rounded-[14px] border border-[#e5e7eb] px-4 py-4">
               <div className="flex items-center gap-3">
-                <Bell className="h-5 w-5 text-[#2563eb]" />
+                <Bell className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-[14px] font-medium text-[#111827]">Operational alerts</p>
                   <p className="text-[13px] text-[#6b7280]">Routing to Slack and email</p>
@@ -1178,7 +1178,7 @@ export function AdminSettingsPage() {
             </div>
             <div className="rounded-[14px] border border-[#e5e7eb] px-4 py-4">
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-[#2563eb]" />
+                <Mail className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-[14px] font-medium text-[#111827]">Payment failures</p>
                   <p className="text-[13px] text-[#6b7280]">Escalate to finance operations instantly</p>

@@ -29,7 +29,7 @@ export default async function TermsPage() {
       <main className="flex-1 bg-[#f8fafc]">
         <section className="border-b border-[#e5e7eb] bg-white">
           <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#2563eb]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Autolist
             </p>
             <h1 className="mt-4 font-heading text-[40px] font-semibold leading-[1.1] text-[#111827]">
