@@ -11,7 +11,9 @@ import {
 import { getImageUrl } from "@/lib/utils/listings";
 import {
   getListingBodyTypeLabel,
+  getListingDisplayLocation,
   getListingDisplayTitle,
+  getListingEngineDisplacement,
   getListingFuelTypeLabel,
   getListingMileageLabel,
   getListingSubtitle,
@@ -167,6 +169,11 @@ function ListingsGrid({ listings }: { listings: Listing[] }) {
               mileage={getListingMileageLabel(listing)}
               fuelType={getListingFuelTypeLabel(listing)}
               transmission={getListingTransmissionLabel(listing)}
+              engineSize={getListingEngineDisplacement(listing) || undefined}
+              location={getListingDisplayLocation(listing)}
+              sellerLabel={listing.dealer ? "Dealer" : "Seller"}
+              contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
+              contactKind={listing.dealer ? "call" : "message"}
               price={listing.price}
               currency={listing.currency}
               images={

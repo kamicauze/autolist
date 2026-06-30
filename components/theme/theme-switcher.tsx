@@ -12,7 +12,7 @@ const THEME_LABELS: Record<ThemeId, string> = {
 };
 
 type ThemeSwitcherProps = {
-  layout?: "compact" | "mobile";
+  layout?: "compact" | "mobile" | "topbar";
 };
 
 function getDocumentTheme(): ThemeId {
@@ -36,8 +36,12 @@ export function ThemeSwitcher({ layout = "compact" }: ThemeSwitcherProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card/80 p-1",
-        layout === "mobile" ? "space-y-2" : "hidden items-center gap-1 xl:flex"
+        "border border-border bg-card/80",
+        layout === "mobile"
+          ? "space-y-2 rounded-xl p-1"
+          : layout === "topbar"
+            ? "flex items-center gap-0.5 rounded-lg p-0.5"
+            : "hidden items-center gap-1 rounded-xl p-1 xl:flex"
       )}
       aria-label="Theme switcher"
     >
@@ -57,11 +61,15 @@ export function ThemeSwitcher({ layout = "compact" }: ThemeSwitcherProps) {
               type="button"
               onClick={() => setTheme(theme.id)}
               className={cn(
-                "group flex min-h-9 items-center justify-center gap-2 rounded-lg border text-xs font-semibold transition",
+                "group flex items-center justify-center gap-2 border text-xs font-semibold transition",
                 isActive
                   ? "border-primary bg-brand-tint text-primary"
                   : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-                layout === "mobile" ? "min-h-11 px-2.5" : "w-9 px-0"
+                layout === "mobile"
+                  ? "min-h-11 rounded-lg px-2.5"
+                  : layout === "topbar"
+                    ? "min-h-7 w-7 rounded-md px-0"
+                    : "min-h-9 w-9 rounded-lg px-0"
               )}
               aria-pressed={isActive}
               aria-label={`Use ${theme.name} theme`}
@@ -70,7 +78,7 @@ export function ThemeSwitcher({ layout = "compact" }: ThemeSwitcherProps) {
               <span
                 className={cn(
                   "relative flex overflow-hidden rounded-full border border-border",
-                  layout === "mobile" ? "h-4 w-4" : "h-5 w-5"
+                  layout === "mobile" || layout === "topbar" ? "h-4 w-4" : "h-5 w-5"
                 )}
               >
                 <span className="h-full flex-1" style={{ backgroundColor: theme.colors.primary }} />

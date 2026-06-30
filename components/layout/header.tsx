@@ -64,22 +64,25 @@ function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory 
   return (
     <div className="hidden xl:block border-b border-gray-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
-        <nav className="flex items-center gap-2 text-[12px]">
-          {vehicleTypes.map((type) => (
-            <Link
-              key={type.name}
-              href={type.href}
-              className={cn(
-                "border-b-2 px-2 py-2.5 font-medium text-gray-500 transition-colors hover:text-gray-900",
-                activeCategory === type.category
-                  ? "border-primary text-primary"
-                  : "border-transparent"
-              )}
-            >
-              {type.name}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex min-h-9 items-center justify-between gap-4">
+          <nav className="flex items-center gap-2 text-[12px]">
+            {vehicleTypes.map((type) => (
+              <Link
+                key={type.name}
+                href={type.href}
+                className={cn(
+                  "border-b-2 px-2 py-2 font-medium text-gray-500 transition-colors hover:text-gray-900",
+                  activeCategory === type.category
+                    ? "border-primary text-primary"
+                    : "border-transparent"
+                )}
+              >
+                {type.name}
+              </Link>
+            ))}
+          </nav>
+          <ThemeSwitcher layout="topbar" />
+        </div>
       </div>
     </div>
   );
@@ -226,12 +229,12 @@ export function Header() {
       </React.Suspense>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between xl:h-14">
           <Link href="/" className="flex items-center gap-2">
-            <AutolistLogo className="h-8 w-auto" />
+            <AutolistLogo className="h-8 w-auto xl:h-7" />
           </Link>
 
-          <nav ref={desktopNavRef} className="hidden items-center gap-1 xl:flex">
+          <nav ref={desktopNavRef} className="hidden items-center gap-0.5 xl:flex">
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 const isOpen = openMenu === item.key;
@@ -263,7 +266,7 @@ export function Header() {
                         setOpenMenu((current) => (current === item.key ? null : item.key));
                       }}
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-gray-700 transition-colors hover:text-gray-900",
+                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-gray-700 transition-colors hover:text-gray-900",
                         isOpen && "text-gray-900"
                       )}
                     >
@@ -293,7 +296,7 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-[13px] font-medium transition-colors hover:text-gray-900",
+                    "rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:text-gray-900",
                     pathname === item.href ? "text-primary" : "text-gray-700"
                   )}
                 >
@@ -304,8 +307,6 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <ThemeSwitcher />
-
             <Button variant="ghost" size="icon" className="xl:hidden">
               <IconSearch className="h-5 w-5" />
             </Button>

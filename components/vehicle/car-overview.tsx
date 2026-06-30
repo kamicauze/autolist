@@ -79,7 +79,7 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
       icon: <Fuel className="h-4 w-4" />,
     },
     {
-      label: "Engine Displacement",
+      label: "CC",
       value: getListingEngineDisplacement(listing) || "N/A",
       icon: <Cog className="h-4 w-4" />,
     },

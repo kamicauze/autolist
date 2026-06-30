@@ -112,18 +112,18 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
   };
 
   const triggerClass =
-    "h-11 w-full rounded-[14px] border-[#d8dde6] bg-white pl-9 pr-8 text-[14px] text-[#202224] shadow-sm";
+    "h-10 w-full rounded-[12px] border-[#d8dde6] bg-white pl-8 pr-7 text-[13px] text-[#202224] shadow-sm";
   const inputClass =
-    "h-11 w-full rounded-[14px] border-[#d8dde6] bg-white pl-9 pr-3 text-[14px] text-[#202224] shadow-sm";
+    "h-10 w-full rounded-[12px] border-[#d8dde6] bg-white pl-8 pr-3 text-[13px] text-[#202224] shadow-sm";
 
   return (
-    <div className="rounded-[22px] border border-[#e7ebf1] bg-white p-3.5 shadow-[0_12px_30px_rgba(15,23,42,0.06)]">
-      <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+    <div className="rounded-[18px] border border-[#e7ebf1] bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.055)]">
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         {/* Filter Dropdowns */}
-        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
           {isEquipmentCategory ? (
             <div className="relative min-w-0">
-              <Construction className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Construction className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <Select
                 value={currentEquipmentType || "all"}
                 onValueChange={(val) => updateFilter("equipmentType", val === "all" ? null : val)}
@@ -143,7 +143,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
             </div>
           ) : (
             <div className="relative min-w-0">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <Select
                 value={currentLocation || "all"}
                 onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}
@@ -165,7 +165,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
           {/* Make */}
           <div className="relative min-w-0">
-            <CarFront className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <CarFront className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             {isEquipmentCategory ? (
               <>
                 <Input
@@ -204,7 +204,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
           {/* Model */}
           <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             {isEquipmentCategory ? (
               <Input
                 key={`model-${currentCategory}-${currentModel}`}
@@ -236,7 +236,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
           {/* Price Range */}
           <div className="relative min-w-0">
-            <Banknote className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Banknote className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             <Select value={getPriceRangeValue()} onValueChange={updatePriceRange}>
               <SelectTrigger className={triggerClass}>
                 <SelectValue placeholder="Price" />
@@ -261,7 +261,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
           <Button
             variant="outline"
             onClick={onOpenFilters}
-            className="h-11 gap-2 rounded-[14px] border-[#d8dde6] px-4"
+            className="h-10 gap-2 rounded-[12px] border-[#d8dde6] px-3.5 text-[14px]"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
@@ -269,7 +269,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
           <Button
             onClick={handleSearch}
-            className="h-11 gap-2 rounded-[14px] bg-primary px-4 hover:bg-primary/90"
+            className="h-10 gap-2 rounded-[12px] bg-primary px-3.5 text-[14px] hover:bg-primary/90"
           >
             Search
             <IconSearch className="h-4 w-4" />

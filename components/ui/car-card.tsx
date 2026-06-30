@@ -5,12 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  GitCompare,
+  Heart,
+  MapPin,
+  Settings2,
+  UserRound,
+} from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Badge } from "./badge";
 import { IconFuel, IconGear, IconSpeedometer } from "./icons";
 
 export interface CarCardProps {
@@ -22,6 +31,11 @@ export interface CarCardProps {
   mileage: string;
   fuelType: string;
   transmission: string;
+  engineSize?: string;
+  location?: string;
+  sellerLabel?: string;
+  contactLabel?: string;
+  contactKind?: "message" | "call";
   price: number;
   originalPrice?: number;
   currency?: string;
@@ -33,6 +47,7 @@ export interface CarCardProps {
   };
   initialIsFavorited?: boolean;
   href?: string;
+  density?: "default" | "compact";
 }
 
 export function CarCard({
@@ -43,6 +58,10 @@ export function CarCard({
   mileage,
   fuelType,
   transmission,
+  engineSize,
+  location,
+  sellerLabel,
+  contactKind = "message",
   price,
   originalPrice,
   currency = "Ksh",
@@ -51,9 +70,9 @@ export function CarCard({
   seller: _seller,
   initialIsFavorited,
   href,
+  density = "default",
 }: CarCardProps) {
-  void _seller;
-
+  const isCompact = density === "compact";
   const router = useRouter();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -73,6 +92,7 @@ export function CarCard({
     indicatorCount > 0 ? Math.min(selectedIndex, indicatorCount - 1) : 0;
   const inCompare = isInCompare(id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
+  const displaySellerLabel = (sellerLabel || _seller.name).replace(/\s+Unit$/i, "");
 
   React.useEffect(() => {
     if (typeof initialIsFavorited === "boolean") {
@@ -205,7 +225,7 @@ export function CarCard({
 
   const cardContent = (
     <div className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-      <div className="relative h-56 w-full overflow-hidden bg-muted">
+      <div className={cn("relative w-full overflow-hidden bg-muted", isCompact ? "h-60 sm:h-52" : "h-60")}>
         <div className="h-full overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
             {displayImages.map((imageUrl, index) => (
@@ -226,26 +246,26 @@ export function CarCard({
           <>
             <button
               onClick={scrollPrev}
-              className="absolute left-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 shadow-md opacity-0 transition-opacity hover:bg-card group-hover:opacity-100"
+              className="absolute left-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-card/65 text-card-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-card/85"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-5 w-5 text-card-foreground" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={scrollNext}
-              className="absolute right-2 top-1/2 z-30 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 shadow-md opacity-0 transition-opacity hover:bg-card group-hover:opacity-100"
+              className="absolute right-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-card/65 text-card-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-card/85"
               aria-label="Next image"
             >
-              <ChevronRight className="h-5 w-5 text-card-foreground" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </>
         )}
 
         <div className="absolute left-2.5 top-2.5 z-30 flex items-center gap-2">
           {isFeatured ? (
-            <Badge variant="primary" size="sm">
+            <span className="inline-flex h-7 items-center rounded-[7px] bg-primary/90 px-2.5 text-[12px] font-semibold leading-none text-primary-foreground shadow-sm backdrop-blur-md">
               Featured
-            </Badge>
+            </span>
           ) : null}
         </div>
 
@@ -263,11 +283,11 @@ export function CarCard({
                   : "Add to compare"
             }
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-primary shadow-md transition-colors hover:bg-card",
+              "flex h-7 w-7 items-center justify-center rounded-full border border-white/30 bg-card/65 text-primary shadow-sm backdrop-blur-md transition-colors hover:bg-card/85",
               (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
             )}
           >
-            {inCompare ? <Check className="h-4 w-4" /> : <GitCompare className="h-4 w-4" />}
+            {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompare className="h-3.5 w-3.5" />}
           </button>
 
           <button
@@ -276,12 +296,12 @@ export function CarCard({
             disabled={isWishlistPending}
             aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-full bg-card/95 text-primary shadow-md transition-colors hover:bg-card hover:text-destructive",
+              "flex h-7 w-7 items-center justify-center rounded-full border border-white/30 bg-card/65 text-primary shadow-sm backdrop-blur-md transition-colors hover:bg-card/85 hover:text-destructive",
               isLiked && "text-destructive",
               isWishlistPending && "cursor-wait opacity-80"
             )}
           >
-            <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
+            <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
           </button>
         </div>
 
@@ -306,44 +326,91 @@ export function CarCard({
         )}
       </div>
 
-      <div className="p-4">
-        <span className="text-[14px] font-normal leading-[19.6px] text-muted-foreground">{bodyType}</span>
+      <div className={cn("divide-y divide-border/70", isCompact ? "p-3.5" : "p-4")}>
+        <div className={cn("flex items-start", isCompact ? "min-h-12 pb-2.5" : "min-h-14 pb-3")}>
+          <h3
+            className={cn(
+              "line-clamp-2 break-words font-medium text-card-foreground",
+              isCompact ? "text-[14px] leading-[20px]" : "text-[18px] leading-[25.2px]"
+            )}
+          >
+            {title}
+          </h3>
+        </div>
 
-        <h3 className="mt-1 line-clamp-1 text-[18px] font-medium leading-[25.2px] text-card-foreground">
-          {title}
-        </h3>
-        {subtitle ? (
-          <p className="mt-1 line-clamp-1 text-[13px] font-medium leading-[18px] text-muted-foreground">
-            {subtitle}
-          </p>
-        ) : null}
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium leading-[19.6px] text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <IconSpeedometer className="h-4 w-4" />
-            <span>{mileage}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <IconFuel className="h-4 w-4" />
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-4 gap-y-2 font-medium text-muted-foreground",
+            isCompact
+              ? "py-3 text-[11px] leading-[17px]"
+              : "py-3.5 text-[12px] leading-[19.6px]"
+          )}
+        >
+          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+            <IconFuel className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
             <span>{fuelType}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <IconGear className="h-4 w-4" />
+          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+            <Settings2 className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+            <span>{engineSize || bodyType}</span>
+          </div>
+          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+            <IconGear className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
             <span>{transmission}</span>
+          </div>
+          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+            <IconSpeedometer className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+            <span>{mileage}</span>
+          </div>
+        </div>
+        <div
+          className={cn(
+            "font-medium text-muted-foreground",
+            isCompact ? "py-3 text-[11px] leading-[17px]" : "py-3.5 text-[12px] leading-[18px]"
+          )}
+        >
+          <div className="flex min-w-0 items-start gap-1.5">
+            <MapPin className={cn("shrink-0 text-primary", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+            <span className="min-w-0 break-words">{location || subtitle || "Kenya"}</span>
           </div>
         </div>
 
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-[20px] font-bold leading-[28px] text-card-foreground">
-            {currency}
-            {formattedPrice}
-          </span>
-          {formattedOriginalPrice ? (
-            <span className="text-[13px] font-medium leading-[19.6px] text-muted-foreground line-through">
+        <div className={cn("flex items-center justify-between gap-3", isCompact ? "pt-3" : "pt-3.5")}>
+          <div className="min-w-0">
+            <span
+              className={cn(
+                "block truncate font-bold text-card-foreground",
+                isCompact ? "text-[17px] leading-[24px]" : "text-[20px] leading-[28px]"
+              )}
+            >
               {currency}
-              {formattedOriginalPrice}
+              {formattedPrice}
             </span>
-          ) : null}
+            {formattedOriginalPrice ? (
+              <span
+                className={cn(
+                  "block font-medium text-muted-foreground line-through",
+                  isCompact ? "text-[11px] leading-[16px]" : "text-[13px] leading-[19.6px]"
+                )}
+              >
+                {currency}
+                {formattedOriginalPrice}
+              </span>
+            ) : null}
+          </div>
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 font-medium text-muted-foreground",
+              isCompact ? "text-[11px] leading-[16px]" : "text-[12px] leading-[18px]"
+            )}
+          >
+            {contactKind === "call" ? (
+              <BriefcaseBusiness className="h-3 w-3 shrink-0" />
+            ) : (
+              <UserRound className="h-3 w-3 shrink-0" />
+            )}
+            <span className="whitespace-nowrap">{displaySellerLabel}</span>
+          </div>
         </div>
       </div>
     </div>

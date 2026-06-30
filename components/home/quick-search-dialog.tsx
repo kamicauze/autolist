@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -107,6 +108,9 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
               Powered by Autolist Intelligence
             </span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Enter a natural language vehicle search or choose a suggested query.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-5 pb-3">

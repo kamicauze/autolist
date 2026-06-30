@@ -5,7 +5,6 @@ import {
   Globe2,
   ShieldCheck,
   Ship,
-  Tags,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,6 +16,7 @@ type Feature = {
   Illustration: LucideIcon;
   Accent: LucideIcon;
   accentPosition: string;
+  external?: boolean;
 };
 
 const features: Feature[] = [
@@ -31,14 +31,14 @@ const features: Feature[] = [
     accentPosition: "right-10 top-7 h-16 w-16",
   },
   {
-    title: "Value your car",
-    description:
-      "Join thousands who value their vehicle with Autolist.",
-    buttonText: "Value your car",
-    href: "/valuation",
+    title: "Security advice",
+    description: "Advice on how to buy and sell vehicles safely.",
+    buttonText: "Read advice",
+    href: "https://www.mobile.de/sicherheit/",
     Illustration: CarFront,
-    Accent: Tags,
-    accentPosition: "left-10 top-7 h-12 w-12 -rotate-12",
+    Accent: ShieldCheck,
+    accentPosition: "right-10 top-7 h-16 w-16",
+    external: true,
   },
   {
     title: "Financing",
@@ -91,16 +91,6 @@ export function DiscoverMore() {
                     aria-hidden="true"
                     className={`absolute stroke-[1.7] ${feature.accentPosition}`}
                   />
-                  {feature.title === "Value your car" ? (
-                    <>
-                      <span className="absolute right-12 top-7 flex h-8 w-8 items-center justify-center rounded-full border-2 border-current text-sm font-semibold">
-                        $
-                      </span>
-                      <span className="absolute right-8 top-16 flex h-8 w-8 items-center justify-center rounded-full border-2 border-current text-sm font-semibold">
-                        $
-                      </span>
-                    </>
-                  ) : null}
                   {feature.title === "Financing" ? (
                     <>
                       <span className="absolute right-16 top-6 flex h-8 w-8 items-center justify-center rounded-full border-2 border-current text-sm font-semibold">
@@ -122,6 +112,8 @@ export function DiscoverMore() {
                   </p>
                   <Link
                     href={feature.href}
+                    target={feature.external ? "_blank" : undefined}
+                    rel={feature.external ? "noopener noreferrer" : undefined}
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
                   >
                     {feature.buttonText}

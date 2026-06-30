@@ -797,7 +797,7 @@ export function VehiclePageClient({
                       </p>
                     </div>
                     <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Engine Displacement</p>
+                      <p className="text-xs text-gray-500">CC</p>
                       <p className="font-semibold text-gray-900">
                         {getListingEngineDisplacement(listing) || "N/A"}
                       </p>

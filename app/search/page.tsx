@@ -111,13 +111,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <Header />
 
       <main className="flex-1 bg-white">
-        <PublicCmsAdGrid placement="search_sidebar" contentClassName="py-6">
-          <div className="mb-6 flex items-start justify-between gap-4">
+        <PublicCmsAdGrid
+          placement="search_sidebar"
+          className="gap-5 xl:grid-cols-[112px_minmax(0,1120px)_112px] xl:justify-center 2xl:max-w-[1560px] 2xl:grid-cols-[128px_minmax(0,1180px)_128px]"
+          contentClassName="py-5"
+        >
+          <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              <h1 className="text-[26px] font-bold leading-8 tracking-tight text-gray-900 sm:text-[28px]">
                 {categoryConfig?.searchPageTitle ?? "All vehicles for sale"}
               </h1>
-              <p className="mt-1 text-sm text-gray-600 sm:text-base">
+              <p className="mt-1 text-sm text-gray-600 sm:text-[15px]">
                 {categoryConfig?.searchPageDescription ??
                   "Browse vehicle listings from dealers and private sellers."}
               </p>
@@ -128,12 +132,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <PublicCmsBannerPlacement
               placement="listing_global_top"
               variant="compact"
-              className="mb-6 max-w-none px-0 py-0"
+              className="mb-5 max-w-none px-0 py-0"
             />
             <PublicCmsBannerPlacement
               placement="search_top"
               variant="compact"
-              className="mb-6 max-w-none px-0 py-0"
+              className="mb-5 max-w-none px-0 py-0"
             />
             <SearchPageClient
               listings={listings}

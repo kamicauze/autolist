@@ -13,6 +13,7 @@ import {
   getListingBodyTypeLabel,
   getListingDisplayLocation,
   getListingDisplayTitle,
+  getListingEngineDisplacement,
   getListingFuelTypeLabel,
   getListingMileageLabel,
   getListingSubtitle,
@@ -214,6 +215,11 @@ export function RecommendedCars({
                 mileage={getListingMileageLabel(listing)}
                 fuelType={getListingFuelTypeLabel(listing)}
                 transmission={getListingTransmissionLabel(listing)}
+                engineSize={getListingEngineDisplacement(listing) || undefined}
+                location={getListingDisplayLocation(listing)}
+                sellerLabel={listing.dealer ? "Dealer" : "Seller"}
+                contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
+                contactKind={listing.dealer ? "call" : "message"}
                 price={listing.price}
                 currency={listing.currency}
                 images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}

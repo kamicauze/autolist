@@ -36,25 +36,25 @@ export function SearchPageClient({
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 rounded-[24px] border border-[#e8ebf2] bg-[#fbfcfe] p-5 md:flex-row md:items-center md:justify-between">
+      <div className="mb-5 flex flex-col gap-3 rounded-[20px] border border-[#e8ebf2] bg-[#fbfcfe] p-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
             Search Tools
           </p>
-          <h2 className="mt-2 text-[24px] font-semibold text-[#202224]">
+          <h2 className="mt-1.5 text-[22px] font-semibold leading-7 text-[#202224]">
             Refine with quick search or assistant chat
           </h2>
-          <p className="mt-1 text-[14px] leading-6 text-[#6f7784]">
+          <p className="mt-1 text-[13px] leading-5 text-[#6f7784]">
             Use quick search for one-shot intent parsing or open the assistant for conversational
             refinements on this page.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button
             type="button"
             variant="outline"
-            className="h-11 rounded-[14px] border-[#d9dfe8] bg-white px-4 lg:hidden"
+            className="h-10 rounded-[12px] border-[#d9dfe8] bg-white px-3.5 text-[14px] lg:hidden"
             onClick={() => setIsMobileAssistantOpen(true)}
           >
             <MessageSquareText className="mr-2 h-4 w-4" />
@@ -63,7 +63,7 @@ export function SearchPageClient({
           <Button
             type="button"
             variant="outline"
-            className="hidden h-11 rounded-[14px] border-[#d9dfe8] bg-white px-4 lg:inline-flex"
+            className="hidden h-10 rounded-[12px] border-[#d9dfe8] bg-white px-3.5 text-[14px] lg:inline-flex"
             onClick={() => setIsDesktopAssistantOpen((prev) => !prev)}
           >
             {isDesktopAssistantOpen ? (
@@ -75,7 +75,7 @@ export function SearchPageClient({
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
+            className="h-10 rounded-[12px] bg-primary px-3.5 text-[14px] text-white hover:bg-brand-hover"
             onClick={() => setIsQuickSearchOpen(true)}
           >
             <Sparkles className="mr-2 h-4 w-4" />
@@ -85,7 +85,7 @@ export function SearchPageClient({
       </div>
 
       <div
-        className={`grid gap-6 ${
+        className={`grid gap-5 ${
           isDesktopAssistantOpen
             ? "lg:grid-cols-[minmax(0,1fr)_420px]"
               : ""
@@ -99,7 +99,7 @@ export function SearchPageClient({
           />
 
           {/* Results Count */}
-          <div className="mb-6 mt-4 text-sm text-gray-600">
+          <div className="mb-5 mt-3 text-[13px] text-gray-600">
             Showing {listings.length} of {total} results
           </div>
 

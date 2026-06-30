@@ -547,7 +547,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => valueOrDash(metadataValue(listing, ["seats"])),
       },
       {
-        label: "Engine Displacement",
+        label: "CC",
         getValue: (listing) => valueOrDash(getListingEngineDisplacement(listing)),
       },
       {

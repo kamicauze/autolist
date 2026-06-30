@@ -8,7 +8,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
   getListingBodyTypeLabel,
+  getListingDisplayLocation,
   getListingDisplayTitle,
+  getListingEngineDisplacement,
   getListingFuelTypeLabel,
   getListingMileageLabel,
   getListingSubtitle,
@@ -46,11 +48,11 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
       {/* Grid - 4 columns max on MacBook, 5 columns on large monitors */}
       <div
         className={cn(
-          "grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3",
+          "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3",
           compact ? "2xl:grid-cols-4" : "lg:grid-cols-4"
         )}
       >
@@ -75,6 +77,11 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
               mileage={getListingMileageLabel(listing)}
               fuelType={getListingFuelTypeLabel(listing)}
               transmission={getListingTransmissionLabel(listing)}
+              engineSize={getListingEngineDisplacement(listing) || undefined}
+              location={getListingDisplayLocation(listing)}
+              sellerLabel={listing.dealer ? "Dealer" : "Seller"}
+              contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
+              contactKind={listing.dealer ? "call" : "message"}
               price={listing.price}
               currency={listing.currency}
               images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}
@@ -84,6 +91,7 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
                 avatarUrl: listing.dealer?.logo_url || listing.seller?.avatar_url || undefined,
               }}
               href={`/vehicle/${listing.id}`}
+              density="compact"
             />
           );
         })}
