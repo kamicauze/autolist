@@ -1,51 +1,36 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getPublishedContentPosts } from "@/lib/data/content-posts";
+import type { ContentPostCategory } from "@/lib/types/content-posts";
 
-const NEWS_ARTICLES = [
-  {
-    id: 1,
-    title: "Not Ready for a 2 Door? 880 Hybrid Unveiled",
-    excerpt:
-      "A new hybrid option for those who want practicality without compromising on efficiency.",
-    image: "/sample-car-1.jpg",
-    date: "Jan 25, 2026",
-    category: "News",
-    href: "/blog?category=news_advice",
-  },
-  {
-    id: 2,
-    title: "Not Ready for 5 2 Door? 880 Hybrid Unveiled",
-    excerpt:
-      "The latest in hybrid technology brings performance and sustainability together.",
-    image: "/sample-car-2.jpg",
-    date: "Jan 24, 2026",
-    category: "Reviews",
-    href: "/blog?category=review",
-  },
-  {
-    id: 3,
-    title: "Not Ready for 4 2 Door? 880 Hybrid Unveiled",
-    excerpt:
-      "What you need to know about the newest hybrid vehicles hitting the market.",
-    image: "/sample-car-3.jpg",
-    date: "Jan 23, 2026",
-    category: "Tips",
-    href: "/blog?category=news_advice",
-  },
-  {
-    id: 4,
-    title: "How to Check a Used Car Before You Buy",
-    excerpt:
-      "A practical checklist for documents, mileage, service history, and condition checks.",
-    image: "/sample-car-4.jpg",
-    date: "Jan 22, 2026",
-    category: "Advice",
-    href: "/blog?category=news_advice",
-  },
-];
+const CATEGORY_LABELS: Record<ContentPostCategory, string> = {
+  blog: "Blog",
+  review: "Reviews",
+  news_advice: "News",
+  faq: "FAQ",
+};
 
-export function NewsSection() {
+function formatDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export async function NewsSection() {
+  const posts = await getPublishedContentPosts(4);
+
+  if (posts.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-16">
       <div className="mx-auto max-w-[1285px] px-4 sm:px-6 lg:px-8">
@@ -54,7 +39,7 @@ export function NewsSection() {
             Car News & Advice
           </h2>
           <Link
-            href="/blog?category=news_advice"
+            href="/blog"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
             View all
@@ -64,32 +49,35 @@ export function NewsSection() {
 
         <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
           <div className="flex snap-x snap-mandatory gap-6">
-            {NEWS_ARTICLES.map((article) => (
+            {posts.map((post) => (
               <Link
-                key={article.id}
-                href={article.href}
-                className="group w-[280px] shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
+                key={post.id}
+                href={`/blog/${post.slug}`}
+                className="group flex w-[280px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
               >
                 <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+                  {post.coverImageUrl ? (
+                    <img
+                      src={post.coverImageUrl}
+                      alt={post.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" />
+                  )}
                   <div className="absolute left-3 top-3">
                     <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
-                      {article.category}
+                      {CATEGORY_LABELS[post.category] ?? "Blog"}
                     </span>
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="mb-2 text-sm text-gray-500">{article.date}</p>
+                  <p className="mb-2 text-sm text-gray-500">{formatDate(post.publishedAt)}</p>
                   <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-primary">
-                    {article.title}
+                    {post.title}
                   </h3>
                   <p className="line-clamp-2 text-sm text-gray-600">
-                    {article.excerpt}
+                    {post.excerpt}
                   </p>
                 </div>
               </Link>

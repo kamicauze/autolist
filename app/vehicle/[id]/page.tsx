@@ -14,6 +14,7 @@ import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { getListingReviewsData } from "@/lib/data/reviews";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
+import { RecordRecentlyViewed } from "@/components/vehicle/record-recently-viewed";
 import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
 interface VehiclePageProps {
@@ -63,6 +64,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
       <Header />
 
       <main className="flex-1 bg-gray-50">
+        <RecordRecentlyViewed listingId={listing.id} />
         <PublicCmsAdGrid placement="vehicle_detail" contentClassName="py-6">
           <Breadcrumb
             items={[

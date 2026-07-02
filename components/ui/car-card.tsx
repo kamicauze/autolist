@@ -224,7 +224,7 @@ export function CarCard({
   );
 
   const cardContent = (
-    <div className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       <div className={cn("relative w-full overflow-hidden bg-muted", isCompact ? "h-60 sm:h-52" : "h-60")}>
         <div className="h-full overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
@@ -326,7 +326,7 @@ export function CarCard({
         )}
       </div>
 
-      <div className={cn("divide-y divide-border/70", isCompact ? "p-3.5" : "p-4")}>
+      <div className={cn("flex flex-1 flex-col divide-y divide-border/70", isCompact ? "p-3.5" : "p-4")}>
         <div className={cn("flex items-start", isCompact ? "min-h-12 pb-2.5" : "min-h-14 pb-3")}>
           <h3
             className={cn(
@@ -375,7 +375,7 @@ export function CarCard({
           </div>
         </div>
 
-        <div className={cn("flex items-center justify-between gap-3", isCompact ? "pt-3" : "pt-3.5")}>
+        <div className={cn("mt-auto flex items-center justify-between gap-3", isCompact ? "pt-3" : "pt-3.5")}>
           <div className="min-w-0">
             <span
               className={cn(
@@ -418,7 +418,7 @@ export function CarCard({
 
   if (href) {
     return (
-      <Link href={href} scroll className="block">
+      <Link href={href} scroll className="block h-full">
         {cardContent}
       </Link>
     );

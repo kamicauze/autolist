@@ -230,7 +230,16 @@ export function Header() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <div className="flex h-16 items-center justify-between xl:h-14">
-          <Link href="/" className="flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={(event) => {
+              if (pathname === "/") {
+                event.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+            className="flex items-center gap-2"
+          >
             <AutolistLogo className="h-8 w-auto xl:h-7" />
           </Link>
 
@@ -295,6 +304,12 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={(event) => {
+                    if (pathname === item.href) {
+                      event.preventDefault();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
                   className={cn(
                     "rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:text-gray-900",
                     pathname === item.href ? "text-primary" : "text-gray-700"
