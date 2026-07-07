@@ -1,8 +1,10 @@
 export const CONTENT_POST_STATUSES = ["draft", "published"] as const;
-export const CONTENT_POST_CATEGORIES = ["blog", "review", "news_advice", "faq"] as const;
+export const CONTENT_POST_CATEGORIES = ["blog", "review", "news", "advice", "faq"] as const;
 
 export type ContentPostStatus = (typeof CONTENT_POST_STATUSES)[number];
 export type ContentPostCategory = (typeof CONTENT_POST_CATEGORIES)[number];
+export type LegacyContentPostCategory = "news_advice";
+export type StoredContentPostCategory = ContentPostCategory | LegacyContentPostCategory;
 
 export type ContentPostRecord = {
   id: string;
@@ -11,7 +13,7 @@ export type ContentPostRecord = {
   excerpt: string;
   body: string;
   status: ContentPostStatus;
-  category?: ContentPostCategory;
+  category?: StoredContentPostCategory;
   cover_image_url: string | null;
   gallery_image_urls?: string[] | null;
   published_at: string | null;

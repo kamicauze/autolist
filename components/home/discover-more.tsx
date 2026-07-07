@@ -16,7 +16,6 @@ type Feature = {
   Illustration: LucideIcon;
   Accent: LucideIcon;
   accentPosition: string;
-  external?: boolean;
 };
 
 const features: Feature[] = [
@@ -34,11 +33,10 @@ const features: Feature[] = [
     title: "Security advice",
     description: "Advice on how to buy and sell vehicles safely.",
     buttonText: "Read advice",
-    href: "https://www.mobile.de/sicherheit/",
+    href: "/security-advice",
     Illustration: CarFront,
     Accent: ShieldCheck,
     accentPosition: "right-10 top-7 h-16 w-16",
-    external: true,
   },
   {
     title: "Financing",
@@ -112,8 +110,6 @@ export function DiscoverMore() {
                   </p>
                   <Link
                     href={feature.href}
-                    target={feature.external ? "_blank" : undefined}
-                    rel={feature.external ? "noopener noreferrer" : undefined}
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
                   >
                     {feature.buttonText}

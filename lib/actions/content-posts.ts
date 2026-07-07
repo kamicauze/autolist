@@ -5,15 +5,17 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { hasRichTextContent, normalizeRichTextContent } from "@/lib/content-rich-text";
+import { normalizeContentPostCategory } from "@/lib/content-post-categories";
 import { CONTENT_POST_SELECT, normalizeContentPost } from "@/lib/data/content-posts";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
-import type {
-  ContentPostCategory,
-  ContentPost,
-  ContentPostMutationResult,
-  ContentPostRecord,
-  ContentPostStatus,
-  UpdateContentPostInput,
+import {
+  CONTENT_POST_CATEGORIES,
+  type ContentPostCategory,
+  type ContentPost,
+  type ContentPostMutationResult,
+  type ContentPostRecord,
+  type ContentPostStatus,
+  type UpdateContentPostInput,
 } from "@/lib/types/content-posts";
 
 const updateContentPostSchema = z.object({
@@ -22,7 +24,7 @@ const updateContentPostSchema = z.object({
   slug: z.string().trim().max(160, "Slug is too long."),
   excerpt: z.string().trim().max(400, "Excerpt is too long."),
   body: z.string().trim().max(40000, "Body is too long."),
-  category: z.enum(["blog", "review", "news_advice", "faq"]),
+  category: z.enum(CONTENT_POST_CATEGORIES),
   coverImageUrl: z.string().trim().max(2000, "Cover image URL is too long."),
   galleryImageUrls: z.array(z.string().trim().max(2000, "Gallery image URL is too long.")).max(12, "Use up to 12 gallery images."),
   author: z.string().trim().min(2, "Author is required.").max(120, "Author is too long."),
@@ -419,7 +421,7 @@ async function updateContentPostStatus(
         slug,
         excerpt: existingPost.excerpt.trim(),
         body: normalizeBody(existingPost.body),
-        category: existingPost.category ?? "blog",
+        category: normalizeContentPostCategory(existingPost.category),
         cover_image_url: normalizeStoredCoverImageUrl(existingPost.cover_image_url),
         gallery_image_urls: existingPost.gallery_image_urls ?? [],
         author: existingPost.author.trim(),

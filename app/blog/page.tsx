@@ -5,6 +5,10 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import {
+  isContentPostCategory,
+  normalizeContentPostCategory,
+} from "@/lib/content-post-categories";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
 import type { ContentPostCategory } from "@/lib/types/content-posts";
 
@@ -12,13 +16,10 @@ const BLOG_CATEGORIES: Array<{ value: ContentPostCategory | "all"; label: string
   { value: "all", label: "All" },
   { value: "blog", label: "Blog" },
   { value: "review", label: "Reviews" },
-  { value: "news_advice", label: "News and advice" },
+  { value: "news", label: "News" },
+  { value: "advice", label: "Advice" },
   { value: "faq", label: "FAQ" },
 ];
-
-function isContentPostCategory(value: unknown): value is ContentPostCategory {
-  return value === "blog" || value === "review" || value === "news_advice" || value === "faq";
-}
 
 function getCategoryLabel(category: ContentPostCategory) {
   return BLOG_CATEGORIES.find((option) => option.value === category)?.label ?? "Blog";
@@ -42,7 +43,10 @@ export default async function BlogPage({
   searchParams: Promise<{ category?: string }>;
 }) {
   const params = await searchParams;
-  const activeCategory = isContentPostCategory(params.category) ? params.category : undefined;
+  const activeCategory =
+    isContentPostCategory(params.category) || params.category === "news_advice"
+      ? normalizeContentPostCategory(params.category)
+      : undefined;
   const posts = await getPublishedContentPosts(24, activeCategory);
   const [featuredPost, ...otherPosts] = posts;
 

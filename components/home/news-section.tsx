@@ -8,7 +8,8 @@ import type { ContentPostCategory } from "@/lib/types/content-posts";
 const CATEGORY_LABELS: Record<ContentPostCategory, string> = {
   blog: "Blog",
   review: "Reviews",
-  news_advice: "News",
+  news: "News",
+  advice: "Advice",
   faq: "FAQ",
 };
 

@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  getContentPostCategoryFilterValues,
+  normalizeContentPostCategory,
+} from "@/lib/content-post-categories";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
   AdminContentPostsData,
@@ -57,7 +61,7 @@ export function normalizeContentPost(record: ContentPostRecord): ContentPost {
     excerpt: record.excerpt,
     body: record.body,
     status: record.status,
-    category: record.category ?? "blog",
+    category: normalizeContentPostCategory(record.category),
     coverImageUrl: record.cover_image_url,
     galleryImageUrls: Array.isArray(record.gallery_image_urls) ? record.gallery_image_urls : [],
     publishedAt: record.published_at,
@@ -148,6 +152,7 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
 
 export async function getPublishedContentPosts(limit = 24, category?: string): Promise<ContentPost[]> {
   const supabase = await createClient();
+  const categoryFilterValues = getContentPostCategoryFilterValues(category);
 
   let query = supabase
     .from("content_posts")
@@ -156,8 +161,11 @@ export async function getPublishedContentPosts(limit = 24, category?: string): P
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString());
 
-  if (category) {
-    query = query.eq("category", category);
+  if (categoryFilterValues) {
+    query =
+      categoryFilterValues.length === 1
+        ? query.eq("category", categoryFilterValues[0])
+        : query.in("category", categoryFilterValues);
   }
 
   const { data, error } = await query.order("published_at", { ascending: false }).limit(limit);
@@ -175,7 +183,7 @@ export async function getPublishedContentPosts(limit = 24, category?: string): P
         .not("published_at", "is", null)
         .lte("published_at", new Date().toISOString());
 
-      if (category && category !== "blog") {
+      if (categoryFilterValues && !categoryFilterValues.includes("blog")) {
         return [];
       }
 

@@ -61,7 +61,8 @@ type EditorState = {
 const CONTENT_CATEGORY_OPTIONS: Array<{ value: ContentPostCategory; label: string }> = [
   { value: "blog", label: "Blog" },
   { value: "review", label: "Review" },
-  { value: "news_advice", label: "News and advice" },
+  { value: "news", label: "News" },
+  { value: "advice", label: "Advice" },
   { value: "faq", label: "FAQ" },
 ];
 const MAX_GALLERY_IMAGES = 12;

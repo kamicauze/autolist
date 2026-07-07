@@ -29,8 +29,10 @@ function getCategoryLabel(category: ContentPostCategory) {
   switch (category) {
     case "review":
       return "Review";
-    case "news_advice":
-      return "News and advice";
+    case "news":
+      return "News";
+    case "advice":
+      return "Advice";
     case "faq":
       return "FAQ";
     default:
