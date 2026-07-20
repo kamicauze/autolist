@@ -119,7 +119,7 @@ export const DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT: HomepageFeaturedListing
   favoritesTabLabel: "Favourites",
   showTabs: true,
   showFavoritesTab: true,
-  featuredLimit: 8,
+  featuredLimit: 4,
   recentLimit: 4,
 };
 

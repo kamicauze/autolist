@@ -11,8 +11,8 @@ import { Listing } from "@/lib/types/listing";
 import type { VehicleComparisonResult } from "@/lib/types/vehicle-comparison";
 import { COMPARE_MAX_ITEMS } from "@/lib/utils/compare";
 import { getImageUrl } from "@/lib/utils/listings";
-import { LISTING_FEATURE_INDEX } from "@/lib/constants/marketplace";
 import { formatListingCondition, formatListingLabel } from "@/lib/utils/listing-details";
+import { groupListingFeatures } from "@/lib/utils/listing-features";
 import {
   getListingDisplayLocation,
   getListingDisplayTitle,
@@ -31,6 +31,16 @@ type RowDefinition = {
 };
 
 const numberFormatter = new Intl.NumberFormat("en-KE");
+const RESEARCHED_SPECIFICATION_LABELS = [
+  "Engine & powertrain",
+  "Power & torque",
+  "Drivetrain",
+  "Dimensions",
+  "Seating & cargo",
+  "Fuel economy",
+  "Safety",
+  "Typical equipment",
+] as const;
 
 function listingTitle(listing: Listing): string {
   return getListingDisplayTitle(listing);
@@ -103,11 +113,12 @@ function valueOrDash(value: string | null): string {
   return value;
 }
 
-function getFeatureLabels(listing: Listing) {
-  const features = listing.features || [];
-  return features
-    .map((feature) => LISTING_FEATURE_INDEX[feature]?.label ?? formatListingLabel(feature))
-    .filter(Boolean);
+function sourceHostname(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return "External source";
+  }
 }
 
 function ComparisonTable({
@@ -169,36 +180,135 @@ function ComparisonTable({
 }
 
 function FeatureTagsComparison({ listings }: { listings: Listing[] }) {
+  const groupedByListing = listings.map((listing) => groupListingFeatures(listing.features));
+  const categories = Array.from(
+    new Map(
+      groupedByListing
+        .flat()
+        .map((group) => [group.key, { key: group.key, label: group.label }])
+    ).values()
+  );
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
-      <div className="grid min-w-[860px] grid-cols-3 divide-x divide-gray-100">
-        {Array.from({ length: COMPARE_MAX_ITEMS }).map((_, index) => {
-          const listing = listings[index];
-          const features = listing ? getFeatureLabels(listing) : [];
+      <div className="min-w-[860px]">
+        <div className="border-b border-gray-200 bg-gray-50 px-5 py-4">
+          <p className="text-sm font-semibold text-gray-900">Seller-listed features by category</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            Equipment can vary by trim and import market. Confirm every item on the actual vehicle.
+          </p>
+        </div>
 
-          return (
-            <div key={`features-${index}`} className="p-5">
-              <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-                {listing ? listingTitle(listing) : `Vehicle ${index + 1}`}
-              </p>
-              {features.length > 0 ? (
-                <div className="flex flex-wrap justify-center gap-2">
-                  {features.map((feature) => (
-                    <span
-                      key={`${listing?.id}-${feature}`}
-                      className="rounded-full border border-[#d8e3ff] bg-brand-soft-surface px-3 py-1.5 text-xs font-medium text-primary"
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-sm text-gray-500">No features listed.</p>
-              )}
-            </div>
-          );
-        })}
+        <div className="grid grid-cols-3 divide-x divide-gray-200 border-b border-gray-200 bg-white">
+          {Array.from({ length: COMPARE_MAX_ITEMS }).map((_, index) => {
+            const listing = listings[index];
+            return (
+              <div key={`features-header-${index}`} className="px-5 py-3 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-600">
+                  {listing ? listingTitle(listing) : `Vehicle ${index + 1}`}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {categories.length > 0 ? (
+          categories.map((category) => (
+            <section key={category.key} className="border-b border-gray-200 last:border-b-0">
+              <h3 className="bg-gray-50 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-gray-700">
+                {category.label}
+              </h3>
+              <div className="grid grid-cols-3 divide-x divide-gray-200">
+                {Array.from({ length: COMPARE_MAX_ITEMS }).map((_, index) => {
+                  const listing = listings[index];
+                  const group = groupedByListing[index]?.find((item) => item.key === category.key);
+
+                  return (
+                    <div key={`${category.key}-${index}`} className="px-5 py-4">
+                      {group && group.features.length > 0 ? (
+                        <ul className="space-y-2.5">
+                          {group.features.map((feature) => (
+                            <li
+                              key={`${listing?.id}-${category.key}-${feature}`}
+                              className="flex items-start gap-2 text-sm leading-5 text-gray-700"
+                            >
+                              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+                                <Check className="h-2.5 w-2.5" aria-hidden="true" />
+                              </span>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-gray-400">
+                          {listing ? "Not listed by seller" : "No vehicle selected"}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))
+        ) : (
+          <div className="px-5 py-8 text-center">
+            <p className="text-sm font-medium text-gray-700">No seller-listed features are available.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Use online research below for typical model-year equipment, then confirm the exact vehicle.
+            </p>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function ResearchedSpecificationsComparison({
+  comparison,
+  listings,
+}: {
+  comparison: VehicleComparisonResult | null;
+  listings: Listing[];
+}) {
+  if (!comparison || comparison.researchMode !== "web") {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-5">
+        <p className="text-sm font-medium text-gray-800">More model-year detail is available online.</p>
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          Select at least two vehicles and use “Research vehicles online” above to add sourced
+          engine, dimensions, economy, safety, and typical-equipment information here.
+        </p>
+      </div>
+    );
+  }
+
+  const insightByVehicle = new Map(
+    comparison.modelInsights.map((insight) => [insight.vehicleId, insight])
+  );
+  const rows = RESEARCHED_SPECIFICATION_LABELS.filter((label) =>
+    comparison.modelInsights.some((insight) =>
+      insight.researchedSpecs.some((specification) => specification.label === label)
+    )
+  ).map<RowDefinition>((label) => ({
+    label,
+    getValue: (listing) =>
+      insightByVehicle
+        .get(listing.id)
+        ?.researchedSpecs.find((specification) => specification.label === label)?.value || "-",
+  }));
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">Online model-year research</h3>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          Sourced typical specifications may vary by trim and import market; they do not confirm the
+          equipment fitted to the seller’s exact vehicle.
+        </p>
+      </div>
+      <ComparisonTable sectionTitle="Web research" rows={rows} listings={listings} />
     </div>
   );
 }
@@ -222,14 +332,14 @@ function AiComparisonCard({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             <Sparkles className="h-4 w-4" />
-            AI comparison
+            Online vehicle research
           </div>
           <h2 className="mt-2 text-lg font-semibold text-gray-900">
-            Compare selected model years
+            Research selected model years
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
-            Generate buyer-focused guidance from the selected vehicles, including model year,
-            price, mileage, specs, and missing listing details.
+            Search current public sources for richer model-year specifications, then compare them
+            with the exact price, mileage, and details supplied by each seller.
           </p>
         </div>
 
@@ -240,7 +350,7 @@ function AiComparisonCard({
           className="w-full shrink-0 sm:w-auto"
         >
           {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {isGenerating ? "Comparing..." : "Generate AI comparison"}
+          {isGenerating ? "Researching..." : "Research vehicles online"}
         </Button>
       </div>
 
@@ -260,11 +370,13 @@ function AiComparisonCard({
         <div className="mt-5 space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
             <span className="rounded-full border border-brand-muted-border bg-white px-3 py-1">
-              {comparison.provider === "openai"
-                ? `OpenAI via ${comparison.model}`
-                : comparison.provider === "local_llm"
-                  ? `Local AI via ${comparison.model}`
-                  : "Rule-based comparison"}
+              {comparison.researchMode === "web"
+                ? `Web research via ${comparison.model}`
+                : comparison.researchMode === "model"
+                  ? comparison.provider === "local_llm"
+                    ? `Model context via ${comparison.model}`
+                    : `Web unavailable · model context via ${comparison.model}`
+                  : "Listing data only · web research unavailable"}
             </span>
           </div>
 
@@ -363,6 +475,35 @@ function AiComparisonCard({
               </ul>
             </div>
           </div>
+
+          {comparison.sources.length > 0 && (
+            <div className="border-t border-brand-muted-border pt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+                Sources consulted
+              </p>
+              <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                {comparison.sources.map((source) => (
+                  <li key={source.url}>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-brand-muted-border bg-white px-3 py-2 text-sm text-primary transition-colors hover:bg-brand-tint active:translate-y-px"
+                    >
+                      <span className="line-clamp-1 font-medium">{source.title}</span>
+                      <span className="mt-0.5 block truncate text-xs text-gray-500">
+                        {sourceHostname(source.url)}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs leading-5 text-gray-500">
+                Web specifications describe the model year or market variant, not proof of equipment
+                fitted to the exact vehicle. Confirm the VIN, trim, features, and condition before purchase.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -753,11 +894,17 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
               </TabsContent>
 
               <TabsContent value="specification" className="mt-5">
-                <ComparisonTable
-                  sectionTitle="Specification"
-                  rows={specificationRows}
-                  listings={selectedListings}
-                />
+                <div className="space-y-6">
+                  <ComparisonTable
+                    sectionTitle="Seller-listed specification"
+                    rows={specificationRows}
+                    listings={selectedListings}
+                  />
+                  <ResearchedSpecificationsComparison
+                    comparison={aiComparison}
+                    listings={selectedListings}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>

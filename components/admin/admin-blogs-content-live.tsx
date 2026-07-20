@@ -10,9 +10,11 @@ import {
   Plus,
   Save,
   SquarePen,
+  Upload,
 } from "lucide-react";
 import {
   createContentPostDraft,
+  importContentPostDocument,
   publishContentPost,
   unpublishContentPost,
   updateContentPost,
@@ -24,7 +26,15 @@ import type {
   AdminContentPostsData,
   ContentPost,
   ContentPostCategory,
+  ContentPostSubcategory,
 } from "@/lib/types/content-posts";
+import {
+  CONTENT_POST_SUBCATEGORY_OPTIONS,
+  getCategoryForContentPostSubcategory,
+  getContentPostSection,
+  getContentPostSubcategoryLabel,
+  type ContentPostSection,
+} from "@/lib/content-post-subcategories";
 import { getContentSummary } from "@/lib/content-rich-text";
 import { cn } from "@/lib/utils";
 import {
@@ -45,7 +55,7 @@ type FeedbackState =
     }
   | null;
 
-type PendingAction = "create" | "save" | "publish" | "unpublish" | null;
+type PendingAction = "create" | "save" | "publish" | "unpublish" | "import" | null;
 
 type EditorState = {
   title: string;
@@ -53,22 +63,21 @@ type EditorState = {
   excerpt: string;
   body: string;
   category: ContentPostCategory;
+  subcategory: ContentPostSubcategory | null;
   coverImageUrl: string;
   galleryImageUrls: string[];
   author: string;
 };
 
-const CONTENT_CATEGORY_OPTIONS: Array<{ value: ContentPostCategory; label: string }> = [
-  { value: "blog", label: "Blog" },
-  { value: "review", label: "Review" },
-  { value: "news", label: "News" },
-  { value: "advice", label: "Advice" },
+const CONTENT_SECTION_OPTIONS: Array<{ value: ContentPostSection; label: string }> = [
+  { value: "reviews_blogs", label: "Car Reviews & Blogs" },
+  { value: "news_advice", label: "Car News & Advice" },
   { value: "faq", label: "FAQ" },
 ];
 const MAX_GALLERY_IMAGES = 12;
 
 function getCategoryLabel(category: ContentPostCategory) {
-  return CONTENT_CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? "Blog";
+  return CONTENT_SECTION_OPTIONS.find((option) => option.value === getContentPostSection(category))?.label ?? "Blog";
 }
 
 function createEditorState(post: ContentPost | null): EditorState {
@@ -78,6 +87,7 @@ function createEditorState(post: ContentPost | null): EditorState {
     excerpt: post?.excerpt ?? "",
     body: post?.body ?? "",
     category: post?.category ?? "blog",
+    subcategory: post?.subcategory ?? null,
     coverImageUrl: post?.coverImageUrl ?? "",
     galleryImageUrls: post?.galleryImageUrls ?? [],
     author: post?.author ?? "",
@@ -193,6 +203,7 @@ export function AdminBlogsContentLive({
       excerpt: editor.excerpt,
       body: editor.body,
       category: editor.category,
+      subcategory: editor.subcategory,
       coverImageUrl: editor.coverImageUrl,
       galleryImageUrls: editor.galleryImageUrls,
       author: editor.author,
@@ -236,6 +247,51 @@ export function AdminBlogsContentLive({
 
       try {
         await saveCurrentPost("Draft saved.");
+      } finally {
+        setPendingAction(null);
+      }
+    });
+  }
+
+  function handleDocumentImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const document = event.target.files?.[0];
+    event.target.value = "";
+    if (!document) return;
+
+    if (editor.body.trim() && !window.confirm("Replace the current article body with this document?")) {
+      return;
+    }
+
+    startTransition(async () => {
+      setPendingAction("import");
+      setFeedback(null);
+
+      try {
+        const formData = new FormData();
+        formData.set("document", document);
+        const result = await importContentPostDocument(formData);
+
+        if (!result.success) {
+          setFeedback({ tone: "error", message: result.error });
+          return;
+        }
+
+        const suggestedTitle = result.fileName.replace(/\.(docx|pdf)$/i, "").trim();
+        setEditor((current) => ({
+          ...current,
+          body: result.body,
+          title:
+            current.title === "Untitled post" && suggestedTitle
+              ? suggestedTitle
+              : current.title,
+        }));
+        setFeedback({
+          tone: "success",
+          message:
+            result.warnings.length > 0
+              ? `Document imported. Review the formatting before saving. ${result.warnings[0]}`
+              : "Document imported. Review the formatting, then save or publish.",
+        });
       } finally {
         setPendingAction(null);
       }
@@ -369,7 +425,7 @@ export function AdminBlogsContentLive({
                         {post.title}
                       </p>
                       <p className="mt-1 truncate text-[12px] text-[#6b7280]">
-                        {getCategoryLabel(post.category)} • {post.author} • /blog/{post.slug}
+                        {getContentPostSubcategoryLabel(post.subcategory) ?? getCategoryLabel(post.category)} • {post.author} • /blog/{post.slug}
                       </p>
                     </div>
                     <AdminStatusPill
@@ -518,24 +574,51 @@ export function AdminBlogsContentLive({
                 />
 
                 <label className="space-y-2">
-                  <span className="text-[13px] font-medium text-[#374151]">Category</span>
+                  <span className="text-[13px] font-medium text-[#374151]">Content section</span>
                   <select
-                    value={editor.category}
-                    onChange={(event) =>
-                      setEditor((current) => ({
-                        ...current,
-                        category: event.target.value as ContentPostCategory,
-                      }))
-                    }
+                    value={getContentPostSection(editor.category)}
+                    onChange={(event) => {
+                      const section = event.target.value as ContentPostSection;
+                      setEditor((current) =>
+                        section === "faq"
+                          ? { ...current, category: "faq", subcategory: null }
+                          : { ...current, category: section === "reviews_blogs" ? "review" : "advice", subcategory: null }
+                      );
+                    }}
                     className={adminInputClass}
                   >
-                    {CONTENT_CATEGORY_OPTIONS.map((option) => (
+                    {CONTENT_SECTION_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
                   </select>
                 </label>
+
+                {getContentPostSection(editor.category) !== "faq" ? (
+                  <label className="space-y-2">
+                    <span className="text-[13px] font-medium text-[#374151]">Subcategory</span>
+                    <select
+                      value={editor.subcategory ?? ""}
+                      onChange={(event) => {
+                        const subcategory = event.target.value as ContentPostSubcategory;
+                        setEditor((current) => ({
+                          ...current,
+                          subcategory,
+                          category: getCategoryForContentPostSubcategory(subcategory),
+                        }));
+                      }}
+                      className={adminInputClass}
+                    >
+                      <option value="">Choose a subcategory</option>
+                      {CONTENT_POST_SUBCATEGORY_OPTIONS[getContentPostSection(editor.category) as "reviews_blogs" | "news_advice"].map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
 
               <div className="rounded-[16px] border border-[#e5e7eb] bg-[#fbfcfe] p-4">
@@ -631,11 +714,33 @@ export function AdminBlogsContentLive({
                 />
               </label>
 
+              <div className="flex flex-col gap-3 rounded-[14px] border border-[#dbe3ee] bg-[#f8fafc] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[13px] font-medium text-[#374151]">Import article document</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+                    Upload a Word (.docx) or PDF file up to 15MB instead of copying and pasting.
+                  </p>
+                </div>
+                <label className={cn(adminGhostButtonClass, "cursor-pointer gap-2") }>
+                  <Upload className="h-4 w-4" />
+                  {pendingAction === "import" ? "Importing..." : "Upload document"}
+                  <input
+                    type="file"
+                    accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+                    onChange={handleDocumentImport}
+                    disabled={isPending}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
+
               <AdminRichTextEditor
                 label="Body"
                 value={editor.body}
                 onChange={(body) => setEditor((current) => ({ ...current, body }))}
                 placeholder="Write the article body here. Add headings, lists, quotes, and links as needed."
+                onAssetUploaded={addMediaAsset}
+                onFeedback={setFeedback}
               />
 
               <div className="grid gap-4 md:grid-cols-3">
@@ -652,7 +757,7 @@ export function AdminBlogsContentLive({
                 <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">
                   <p className="text-[12px] uppercase tracking-[0.16em] text-[#94a3b8]">Category</p>
                   <p className="mt-3 text-[14px] font-medium text-[#111827]">
-                    {getCategoryLabel(editor.category)}
+                    {getContentPostSubcategoryLabel(editor.subcategory) ?? getCategoryLabel(editor.category)}
                   </p>
                 </div>
 

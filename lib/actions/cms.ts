@@ -98,7 +98,7 @@ const featuredListingsBlockSchema = z.object({
   favoritesTabLabel: z.string().trim().min(1, "Favorites tab label is required.").max(40),
   showTabs: z.boolean(),
   showFavoritesTab: z.boolean(),
-  featuredLimit: z.number().int().min(1).max(12),
+  featuredLimit: z.number().int().min(1).max(4),
   recentLimit: z.number().int().min(1).max(12),
 });
 

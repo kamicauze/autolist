@@ -22,6 +22,7 @@ export function RichContentRenderer({ body, className }: RichContentRendererProp
         "[&_h2]:pt-3 [&_h2]:font-heading [&_h2]:text-[26px] [&_h2]:font-semibold [&_h2]:leading-8 [&_h2]:text-[#111827]",
         "[&_h3]:pt-2 [&_h3]:font-heading [&_h3]:text-[20px] [&_h3]:font-semibold [&_h3]:text-[#111827]",
         "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:text-[15px] [&_p]:leading-8 [&_ul]:list-disc [&_ul]:pl-6",
+        "[&_img]:my-7 [&_img]:max-h-[640px] [&_img]:w-full [&_img]:rounded-[18px] [&_img]:object-cover",
         className
       )}
       dangerouslySetInnerHTML={{ __html: html }}

@@ -5,6 +5,7 @@ import {
   Bold,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link2,
   List,
@@ -13,7 +14,9 @@ import {
   Strikethrough,
   Underline,
 } from "lucide-react";
+import { uploadCmsImage } from "@/lib/actions/cms";
 import { getContentPlainText, normalizeRichTextContent, sanitizeContentHtml } from "@/lib/content-rich-text";
+import type { CmsMediaAsset } from "@/lib/types/cms-media";
 import { cn } from "@/lib/utils";
 
 type AdminRichTextEditorProps = {
@@ -22,6 +25,8 @@ type AdminRichTextEditorProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   minHeightClassName?: string;
+  onAssetUploaded?: (asset: CmsMediaAsset) => void;
+  onFeedback?: (feedback: { tone: "success" | "error"; message: string } | null) => void;
 };
 
 type ToolbarButton = {
@@ -57,9 +62,14 @@ export function AdminRichTextEditor({
   onChange,
   placeholder = "Write formatted content here.",
   minHeightClassName = "min-h-[320px]",
+  onAssetUploaded,
+  onFeedback,
 }: AdminRichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const savedSelectionRef = React.useRef<Range | null>(null);
   const lastEmittedValueRef = React.useRef("");
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const plainText = getContentPlainText(value);
 
   React.useEffect(() => {
@@ -88,6 +98,81 @@ export function AdminRichTextEditor({
     const url = window.prompt("Paste a link URL");
     if (!url) return;
     runCommand("createLink", url);
+  }
+
+  function saveEditorSelection() {
+    const editorElement = editorRef.current;
+    const selection = window.getSelection();
+    if (!editorElement || !selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (editorElement.contains(range.commonAncestorContainer)) {
+      savedSelectionRef.current = range.cloneRange();
+    }
+  }
+
+  function insertImage(url: string, altText: string) {
+    const editorElement = editorRef.current;
+    if (!editorElement) return;
+
+    editorElement.focus();
+    const selection = window.getSelection();
+    const range = savedSelectionRef.current ?? document.createRange();
+
+    if (!savedSelectionRef.current) {
+      range.selectNodeContents(editorElement);
+      range.collapse(false);
+    }
+
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = altText;
+
+    const nextParagraph = document.createElement("p");
+    nextParagraph.append(document.createElement("br"));
+
+    const fragment = document.createDocumentFragment();
+    fragment.append(image, nextParagraph);
+    range.deleteContents();
+    range.insertNode(fragment);
+
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(nextParagraph);
+    nextRange.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(nextRange);
+    savedSelectionRef.current = nextRange.cloneRange();
+    emitChange();
+  }
+
+  async function handleInlineImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const image = event.target.files?.[0];
+    event.target.value = "";
+    if (!image) return;
+
+    const altText = window.prompt("Describe this image for screen readers", "") ?? "";
+    const formData = new FormData();
+    formData.set("image", image);
+    formData.set("usageContext", "blog_cover");
+    formData.set("altText", altText);
+
+    setIsUploadingImage(true);
+    onFeedback?.(null);
+    try {
+      const result = await uploadCmsImage(formData);
+      if (!result.success) {
+        onFeedback?.({ tone: "error", message: result.error });
+        return;
+      }
+
+      insertImage(result.url, altText);
+      if (result.asset) {
+        onAssetUploaded?.(result.asset);
+      }
+      onFeedback?.({ tone: "success", message: "Image uploaded and inserted in the article body." });
+    } finally {
+      setIsUploadingImage(false);
+    }
   }
 
   return (
@@ -127,6 +212,24 @@ export function AdminRichTextEditor({
           >
             <Link2 className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            aria-label="Upload inline image"
+            title="Upload inline image"
+            disabled={isUploadingImage}
+            onMouseDown={saveEditorSelection}
+            onClick={() => imageInputRef.current?.click()}
+            className="inline-flex h-9 min-w-9 items-center justify-center rounded-[10px] border border-transparent px-2 text-[#334155] transition hover:border-[#cbd5e1] hover:bg-white active:translate-y-px disabled:cursor-wait disabled:opacity-60"
+          >
+            <ImagePlus className="h-4 w-4" />
+          </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleInlineImageUpload}
+            className="sr-only"
+          />
         </div>
 
         <div className="relative">
@@ -146,6 +249,7 @@ export function AdminRichTextEditor({
               "[&_a]:font-semibold [&_a]:text-primary [&_blockquote]:border-l-4 [&_blockquote]:border-brand-muted-border [&_blockquote]:bg-brand-soft-surface [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:text-[#475467]",
               "[&_h2]:mt-5 [&_h2]:font-heading [&_h2]:text-[24px] [&_h2]:font-semibold [&_h2]:leading-8 [&_h2]:text-[#111827] [&_h3]:mt-4 [&_h3]:font-heading [&_h3]:text-[18px] [&_h3]:font-semibold [&_h3]:text-[#111827]",
               "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-6",
+              "[&_img]:my-5 [&_img]:max-h-[560px] [&_img]:w-full [&_img]:rounded-[14px] [&_img]:object-cover",
               minHeightClassName
             )}
           />

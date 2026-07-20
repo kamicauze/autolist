@@ -5,6 +5,7 @@ const ALLOWED_TAGS = new Set([
   "em",
   "h2",
   "h3",
+  "img",
   "li",
   "ol",
   "p",
@@ -32,6 +33,7 @@ function containsHtml(value: string) {
 function normalizeTagName(tagName: string) {
   if (tagName === "b") return "strong";
   if (tagName === "i") return "em";
+  if (tagName === "h1") return "h2";
   return tagName.toLowerCase();
 }
 
@@ -43,6 +45,23 @@ function sanitizeHref(value: string) {
   try {
     const parsed = new URL(trimmed);
     if (["http:", "https:", "mailto:", "tel:"].includes(parsed.protocol)) {
+      return escapeHtml(trimmed);
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
+function sanitizeImageSrc(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("/")) return escapeHtml(trimmed);
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
       return escapeHtml(trimmed);
     }
   } catch {
@@ -90,6 +109,14 @@ export function sanitizeContentHtml(value: string) {
         const hrefMatch = String(rawAttributes).match(/\shref=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
         const href = sanitizeHref(hrefMatch?.[1] ?? hrefMatch?.[2] ?? hrefMatch?.[3] ?? "");
         return href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">` : "<a>";
+      }
+
+      if (tagName === "img") {
+        const srcMatch = String(rawAttributes).match(/\ssrc=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+        const altMatch = String(rawAttributes).match(/\salt=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+        const src = sanitizeImageSrc(srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? "");
+        const alt = escapeHtml(altMatch?.[1] ?? altMatch?.[2] ?? altMatch?.[3] ?? "");
+        return src ? `<img src="${src}" alt="${alt}">` : "";
       }
 
       return `<${tagName}>`;

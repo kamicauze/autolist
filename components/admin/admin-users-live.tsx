@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AdminDataTable,
   AdminPageHeader,
@@ -19,7 +20,10 @@ import {
 } from "@/components/admin/admin-ui";
 import type { AdminUsersOverviewData } from "@/lib/data/admin";
 import {
+  ADMIN_USER_CATEGORIES,
   filterAdminUsers,
+  getAdminUserCategory,
+  type AdminUserCategory,
   type AdminUsersFilterState,
 } from "@/lib/data/admin-users-filter";
 
@@ -47,8 +51,16 @@ function dealerTone(status: string | null) {
   return "slate" as const;
 }
 
+function roleLabel(role: string) {
+  return role
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
   const [filters, setFilters] = React.useState<AdminUsersFilterState>({
+    category: "dealer",
     query: "",
     role: "all",
     dealerStatus: "all",
@@ -59,6 +71,22 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
     () => filterAdminUsers(data.users, filters),
     [data.users, filters]
   );
+
+  const categoryCounts = React.useMemo(
+    () =>
+      data.users.reduce<Record<AdminUserCategory, number>>(
+        (counts, user) => {
+          counts[getAdminUserCategory(user)] += 1;
+          return counts;
+        },
+        { dealer: 0, private_seller: 0, buyer: 0, staff: 0 }
+      ),
+    [data.users]
+  );
+
+  const activeCategory =
+    ADMIN_USER_CATEGORIES.find((category) => category.value === filters.category) ??
+    ADMIN_USER_CATEGORIES[0];
 
   const hasActiveFilters =
     filters.query.trim().length > 0 ||
@@ -75,11 +103,22 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
 
   const clearFilters = () => {
     setFilters({
+      category: filters.category,
       query: "",
       role: "all",
       dealerStatus: "all",
       listingActivity: "all",
     });
+  };
+
+  const changeCategory = (category: AdminUserCategory) => {
+    setFilters((current) => ({
+      category,
+      query: current.query,
+      role: "all",
+      dealerStatus: "all",
+      listingActivity: "all",
+    }));
   };
 
   return (
@@ -88,33 +127,56 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
 
       <div className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
-          label="Total users"
-          value={data.stats.total.toLocaleString("en-KE")}
-          icon={<Users className="h-5 w-5" />}
+          label="Dealers"
+          value={categoryCounts.dealer.toLocaleString("en-KE")}
+          icon={<Store className="h-5 w-5" />}
+          note={`${data.stats.pendingDealers} applications pending`}
         />
         <AdminStatCard
-          label="Buyers"
-          value={data.stats.buyers.toLocaleString("en-KE")}
+          label="Private sellers"
+          value={categoryCounts.private_seller.toLocaleString("en-KE")}
           icon={<UserRound className="h-5 w-5" />}
         />
         <AdminStatCard
-          label="Sellers + dealers"
-          value={(data.stats.sellers + data.stats.dealers).toLocaleString("en-KE")}
-          icon={<Store className="h-5 w-5" />}
-          note={`${data.stats.pendingDealers} dealer applications pending`}
+          label="Buyers"
+          value={categoryCounts.buyer.toLocaleString("en-KE")}
+          icon={<Users className="h-5 w-5" />}
         />
         <AdminStatCard
           label="Staff"
-          value={data.stats.staff.toLocaleString("en-KE")}
+          value={categoryCounts.staff.toLocaleString("en-KE")}
           icon={<ShieldCheck className="h-5 w-5" />}
         />
       </div>
 
       <AdminSectionCard
-        title="Latest Accounts"
-        description="Recent profiles with live role and inventory context."
+        title={`${activeCategory.label} accounts`}
+        description={`Browse the latest ${activeCategory.label.toLowerCase()} with live account and inventory context.`}
       >
-        <div className="mb-5 grid gap-3 xl:grid-cols-[minmax(260px,1fr)_170px_190px_190px_auto]">
+        <Tabs
+          value={filters.category}
+          onValueChange={(value) => changeCategory(value as AdminUserCategory)}
+          className="mb-5 w-full"
+        >
+          <div className="-mx-1 overflow-x-auto px-1 pb-2">
+            <TabsList className="h-auto min-w-max justify-start gap-2 bg-[#f8fafc] p-1.5">
+              {ADMIN_USER_CATEGORIES.map((category) => (
+                <TabsTrigger
+                  key={category.value}
+                  value={category.value}
+                  className="gap-2 rounded-[8px] px-4 py-2.5 text-[13px] data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  {category.label}
+                  <span className="rounded-full bg-[#e5e7eb] px-2 py-0.5 text-[11px] text-[#4b5563]">
+                    {categoryCounts[category.value].toLocaleString("en-KE")}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
+
+        <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="flex h-11 min-w-0 items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-3">
             <Search className="h-4 w-4 shrink-0 text-[#9ca3af]" />
             <input
@@ -125,56 +187,58 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
             />
           </label>
 
-          <select
-            value={filters.role}
-            onChange={(event) => updateFilter("role", event.target.value)}
-            className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
-            aria-label="Filter users by role"
-          >
-            <option value="all">All roles</option>
-            <option value="buyer">Buyers</option>
-            <option value="seller">Sellers</option>
-            <option value="dealer">Dealers</option>
-            <option value="sales_agent">Sales agents</option>
-            <option value="support">Support</option>
-            <option value="admin">Admins</option>
-            <option value="super_admin">Super admins</option>
-          </select>
+          {filters.category === "staff" ? (
+            <select
+              value={filters.role}
+              onChange={(event) => updateFilter("role", event.target.value)}
+              className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
+              aria-label="Filter staff by role"
+            >
+              <option value="all">All staff roles</option>
+              <option value="sales_agent">Sales agents</option>
+              <option value="support">Support</option>
+              <option value="admin">Admins</option>
+              <option value="super_admin">Super admins</option>
+            </select>
+          ) : null}
 
-          <select
-            value={filters.dealerStatus}
-            onChange={(event) =>
-              updateFilter(
-                "dealerStatus",
-                event.target.value as AdminUsersFilterState["dealerStatus"]
-              )
-            }
-            className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
-            aria-label="Filter users by dealer status"
-          >
-            <option value="all">All dealer states</option>
-            <option value="APPROVED">Approved dealers</option>
-            <option value="PENDING">Pending dealers</option>
-            <option value="REJECTED">Rejected dealers</option>
-            <option value="none">No dealer record</option>
-          </select>
+          {filters.category === "dealer" ? (
+            <select
+              value={filters.dealerStatus}
+              onChange={(event) =>
+                updateFilter(
+                  "dealerStatus",
+                  event.target.value as AdminUsersFilterState["dealerStatus"]
+                )
+              }
+              className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
+              aria-label="Filter users by dealer status"
+            >
+              <option value="all">All dealer states</option>
+              <option value="APPROVED">Approved dealers</option>
+              <option value="PENDING">Pending dealers</option>
+              <option value="REJECTED">Rejected dealers</option>
+            </select>
+          ) : null}
 
-          <select
-            value={filters.listingActivity}
-            onChange={(event) =>
-              updateFilter(
-                "listingActivity",
-                event.target.value as AdminUsersFilterState["listingActivity"]
-              )
-            }
-            className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
-            aria-label="Filter users by listing activity"
-          >
-            <option value="all">All listing activity</option>
-            <option value="with_listings">Has listings</option>
-            <option value="active">Has active listings</option>
-            <option value="none">No listings</option>
-          </select>
+          {filters.category === "dealer" || filters.category === "private_seller" ? (
+            <select
+              value={filters.listingActivity}
+              onChange={(event) =>
+                updateFilter(
+                  "listingActivity",
+                  event.target.value as AdminUsersFilterState["listingActivity"]
+                )
+              }
+              className="h-11 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[13px] font-medium text-[#374151] outline-none"
+              aria-label="Filter users by listing activity"
+            >
+              <option value="all">All listing activity</option>
+              <option value="with_listings">Has listings</option>
+              <option value="active">Has active listings</option>
+              <option value="none">No listings</option>
+            </select>
+          ) : null}
 
           <button
             type="button"
@@ -190,7 +254,8 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-[12px] text-[#6b7280]">
           <span>
             Showing {filteredUsers.length.toLocaleString("en-KE")} of{" "}
-            {data.users.length.toLocaleString("en-KE")} loaded users
+            {categoryCounts[filters.category].toLocaleString("en-KE")} loaded{" "}
+            {activeCategory.label.toLowerCase()}
           </span>
           {hasActiveFilters ? (
             <span className="font-medium text-primary">Filters active</span>
@@ -213,7 +278,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <AdminStatusPill label={user.role} tone={roleTone(user.role)} />
+                  <AdminStatusPill label={roleLabel(user.role)} tone={roleTone(user.role)} />
                 </td>
                 <td className="px-6 py-4">
                   {user.dealerStatus ? (
@@ -245,7 +310,7 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
           ) : (
             <tr>
               <td colSpan={6} className="px-6 py-12 text-center text-[13px] text-[#6b7280]">
-                No users match the current search or filters.
+                No {activeCategory.label.toLowerCase()} match the current search or filters.
               </td>
             </tr>
           )}

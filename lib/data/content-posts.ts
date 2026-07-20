@@ -3,6 +3,10 @@ import {
   getContentPostCategoryFilterValues,
   normalizeContentPostCategory,
 } from "@/lib/content-post-categories";
+import {
+  isContentPostSubcategory,
+  normalizeContentPostSubcategory,
+} from "@/lib/content-post-subcategories";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
   AdminContentPostsData,
@@ -11,6 +15,24 @@ import type {
 } from "@/lib/types/content-posts";
 
 export const CONTENT_POST_SELECT = [
+  "id",
+  "title",
+  "slug",
+  "excerpt",
+  "body",
+  "status",
+  "category",
+  "subcategory",
+  "cover_image_url",
+  "gallery_image_urls",
+  "published_at",
+  "author",
+  "created_by",
+  "created_at",
+  "updated_at",
+].join(", ");
+
+const CONTENT_POST_SELECT_WITHOUT_SUBCATEGORY = [
   "id",
   "title",
   "slug",
@@ -62,6 +84,7 @@ export function normalizeContentPost(record: ContentPostRecord): ContentPost {
     body: record.body,
     status: record.status,
     category: normalizeContentPostCategory(record.category),
+    subcategory: normalizeContentPostSubcategory(record.subcategory),
     coverImageUrl: record.cover_image_url,
     galleryImageUrls: Array.isArray(record.gallery_image_urls) ? record.gallery_image_urls : [],
     publishedAt: record.published_at,
@@ -116,6 +139,20 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
     }
 
     if (isMissingColumnError(error)) {
+      const preSubcategoryResult = await supabase
+        .from("content_posts")
+        .select(CONTENT_POST_SELECT_WITHOUT_SUBCATEGORY)
+        .order("updated_at", { ascending: false });
+
+      if (!preSubcategoryResult.error) {
+        const posts = toContentPostRows(preSubcategoryResult.data).map(normalizeContentPost);
+        return {
+          schemaReady: false,
+          stats: calculateAdminContentPostStats(posts),
+          posts,
+        };
+      }
+
       const legacyResult = await supabase
         .from("content_posts")
         .select(LEGACY_CONTENT_POST_SELECT)
@@ -150,9 +187,14 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
   };
 }
 
-export async function getPublishedContentPosts(limit = 24, category?: string): Promise<ContentPost[]> {
+export async function getPublishedContentPosts(
+  limit = 24,
+  category?: string,
+  subcategory?: string
+): Promise<ContentPost[]> {
   const supabase = await createClient();
   const categoryFilterValues = getContentPostCategoryFilterValues(category);
+  const normalizedSubcategory = isContentPostSubcategory(subcategory) ? subcategory : null;
 
   let query = supabase
     .from("content_posts")
@@ -168,6 +210,10 @@ export async function getPublishedContentPosts(limit = 24, category?: string): P
         : query.in("category", categoryFilterValues);
   }
 
+  if (normalizedSubcategory) {
+    query = query.eq("subcategory", normalizedSubcategory);
+  }
+
   const { data, error } = await query.order("published_at", { ascending: false }).limit(limit);
 
   if (error) {
@@ -176,6 +222,31 @@ export async function getPublishedContentPosts(limit = 24, category?: string): P
     }
 
     if (isMissingColumnError(error)) {
+      if (normalizedSubcategory) {
+        return [];
+      }
+
+      let preSubcategoryQuery = supabase
+        .from("content_posts")
+        .select(CONTENT_POST_SELECT_WITHOUT_SUBCATEGORY)
+        .eq("status", "published")
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString());
+
+      if (categoryFilterValues) {
+        preSubcategoryQuery =
+          categoryFilterValues.length === 1
+            ? preSubcategoryQuery.eq("category", categoryFilterValues[0])
+            : preSubcategoryQuery.in("category", categoryFilterValues);
+      }
+
+      const preSubcategoryResult = await preSubcategoryQuery
+        .order("published_at", { ascending: false })
+        .limit(limit);
+      if (!preSubcategoryResult.error) {
+        return toContentPostRows(preSubcategoryResult.data).map(normalizeContentPost);
+      }
+
       const legacyQuery = supabase
         .from("content_posts")
         .select(LEGACY_CONTENT_POST_SELECT)
@@ -228,6 +299,21 @@ export async function getPublishedContentPostBySlug(slug: string): Promise<Conte
     }
 
     if (isMissingColumnError(error)) {
+      const preSubcategoryResult = await supabase
+        .from("content_posts")
+        .select(CONTENT_POST_SELECT_WITHOUT_SUBCATEGORY)
+        .eq("slug", slug)
+        .eq("status", "published")
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (!preSubcategoryResult.error) {
+        return preSubcategoryResult.data
+          ? normalizeContentPost(preSubcategoryResult.data as unknown as ContentPostRecord)
+          : null;
+      }
+
       const legacyResult = await supabase
         .from("content_posts")
         .select(LEGACY_CONTENT_POST_SELECT)

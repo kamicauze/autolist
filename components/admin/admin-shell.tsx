@@ -151,6 +151,13 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
         </nav>
 
         <div className="space-y-2 border-t border-white/5 px-4 py-4">
+          <Link
+            href="/"
+            onClick={() => setSidebarOpen(false)}
+            className="flex w-full items-center justify-center rounded-[10px] bg-white px-4 py-3 text-[14px] font-semibold text-[#24272c] transition hover:bg-white/90 active:scale-[0.98]"
+          >
+            View website
+          </Link>
           <button
             type="button"
             onClick={handleSignOut}

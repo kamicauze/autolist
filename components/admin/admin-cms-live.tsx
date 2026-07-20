@@ -819,7 +819,7 @@ export function AdminCmsLive({
             <input
               type="number"
               min={1}
-              max={12}
+              max={4}
               value={editor.featuredLimit}
               onChange={(event) =>
                 updateBlockEditor("home_featured_listings", {
@@ -828,6 +828,9 @@ export function AdminCmsLive({
               }
               className={adminInputClass}
             />
+            <span className="text-[12px] leading-5 text-[#6b7280]">
+              Up to four listings appear at once; additional live pins rotate into view.
+            </span>
           </label>
           <label className="space-y-2">
             <span className="text-[13px] font-medium text-[#111827]">Recent item limit</span>

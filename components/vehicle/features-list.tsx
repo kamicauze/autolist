@@ -1,11 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import {
-  LISTING_FEATURE_GROUPS_BY_CATEGORY,
-  LISTING_FEATURE_INDEX,
-} from "@/lib/constants/marketplace";
-import { formatListingLabel } from "@/lib/utils/listing-details";
+import { groupListingFeatures } from "@/lib/utils/listing-features";
 
 interface FeaturesListProps {
   features: string[] | null;
@@ -53,30 +49,6 @@ const CATEGORIZED_FEATURES: Record<string, string[]> = {
   ],
 };
 
-function getGroupLabel(groupKey: string) {
-  for (const definition of Object.values(LISTING_FEATURE_GROUPS_BY_CATEGORY)) {
-    const label = definition.labels[groupKey];
-    if (label) return label;
-  }
-
-  return "Other Features";
-}
-
-function groupProvidedFeatures(features: string[]) {
-  const grouped = new Map<string, string[]>();
-
-  for (const feature of features) {
-    const definition = LISTING_FEATURE_INDEX[feature];
-    const groupLabel = definition ? getGroupLabel(definition.group) : "Other Features";
-    const label = definition?.label ?? formatListingLabel(feature);
-    const existing = grouped.get(groupLabel) ?? [];
-    existing.push(label);
-    grouped.set(groupLabel, existing);
-  }
-
-  return Array.from(grouped.entries());
-}
-
 function FeatureItem({ feature }: { feature: string }) {
   return (
     <div className="flex items-center gap-2">
@@ -94,11 +66,11 @@ export function FeaturesList({ features }: FeaturesListProps) {
   if (hasProvidedFeatures) {
     return (
       <div className="space-y-6">
-        {groupProvidedFeatures(features).map(([category, items]) => (
-          <div key={category}>
-            <h4 className="mb-3 text-sm font-semibold text-gray-900">{category}</h4>
+        {groupListingFeatures(features).map((group) => (
+          <div key={group.key}>
+            <h4 className="mb-3 text-sm font-semibold text-gray-900">{group.label}</h4>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((feature, index) => (
+              {group.features.map((feature, index) => (
                 <FeatureItem key={`${feature}-${index}`} feature={feature} />
               ))}
             </div>

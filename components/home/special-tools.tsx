@@ -16,7 +16,7 @@ const tools = [
     title: "Monthly payment calculator",
     description:
       "Calculate your monthly car payments based on price, down payment, and interest rate.",
-    href: "/tools/loan-calculator",
+    href: "/calculator",
     iconBg: "bg-green-100",
     iconColor: "text-green-600",
   },
@@ -25,7 +25,7 @@ const tools = [
     title: "Car affordability",
     description:
       "Find out how much car you can afford based on your income and expenses.",
-    href: "/tools/affordability",
+    href: "/calculator",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
   },

@@ -33,7 +33,7 @@ async function RecentActivitiesData({
 }) {
   const supabase = await createClient();
   const [featuredListings, newestListings, favorites, authResult] = await Promise.all([
-    getHomepageFeaturedListings(content.featuredLimit),
+    getHomepageFeaturedListings(),
     getNewestListings(content.recentLimit),
     getDashboardFavoritesData(),
     supabase.auth.getUser(),

@@ -162,7 +162,7 @@ function normalizeFeaturedListingsContent(value: unknown): HomepageFeaturedListi
       input.featuredLimit,
       DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT.featuredLimit,
       1,
-      12
+      4
     ),
     recentLimit: readInteger(
       input.recentLimit,

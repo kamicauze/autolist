@@ -12,6 +12,7 @@ import type {
   FeaturedListingPinStatus,
   FeaturedListingPinVisibility,
 } from "@/lib/types/featured-listing-pins";
+import { HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT } from "@/lib/utils/featured-listing-rotation";
 
 type FeaturedListingPinRow = {
   id: string;
@@ -229,7 +230,9 @@ export const getAdminFeaturedListingPinsData = cache(
   }
 );
 
-export async function getHomepageFeaturedListings(limit = 8): Promise<Listing[]> {
+export async function getHomepageFeaturedListings(
+  limit = HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT
+): Promise<Listing[]> {
   const pins = await getActiveFeaturedListingPins(limit);
 
   if (pins.length > 0) {

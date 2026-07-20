@@ -9,6 +9,12 @@ import {
   isContentPostCategory,
   normalizeContentPostCategory,
 } from "@/lib/content-post-categories";
+import {
+  CONTENT_POST_SUBCATEGORY_OPTIONS,
+  getContentPostSubcategoryLabel,
+  isContentPostSubcategory,
+  type ContentPostSection,
+} from "@/lib/content-post-subcategories";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
 import type { ContentPostCategory } from "@/lib/types/content-posts";
 
@@ -21,8 +27,19 @@ const BLOG_CATEGORIES: Array<{ value: ContentPostCategory | "all"; label: string
   { value: "faq", label: "FAQ" },
 ];
 
+const BLOG_SECTIONS: Array<{ value: ContentPostSection | "all"; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "reviews_blogs", label: "Car Reviews & Blogs" },
+  { value: "news_advice", label: "Car News & Advice" },
+  { value: "faq", label: "FAQ" },
+];
+
 function getCategoryLabel(category: ContentPostCategory) {
   return BLOG_CATEGORIES.find((option) => option.value === category)?.label ?? "Blog";
+}
+
+function getPostLabel(post: { category: ContentPostCategory; subcategory: Parameters<typeof getContentPostSubcategoryLabel>[0] }) {
+  return getContentPostSubcategoryLabel(post.subcategory) ?? getCategoryLabel(post.category);
 }
 
 function formatDate(value: string | null) {
@@ -40,14 +57,34 @@ function formatDate(value: string | null) {
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; section?: string; subcategory?: string }>;
 }) {
   const params = await searchParams;
-  const activeCategory =
+  const legacyActiveCategory =
     isContentPostCategory(params.category) || params.category === "news_advice"
       ? normalizeContentPostCategory(params.category)
       : undefined;
-  const posts = await getPublishedContentPosts(24, activeCategory);
+  const activeSection =
+    params.section === "reviews_blogs" ||
+    params.section === "news_advice" ||
+    params.section === "faq"
+    ? (params.section as ContentPostSection)
+    : legacyActiveCategory === "faq"
+      ? "faq"
+      : undefined;
+  const activeSubcategory = isContentPostSubcategory(params.subcategory)
+    ? params.subcategory
+    : undefined;
+  const categoryFilter = legacyActiveCategory
+    ? legacyActiveCategory
+    : activeSection === "reviews_blogs"
+      ? "reviews_blogs"
+      : activeSection === "news_advice"
+        ? "car_news_advice"
+        : activeSection === "faq"
+          ? "faq"
+          : undefined;
+  const posts = await getPublishedContentPosts(24, categoryFilter, activeSubcategory);
   const [featuredPost, ...otherPosts] = posts;
 
   return (
@@ -76,20 +113,47 @@ export default async function BlogPage({
               and understanding the local market.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {BLOG_CATEGORIES.map((category) => (
+              {BLOG_SECTIONS.map((section) => (
                 <Link
-                  key={category.value}
-                  href={category.value === "all" ? "/blog" : `/blog?category=${category.value}`}
+                  key={section.value}
+                  href={section.value === "all" ? "/blog" : `/blog?section=${section.value}`}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    (activeCategory ?? "all") === category.value
+                    (activeSection ?? "all") === section.value
                       ? "border-primary bg-primary text-white"
                       : "border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:text-primary"
                   }`}
                 >
-                  {category.label}
+                  {section.label}
                 </Link>
               ))}
             </div>
+            {activeSection === "reviews_blogs" || activeSection === "news_advice" ? (
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+                <Link
+                  href={`/blog?section=${activeSection}`}
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${
+                    !activeSubcategory
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  All
+                </Link>
+                {CONTENT_POST_SUBCATEGORY_OPTIONS[activeSection].map((subcategory) => (
+                  <Link
+                    key={subcategory.value}
+                    href={`/blog?section=${activeSection}&subcategory=${subcategory.value}`}
+                    className={`rounded-full px-3 py-1.5 text-sm transition ${
+                      activeSubcategory === subcategory.value
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {subcategory.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           {featuredPost ? (
@@ -107,7 +171,7 @@ export default async function BlogPage({
 
                 <div className="px-6 py-6 sm:px-8">
                   <p className="text-sm text-gray-500">
-                    {getCategoryLabel(featuredPost.category)} • {formatDate(featuredPost.publishedAt)} • {featuredPost.author}
+                    {getPostLabel(featuredPost)} • {formatDate(featuredPost.publishedAt)} • {featuredPost.author}
                   </p>
                   <h2 className="mt-3 text-2xl font-bold text-gray-900 sm:text-3xl">
                     {featuredPost.title}
@@ -130,7 +194,7 @@ export default async function BlogPage({
                     className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm"
                   >
                     <p className="text-sm text-gray-500">
-                      {getCategoryLabel(post.category)} • {formatDate(post.publishedAt)} • {post.author}
+                      {getPostLabel(post)} • {formatDate(post.publishedAt)} • {post.author}
                     </p>
                     <h3 className="mt-3 text-xl font-semibold text-gray-900">{post.title}</h3>
                     <p className="mt-3 text-sm leading-6 text-gray-600">{post.excerpt}</p>
@@ -169,7 +233,7 @@ export default async function BlogPage({
 
                   <div className="p-5">
                     <p className="text-sm text-gray-500">
-                      {getCategoryLabel(post.category)} • {formatDate(post.publishedAt)} • {post.author}
+                      {getPostLabel(post)} • {formatDate(post.publishedAt)} • {post.author}
                     </p>
                     <h3 className="mt-3 text-xl font-semibold text-gray-900">{post.title}</h3>
                     <p className="mt-3 text-sm leading-6 text-gray-600">{post.excerpt}</p>

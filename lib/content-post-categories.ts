@@ -21,6 +21,14 @@ export function normalizeContentPostCategory(value: unknown): ContentPostCategor
 export function getContentPostCategoryFilterValues(
   value: unknown
 ): StoredContentPostCategory[] | null {
+  if (value === "reviews_blogs") {
+    return ["blog", "review"];
+  }
+
+  if (value === "car_news_advice") {
+    return ["news", "advice", "news_advice"];
+  }
+
   if (value === "news_advice" || value === "advice") {
     return ["advice", "news_advice"];
   }

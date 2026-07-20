@@ -38,6 +38,8 @@ const result = buildRuleVehicleComparisonForTest([
 ]);
 
 assert.equal(result.provider, "rules");
+assert.equal(result.researchMode, "listing_only");
+assert.deepEqual(result.sources, []);
 assert.match(result.headline, /2018 Toyota Harrier/);
 assert.match(result.headline, /2020 Mazda CX-5/);
 assert.match(result.summary, /model year/i);
@@ -46,4 +48,5 @@ assert.equal(result.modelInsights.length, 2);
 assert.ok(result.modelInsights.every((item) => item.title.match(/\d{4}/)));
 assert.ok(result.modelInsights.every((item) => item.modelSummary.length > 180));
 assert.ok(result.modelInsights.every((item) => item.knownConsiderations.length >= 3));
+assert.ok(result.modelInsights.every((item) => item.researchedSpecs.length === 0));
 assert.ok(result.modelComparisons.some((item) => item.includes("Model classes differ")));

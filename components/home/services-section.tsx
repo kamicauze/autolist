@@ -15,7 +15,7 @@ const services = [
     title: "Autoloan calculator",
     description:
       "Estimate monthly vehicle loan repayments quickly",
-    href: "/tools/affordability",
+    href: "/calculator",
     buttonText: "Calculate loan",
   },
 ];

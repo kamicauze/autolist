@@ -539,7 +539,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
       <AdminSectionCard
         data-tour="featured-add"
         title="Add listing"
-        description="Search active inventory and pin one listing into the homepage featured rail."
+        description="Add eligible listings to the rotation pool. The homepage shows four live pins at a time and rotates the set every eight hours."
       >
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
           <div>
@@ -698,8 +698,8 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
 
       <AdminSectionCard
         data-tour="featured-rail"
-        title="Pinned rail"
-        description="Listings appear in ascending sort order when active and inside their date window."
+        title="Featured rotation pool"
+        description="Active listings enter the rotation in ascending sort order when they are inside their date window."
         action={
           <div className="flex items-center gap-2 text-[12px] font-medium text-[#6b7280]">
             <ListOrdered className="h-4 w-4 text-primary" />

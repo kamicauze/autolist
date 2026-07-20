@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
+import { getContentPostSubcategoryLabel } from "@/lib/content-post-subcategories";
 import type { ContentPostCategory } from "@/lib/types/content-posts";
 
 const CATEGORY_LABELS: Record<ContentPostCategory, string> = {
@@ -26,7 +27,7 @@ function formatDate(value: string | null) {
 }
 
 export async function NewsSection() {
-  const posts = await getPublishedContentPosts(4);
+  const posts = await getPublishedContentPosts(4, "car_news_advice");
 
   if (posts.length === 0) {
     return null;
@@ -40,7 +41,7 @@ export async function NewsSection() {
             Car News & Advice
           </h2>
           <Link
-            href="/blog"
+            href="/blog?section=news_advice"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
             View all
@@ -68,7 +69,7 @@ export async function NewsSection() {
                   )}
                   <div className="absolute left-3 top-3">
                     <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
-                      {CATEGORY_LABELS[post.category] ?? "Blog"}
+                      {getContentPostSubcategoryLabel(post.subcategory) ?? CATEGORY_LABELS[post.category] ?? "Blog"}
                     </span>
                   </div>
                 </div>

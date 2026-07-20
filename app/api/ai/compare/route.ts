@@ -14,10 +14,14 @@ export async function POST(request: NextRequest) {
       headline: "AI comparison",
       summary: "Add at least two vehicles to compare them.",
       bestFor: [],
+      modelInsights: [],
+      modelComparisons: [],
       tradeoffs: [],
       watchouts: [],
       provider: "rules",
       model: null,
+      researchMode: "listing_only",
+      sources: [],
     });
   }
 

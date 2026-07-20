@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
 import type { Listing } from "@/lib/types/listing";
+import { getRotatedFeaturedListings } from "@/lib/utils/featured-listing-rotation";
 import {
   DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT,
   type HomepageFeaturedListingsCmsContent,
@@ -20,31 +21,6 @@ interface ListingsSectionProps {
   content?: HomepageFeaturedListingsCmsContent;
 }
 
-/**
- * Picks which 4 featured listings to display based on the current time.
- * Rotates to a different set of 4 every 8 hours (3 rotations per day).
- * Uses a deterministic shuffle so every visitor sees the same set during
- * the same 8-hour window.
- */
-function getRotatedFeatured(listings: Listing[], count: number): Listing[] {
-  if (listings.length <= count) return listings;
-
-  // 8-hour rotation window: 0-7, 8-15, 16-23
-  const hoursPerWindow = 8;
-  const currentWindow = Math.floor(Date.now() / (hoursPerWindow * 60 * 60 * 1000));
-
-  // Deterministic shuffle using the window as seed
-  const shuffled = [...listings];
-  let seed = currentWindow;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
-    const j = seed % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  return shuffled.slice(0, count);
-}
-
 export function ListingsSection({
   title,
   featuredListings,
@@ -58,7 +34,10 @@ export function ListingsSection({
   const displayListings =
     featuredListings.length > 0 ? featuredListings : newestListings;
 
-  const rotatedFeatured = getRotatedFeatured(featuredListings, sectionContent.featuredLimit);
+  const rotatedFeatured = getRotatedFeaturedListings(
+    featuredListings,
+    sectionContent.featuredLimit
+  );
   const tabsEnabled = showTabs && sectionContent.showTabs;
 
   return (

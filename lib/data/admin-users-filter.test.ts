@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { filterAdminUsers, type AdminUsersFilterState } from "./admin-users-filter";
+import {
+  filterAdminUsers,
+  getAdminUserCategory,
+  type AdminUsersFilterState,
+} from "./admin-users-filter";
 
 const users = [
   {
@@ -32,9 +36,20 @@ const users = [
     listingCount: 2,
     activeListingCount: 0,
   },
+  {
+    id: "support-1",
+    name: "Support Desk",
+    email: "support@example.com",
+    role: "support",
+    joinedAt: "2026-01-04T00:00:00.000Z",
+    dealerStatus: null,
+    listingCount: 0,
+    activeListingCount: 0,
+  },
 ] as const;
 
 const defaultFilters: AdminUsersFilterState = {
+  category: "dealer",
   query: "",
   role: "all",
   dealerStatus: "all",
@@ -57,6 +72,18 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  filterAdminUsers(users, { ...defaultFilters, listingActivity: "none" }).map((user) => user.id),
+  filterAdminUsers(users, {
+    ...defaultFilters,
+    category: "buyer",
+    listingActivity: "none",
+  }).map((user) => user.id),
   ["buyer-1"]
+);
+
+assert.equal(getAdminUserCategory(users[2]), "dealer");
+assert.equal(getAdminUserCategory(users[3]), "staff");
+
+assert.deepEqual(
+  filterAdminUsers(users, { ...defaultFilters, category: "staff" }).map((user) => user.id),
+  ["support-1"]
 );

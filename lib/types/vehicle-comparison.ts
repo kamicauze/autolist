@@ -1,4 +1,15 @@
 export type VehicleComparisonProvider = "openai" | "local_llm" | "rules";
+export type VehicleComparisonResearchMode = "web" | "model" | "listing_only";
+
+export type VehicleComparisonSource = {
+  title: string;
+  url: string;
+};
+
+export type VehicleResearchedSpecification = {
+  label: string;
+  value: string;
+};
 
 export type VehicleComparisonPick = {
   vehicleId: string;
@@ -12,6 +23,7 @@ export type VehicleModelInsight = {
   modelSummary: string;
   buyerFit: string;
   knownConsiderations: string[];
+  researchedSpecs: VehicleResearchedSpecification[];
 };
 
 export type VehicleComparisonResult = {
@@ -24,4 +36,6 @@ export type VehicleComparisonResult = {
   watchouts: string[];
   provider: VehicleComparisonProvider;
   model: string | null;
+  researchMode: VehicleComparisonResearchMode;
+  sources: VehicleComparisonSource[];
 };

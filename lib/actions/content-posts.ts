@@ -6,12 +6,15 @@ import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { hasRichTextContent, normalizeRichTextContent } from "@/lib/content-rich-text";
 import { normalizeContentPostCategory } from "@/lib/content-post-categories";
+import { getCategoryForContentPostSubcategory } from "@/lib/content-post-subcategories";
 import { CONTENT_POST_SELECT, normalizeContentPost } from "@/lib/data/content-posts";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
   CONTENT_POST_CATEGORIES,
+  CONTENT_POST_SUBCATEGORIES,
   type ContentPostCategory,
   type ContentPost,
+  type ContentPostDocumentImportResult,
   type ContentPostMutationResult,
   type ContentPostRecord,
   type ContentPostStatus,
@@ -25,6 +28,7 @@ const updateContentPostSchema = z.object({
   excerpt: z.string().trim().max(400, "Excerpt is too long."),
   body: z.string().trim().max(40000, "Body is too long."),
   category: z.enum(CONTENT_POST_CATEGORIES),
+  subcategory: z.enum(CONTENT_POST_SUBCATEGORIES).nullable(),
   coverImageUrl: z.string().trim().max(2000, "Cover image URL is too long."),
   galleryImageUrls: z.array(z.string().trim().max(2000, "Gallery image URL is too long.")).max(12, "Use up to 12 gallery images."),
   author: z.string().trim().min(2, "Author is required.").max(120, "Author is too long."),
@@ -33,6 +37,9 @@ const updateContentPostSchema = z.object({
 const contentPostIdSchema = z.object({
   postId: z.string().uuid("Unknown post."),
 });
+
+const CONTENT_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
+const CONTENT_BODY_MAX_LENGTH = 40000;
 
 type ContentPostMetaRow = Pick<ContentPostRecord, "id" | "slug" | "status">;
 
@@ -258,6 +265,7 @@ export async function createContentPostDraft(): Promise<ContentPostMutationResul
         body: "",
         status: "draft" as const,
         category: "blog" satisfies ContentPostCategory,
+        subcategory: null,
         cover_image_url: null,
         gallery_image_urls: [],
         published_at: null,
@@ -317,6 +325,9 @@ export async function updateContentPost(
     );
     const coverImageUrl = normalizeOptionalCoverImageUrl(parsed.data.coverImageUrl);
     const galleryImageUrls = normalizeGalleryImageUrls(parsed.data.galleryImageUrls);
+    const category = parsed.data.subcategory
+      ? getCategoryForContentPostSubcategory(parsed.data.subcategory)
+      : parsed.data.category;
 
     const { data, error } = await context.supabase
       .from("content_posts")
@@ -325,7 +336,8 @@ export async function updateContentPost(
         slug,
         excerpt: parsed.data.excerpt.trim(),
         body: normalizeBody(parsed.data.body),
-        category: parsed.data.category,
+        category,
+        subcategory: parsed.data.subcategory,
         cover_image_url: coverImageUrl,
         gallery_image_urls: galleryImageUrls,
         author: parsed.data.author.trim(),
@@ -422,6 +434,7 @@ async function updateContentPostStatus(
         excerpt: existingPost.excerpt.trim(),
         body: normalizeBody(existingPost.body),
         category: normalizeContentPostCategory(existingPost.category),
+        subcategory: existingPost.subcategory ?? null,
         cover_image_url: normalizeStoredCoverImageUrl(existingPost.cover_image_url),
         gallery_image_urls: existingPost.gallery_image_urls ?? [],
         author: existingPost.author.trim(),
@@ -468,4 +481,94 @@ export async function publishContentPost(postId: string) {
 
 export async function unpublishContentPost(postId: string) {
   return updateContentPostStatus(postId, "draft");
+}
+
+function getDocumentExtension(fileName: string) {
+  const match = fileName.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return match?.[1] ?? "";
+}
+
+function normalizeImportedBody(value: string) {
+  const body = normalizeRichTextContent(value);
+
+  if (!hasRichTextContent(body)) {
+    throw new Error("The document does not contain extractable text.");
+  }
+
+  if (body.length > CONTENT_BODY_MAX_LENGTH) {
+    throw new Error("The imported document is too long. Keep the article under 40,000 characters.");
+  }
+
+  return body;
+}
+
+export async function importContentPostDocument(
+  formData: FormData
+): Promise<ContentPostDocumentImportResult> {
+  const context = await requireAdminAction();
+  if ("error" in context) {
+    return { success: false, error: context.error };
+  }
+
+  const document = formData.get("document");
+  if (!(document instanceof File) || document.size === 0) {
+    return { success: false, error: "Choose a Word (.docx) or PDF document to import." };
+  }
+
+  if (document.size > CONTENT_DOCUMENT_MAX_BYTES) {
+    return { success: false, error: "Documents must be 15MB or smaller." };
+  }
+
+  const extension = getDocumentExtension(document.name);
+  const isDocx =
+    extension === "docx" ||
+    document.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const isPdf = extension === "pdf" || document.type === "application/pdf";
+
+  if (!isDocx && !isPdf) {
+    return { success: false, error: "Upload a Word (.docx) or PDF document." };
+  }
+
+  try {
+    const bytes = Buffer.from(await document.arrayBuffer());
+
+    if (isDocx) {
+      const mammoth = await import("mammoth");
+      const result = await mammoth.convertToHtml(
+        { buffer: bytes },
+        {
+          convertImage: mammoth.images.imgElement(async () => ({ src: "" })),
+        }
+      );
+
+      return {
+        success: true,
+        body: normalizeImportedBody(result.value),
+        fileName: document.name,
+        warnings: result.messages.map((message) => message.message).filter(Boolean).slice(0, 5),
+      };
+    }
+
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: bytes });
+    try {
+      const result = await parser.getText();
+      return {
+        success: true,
+        body: normalizeImportedBody(result.text),
+        fileName: document.name,
+        warnings: [],
+      };
+    } finally {
+      await parser.destroy();
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "The document could not be imported. Check that it is not encrypted or damaged.",
+    };
+  }
 }

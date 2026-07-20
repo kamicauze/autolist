@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
 import { getPublishedContentPostBySlug } from "@/lib/data/content-posts";
+import { getContentPostSubcategoryLabel } from "@/lib/content-post-subcategories";
 import type { ContentPostCategory } from "@/lib/types/content-posts";
 
 interface BlogPostPageProps {
@@ -76,7 +77,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
             <div className="px-6 py-8 sm:px-10">
               <p className="text-sm text-gray-500">
-                {getCategoryLabel(post.category)} • {formatDate(post.publishedAt)} • {post.author}
+                {getContentPostSubcategoryLabel(post.subcategory) ?? getCategoryLabel(post.category)} • {formatDate(post.publishedAt)} • {post.author}
               </p>
               <h1 className="mt-3 text-3xl font-bold text-gray-900 sm:text-4xl">
                 {post.title}
