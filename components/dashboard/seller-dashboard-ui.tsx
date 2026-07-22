@@ -487,30 +487,30 @@ export const sellerMessages: Record<
 export const membershipPlans = [
   {
     id: "basic",
-    name: "Basic",
+    name: "Starter",
     accent: "border-primary",
     badgeTone: "blue" as const,
-    price: "KES 15,000",
+    price: "KES 5,000",
     period: "/month",
-    features: ["3 active packages", "Priority listing review", "Dashboard analytics"],
+    features: ["Up to 15 active vehicles", "Up to 10 photos per listing", "Basic lead analytics"],
   },
   {
     id: "professional",
     name: "Professional",
     accent: "border-[#2f9e63]",
     badgeTone: "green" as const,
-    price: "KES 45,000",
+    price: "KES 15,000",
     period: "/month",
-    features: ["15 active packages", "Featured inventory", "Buyer lead insights"],
+    features: ["Up to 80 active vehicles", "Up to 30 photos per listing", "Advanced lead analytics"],
   },
   {
     id: "enterprise",
     name: "Enterprise",
     accent: "border-[#f79009]",
     badgeTone: "amber" as const,
-    price: "KES 90,000",
+    price: "KES 35,000",
     period: "/month",
-    features: ["Unlimited packages", "Dedicated support", "Multi-user dealership tools"],
+    features: ["Unlimited active vehicles", "Up to 50 photos per listing", "Dedicated account support"],
   },
 ];
 

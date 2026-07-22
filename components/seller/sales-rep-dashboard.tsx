@@ -734,12 +734,12 @@ export function SalesRepAddListingPage() {
   return (
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
-        title="Choose listing package"
-        description="Select the listing package that matches your sales volume before creating a new vehicle entry."
+        title="Dealer membership plans"
+        description="Compare the dealership plans available for different inventory volumes."
       />
 
       <div className="rounded-[20px] border border-[#ffd7c2] bg-[#fff4ec] px-5 py-4 text-[14px] leading-6 text-[#9a5316]">
-        You do not have any active package. Choose a plan below before you continue to the add listing workflow.
+        Pilot listing creation is currently available without an active membership. Plan selection controls account benefits and future billing, not whether you can submit a listing today.
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -781,7 +781,7 @@ export function SalesRepAddListingPage() {
                     : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-primary hover:text-primary"
                 )}
               >
-                Get started
+                View plan
               </button>
             </SellerSurface>
           );

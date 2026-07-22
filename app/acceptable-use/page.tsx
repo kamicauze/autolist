@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { ManagedContentPage } from "@/components/cms/managed-content-page";
 import { buildManagedContentPageMetadata } from "@/lib/data/content-pages";
 
-const SLUG = "privacy";
+const SLUG = "acceptable-use";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildManagedContentPageMetadata(SLUG);
 }
 
-export default async function PrivacyPage() {
-  return <ManagedContentPage slug={SLUG} eyebrow="Privacy & data" />;
+export default async function AcceptableUsePage() {
+  return <ManagedContentPage slug={SLUG} eyebrow="Terms & policies" />;
 }

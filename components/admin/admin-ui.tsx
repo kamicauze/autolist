@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BadgeCheck,
   BarChart3,
+  BookOpenCheck,
   CarFront,
   CircleDollarSign,
   FileText,
@@ -73,6 +74,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { name: "Blogs & Content", href: "/admin/blogs-content", icon: Newspaper },
       { name: "Special Offers", href: "/admin/special-offers", icon: Tag },
       { name: "CMS", href: "/admin/cms", icon: FileText },
+      { name: "Internal Resources", href: "/admin/resources", icon: BookOpenCheck },
       { name: "Settings", href: "/admin/settings", icon: Settings },
       { name: "Roles & Permissions", href: "/admin/roles-permissions", icon: UserCog },
       { name: "Audit Logs", href: "/admin/audit-logs", icon: ScrollText },

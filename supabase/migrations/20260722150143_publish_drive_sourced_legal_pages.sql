@@ -1,35 +1,4 @@
-import "server-only";
-
-import { cache } from "react";
-import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import { getContentPlainText } from "@/lib/content-rich-text";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
-import {
-  CONTENT_PAGE_DEFINITIONS,
-  CONTENT_PAGE_SLUGS,
-  type AdminContentPagesData,
-  type ContentPageRecord,
-  type ContentPageSlug,
-  type ContentPageStatus,
-} from "@/lib/types/content-pages";
-
-type ContentPageRow = {
-  id: string;
-  slug: string;
-  title: string;
-  summary: string | null;
-  body: string;
-  status: ContentPageStatus;
-  seo_title: string | null;
-  seo_description: string | null;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-const CONTENT_PAGE_SELECT = `
-  id,
+insert into public.content_pages (
   slug,
   title,
   summary,
@@ -37,78 +6,14 @@ const CONTENT_PAGE_SELECT = `
   status,
   seo_title,
   seo_description,
-  published_at,
-  created_at,
-  updated_at
-`;
-
-const CONTENT_PAGE_DEFAULTS: Record<
-  ContentPageSlug,
-  {
-    title: string;
-    summary: string | null;
-    body: string;
-    seoTitle: string | null;
-    seoDescription: string | null;
-  }
-> = {
-  about: {
-    title: "About Autolist",
-    summary:
-      "Autolist helps buyers, sellers, and dealers across Kenya move with more confidence.",
-    body: `Autolist is a vehicle marketplace built to make car buying and selling clearer, faster, and more trustworthy.
-
-We focus on practical listing tools, better discovery, and straightforward communication between buyers and sellers.
-
-Our goal is simple: help serious buyers find the right car and help serious sellers close with less friction.`,
-    seoTitle: "About Autolist",
-    seoDescription:
-      "Learn what Autolist does and how we support vehicle buyers, sellers, and dealers in Kenya.",
-  },
-  "how-it-works": {
-    title: "How Autolist Works",
-    summary:
-      "A simple process for listing a vehicle, discovering options, and contacting the right seller.",
-    body: `Sellers create a listing with the key vehicle details, pricing, and photos buyers need to evaluate quickly.
-
-Buyers explore live inventory, compare options, and reach out directly when they find a good fit.
-
-The platform is designed to reduce guesswork, surface useful details early, and keep the transaction flow practical.`,
-    seoTitle: "How Autolist Works",
-    seoDescription:
-      "See how Autolist helps sellers publish listings and helps buyers discover and compare vehicles.",
-  },
-  careers: {
-    title: "Careers",
-    summary:
-      "We care about practical builders who like clear systems, clean execution, and measurable progress.",
-    body: `Autolist is building a marketplace experience that respects users' time and supports real transactions.
-
-We value people who work clearly, move with urgency, and improve systems instead of adding noise.
-
-If you are interested in future roles, reach out through the business contact channels listed on the platform.`,
-    seoTitle: "Careers at Autolist",
-    seoDescription:
-      "Learn about the kind of work and team mindset Autolist is building as the platform grows.",
-  },
-  faqs: {
-    title: "Frequently Asked Questions",
-    summary:
-      "Answers to common questions about listings, contacting sellers, and using the marketplace.",
-    body: `Listings are created by individual sellers and dealers, and details may change as vehicles are updated or sold.
-
-Buyers should confirm availability, price, condition, and paperwork directly with the seller before making a commitment.
-
-If you need help with the platform itself, use the available support channels so the team can review the issue.`,
-    seoTitle: "Autolist FAQs",
-    seoDescription:
-      "Read frequently asked questions about Autolist, vehicle listings, and contacting sellers.",
-  },
-  privacy: {
-    title: "Privacy Policy",
-    summary:
-      "How Autolist Kenya collects, uses, shares, retains, and protects personal data.",
-    body: `<p><strong>Effective date: 22 July 2026</strong></p>
+  published_at
+)
+values
+  (
+    'privacy',
+    'Privacy Policy',
+    'How Autolist Kenya collects, uses, shares, retains, and protects personal data.',
+    $legal$<p><strong>Effective date: 22 July 2026</strong></p>
 <p>Autolist Kenya ("Autolist", "we", "us", or "our") respects your privacy. This policy explains how we handle personal data when you use our vehicle marketplace, website, account tools, and related services (the "Platform"). We process personal data in accordance with the Kenya Data Protection Act, 2019 and applicable regulations.</p>
 <h2>1. Who controls your data</h2>
 <p>Autolist Kenya is the data controller for personal data processed through the Platform. Questions and data-rights requests can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>.</p>
@@ -151,16 +56,17 @@ If you need help with the platform itself, use the available support channels so
 <h2>12. Children</h2>
 <p>The Platform is not intended for people under 18, and people under 18 may not register or list a vehicle.</p>
 <h2>13. Updates and complaints</h2>
-<p>We may update this policy when the Platform or legal requirements change. The effective date above identifies the current version. You may also learn about your rights or lodge a complaint with the <a href="https://www.odpc.go.ke/">Office of the Data Protection Commissioner</a>.</p>`,
-    seoTitle: "Privacy Policy | Autolist",
-    seoDescription:
-      "Read the Autolist privacy policy for a summary of how platform data is collected and used.",
-  },
-  terms: {
-    title: "Terms of Use",
-    summary:
-      "The conditions that apply when using Autolist, publishing listings, or contacting other users.",
-    body: `<p><strong>Effective date: 22 July 2026</strong></p>
+<p>We may update this policy when the Platform or legal requirements change. The effective date above identifies the current version. You may also learn about your rights or lodge a complaint with the <a href="https://www.odpc.go.ke/">Office of the Data Protection Commissioner</a>.</p>$legal$,
+    'published',
+    'Privacy Policy | Autolist',
+    'Read how Autolist Kenya collects, uses, shares, retains, and protects personal data.',
+    '2026-07-21 21:00:00+00'
+  ),
+  (
+    'terms',
+    'Terms of Use',
+    'The conditions that apply when using Autolist, publishing listings, or contacting other users.',
+    $legal$<p><strong>Effective date: 22 July 2026</strong></p>
 <p>These Terms of Use ("Terms") govern your use of the Autolist Kenya vehicle marketplace, website, account tools, and related services (the "Platform"). By accessing or using the Platform, you agree to these Terms. If you do not agree, do not use the Platform.</p>
 <h2>1. Autolist's role</h2>
 <p>Autolist provides an online marketplace that helps buyers discover vehicles and contact private sellers or dealers. Autolist does not own, sell, inspect, deliver, or transfer ownership of vehicles listed by users. Unless we expressly state otherwise for a specific service, Autolist is not a party to a vehicle sale and does not hold vehicle-purchase money in escrow.</p>
@@ -199,16 +105,17 @@ If you need help with the platform itself, use the available support channels so
 <h2>11. Governing law and disputes</h2>
 <p>These Terms are governed by the laws of the Republic of Kenya. Contact us first so we can try to resolve a Platform-related concern. A dispute that cannot be resolved informally may be taken to a court or other competent forum in Kenya.</p>
 <h2>12. Changes and contact</h2>
-<p>We may update these Terms as the Platform changes. The effective date above identifies the current version. Material changes will be communicated through the Platform or another appropriate channel. Questions can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>.</p>`,
-    seoTitle: "Terms of Use | Autolist",
-    seoDescription:
-      "Review the core terms that govern using Autolist and publishing or responding to listings.",
-  },
-  "acceptable-use": {
-    title: "Acceptable Use Policy",
-    summary:
-      "Rules that keep Autolist listings, accounts, communications, and technical access safe and trustworthy.",
-    body: `<p><strong>Effective date: 22 July 2026</strong></p>
+<p>We may update these Terms as the Platform changes. The effective date above identifies the current version. Material changes will be communicated through the Platform or another appropriate channel. Questions can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>.</p>$legal$,
+    'published',
+    'Terms of Use | Autolist',
+    'Review the terms that govern using Autolist and publishing or responding to vehicle listings.',
+    '2026-07-21 21:00:00+00'
+  ),
+  (
+    'acceptable-use',
+    'Acceptable Use Policy',
+    'Rules that keep Autolist listings, accounts, communications, and technical access safe and trustworthy.',
+    $legal$<p><strong>Effective date: 22 July 2026</strong></p>
 <p>This Acceptable Use Policy forms part of the Autolist <a href="/terms">Terms of Use</a>. It applies to every visitor, buyer, seller, dealer, sales agent, advertiser, and other person using the Platform.</p>
 <h2>1. Use Autolist lawfully and honestly</h2>
 <p>You must not use Autolist for fraud, deception, identity theft, money laundering, tax evasion, trafficking in stolen vehicles, forged documents, unlawful modifications, or any other illegal activity. Do not impersonate another person or business or misrepresent your authority to sell a vehicle.</p>
@@ -231,16 +138,17 @@ If you need help with the platform itself, use the available support channels so
 <h2>7. Enforcement</h2>
 <p>We may remove content, reduce visibility, pause a listing, request verification, restrict features, suspend or terminate an account, preserve evidence, recover losses, or report conduct to payment providers, regulators, or law-enforcement authorities. The action taken will depend on the seriousness, evidence, risk, and history of the conduct.</p>
 <h2>8. Report a violation</h2>
-<p>Use the report control on a listing where available, or email <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a> with the listing link, a clear description, and relevant evidence. Do not put sensitive identity documents in an ordinary report unless our team specifically requests a secure submission.</p>`,
-    seoTitle: "Acceptable Use Policy | Autolist",
-    seoDescription:
-      "Read the rules for listings, communications, transactions, content, and technical access on Autolist Kenya.",
-  },
-  cookies: {
-    title: "Cookie Policy",
-    summary:
-      "How Autolist uses essential cookies and similar browser storage to operate and protect the Platform.",
-    body: `<p><strong>Effective date: 22 July 2026</strong></p>
+<p>Use the report control on a listing where available, or email <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a> with the listing link, a clear description, and relevant evidence. Do not put sensitive identity documents in an ordinary report unless our team specifically requests a secure submission.</p>$legal$,
+    'published',
+    'Acceptable Use Policy | Autolist',
+    'Read the rules for listings, communications, transactions, content, and technical access on Autolist Kenya.',
+    '2026-07-21 21:00:00+00'
+  ),
+  (
+    'cookies',
+    'Cookie Policy',
+    'How Autolist uses essential cookies and similar browser storage to operate and protect the Platform.',
+    $legal$<p><strong>Effective date: 22 July 2026</strong></p>
 <p>This Cookie Policy explains how Autolist Kenya uses cookies and similar browser storage on the Platform. A cookie is a small text record stored by your browser. Some cookies last only for a session; others remain until they expire or you remove them.</p>
 <h2>1. Cookies we currently use</h2>
 <h3>Essential authentication and security</h3>
@@ -256,171 +164,18 @@ If you need help with the platform itself, use the available support channels so
 <h2>4. Third-party destinations</h2>
 <p>Links from Autolist may open third-party websites such as payment, map, social, or government services. Those sites control their own cookies and privacy practices; review their policies before continuing.</p>
 <h2>5. Updates and contact</h2>
-<p>We may update this policy when our technology or legal obligations change. The effective date above identifies the current version. Questions can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>. For more information about personal data, read our <a href="/privacy">Privacy Policy</a>.</p>`,
-    seoTitle: "Cookie Policy | Autolist",
-    seoDescription:
-      "Learn how Autolist Kenya uses essential cookies and browser storage for authentication, security, and preferences.",
-  },
-};
-
-function toNullableText(value: string | null) {
-  if (!value) return null;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function excerptBody(body: string) {
-  const normalized = getContentPlainText(body).replace(/\s+/g, " ").trim();
-  if (normalized.length <= 160) return normalized;
-  return `${normalized.slice(0, 157)}...`;
-}
-
-export function formatContentPageDate(value: string) {
-  return new Date(value).toLocaleDateString("en-KE", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-export function formatContentPageDateTime(value: string) {
-  return new Date(value).toLocaleString("en-KE", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export function getContentPageParagraphs(body: string) {
-  return body
-    .split(/\n\s*\n/g)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-}
-
-function buildFallbackPage(
-  slug: ContentPageSlug,
-  status: ContentPageStatus = "draft"
-): ContentPageRecord {
-  const definition = CONTENT_PAGE_DEFINITIONS[slug];
-  const defaults = CONTENT_PAGE_DEFAULTS[slug];
-
-  return {
-    id: null,
-    slug,
-    title: defaults.title,
-    summary: defaults.summary,
-    body: defaults.body,
-    status,
-    seoTitle: defaults.seoTitle,
-    seoDescription: defaults.seoDescription,
-    publishedAt: null,
-    createdAt: null,
-    updatedAt: null,
-    path: definition.path,
-  };
-}
-
-export function mapContentPageRow(row: ContentPageRow): ContentPageRecord {
-  const slug = row.slug as ContentPageSlug;
-  const definition = CONTENT_PAGE_DEFINITIONS[slug];
-
-  return {
-    id: row.id,
-    slug,
-    title: row.title,
-    summary: row.summary,
-    body: row.body,
-    status: row.status,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
-    publishedAt: row.published_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    path: definition.path,
-  };
-}
-
-export const getPublishedContentPageBySlug = cache(async (slug: ContentPageSlug) => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("content_pages")
-    .select(CONTENT_PAGE_SELECT)
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle<ContentPageRow>();
-
-  if (isMissingRelationError(error)) {
-    return buildFallbackPage(slug, "published");
-  }
-
-  if (error) {
-    throw new Error(`Failed to load content page "${slug}": ${error.message}`);
-  }
-
-  return data ? mapContentPageRow(data) : null;
-});
-
-export async function getAdminContentPagesData(): Promise<AdminContentPagesData> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("content_pages")
-    .select(CONTENT_PAGE_SELECT)
-    .in("slug", [...CONTENT_PAGE_SLUGS])
-    .order("slug");
-
-  if (isMissingRelationError(error)) {
-    return {
-      pages: CONTENT_PAGE_SLUGS.map((slug) => buildFallbackPage(slug)),
-      schemaReady: false,
-    };
-  }
-
-  if (error) {
-    throw new Error(`Failed to load admin content pages: ${error.message}`);
-  }
-
-  const rows = (data ?? []) as ContentPageRow[];
-  const pagesBySlug = new Map(
-    rows
-      .filter((row): row is ContentPageRow => row.slug in CONTENT_PAGE_DEFINITIONS)
-      .map((row) => [row.slug as ContentPageSlug, mapContentPageRow(row)])
-  );
-
-  return {
-    pages: CONTENT_PAGE_SLUGS.map((slug) => pagesBySlug.get(slug) ?? buildFallbackPage(slug)),
-    schemaReady: true,
-  };
-}
-
-export async function buildManagedContentPageMetadata(
-  slug: ContentPageSlug
-): Promise<Metadata> {
-  const page = await getPublishedContentPageBySlug(slug);
-  const defaults = CONTENT_PAGE_DEFAULTS[slug];
-  const title = page?.seoTitle || page?.title || defaults.seoTitle || defaults.title;
-  const description =
-    page?.seoDescription || page?.summary || (page ? excerptBody(page.body) : null) ||
-    defaults.seoDescription ||
-    defaults.summary ||
-    excerptBody(defaults.body);
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: CONTENT_PAGE_DEFINITIONS[slug].path,
-    },
-  };
-}
-
-export function getDefaultContentPageValue(slug: ContentPageSlug) {
-  return {
-    ...buildFallbackPage(slug),
-    summary: toNullableText(CONTENT_PAGE_DEFAULTS[slug].summary ?? ""),
-    seoTitle: toNullableText(CONTENT_PAGE_DEFAULTS[slug].seoTitle ?? ""),
-    seoDescription: toNullableText(CONTENT_PAGE_DEFAULTS[slug].seoDescription ?? ""),
-  };
-}
+<p>We may update this policy when our technology or legal obligations change. The effective date above identifies the current version. Questions can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>. For more information about personal data, read our <a href="/privacy">Privacy Policy</a>.</p>$legal$,
+    'published',
+    'Cookie Policy | Autolist',
+    'Learn how Autolist Kenya uses essential cookies and browser storage for authentication, security, and preferences.',
+    '2026-07-21 21:00:00+00'
+  )
+on conflict (slug) do update
+set
+  title = excluded.title,
+  summary = excluded.summary,
+  body = excluded.body,
+  status = excluded.status,
+  seo_title = excluded.seo_title,
+  seo_description = excluded.seo_description,
+  published_at = excluded.published_at;

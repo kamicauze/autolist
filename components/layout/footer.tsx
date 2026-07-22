@@ -25,8 +25,11 @@ const footerLinks = {
     { name: "Careers", href: "/careers" },
     { name: "Blog", href: "/blog" },
     { name: "Contact us", href: "/about" },
+    { name: "Security advice", href: "/security-advice" },
     { name: "Privacy policy", href: "/privacy" },
+    { name: "Cookie policy", href: "/cookies" },
     { name: "Terms & conditions", href: "/terms" },
+    { name: "Acceptable use", href: "/acceptable-use" },
   ],
 };
 

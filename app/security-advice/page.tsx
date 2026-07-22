@@ -4,12 +4,15 @@ import {
   BadgeCheck,
   CarFront,
   FileCheck2,
+  FileLock2,
   HandCoins,
   KeyRound,
   MapPin,
   MessageSquareWarning,
+  MailWarning,
   SearchCheck,
   ShieldCheck,
+  Siren,
 } from "lucide-react";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
@@ -81,6 +84,22 @@ const warningSigns = [
   "Payment screenshots, overpayment stories, or refund requests before funds clear.",
   "Pressure to click unfamiliar links or continue the deal outside normal contact channels.",
   "Documents where the names, chassis/VIN, number plate, or vehicle details do not match.",
+];
+
+const documentChecks = [
+  "Ask to see the original logbook and confirm that the owner name and vehicle details match.",
+  "Check the chassis/VIN, number plate, make, model, and colour against the vehicle and paperwork.",
+  "Confirm ownership and registration information through the official NTSA/eCitizen process before payment.",
+  "Do not send copies of your National ID, passport, logbook, KRA PIN, or banking information through ordinary messages.",
+];
+
+const fraudResponse = [
+  "Stop communicating and do not send additional money or documents.",
+  "Preserve the listing URL, enquiry history, receipts, phone numbers, and screenshots.",
+  "Use the listing report control so the Autolist team can review the account and advertisement.",
+  "Change your Autolist and email passwords if you entered credentials on a suspicious page.",
+  "Contact your bank or payment provider immediately if money or payment credentials may be at risk.",
+  "Report financial loss, theft, threats, or identity misuse to the appropriate Kenyan authorities.",
 ];
 
 export default function SecurityAdvicePage() {
@@ -188,6 +207,83 @@ export default function SecurityAdvicePage() {
                   <span>{sign}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-gray-100 bg-gray-50 py-12 sm:py-14">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+            <article className="rounded-lg border border-gray-200 bg-white p-6 sm:p-8">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+                <FileLock2 className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="mt-5 text-2xl font-bold text-gray-900">Verify documents in person</h2>
+              <ul className="mt-5 space-y-3">
+                {documentChecks.map((check) => (
+                  <li key={check} className="flex gap-3 text-sm leading-6 text-gray-700">
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <span>{check}</span>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="https://accounts.ecitizen.go.ke/en/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex text-sm font-semibold text-brand-link underline underline-offset-4"
+              >
+                Open the official eCitizen portal
+              </a>
+            </article>
+
+            <article className="rounded-lg border border-gray-200 bg-white p-6 sm:p-8">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+                <MailWarning className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="mt-5 text-2xl font-bold text-gray-900">Avoid phishing and fake Autolist messages</h2>
+              <p className="mt-4 text-sm leading-7 text-gray-600">
+                Type <strong>autolist.co.ke</strong> directly into your browser. Be suspicious of messages
+                that create urgency, ask you to reveal a password or one-time code, or send you to an
+                unfamiliar login or payment page.
+              </p>
+              <p className="mt-4 text-sm leading-7 text-gray-600">
+                Autolist will not ask you by email, SMS, or WhatsApp to send a vehicle purchase payment,
+                reveal your password, or refund an alleged overpayment. Platform charges cover Autolist
+                services only.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 sm:p-8">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-red-600">
+                <Siren className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">If you suspect fraud</h2>
+                <ol className="mt-5 space-y-3">
+                  {fraudResponse.map((step, index) => (
+                    <li key={step} className="flex gap-3 text-sm leading-6 text-gray-700">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600">
+                        {index + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-6 text-sm leading-6 text-gray-700">
+                  For Platform support, email{" "}
+                  <a
+                    href="mailto:support@autolist.co.ke"
+                    className="font-semibold text-brand-link underline underline-offset-4"
+                  >
+                    support@autolist.co.ke
+                  </a>
+                  .
+                </p>
+              </div>
             </div>
           </div>
         </section>

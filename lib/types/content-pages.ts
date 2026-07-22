@@ -5,6 +5,8 @@ export const CONTENT_PAGE_SLUGS = [
   "faqs",
   "privacy",
   "terms",
+  "acceptable-use",
+  "cookies",
 ] as const;
 
 export const CONTENT_PAGE_STATUSES = ["draft", "published"] as const;
@@ -49,6 +51,16 @@ export const CONTENT_PAGE_DEFINITIONS: Record<
     slug: "terms",
     label: "Terms",
     path: "/terms",
+  },
+  "acceptable-use": {
+    slug: "acceptable-use",
+    label: "Acceptable Use",
+    path: "/acceptable-use",
+  },
+  cookies: {
+    slug: "cookies",
+    label: "Cookies",
+    path: "/cookies",
   },
 };
 
