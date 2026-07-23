@@ -24,6 +24,8 @@ import {
 } from "@/components/admin/admin-ui";
 import {
   buildAdminUserActivityModules,
+  groupAdminUserActivityTimelineByDay,
+  type AdminUserActivityItem,
   type AdminUserActivityModule,
 } from "@/lib/data/admin-user-activity";
 import type { AdminUserActivityData } from "@/lib/data/admin-user-detail";
@@ -35,6 +37,24 @@ function formatDate(value: string | null | undefined) {
     day: "numeric",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatTimelineDay(value: string) {
+  return new Date(value).toLocaleDateString("en-KE", {
+    timeZone: "Africa/Nairobi",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTimelineTime(value: string) {
+  return new Date(value).toLocaleTimeString("en-KE", {
+    timeZone: "Africa/Nairobi",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -181,52 +201,143 @@ function ModuleIcon({ moduleKey }: { moduleKey: AdminUserActivityModule["key"] }
 
 function ModuleLauncher({ modules }: { modules: AdminUserActivityModule[] }) {
   return (
-    <section className="rounded-[18px] border border-[#dbe3ef] bg-white px-4 py-4 shadow-[0_18px_42px_-34px_rgba(15,23,42,0.45)] md:px-5 md:py-5">
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="border-b border-[#eef2f7] pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-            Open a module
+    <section
+      aria-labelledby="history-index-title"
+      className="overflow-hidden rounded-[16px] border border-[#dbe3ef] bg-[#dbe3ef]"
+    >
+      <div className="flex items-center justify-between gap-4 bg-white px-4 py-3 md:px-5">
+        <div>
+          <p
+            id="history-index-title"
+            className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]"
+          >
+            History index
           </p>
-          <h3 className="mt-2 font-heading text-[20px] font-semibold tracking-tight text-[#0f172a]">
-            Every record family is one click away.
-          </h3>
-          <p className="mt-2 text-[13px] leading-6 text-[#64748b]">
-            Jump into the exact part of the case file without scanning the full history first.
+          <p className="mt-0.5 text-[12px] text-[#64748b]">
+            Jump directly to a record family.
           </p>
         </div>
+        <span className="font-mono text-[12px] text-[#64748b]">{modules.length} sections</span>
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {modules.map((module, index) => (
-            <Link
-              key={module.key}
-              href={module.href}
-              className={`group min-h-[132px] rounded-[14px] border border-[#e5e7eb] bg-[#fbfdff] p-4 transition duration-200 hover:-translate-y-[1px] hover:border-primary hover:bg-white hover:shadow-[0_16px_36px_-30px_rgb(var(--primary-rgb)/0.9)] active:translate-y-[1px] ${
-                index === 0 ? "xl:col-span-2" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-muted-border bg-brand-tint text-primary transition group-hover:border-brand-muted-border group-hover:bg-brand-tint-strong">
-                  <ModuleIcon moduleKey={module.key} />
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-[20px] font-semibold leading-none text-[#0f172a]">
-                    {module.count.toLocaleString("en-KE")}
-                  </p>
-                  <p className="mt-1 max-w-[96px] truncate text-[11px] font-medium text-[#64748b]">
-                    {module.meta}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <p className="text-[13px] font-semibold text-[#111827]">{module.label}</p>
-                <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-[#64748b]">
-                  {module.description}
-                </p>
-              </div>
-            </Link>
-          ))}
+      <nav
+        aria-label="User history sections"
+        className="grid grid-cols-2 gap-px sm:grid-cols-4 xl:grid-cols-8"
+      >
+        {modules.map((module) => (
+          <Link
+            key={module.key}
+            href={module.href}
+            title={module.description}
+            className="group min-h-[82px] bg-[#fbfdff] px-3 py-3 transition duration-150 hover:bg-white active:translate-y-[1px] md:px-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[#64748b] transition group-hover:text-primary">
+                <ModuleIcon moduleKey={module.key} />
+              </span>
+              <span className="font-mono text-[17px] font-semibold text-[#0f172a]">
+                {module.count.toLocaleString("en-KE")}
+              </span>
+            </div>
+            <p className="mt-2 truncate text-[12px] font-semibold text-[#111827]">{module.label}</p>
+            <p className="mt-0.5 truncate text-[10px] text-[#64748b]">{module.meta}</p>
+            <span className="sr-only">{module.description}</span>
+          </Link>
+        ))}
+      </nav>
+    </section>
+  );
+}
+
+function TimelineEventRow({ item }: { item: AdminUserActivityItem }) {
+  return (
+    <div className="grid grid-cols-[28px_minmax(0,1fr)_68px] gap-3 px-4 py-3 transition hover:bg-[#f8fafc] md:px-5">
+      <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-brand-tint text-primary">
+        <ActivityIcon source={item.source} />
+      </div>
+      <div className="min-w-0">
+        {item.href ? (
+          <Link
+            href={item.href}
+            className="text-[13px] font-semibold text-[#111827] transition hover:text-primary"
+          >
+            {item.title}
+          </Link>
+        ) : (
+          <p className="text-[13px] font-semibold text-[#111827]">{item.title}</p>
+        )}
+        <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] text-[#64748b]">
+          <span className="shrink-0 font-medium uppercase tracking-[0.08em]">
+            {formatEnum(item.source)}
+          </span>
+          {item.detail ? (
+            <>
+              <span aria-hidden="true" className="text-[#cbd5e1]">·</span>
+              <span className="truncate">{item.detail}</span>
+            </>
+          ) : null}
         </div>
       </div>
+      <time
+        dateTime={item.occurredAt}
+        title={formatDate(item.occurredAt)}
+        className="pt-0.5 text-right font-mono text-[11px] text-[#64748b]"
+      >
+        {formatTimelineTime(item.occurredAt)}
+      </time>
+    </div>
+  );
+}
+
+function TimelineDay({
+  items,
+  dateKey,
+}: {
+  items: AdminUserActivityItem[];
+  dateKey: string;
+}) {
+  const visibleItems = items.slice(0, 4);
+  const hiddenItems = items.slice(4);
+
+  return (
+    <section
+      aria-labelledby={`timeline-day-${dateKey}`}
+      className="border-b border-[#e5e7eb] last:border-b-0"
+    >
+      <div className="flex items-center justify-between gap-4 bg-[#f8fafc] px-4 py-2.5 md:px-5">
+        <h3 id={`timeline-day-${dateKey}`} className="text-[12px] font-semibold text-[#334155]">
+          {formatTimelineDay(items[0].occurredAt)}
+        </h3>
+        <span className="font-mono text-[11px] text-[#64748b]">
+          {items.length} {items.length === 1 ? "event" : "events"}
+        </span>
+      </div>
+      <div className="divide-y divide-[#eef2f7]">
+        {visibleItems.map((item) => (
+          <TimelineEventRow key={item.id} item={item} />
+        ))}
+      </div>
+      {hiddenItems.length > 0 ? (
+        <details className="group border-t border-[#eef2f7]">
+          <summary className="flex cursor-pointer list-none items-center justify-center gap-2 px-4 py-3 text-[12px] font-semibold text-primary transition hover:bg-brand-tint [&::-webkit-details-marker]:hidden">
+            <span
+              aria-hidden="true"
+              className="text-[16px] leading-none transition group-open:rotate-45"
+            >
+              +
+            </span>
+            <span className="group-open:hidden">
+              Show {hiddenItems.length} earlier {hiddenItems.length === 1 ? "event" : "events"}
+            </span>
+            <span className="hidden group-open:inline">Hide earlier events</span>
+          </summary>
+          <div className="divide-y divide-[#eef2f7] border-t border-[#eef2f7]">
+            {hiddenItems.map((item) => (
+              <TimelineEventRow key={item.id} item={item} />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 }
@@ -260,6 +371,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
   const conversationCount = summaryValue(data, "Conversations");
   const commerceCount = summaryValue(data, "Commerce");
   const engagementCount = summaryValue(data, "Engagement");
+  const timelineGroups = groupAdminUserActivityTimelineByDay(data.timeline);
   const modules = buildAdminUserActivityModules({
     timeline: data.timeline.length,
     listings: data.listings.length,
@@ -388,112 +500,60 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
 
       <ModuleLauncher modules={modules} />
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <section className="rounded-[16px] border border-[#e5e7eb] bg-white px-5 py-5">
-            <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              <UserRound className="h-4 w-4" />
-              Account
-            </div>
-            <dl>
-              <DetailRow label="Email" value={profile.email || "No email"} />
-              <DetailRow label="Phone" value={profile.phone || "Not set"} />
-              <DetailRow label="WhatsApp" value={profile.whatsapp || "Not set"} />
-              <DetailRow
-                label="Location"
-                value={[profile.city, profile.address].filter(Boolean).join(" / ") || "Not set"}
-              />
-              <DetailRow label="Website" value={profile.website || "Not set"} />
-            </dl>
-          </section>
-
-          <section className="rounded-[16px] border border-[#e5e7eb] bg-white px-5 py-5">
-            <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              <Store className="h-4 w-4" />
-              Dealer record
-            </div>
-            {dealer ? (
+      <div className="grid gap-6 xl:grid-cols-[292px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-6 xl:self-start">
+          <section className="overflow-hidden rounded-[16px] border border-[#e5e7eb] bg-white">
+            <div className="px-5 py-5">
+              <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+                <UserRound className="h-4 w-4" />
+                Account context
+              </div>
               <dl>
-                <DetailRow label="Dealer" value={dealer.name} />
-                <DetailRow label="Business" value={dealer.business_name || "Not set"} />
-                <DetailRow label="Status" value={<AdminStatusPill label={dealer.status.toLowerCase()} tone={statusTone(dealer.status)} />} />
-                <DetailRow label="Contact" value={dealer.mobile || dealer.email || "Not set"} />
-                <DetailRow label="Submitted" value={formatDate(dealer.submitted_at)} />
-                <DetailRow label="Verified" value={formatDate(dealer.verified_at)} />
+                <DetailRow label="Email" value={profile.email || "No email"} />
+                <DetailRow label="Phone" value={profile.phone || "Not set"} />
+                <DetailRow label="WhatsApp" value={profile.whatsapp || "Not set"} />
+                <DetailRow
+                  label="Location"
+                  value={[profile.city, profile.address].filter(Boolean).join(" / ") || "Not set"}
+                />
+                <DetailRow label="Website" value={profile.website || "Not set"} />
               </dl>
-            ) : (
-              <p className="border-t border-[#eef2f7] pt-3 text-[13px] leading-6 text-[#64748b]">
-                No dealer application or dealer record is linked to this account.
-              </p>
-            )}
-          </section>
-
-          <section className="rounded-[16px] border border-[#e5e7eb] bg-white px-5 py-5">
-            <div className="mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              <BadgeCheck className="h-4 w-4" />
-              Evidence totals
             </div>
-            {data.summary.map((item) => (
-              <SummaryMetric
-                key={item.label}
-                label={item.label}
-                value={item.value}
-                note={item.note}
-                icon={
-                  item.label === "Listings" ? (
-                    <CarFront className="h-4 w-4" />
-                  ) : item.label === "Enquiries" ? (
-                    <Mail className="h-4 w-4" />
-                  ) : item.label === "Conversations" ? (
-                    <MessageSquareText className="h-4 w-4" />
-                  ) : item.label === "Commerce" ? (
-                    <ReceiptText className="h-4 w-4" />
-                  ) : (
-                    <BadgeCheck className="h-4 w-4" />
-                  )
-                }
-              />
-            ))}
+
+            <div className="border-t border-[#e5e7eb] bg-[#fbfdff] px-5 py-5">
+              <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+                <Store className="h-4 w-4" />
+                Dealer record
+              </div>
+              {dealer ? (
+                <dl>
+                  <DetailRow label="Dealer" value={dealer.name} />
+                  <DetailRow label="Business" value={dealer.business_name || "Not set"} />
+                  <DetailRow label="Status" value={<AdminStatusPill label={dealer.status.toLowerCase()} tone={statusTone(dealer.status)} />} />
+                  <DetailRow label="Contact" value={dealer.mobile || dealer.email || "Not set"} />
+                  <DetailRow label="Submitted" value={formatDate(dealer.submitted_at)} />
+                  <DetailRow label="Verified" value={formatDate(dealer.verified_at)} />
+                </dl>
+              ) : (
+                <p className="border-t border-[#eef2f7] pt-3 text-[13px] leading-6 text-[#64748b]">
+                  No dealer application or dealer record is linked to this account.
+                </p>
+              )}
+            </div>
           </section>
         </aside>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           <AdminSectionCard
             id="timeline"
             title="Activity Timeline"
             description="Newest operational events first, merged across profile, dealer records, listings, enquiries, messages, payments, reviews, offers, and audit logs."
             bodyClassName="px-0 pb-0"
           >
-            <div className="divide-y divide-[#e5e7eb]">
-              {data.timeline.length > 0 ? (
-                data.timeline.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid gap-3 px-6 py-4 transition hover:bg-[#f8fafc] md:grid-cols-[36px_minmax(0,1fr)_170px]"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-tint text-primary">
-                      <ActivityIcon source={item.source} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {item.href ? (
-                          <Link
-                            href={item.href}
-                            className="text-[13px] font-semibold text-[#111827] transition hover:text-primary"
-                          >
-                            {item.title}
-                          </Link>
-                        ) : (
-                          <p className="text-[13px] font-semibold text-[#111827]">{item.title}</p>
-                        )}
-                        <AdminStatusPill label={formatEnum(item.source)} tone="slate" />
-                      </div>
-                      {item.detail ? (
-                        <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-[#6b7280]">{item.detail}</p>
-                      ) : null}
-                    </div>
-                    <p className="text-[12px] text-[#6b7280] md:text-right">{formatDate(item.occurredAt)}</p>
-                  </div>
+            <div>
+              {timelineGroups.length > 0 ? (
+                timelineGroups.map((group) => (
+                  <TimelineDay key={group.dateKey} dateKey={group.dateKey} items={group.items} />
                 ))
               ) : (
                 <p className="px-6 py-10 text-center text-[13px] text-[#6b7280]">
@@ -503,7 +563,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </div>
           </AdminSectionCard>
 
-          <div className="grid gap-8 xl:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2">
             <AdminSectionCard id="listings" title="All Listings" description="Every listing owned by this user or dealer profile.">
               <AdminDataTable columns={["Listing", "Status", "Price", "Created"]}>
                 {data.listings.length > 0 ? (
@@ -548,7 +608,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="enquiries" className="grid gap-8 xl:grid-cols-2">
+          <div id="enquiries" className="grid gap-6 xl:grid-cols-2">
             <AdminSectionCard title="Enquiries Sent" description="Buyer enquiries this user sent to listings or dealers.">
               <AdminDataTable columns={["Listing", "Message", "Status", "Created"]}>
                 {data.sentEnquiries.length > 0 ? (
@@ -590,7 +650,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="messages" className="grid gap-8 xl:grid-cols-2">
+          <div id="messages" className="grid gap-6 xl:grid-cols-2">
             <AdminSectionCard title="Conversation Threads" description="Buyer/seller/dealer conversations tied to this account.">
               <AdminDataTable columns={["Listing", "Counterparty", "Status", "Last message"]}>
                 {data.conversations.length > 0 ? (
@@ -635,7 +695,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="commerce" className="grid gap-8 xl:grid-cols-2">
+          <div id="commerce" className="grid gap-6 xl:grid-cols-2">
             <AdminSectionCard title="Payments & Membership" description="Payment records and seller package entitlements.">
               <div className="space-y-5">
                 <SectionHeading>Payments</SectionHeading>
@@ -689,7 +749,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="engagement" className="grid gap-8 xl:grid-cols-2">
+          <div id="engagement" className="grid gap-6 xl:grid-cols-2">
             <AdminSectionCard title="Reviews, Favorites & Offers" description="Engagement and dealer-offer history connected to the account.">
               <div className="space-y-5">
                 <SectionHeading>Favorites</SectionHeading>

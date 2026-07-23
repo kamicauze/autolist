@@ -79,6 +79,11 @@ export type AdminUserActivityModule = {
   href: string;
 };
 
+export type AdminUserActivityDayGroup = {
+  dateKey: string;
+  items: AdminUserActivityItem[];
+};
+
 export function sortAdminUserActivityTimeline(items: AdminUserActivityItem[]) {
   return items
     .slice()
@@ -92,6 +97,38 @@ export function sortAdminUserActivityTimeline(items: AdminUserActivityItem[]) {
 
       return left.id.localeCompare(right.id);
     });
+}
+
+export function groupAdminUserActivityTimelineByDay(
+  items: AdminUserActivityItem[],
+  timeZone = "Africa/Nairobi"
+): AdminUserActivityDayGroup[] {
+  const dateFormatter = new Intl.DateTimeFormat("en-KE", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  return sortAdminUserActivityTimeline(items).reduce<AdminUserActivityDayGroup[]>(
+    (groups, item) => {
+      const parts = dateFormatter.formatToParts(new Date(item.occurredAt));
+      const year = parts.find((part) => part.type === "year")?.value;
+      const month = parts.find((part) => part.type === "month")?.value;
+      const day = parts.find((part) => part.type === "day")?.value;
+      const dateKey = `${year}-${month}-${day}`;
+      const currentGroup = groups.at(-1);
+
+      if (currentGroup?.dateKey === dateKey) {
+        currentGroup.items.push(item);
+      } else {
+        groups.push({ dateKey, items: [item] });
+      }
+
+      return groups;
+    },
+    []
+  );
 }
 
 export function summarizeAdminUserActivity(

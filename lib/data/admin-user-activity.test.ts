@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildAdminUserActivityModules,
+  groupAdminUserActivityTimelineByDay,
   summarizeAdminUserActivity,
   sortAdminUserActivityTimeline,
   type AdminUserActivityItem,
@@ -41,6 +42,23 @@ assert.deepEqual(
 );
 
 assert.equal(sorted[0].detail, "Buyer asked if the vehicle is available.");
+
+assert.deepEqual(
+  groupAdminUserActivityTimelineByDay(timeline).map((group) => ({
+    dateKey: group.dateKey,
+    ids: group.items.map((item) => item.id),
+  })),
+  [
+    {
+      dateKey: "2026-01-12",
+      ids: ["enquiry-1", "listing-1"],
+    },
+    {
+      dateKey: "2026-01-11",
+      ids: ["message-1"],
+    },
+  ]
+);
 
 assert.deepEqual(
   summarizeAdminUserActivity({
