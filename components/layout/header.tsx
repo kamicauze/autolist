@@ -18,15 +18,8 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+import { VEHICLE_TYPE_NAVIGATION_ITEMS } from "@/lib/constants/vehicle-type-navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
-
-const vehicleTypes = [
-  { name: "Cars & Vans", href: "/search?category=car", category: "car" },
-  { name: "Motorbikes", href: "/search?category=motorbike&q=motorbike", category: "motorbike" },
-  { name: "Trucks", href: "/search?category=truck&q=truck", category: "truck" },
-  { name: "Farm", href: "/search?category=farm_agricultural&q=farm+agricultural", category: "farm_agricultural" },
-  { name: "Plant", href: "/search?category=plant_construction&q=plant+construction", category: "plant_construction" },
-] as const satisfies ReadonlyArray<{ name: string; href: string; category: ListingCategory }>;
 
 const buyMenu = [
   { name: "New Cars", href: "/search?condition=new" },
@@ -66,7 +59,7 @@ function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory 
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <div className="flex min-h-9 items-center justify-between gap-4">
           <nav className="flex items-center gap-2 text-[12px]">
-            {vehicleTypes.map((type) => (
+            {VEHICLE_TYPE_NAVIGATION_ITEMS.map((type) => (
               <Link
                 key={type.name}
                 href={type.href}
@@ -488,7 +481,7 @@ export function Header() {
                 Vehicle categories
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {vehicleTypes.map((type) => (
+                {VEHICLE_TYPE_NAVIGATION_ITEMS.map((type) => (
                   <Link
                     key={type.name}
                     href={type.href}
