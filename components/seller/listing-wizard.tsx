@@ -32,6 +32,14 @@ import {
   type ListingFeatureOption,
 } from "@/lib/constants/marketplace";
 import {
+  getListingBodyType,
+  getPersistedListingDetails,
+} from "@/lib/utils/listing-category";
+import {
+  FARM_CATEGORY_OPTIONS,
+  getFarmSubcategoryOptions,
+} from "@/lib/constants/farm-taxonomy";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -65,7 +73,8 @@ type DetailFieldKey =
   | "operatingWeight"
   | "operationalStatus"
   | "powerOutput"
-  | "usageType";
+  | "usageType"
+  | "farmCategory";
 
 type DetailField = {
   key: DetailFieldKey;
@@ -313,15 +322,18 @@ const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
   ],
   farm_agricultural: [
     {
-      key: "equipmentType",
-      label: "Equipment Type",
+      key: "farmCategory",
+      label: "Farm Category",
       type: "select",
       required: true,
-      options: [
-        { value: "tractor", label: "Tractor" },
-        { value: "plough", label: "Plough" },
-        { value: "harvester", label: "Harvester" },
-      ],
+      options: FARM_CATEGORY_OPTIONS,
+    },
+    {
+      key: "equipmentType",
+      label: "Subcategory",
+      type: "select",
+      required: true,
+      options: [],
     },
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Massey Ferguson" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "MF 385" },
@@ -385,6 +397,7 @@ const DEFAULT_DRAFT: ListingDraft = {
     operationalStatus: "",
     powerOutput: "",
     usageType: "",
+    farmCategory: "",
   },
   selectedFeatureIds: [],
   coverImageName: null,
@@ -759,6 +772,7 @@ export function ListingWizard() {
       details: {
         ...prev.details,
         [key]: value,
+        ...(key === "farmCategory" ? { equipmentType: "" } : {}),
       },
     }));
   };
@@ -1069,6 +1083,7 @@ export function ListingWizard() {
     if (isLastStep) {
       // Transform draft data to match the server schema
       const listingData: ListingFormData = {
+        category: draft.category as ListingCategory,
         make: draft.details.make || "",
         model: draft.details.model || "",
         year: parseInt(draft.details.year) || new Date().getFullYear(),
@@ -1078,10 +1093,11 @@ export function ListingWizard() {
         condition: draft.condition as "new" | "locally_used" | "foreign_used",
         description: draft.description,
         features: draft.selectedFeatureIds,
-        body_type: draft.details.bodyType || draft.details.bodyStyle || undefined,
+        body_type: getListingBodyType(draft.details),
         transmission: draft.details.transmission || undefined,
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
+        metadata: { details: getPersistedListingDetails(draft.details) },
       };
 
       setIsSubmitting(true);
@@ -1431,6 +1447,10 @@ export function ListingWizard() {
           <div className="grid gap-4 md:grid-cols-2">
             {selectedCategoryFields.map((field) => {
               const hasError = showValidationErrors && field.required && !draft.details[field.key].trim();
+              const options =
+                draft.category === "farm_agricultural" && field.key === "equipmentType"
+                  ? getFarmSubcategoryOptions(draft.details.farmCategory)
+                  : field.options;
               return (
               <div key={field.key}>
                 <Label htmlFor={`listing-detail-${field.key}`}>
@@ -1449,7 +1469,7 @@ export function ListingWizard() {
                     onChange={(event) => updateDetailField(field.key, event.target.value)}
                   >
                     <option value="">Select</option>
-                    {field.options?.map((option) => (
+                    {options?.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>

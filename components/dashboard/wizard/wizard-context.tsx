@@ -12,6 +12,11 @@ import {
   type ListingCategory,
   type ListingFeatureOption,
 } from "@/lib/constants/marketplace";
+import {
+  getListingBodyType,
+  getPersistedListingDetails,
+} from "@/lib/utils/listing-category";
+import { FARM_CATEGORY_OPTIONS } from "@/lib/constants/farm-taxonomy";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -19,7 +24,8 @@ export type DetailFieldKey =
   | "driveType" | "mileage" | "bodyType" | "bodyStyle" | "loadCapacity"
   | "engineCapacity" | "fuelType" | "fuelSystem" | "bikeType" | "color"
   | "seats" | "axleConfiguration" | "equipmentType" | "operatingHours"
-  | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType";
+  | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType"
+  | "farmCategory";
 
 export type DetailField = {
   key: DetailFieldKey;
@@ -75,6 +81,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
     engineCapacity: "", fuelType: "", fuelSystem: "", bikeType: "", color: "",
     seats: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
     operatingWeight: "", operationalStatus: "", powerOutput: "", usageType: "",
+    farmCategory: "",
   },
   selectedFeatureIds: [],
   coverImageName: null,
@@ -143,7 +150,8 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
   farm_agricultural: [
-    { key: "equipmentType", label: "Equipment Type", type: "select", required: true, options: [{ value: "tractor", label: "Tractor" }, { value: "plough", label: "Plough" }, { value: "harvester", label: "Harvester" }] },
+    { key: "farmCategory", label: "Farm Category", type: "select", required: true, options: FARM_CATEGORY_OPTIONS },
+    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: [] },
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Massey Ferguson" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "MF 385" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2019" },
@@ -342,7 +350,14 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateDetailField = (key: DetailFieldKey, value: string) => {
-    setDraft((prev) => ({ ...prev, details: { ...prev.details, [key]: value } }));
+    setDraft((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        [key]: value,
+        ...(key === "farmCategory" ? { equipmentType: "" } : {}),
+      },
+    }));
   };
 
   const toggleFeature = (id: string) => {
@@ -528,6 +543,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       const { getUploadUrl } = await import("@/lib/actions/upload");
 
       const listingData = {
+        category: draft.category as ListingCategory,
         make: draft.details.make || "",
         model: draft.details.model || "",
         year: parseInt(draft.details.year) || new Date().getFullYear(),
@@ -537,10 +553,11 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         condition: draft.condition as "new" | "locally_used" | "foreign_used",
         description: draft.description,
         features: draft.selectedFeatureIds,
-        body_type: draft.details.bodyType || draft.details.bodyStyle || undefined,
+        body_type: getListingBodyType(draft.details),
         transmission: draft.details.transmission || undefined,
         fuel_type: draft.details.engineType || draft.details.fuelType || undefined,
         color: draft.details.color || undefined,
+        metadata: { details: getPersistedListingDetails(draft.details) },
       };
 
       setIsSubmitting(true);

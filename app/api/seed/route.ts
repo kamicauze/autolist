@@ -60,6 +60,7 @@ export async function GET() {
 
     for (const item of RAW_DATA) {
         const payload: ListingFormData = {
+            category: "car",
             make: item.make,
             model: item.model,
             year: item.year,

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWizard } from "./wizard-context";
+import { getFarmSubcategoryOptions } from "@/lib/constants/farm-taxonomy";
 
 export function StepVehicleDetails() {
   const { draft, updateDetailField, showValidationErrors, selectedCategoryFields } = useWizard();
@@ -17,6 +18,10 @@ export function StepVehicleDetails() {
       <div className="grid gap-4 md:grid-cols-2">
         {selectedCategoryFields.map((field) => {
           const hasError = showValidationErrors && field.required && !draft.details[field.key].trim();
+          const options =
+            draft.category === "farm_agricultural" && field.key === "equipmentType"
+              ? getFarmSubcategoryOptions(draft.details.farmCategory)
+              : field.options;
           return (
             <div key={field.key}>
               <Label htmlFor={`listing-detail-${field.key}`}>
@@ -33,7 +38,7 @@ export function StepVehicleDetails() {
                   onChange={(e) => updateDetailField(field.key, e.target.value)}
                 >
                   <option value="">Select</option>
-                  {field.options?.map((o) => (
+                  {options?.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>

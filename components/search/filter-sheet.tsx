@@ -29,7 +29,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { ChevronDown } from "lucide-react";
 import {
-  BODY_TYPES,
   TRANSMISSIONS,
   FUEL_TYPES,
   CONDITIONS,
@@ -42,12 +41,15 @@ import {
   YEARS,
   SORT_OPTIONS,
 } from "@/lib/constants/filters";
+import type { ListingCategory } from "@/lib/constants/marketplace";
+import { getCategoryFilterConfig } from "@/lib/utils/listing-category";
 
 interface FilterSheetProps {
   makes: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   totalCount: number;
+  category?: ListingCategory;
   initialFilters?: Partial<{
     make: string;
     model: string;
@@ -72,10 +74,18 @@ interface FilterSheetProps {
   }>;
 }
 
-export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilters }: FilterSheetProps) {
+export function FilterSheet({
+  makes,
+  open,
+  onOpenChange,
+  totalCount,
+  category,
+  initialFilters,
+}: FilterSheetProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const categoryConfig = getCategoryFilterConfig(category);
 
   const buildFiltersFromParams = useCallback(() => ({
     make: initialFilters?.make || searchParams.get("make") || "",
@@ -449,7 +459,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
           </div>
 
           {/* 4. Mileage */}
-          <div className="space-y-3">
+          {categoryConfig.showMileage && <div className="space-y-3">
             <Label className="text-sm font-medium">Mileage</Label>
             <div className="grid grid-cols-2 gap-3">
               <Select
@@ -488,27 +498,49 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </div>}
 
           {/* 5. Body Type */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Body Type</Label>
-            <div className="flex flex-wrap gap-2">
-              {BODY_TYPES.map((type) => (
-                <FilterChip
-                  key={type}
-                  selected={localFilters.bodyTypes.includes(type)}
-                  onClick={() => toggleArrayFilter("bodyTypes", type)}
-                  size="sm"
-                >
-                  {type}
-                </FilterChip>
-              ))}
-            </div>
+            <Label className="text-sm font-medium">{categoryConfig.bodyTypeLabel}</Label>
+            {categoryConfig.bodyTypeGroups ? (
+              <div className="space-y-4">
+                {categoryConfig.bodyTypeGroups.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-600">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((type) => (
+                        <FilterChip
+                          key={`${group.label}-${type.value}`}
+                          selected={localFilters.bodyTypes.includes(type.value)}
+                          onClick={() => toggleArrayFilter("bodyTypes", type.value)}
+                          size="sm"
+                        >
+                          {type.label}
+                        </FilterChip>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {categoryConfig.bodyTypes.map((type) => (
+                  <FilterChip
+                    key={type.value}
+                    selected={localFilters.bodyTypes.includes(type.value)}
+                    onClick={() => toggleArrayFilter("bodyTypes", type.value)}
+                    size="sm"
+                  >
+                    {type.label}
+                  </FilterChip>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 6. Transmission */}
-          <div className="space-y-3">
+          {categoryConfig.showTransmission && <div className="space-y-3">
             <Label className="text-sm font-medium">Transmission</Label>
             <div className="flex flex-wrap gap-2">
               {TRANSMISSIONS.map((t) => (
@@ -522,7 +554,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                 </FilterChip>
               ))}
             </div>
-          </div>
+          </div>}
 
           <Separator />
 
@@ -535,7 +567,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
             <CollapsibleContent>
               <div className="space-y-6 pt-4">
                 {/* 1. Color */}
-                <div className="space-y-3">
+                {categoryConfig.showColor && <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Color</Label>
                   <Select
                     value={localFilters.color || "any"}
@@ -555,10 +587,10 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div>}
 
                 {/* 2. Fuel Type */}
-                <div className="space-y-3">
+                {categoryConfig.showFuel && <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Fuel Type</Label>
                   <div className="flex flex-wrap gap-2">
                     {FUEL_TYPES.map((f) => (
@@ -572,10 +604,10 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                       </FilterChip>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* 3. Seats */}
-                <div className="space-y-3">
+                {categoryConfig.showSeats && <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Seats</Label>
                   <div className="flex flex-wrap gap-2">
                     {SEATS_OPTIONS.map((s) => (
@@ -594,10 +626,10 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                       </FilterChip>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* 4. Doors */}
-                <div className="space-y-3">
+                {categoryConfig.showDoors && <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Doors</Label>
                   <div className="flex flex-wrap gap-2">
                     {DOORS_OPTIONS.map((d) => (
@@ -616,10 +648,10 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                       </FilterChip>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* 5. Drive Type */}
-                <div className="space-y-3">
+                {categoryConfig.showDriveType && <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Drive Type</Label>
                   <div className="flex flex-wrap gap-2">
                     {DRIVE_TYPES.map((dt) => (
@@ -638,7 +670,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
                       </FilterChip>
                     ))}
                   </div>
-                </div>
+                </div>}
 
                 {/* 6. Seller Type */}
                 <div className="space-y-3">
@@ -679,7 +711,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
             Reset all
           </Button>
           <Button onClick={applyFilters} disabled={isPending} className="flex-1">
-            Search {totalCount.toLocaleString()} cars
+            Search {totalCount.toLocaleString()} {categoryConfig.resultLabel}
           </Button>
         </SheetFooter>
       </SheetContent>

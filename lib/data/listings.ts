@@ -50,6 +50,31 @@ export async function getNewestListings(limit = 8): Promise<Listing[]> {
   return data as Listing[];
 }
 
+export async function getActiveListingMakes(
+  category: ListingFilters["category"]
+): Promise<string[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("listings")
+    .select("make")
+    .eq("status", "active")
+    .order("make");
+
+  if (category) {
+    query = query.eq("category", category);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Error fetching listing makes:", error);
+    return [];
+  }
+
+  return Array.from(
+    new Set(data.map((listing) => listing.make.trim()).filter(Boolean))
+  );
+}
+
 export async function getListingById(id: string): Promise<Listing | null> {
   const supabase = await createClient();
 
@@ -130,6 +155,9 @@ export async function searchListings({
     .eq("status", "active");
 
   // Apply filters
+  if (filters?.category) {
+    query = query.eq("category", filters.category);
+  }
   if (filters?.make) {
     query = query.ilike("make", `%${filters.make}%`);
   }
@@ -255,6 +283,9 @@ export async function countMatchingListings(
     .eq("status", "active");
 
   // Apply filters
+  if (filters?.category) {
+    query = query.eq("category", filters.category);
+  }
   if (filters?.make) {
     query = query.ilike("make", `%${filters.make}%`);
   }

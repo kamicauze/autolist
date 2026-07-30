@@ -134,3 +134,93 @@ export const Grid: Story = {
     </div>
   ),
 };
+
+export const CategoryIcons: Story = {
+  parameters: {
+    layout: "fullscreen",
+  },
+  render: () => (
+    <div className="grid gap-6 bg-gray-50 p-8 md:grid-cols-2 xl:grid-cols-4">
+      <CarCard
+        id="icon-preview-motorbike"
+        title="2025 BMW R 1300 GS"
+        bodyType="touring"
+        category="motorbike"
+        metadata={{
+          details: {
+            fuelSystem: "fuel_injection",
+            engineCapacity: "1300",
+          },
+        }}
+        year={2025}
+        mileage="5,000 kms"
+        fuelType="N/A"
+        transmission="N/A"
+        price={3200000}
+        images={["/placeholder-car.jpg"]}
+        seller={{ name: "Motorbike Preview" }}
+      />
+      <CarCard
+        id="icon-preview-truck"
+        title="2022 Isuzu F-Series"
+        bodyType="tipper"
+        category="truck"
+        metadata={{
+          details: {
+            axleConfiguration: "6x4",
+            loadCapacity: "18",
+          },
+        }}
+        year={2022}
+        mileage="48,000 kms"
+        fuelType="Diesel"
+        transmission="Manual"
+        price={7800000}
+        images={["/placeholder-car.jpg"]}
+        seller={{ name: "Truck Preview" }}
+      />
+      <CarCard
+        id="icon-preview-plant"
+        title="2021 Caterpillar 320"
+        bodyType="excavator"
+        category="plant_construction"
+        metadata={{
+          details: {
+            operatingHours: "6400",
+            operatingWeight: "22000",
+            operationalStatus: "working",
+          },
+        }}
+        year={2021}
+        mileage="N/A"
+        fuelType="N/A"
+        transmission="N/A"
+        price={14500000}
+        images={["/placeholder-car.jpg"]}
+        seller={{ name: "Plant Preview" }}
+      />
+      <CarCard
+        id="icon-preview-farm"
+        title="2023 Massey Ferguson MF 385"
+        bodyType="compact_tractor"
+        category="farm_agricultural"
+        metadata={{
+          details: {
+            farmCategory: "tractors",
+            equipmentType: "compact_tractor",
+            operatingHours: "1200",
+            powerOutput: "85",
+            operationalStatus: "working",
+          },
+        }}
+        year={2023}
+        mileage="N/A"
+        fuelType="N/A"
+        transmission="N/A"
+        price={5400000}
+        images={["/placeholder-car.jpg"]}
+        seller={{ name: "Farm Preview" }}
+      />
+    </div>
+  ),
+};

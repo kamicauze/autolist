@@ -2,10 +2,18 @@ import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SearchPageClient } from "@/components/search/search-page-client";
-import { searchListings, countMatchingListings } from "@/lib/data/listings";
+import {
+  countMatchingListings,
+  getActiveListingMakes,
+  searchListings,
+} from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
 import { ListingFilters, ListingSort } from "@/lib/types/listing";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import {
+  getCategoryFilterConfig,
+  resolveListingCategory,
+} from "@/lib/utils/listing-category";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -25,6 +33,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   // Extract filters from params
   const filters: ListingFilters = {
+    category: resolveListingCategory(params.type) ?? "car",
     make: params.make as string,
     model: params.model as string,
     minPrice: params.minPrice ? Number(params.minPrice) : undefined,
@@ -44,6 +53,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
   };
+  const categoryConfig = getCategoryFilterConfig(filters.category);
+  const categoryTitle =
+    categoryConfig.resultLabel.charAt(0).toUpperCase() +
+    categoryConfig.resultLabel.slice(1);
 
   // Parse sort option
   const sortBy = params.sortBy as string;
@@ -80,7 +93,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const [{ listings, total }, totalCount, makes] = await Promise.all([
     searchListings({ filters, page, limit, sort }),
     countMatchingListings(filters),
-    getAllMakeNames(),
+    filters.category
+      ? getActiveListingMakes(filters.category)
+      : getAllMakeNames(),
   ]);
 
   const totalPages = Math.ceil(total / limit);
@@ -95,7 +110,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
-              { label: "New & Used cars for sale" },
+              { label: `New & Used ${categoryConfig.resultLabel} for sale` },
             ]}
             className="mb-4"
           />
@@ -104,10 +119,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <div className="mb-6 flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                Smart matches from your search
+                {categoryTitle} for sale in Kenya
               </h1>
               <p className="mt-2 text-gray-600">
-                Explore our selection of good and high-quality vehicles.
+                Explore our selection of quality {categoryConfig.resultLabel}.
               </p>
             </div>
 
@@ -133,6 +148,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               totalPages={totalPages}
               totalCount={totalCount}
               makes={makes}
+              category={filters.category}
             />
           </Suspense>
         </div>

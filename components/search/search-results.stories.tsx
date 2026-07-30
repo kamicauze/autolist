@@ -17,6 +17,7 @@ type Story = StoryObj<typeof meta>;
 const mockListings: Listing[] = [
   {
     id: "1",
+    category: "car",
     status: "active",
     seller_id: "seller1",
     dealer_id: "dealer1",
@@ -60,6 +61,7 @@ const mockListings: Listing[] = [
   },
   {
     id: "2",
+    category: "car",
     status: "active",
     seller_id: "seller2",
     dealer_id: null,

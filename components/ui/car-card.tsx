@@ -9,8 +9,27 @@ import { Badge } from "./badge";
 import { Avatar } from "./avatar";
 import { Button } from "./button";
 import { IconSpeedometer, IconFuel, IconGear, IconCamera } from "./icons";
-import { ChevronLeft, ChevronRight, Check, GitCompare, Heart } from "lucide-react";
+import {
+  Activity,
+  Axis3D,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Clock3,
+  Gauge,
+  GitCompare,
+  Heart,
+  Weight,
+  Wrench,
+  Zap,
+} from "lucide-react";
 import { useCompare } from "@/lib/hooks/use-compare";
+import type { ListingCategory } from "@/lib/constants/marketplace";
+import {
+  getListingCardSpecs,
+  getListingDisplayType,
+  type ListingCardSpecKind,
+} from "@/lib/utils/listing-category";
 
 export interface CarCardProps {
   id: string;
@@ -20,6 +39,8 @@ export interface CarCardProps {
   mileage: string;
   fuelType: string;
   transmission: string;
+  category?: ListingCategory;
+  metadata?: Record<string, unknown> | null;
   price: number;
   originalPrice?: number;
   currency?: string;
@@ -40,6 +61,8 @@ export function CarCard({
   mileage,
   fuelType,
   transmission,
+  category,
+  metadata,
   price,
   originalPrice,
   currency = "Ksh",
@@ -62,6 +85,30 @@ export function CarCard({
   const displayImages = imageCount > 0 ? images : ["/placeholder-car.jpg"];
   const inCompare = isInCompare(id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
+  const specs = getListingCardSpecs({
+    category,
+    metadata,
+    mileage,
+    fuelType,
+    transmission,
+  });
+  const displayBodyType = getListingDisplayType({
+    category,
+    bodyType,
+    metadata,
+  });
+  const specIcons: Record<ListingCardSpecKind, React.ElementType> = {
+    mileage: IconSpeedometer,
+    fuel: IconFuel,
+    transmission: IconGear,
+    engine_capacity: Gauge,
+    axle: Axis3D,
+    load_capacity: Weight,
+    operating_hours: Clock3,
+    weight: Weight,
+    status: Wrench,
+    power: Zap,
+  };
 
   const scrollPrev = React.useCallback(
     (e: React.MouseEvent) => {
@@ -247,7 +294,7 @@ export function CarCard({
       {/* Content Section */}
       <div className="p-4">
         {/* Body type */}
-        <span className="text-body-sm text-gray-2">{bodyType}</span>
+        <span className="text-body-sm text-gray-2">{displayBodyType}</span>
 
         {/* Title */}
         <h3 className="mt-1 text-body-lg font-semibold text-black-1 line-clamp-1">
@@ -256,18 +303,20 @@ export function CarCard({
 
         {/* Specs */}
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-body-sm text-gray-2">
-          <div className="flex items-center gap-1.5">
-            <IconSpeedometer className="h-4 w-4" />
-            <span>{mileage}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <IconFuel className="h-4 w-4" />
-            <span>{fuelType}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <IconGear className="h-4 w-4" />
-            <span>{transmission}</span>
-          </div>
+          {specs.map((spec) => {
+            const SpecIcon = specIcons[spec.kind] ?? Activity;
+            return (
+              <div
+                key={`${spec.kind}-${spec.value}`}
+                className="flex items-center gap-1.5"
+                aria-label={`${spec.label}: ${spec.value}`}
+                title={spec.label}
+              >
+                <SpecIcon aria-hidden="true" className="h-4 w-4" />
+                <span>{spec.value}</span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Price */}

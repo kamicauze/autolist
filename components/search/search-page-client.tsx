@@ -5,6 +5,7 @@ import { Listing } from "@/lib/types/listing";
 import { QuickFilterBar } from "./quick-filter-bar";
 import { FilterSheet } from "./filter-sheet";
 import { SearchResults } from "./search-results";
+import type { ListingCategory } from "@/lib/constants/marketplace";
 
 interface SearchPageClientProps {
   listings: Listing[];
@@ -12,6 +13,7 @@ interface SearchPageClientProps {
   totalPages: number;
   totalCount: number;
   makes: string[];
+  category?: ListingCategory;
 }
 
 export function SearchPageClient({
@@ -20,6 +22,7 @@ export function SearchPageClient({
   totalPages,
   totalCount,
   makes,
+  category,
 }: SearchPageClientProps) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
@@ -49,6 +52,7 @@ export function SearchPageClient({
         onOpenChange={setIsFilterSheetOpen}
         totalCount={totalCount}
         makes={makes}
+        category={category}
       />
     </>
   );

@@ -59,6 +59,8 @@ export function SearchResults({ listings, totalPages }: SearchResultsProps) {
               mileage={listing.mileage ? `${listing.mileage.toLocaleString()} kms` : "N/A"}
               fuelType={listing.fuel_type || "N/A"}
               transmission={listing.transmission || "N/A"}
+              category={listing.category}
+              metadata={listing.metadata}
               price={listing.price}
               currency={listing.currency}
               images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}

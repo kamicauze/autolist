@@ -7,6 +7,7 @@ import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 export type CreateListingInput = {
+    category: ListingFormData["category"];
     make: string;
     model: string;
     year: number;
@@ -20,6 +21,7 @@ export type CreateListingInput = {
     transmission?: string;
     fuel_type?: string;
     color?: string;
+    metadata?: ListingFormData["metadata"];
 };
 
 export async function createListing(input: ListingFormData) {
@@ -50,6 +52,7 @@ export async function insertListingInternal(
         .from('listings')
         .select('id, price')
         .eq('seller_id', userId)
+        .eq('category', data.category)
         .eq('make', data.make)
         .eq('model', data.model)
         .eq('year', data.year)

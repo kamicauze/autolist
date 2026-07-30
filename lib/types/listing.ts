@@ -1,4 +1,4 @@
-import type { ListingStatus } from "@/lib/constants/marketplace";
+import type { ListingCategory, ListingStatus } from "@/lib/constants/marketplace";
 
 export type { ListingStatus };
 
@@ -19,6 +19,7 @@ export interface Listing {
   seller_id: string;
   dealer_id: string | null;
   status: ListingStatus;
+  category: ListingCategory;
 
   // Vehicle Data
   make: string;
@@ -65,6 +66,7 @@ export interface Listing {
 }
 
 export interface ListingFilters {
+  category?: ListingCategory;
   make?: string;
   model?: string;
   minPrice?: number;
