@@ -6,9 +6,13 @@ import {
   PublicCmsBannerPlacement,
 } from "@/components/cms/public-cms-banners";
 import { SearchPageClient } from "@/components/search/search-page-client";
-import { searchListings, countMatchingListings } from "@/lib/data/listings";
+import {
+  searchListings,
+  countMatchingListings,
+  type SearchListingFilters,
+} from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
-import { ListingFilters, ListingSort } from "@/lib/types/listing";
+import { ListingSort } from "@/lib/types/listing";
 import {
   LANDING_SEARCH_CATEGORY_CONFIG,
   type LandingSearchCategoryConfig,
@@ -38,7 +42,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   };
 
   // Extract filters from params
-  const filters: ListingFilters = {
+  const filters: SearchListingFilters = {
     q: params.q as string,
     category: normalizedCategory,
     make: params.make as string,
@@ -54,16 +58,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     bodyType: parseArrayParam(params.bodyType),
     transmission: parseArrayParam(params.transmission),
     fuelType: parseArrayParam(params.fuelType),
-    condition: params.condition as ListingFilters["condition"],
+    condition: params.condition as SearchListingFilters["condition"],
     location: params.location as string,
     color: params.color as string,
     seats: params.seats ? Number(params.seats) : undefined,
     doors: params.doors ? Number(params.doors) : undefined,
     driveType: params.driveType as string,
-    sellerType: params.sellerType as ListingFilters["sellerType"],
+    sellerType: params.sellerType as SearchListingFilters["sellerType"],
     verifiedOnly: params.verifiedOnly === "true",
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
+    engineCc: params.engineCc as string,
   };
 
   // Parse sort option

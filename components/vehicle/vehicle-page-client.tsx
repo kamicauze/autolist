@@ -258,7 +258,7 @@ function MapBlock({
 
 function metadataValue(metadata: Listing["metadata"], key: string) {
   const value = metadata && key in metadata ? metadata[key] : null;
-  return value == null ? "N/A" : String(value);
+  return value == null ? "" : String(value);
 }
 
 type ListingDocument = {
@@ -448,6 +448,13 @@ export function VehiclePageClient({
     listingId: listing.id,
     initialMessage: "Hi, I'm interested in this vehicle. Please contact me with more details.",
   });
+
+  useEffect(() => {
+    // Streaming swaps the tall loading/Suspense placeholder for the real
+    // content after Next has already applied its navigation scroll, which can
+    // leave the viewport stranded mid-page. Land on the hero gallery instead.
+    window.scrollTo(0, 0);
+  }, [listing.id]);
 
   useEffect(() => {
     setAccordionState(PRESET_STATES[preset]);
@@ -765,54 +772,28 @@ export function VehiclePageClient({
                 <div className="space-y-4 text-sm leading-relaxed text-gray-600">
                   <p>{getModelDescription(listing)}</p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Condition</p>
-                      <p className="font-semibold text-gray-900">
-                        {formatListingCondition(listing.condition)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Registration</p>
-                      <p className="font-semibold text-gray-900">
-                        {formatRegistrationStatus(listing)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Trim</p>
-                      <p className="font-semibold text-gray-900">
-                        {getListingTrim(listing) || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Model Variant</p>
-                      <p className="font-semibold text-gray-900">
-                        {getListingVariant(listing) || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">CC</p>
-                      <p className="font-semibold text-gray-900">
-                        {getListingEngineDisplacement(listing) || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Drive type</p>
-                      <p className="font-semibold text-gray-900">
-                        {formatListingLabel(listing.drive_type) || formatListingLabel(metadataValue(listing.metadata, "drive_type")) || "N/A"}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">Stock number</p>
-                      <p className="font-semibold text-gray-900">
-                        {metadataValue(listing.metadata, "stock_number")}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-100 p-3">
-                      <p className="text-xs text-gray-500">VIN number</p>
-                      <p className="font-semibold text-gray-900">
-                        {metadataValue(listing.metadata, "vin")}
-                      </p>
-                    </div>
+                    {[
+                      { label: "Condition", value: formatListingCondition(listing.condition) },
+                      { label: "Registration", value: formatRegistrationStatus(listing) },
+                      { label: "Trim", value: getListingTrim(listing) },
+                      { label: "Model Variant", value: getListingVariant(listing) },
+                      { label: "CC", value: getListingEngineDisplacement(listing) },
+                      {
+                        label: "Drive type",
+                        value:
+                          formatListingLabel(listing.drive_type) ||
+                          formatListingLabel(metadataValue(listing.metadata, "drive_type")),
+                      },
+                      { label: "Stock number", value: metadataValue(listing.metadata, "stock_number") },
+                      { label: "VIN number", value: metadataValue(listing.metadata, "vin") },
+                    ]
+                      .filter((item) => item.value && item.value !== "N/A")
+                      .map((item) => (
+                        <div key={item.label} className="rounded-lg border border-gray-100 p-3">
+                          <p className="text-xs text-gray-500">{item.label}</p>
+                          <p className="font-semibold text-gray-900">{item.value}</p>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </AccordionSection>

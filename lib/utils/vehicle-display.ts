@@ -85,7 +85,7 @@ function formatMileageValue(value: number | string | null | undefined) {
   return normalized;
 }
 
-export function getListingMileageLabel(listing: Listing, fallback = "Mileage pending") {
+export function getListingMileageLabel(listing: Listing, fallback = "") {
   return (
     formatMileageValue(listing.mileage) ||
     formatMileageValue(getListingMetadataString(listing, "mileage")) ||
@@ -93,7 +93,7 @@ export function getListingMileageLabel(listing: Listing, fallback = "Mileage pen
   );
 }
 
-export function getListingFuelTypeLabel(listing: Listing, fallback = "Fuel pending") {
+export function getListingFuelTypeLabel(listing: Listing, fallback = "") {
   return (
     formatListingLabel(
       listing.fuel_type ??
@@ -104,7 +104,7 @@ export function getListingFuelTypeLabel(listing: Listing, fallback = "Fuel pendi
   );
 }
 
-export function getListingTransmissionLabel(listing: Listing, fallback = "Transmission pending") {
+export function getListingTransmissionLabel(listing: Listing, fallback = "") {
   return (
     formatListingLabel(
       listing.transmission ?? getListingMetadataString(listing, "transmission")

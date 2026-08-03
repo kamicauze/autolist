@@ -212,9 +212,9 @@ export function RecommendedCars({
                 subtitle={getListingSubtitle(listing)}
                 bodyType={getListingBodyTypeLabel(listing)}
                 year={listing.year}
-                mileage={getListingMileageLabel(listing)}
-                fuelType={getListingFuelTypeLabel(listing)}
-                transmission={getListingTransmissionLabel(listing)}
+                mileage={getListingMileageLabel(listing) || undefined}
+                fuelType={getListingFuelTypeLabel(listing) || undefined}
+                transmission={getListingTransmissionLabel(listing) || undefined}
                 engineSize={getListingEngineDisplacement(listing) || undefined}
                 location={getListingDisplayLocation(listing)}
                 sellerLabel={listing.dealer ? "Dealer" : "Seller"}

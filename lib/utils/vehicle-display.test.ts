@@ -77,4 +77,14 @@ function makeListing(overrides: Partial<Listing>): Listing {
   assert.equal(getListingBodyTypeLabel(listing), "Station Wagon");
 }
 
+{
+  const listing = makeListing({ metadata: null });
+
+  assert.equal(getListingMileageLabel(listing), "");
+  assert.equal(getListingFuelTypeLabel(listing), "");
+  assert.equal(getListingTransmissionLabel(listing), "");
+  assert.equal(getListingBodyTypeLabel(listing), "Vehicle");
+  assert.equal(getListingBodyTypeLabel(listing, ""), "");
+}
+
 console.log("vehicle-display label tests passed");

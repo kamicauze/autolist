@@ -39,9 +39,9 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               subtitle={getListingSubtitle(listing)}
               bodyType={getListingBodyTypeLabel(listing)}
               year={listing.year}
-              mileage={getListingMileageLabel(listing)}
-              fuelType={getListingFuelTypeLabel(listing)}
-              transmission={getListingTransmissionLabel(listing)}
+              mileage={getListingMileageLabel(listing) || undefined}
+              fuelType={getListingFuelTypeLabel(listing) || undefined}
+              transmission={getListingTransmissionLabel(listing) || undefined}
               engineSize={getListingEngineDisplacement(listing) || undefined}
               location={getListingDisplayLocation(listing)}
               sellerLabel={listing.dealer ? "Dealer" : "Seller"}
@@ -52,7 +52,7 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               images={
                 sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]
               }
-              isFeatured={true}
+              isFeatured={listing.is_featured}
               seller={{
                 name: sellerName,
                 avatarUrl:

@@ -35,6 +35,105 @@ const PLANT_CONSTRUCTION_CATEGORY_PATTERN =
 const FARM_AGRICULTURAL_CATEGORY_PATTERN =
   /\b(farm|agricultural|harvester|plough|tractor\b|cultivator|sprayer|baler)\b/;
 
+export interface SearchListingFilters extends ListingFilters {
+  /** Engine size bucket for motorbikes, formatted "min-max" (max optional), e.g. "150-500" or "1000-". */
+  engineCc?: string;
+}
+
+// Keywords that merely restate the active category (e.g. /search?category=motorbike&q=motorbike).
+// The category filter already scopes results; keeping such keywords as ILIKE terms would exclude
+// listings that never contain the literal word (e.g. "Yamaha MT-07").
+const CATEGORY_REDUNDANT_KEYWORD_TERMS: Record<ListingCategory, readonly string[]> = {
+  car: ["car", "cars", "vehicle", "vehicles", "car and van", "cars and vans"],
+  van: ["van", "vans"],
+  motorbike: [
+    "motorbike",
+    "motorbikes",
+    "motorcycle",
+    "motorcycles",
+    "bike",
+    "bikes",
+    "motor bike",
+    "motor bikes",
+  ],
+  truck: ["truck", "trucks", "lorry", "lorries"],
+  plant_construction: [
+    "plant",
+    "construction",
+    "plant construction",
+    "plant and construction",
+    "plant equipment",
+    "construction equipment",
+    "equipment",
+    "machinery",
+  ],
+  farm_agricultural: [
+    "farm",
+    "farms",
+    "agricultural",
+    "agriculture",
+    "farm agricultural",
+    "farm and agricultural",
+    "farm equipment",
+    "agricultural equipment",
+  ],
+};
+
+function isCategoryRedundantKeyword(keyword: string, category?: ListingCategory) {
+  if (!category) return false;
+  const normalized = keyword
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[_/+-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return CATEGORY_REDUNDANT_KEYWORD_TERMS[category]?.includes(normalized) ?? false;
+}
+
+function parseEngineCcRange(value?: string): { min: number; max?: number } | null {
+  if (!value) return null;
+  const match = value.trim().match(/^(\d+)\s*-\s*(\d*)$/);
+  if (!match) return null;
+  const min = Number(match[1]);
+  const max = match[2] ? Number(match[2]) : undefined;
+  if (!Number.isFinite(min)) return null;
+  return { min, max };
+}
+
+function getListingEngineCc(listing: Listing): number | null {
+  const raw =
+    getListingMetadataString(listing, "engineCapacity") ??
+    getListingMetadataString(listing, "engine_capacity") ??
+    getListingMetadataString(listing, "engineDisplacement") ??
+    getListingMetadataString(listing, "engine_displacement") ??
+    getListingMetadataString(listing, "engineSize") ??
+    getListingMetadataString(listing, "engine_size");
+  if (!raw) return null;
+
+  const match = raw.toLowerCase().match(/(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+
+  let value = Number(match[1]);
+  if (!Number.isFinite(value)) return null;
+  // Litre-style values ("1.5L", "1.5") are converted to cc.
+  if (/\bl\b|litre|liter/.test(raw.toLowerCase()) || value < 20) {
+    value *= 1000;
+  }
+  return value;
+}
+
+function listingMatchesEngineCcRange(
+  listing: Listing,
+  range: { min: number; max?: number } | null
+) {
+  if (!range) return true;
+  const cc = getListingEngineCc(listing);
+  if (cc == null) return false;
+  if (cc < range.min) return false;
+  if (range.max != null && cc > range.max) return false;
+  return true;
+}
+
 function escapeLike(value: string) {
   return value.replace(/[,%]/g, "");
 }
@@ -316,6 +415,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
   let nextQuery = query;
 
   const keywordFilters = parseRequestedKeywords(filters?.q)
+    .filter((keyword) => !isCategoryRedundantKeyword(keyword, filters?.category))
     .map((keyword) => escapeLike(keyword))
     .filter(Boolean)
     .flatMap((keyword) => [
@@ -574,12 +674,13 @@ export async function searchListings({
   page = 1,
   limit = 12,
 }: {
-  filters?: ListingFilters;
+  filters?: SearchListingFilters;
   sort?: ListingSort;
   page?: number;
   limit?: number;
 }): Promise<{ listings: Listing[]; total: number }> {
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedEngineCcRange = parseEngineCcRange(filters?.engineCc);
   const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
@@ -591,6 +692,7 @@ export async function searchListings({
     requestedEquipmentTypes.length > 0 ||
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
+    Boolean(requestedEngineCcRange) ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -630,6 +732,11 @@ export async function searchListings({
     if (requestedDriveTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
+      );
+    }
+    if (requestedEngineCcRange) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesEngineCcRange(listing, requestedEngineCcRange)
       );
     }
     const ranked = rankListingsForSemanticSearch(
@@ -676,9 +783,10 @@ export async function searchListings({
 }
 
 export async function countMatchingListings(
-  filters?: ListingFilters
+  filters?: SearchListingFilters
 ): Promise<number> {
   const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const requestedEngineCcRange = parseEngineCcRange(filters?.engineCc);
   const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
   const requestedUseCase = filters?.useCase?.trim() || undefined;
   const requestedIntents = parseRequestedIntents(filters?.intent);
@@ -690,6 +798,7 @@ export async function countMatchingListings(
     requestedEquipmentTypes.length > 0 ||
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
+    Boolean(requestedEngineCcRange) ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -732,6 +841,11 @@ export async function countMatchingListings(
     if (requestedDriveTypes.length > 0) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
+      );
+    }
+    if (requestedEngineCcRange) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesEngineCcRange(listing, requestedEngineCcRange)
       );
     }
 

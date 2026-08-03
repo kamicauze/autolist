@@ -43,6 +43,12 @@ import {
   YEARS,
   SORT_OPTIONS,
 } from "@/lib/constants/filters";
+import {
+  ENGINE_CC_OPTIONS,
+  getSearchFilterLabel,
+  isSearchFilterVisible,
+  type SearchFilterId,
+} from "@/lib/constants/search-filter-config";
 
 interface FilterSheetProps {
   makes: string[];
@@ -71,6 +77,7 @@ type FilterSheetState = {
   seats: string;
   doors: string;
   driveType: string;
+  engineCc: string;
   sellerTypes: string[];
   verifiedOnly: boolean;
   sortBy: string;
@@ -96,6 +103,7 @@ function createEmptyFilterSheetState(): FilterSheetState {
     seats: "",
     doors: "",
     driveType: "",
+    engineCc: "",
     sellerTypes: [],
     verifiedOnly: false,
     sortBy: "newest",
@@ -127,6 +135,7 @@ function buildFilterSheetState(
     seats: initialFilters?.seats || searchParams.get("seats") || emptyState.seats,
     doors: initialFilters?.doors || searchParams.get("doors") || emptyState.doors,
     driveType: initialFilters?.driveType || searchParams.get("driveType") || emptyState.driveType,
+    engineCc: initialFilters?.engineCc || searchParams.get("engineCc") || emptyState.engineCc,
     sellerTypes: initialFilters?.sellerTypes || searchParams.get("sellerType")?.split(",").filter(Boolean) || emptyState.sellerTypes,
     verifiedOnly: initialFilters?.verifiedOnly ?? (searchParams.get("verifiedOnly") === "true"),
     sortBy: initialFilters?.sortBy || searchParams.get("sortBy") || emptyState.sortBy,
@@ -181,6 +190,11 @@ function FilterSheetPanel({
   const [localFilters, setLocalFilters] = useState(initialLocalFilters);
   const [keywordInput, setKeywordInput] = useState("");
   const keywordTags = parseKeywordTags(localFilters.q);
+
+  const category = new URLSearchParams(searchParamsString).get("category");
+  const showFilter = (id: SearchFilterId) => isSearchFilterVisible(category, id);
+  const filterLabel = (id: SearchFilterId, fallback: string) =>
+    getSearchFilterLabel(category, id, fallback);
 
   const setBoundedRangeFilter = useCallback(
     (key: "Year" | "Price", side: "min" | "max", value: string) => {
@@ -333,6 +347,10 @@ function FilterSheetPanel({
     if (localFilters.driveType) params.set("driveType", localFilters.driveType);
     else params.delete("driveType");
 
+    // Engine size (motorbikes)
+    if (localFilters.engineCc) params.set("engineCc", localFilters.engineCc);
+    else params.delete("engineCc");
+
     // Advanced: Seller Type
     if (localFilters.sellerTypes.length === 1) {
       params.set("sellerType", localFilters.sellerTypes[0]);
@@ -343,6 +361,27 @@ function FilterSheetPanel({
     // Verified Only
     if (localFilters.verifiedOnly) params.set("verifiedOnly", "true");
     else params.delete("verifiedOnly");
+
+    // Drop params for filters that are hidden in the active category so stale
+    // car-centric filters can't silently constrain non-car results.
+    const paramsByFilter: Partial<Record<SearchFilterId, string[]>> = {
+      bodyType: ["bodyType"],
+      transmission: ["transmission"],
+      fuelType: ["fuelType"],
+      color: ["color"],
+      seats: ["seats"],
+      doors: ["doors"],
+      driveType: ["driveType"],
+      mileage: ["minMileage", "maxMileage"],
+      engineCc: ["engineCc"],
+      sellerType: ["sellerType"],
+      verifiedOnly: ["verifiedOnly"],
+    };
+    for (const [filterId, keys] of Object.entries(paramsByFilter)) {
+      if (!showFilter(filterId as SearchFilterId)) {
+        keys.forEach((key) => params.delete(key));
+      }
+    }
 
     startTransition(() => {
       router.push(`/search?${params.toString()}`);
@@ -423,7 +462,7 @@ function FilterSheetPanel({
 
           {/* Make */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Make</Label>
+            <Label className="text-sm font-medium">{filterLabel("make", "Make")}</Label>
             <Select
               value={localFilters.make || "all"}
               onValueChange={(val) =>
@@ -446,7 +485,7 @@ function FilterSheetPanel({
 
           {/* Model */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Model</Label>
+            <Label className="text-sm font-medium">{filterLabel("model", "Model")}</Label>
             <Input
               placeholder="e.g. Harrier, X5, A4"
               value={localFilters.model}
@@ -607,6 +646,7 @@ function FilterSheetPanel({
           </div>
 
           {/* 4. Mileage */}
+          {showFilter("mileage") ? (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Mileage</Label>
             <div className="grid grid-cols-2 gap-3">
@@ -647,8 +687,34 @@ function FilterSheetPanel({
               </Select>
             </div>
           </div>
+          ) : null}
+
+          {/* Engine size (motorbikes) */}
+          {showFilter("engineCc") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Engine Size</Label>
+              <div className="flex flex-wrap gap-2">
+                {ENGINE_CC_OPTIONS.map((option) => (
+                  <FilterChip
+                    key={option.value}
+                    selected={localFilters.engineCc === option.value}
+                    onClick={() =>
+                      setLocalFilters((p) => ({
+                        ...p,
+                        engineCc: p.engineCc === option.value ? "" : option.value,
+                      }))
+                    }
+                    size="sm"
+                  >
+                    {option.label}
+                  </FilterChip>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {/* 5. Body Type */}
+          {showFilter("bodyType") ? (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Body Type</Label>
             <div className="flex flex-wrap gap-2">
@@ -664,8 +730,10 @@ function FilterSheetPanel({
               ))}
             </div>
           </div>
+          ) : null}
 
           {/* 6. Transmission */}
+          {showFilter("transmission") ? (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Transmission</Label>
             <div className="flex flex-wrap gap-2">
@@ -681,6 +749,7 @@ function FilterSheetPanel({
               ))}
             </div>
           </div>
+          ) : null}
 
           <Separator />
 
@@ -693,6 +762,7 @@ function FilterSheetPanel({
             <CollapsibleContent>
               <div className="space-y-6 pt-4">
                 {/* 1. Color */}
+                {showFilter("color") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Color</Label>
                   <Select
@@ -714,8 +784,10 @@ function FilterSheetPanel({
                     </SelectContent>
                   </Select>
                 </div>
+                ) : null}
 
                 {/* 2. Fuel Type */}
+                {showFilter("fuelType") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Fuel Type</Label>
                   <div className="flex flex-wrap gap-2">
@@ -731,8 +803,10 @@ function FilterSheetPanel({
                     ))}
                   </div>
                 </div>
+                ) : null}
 
                 {/* 3. Seats */}
+                {showFilter("seats") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Seats</Label>
                   <div className="flex flex-wrap gap-2">
@@ -753,8 +827,10 @@ function FilterSheetPanel({
                     ))}
                   </div>
                 </div>
+                ) : null}
 
                 {/* 4. Doors */}
+                {showFilter("doors") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Doors</Label>
                   <div className="flex flex-wrap gap-2">
@@ -775,8 +851,10 @@ function FilterSheetPanel({
                     ))}
                   </div>
                 </div>
+                ) : null}
 
                 {/* 5. Drive Type */}
+                {showFilter("driveType") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Drive Type</Label>
                   <div className="flex flex-wrap gap-2">
@@ -797,8 +875,10 @@ function FilterSheetPanel({
                     ))}
                   </div>
                 </div>
+                ) : null}
 
                 {/* 6. Seller Type */}
+                {showFilter("sellerType") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Seller Type</Label>
                   <div className="flex flex-wrap gap-2">
@@ -814,6 +894,7 @@ function FilterSheetPanel({
                     ))}
                   </div>
                 </div>
+                ) : null}
               </div>
             </CollapsibleContent>
           </Collapsible>

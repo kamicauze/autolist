@@ -28,9 +28,9 @@ export interface CarCardProps {
   subtitle?: string;
   bodyType: string;
   year: number;
-  mileage: string;
-  fuelType: string;
-  transmission: string;
+  mileage?: string;
+  fuelType?: string;
+  transmission?: string;
   engineSize?: string;
   location?: string;
   sellerLabel?: string;
@@ -338,6 +338,7 @@ export function CarCard({
           </h3>
         </div>
 
+        {fuelType || engineSize || bodyType || transmission || mileage ? (
         <div
           className={cn(
             "flex flex-wrap items-center gap-x-4 gap-y-2 font-medium text-muted-foreground",
@@ -346,23 +347,32 @@ export function CarCard({
               : "py-3.5 text-[12px] leading-[19.6px]"
           )}
         >
-          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-            <IconFuel className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-            <span>{fuelType}</span>
-          </div>
-          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-            <Settings2 className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-            <span>{engineSize || bodyType}</span>
-          </div>
-          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-            <IconGear className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-            <span>{transmission}</span>
-          </div>
-          <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-            <IconSpeedometer className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-            <span>{mileage}</span>
-          </div>
+          {fuelType ? (
+            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+              <IconFuel className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <span>{fuelType}</span>
+            </div>
+          ) : null}
+          {engineSize || bodyType ? (
+            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+              <Settings2 className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <span>{engineSize || bodyType}</span>
+            </div>
+          ) : null}
+          {transmission ? (
+            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+              <IconGear className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <span>{transmission}</span>
+            </div>
+          ) : null}
+          {mileage ? (
+            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
+              <IconSpeedometer className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <span>{mileage}</span>
+            </div>
+          ) : null}
         </div>
+        ) : null}
         <div
           className={cn(
             "font-medium text-muted-foreground",

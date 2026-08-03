@@ -14,12 +14,15 @@ import {
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
 import {
+  getListingBodyTypeLabel,
   getListingEngineDisplacement,
+  getListingFuelTypeLabel,
+  getListingMileageLabel,
+  getListingTransmissionLabel,
   getListingTrim,
   getListingVariant,
 } from "@/lib/utils/vehicle-display";
 import {
-  formatListingLabel,
   formatListingRegistrationStatus,
   getListingMetadataString,
 } from "@/lib/utils/listing-details";
@@ -37,12 +40,13 @@ interface Item {
 
 function readMetadataValue(metadata: Listing["metadata"], key: string) {
   const value = metadata && key in metadata ? metadata[key] : null;
-  return value == null ? "N/A" : String(value);
+  return value == null ? "" : String(value);
 }
 
 function formatRegistrationStatus(listing: Listing) {
   const status = getListingMetadataString(listing, "registrationStatus");
-  return formatListingRegistrationStatus(status);
+  const label = formatListingRegistrationStatus(status);
+  return label === "N/A" ? "" : label;
 }
 
 function OverviewItem({ item }: { item: Item }) {
@@ -61,7 +65,7 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
   const items: Item[] = [
     {
       label: "Mileage",
-      value: listing.mileage ? `${listing.mileage.toLocaleString()} km` : "N/A",
+      value: getListingMileageLabel(listing),
       icon: <Gauge className="h-4 w-4" />,
     },
     {
@@ -75,37 +79,37 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
     },
     {
       label: "Fuel Type",
-      value: formatListingLabel(listing.fuel_type) || "N/A",
+      value: getListingFuelTypeLabel(listing),
       icon: <Fuel className="h-4 w-4" />,
     },
     {
       label: "CC",
-      value: getListingEngineDisplacement(listing) || "N/A",
+      value: getListingEngineDisplacement(listing) || "",
       icon: <Cog className="h-4 w-4" />,
     },
     {
       label: "Transmission",
-      value: formatListingLabel(listing.transmission) || "N/A",
+      value: getListingTransmissionLabel(listing),
       icon: <Settings className="h-4 w-4" />,
     },
     {
       label: "Body Type",
-      value: formatListingLabel(listing.body_type) || "N/A",
+      value: getListingBodyTypeLabel(listing, ""),
       icon: <Car className="h-4 w-4" />,
     },
     {
       label: "Trim",
-      value: getListingTrim(listing) || "N/A",
+      value: getListingTrim(listing) || "",
       icon: <Car className="h-4 w-4" />,
     },
     {
       label: "Model Variant",
-      value: getListingVariant(listing) || "N/A",
+      value: getListingVariant(listing) || "",
       icon: <Cog className="h-4 w-4" />,
     },
     {
       label: "Color",
-      value: listing.color || "N/A",
+      value: listing.color || "",
       icon: <Palette className="h-4 w-4" />,
     },
     {
@@ -123,7 +127,7 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
       value: location || listing.dealer?.city || "Kenya",
       icon: <MapPin className="h-4 w-4" />,
     },
-  ];
+  ].filter((item) => Boolean(item.value));
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
