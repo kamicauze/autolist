@@ -18,6 +18,7 @@ import {
   type LandingSearchCategoryConfig,
 } from "@/lib/constants/landing-search";
 import type { ListingCategory } from "@/lib/constants/marketplace";
+import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -69,6 +70,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
     engineCc: params.engineCc as string,
+    taxonomyCategory: params.taxCategory as string,
+    taxonomySubcategory: params.taxSubcategory as string,
+    minHours: params.hoursMin ? Number(params.hoursMin) : undefined,
+    maxHours: params.hoursMax ? Number(params.hoursMax) : undefined,
   };
 
   // Parse sort option
@@ -103,10 +108,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }
   }
 
+  // Non-car categories use the stakeholder taxonomy makes list; cars/vans use car_makes.
+  const categoryMakes = normalizedCategory ? MAKES_BY_CATEGORY[normalizedCategory] : undefined;
+
   const [{ listings, total }, totalCount, makes] = await Promise.all([
     searchListings({ filters, page, limit, sort }),
     countMatchingListings(filters),
-    getAllMakeNames(),
+    categoryMakes ? Promise.resolve([...categoryMakes]) : getAllMakeNames(),
   ]);
 
   const totalPages = Math.ceil(total / limit);

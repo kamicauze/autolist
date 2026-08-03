@@ -38,6 +38,13 @@ const FARM_AGRICULTURAL_CATEGORY_PATTERN =
 export interface SearchListingFilters extends ListingFilters {
   /** Engine size bucket for motorbikes, formatted "min-max" (max optional), e.g. "150-500" or "1000-". */
   engineCc?: string;
+  /** Taxonomy category label (matched against metadata.taxonomyCategory), e.g. "Tractors". */
+  taxonomyCategory?: string;
+  /** Taxonomy subcategory label (matched against metadata.subcategory). */
+  taxonomySubcategory?: string;
+  /** Hours-used range (plant/farm; matched against metadata.hours_used). */
+  minHours?: number;
+  maxHours?: number;
 }
 
 // Keywords that merely restate the active category (e.g. /search?category=motorbike&q=motorbike).
@@ -131,6 +138,54 @@ function listingMatchesEngineCcRange(
   if (cc == null) return false;
   if (cc < range.min) return false;
   if (range.max != null && cc > range.max) return false;
+  return true;
+}
+
+function normalizeTaxonomyLabel(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function listingMatchesTaxonomy(
+  listing: Listing,
+  taxonomyCategory?: string,
+  taxonomySubcategory?: string
+) {
+  if (taxonomyCategory) {
+    const value =
+      getListingMetadataString(listing, "taxonomyCategory") ??
+      getListingMetadataString(listing, "taxonomy_category");
+    if (!value || normalizeTaxonomyLabel(value) !== normalizeTaxonomyLabel(taxonomyCategory)) {
+      return false;
+    }
+  }
+  if (taxonomySubcategory) {
+    const value =
+      getListingMetadataString(listing, "subcategory") ??
+      getListingMetadataString(listing, "subCategory");
+    if (!value || normalizeTaxonomyLabel(value) !== normalizeTaxonomyLabel(taxonomySubcategory)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getListingHoursUsed(listing: Listing): number | null {
+  const raw =
+    getListingMetadataString(listing, "hours_used") ??
+    getListingMetadataString(listing, "hoursUsed");
+  if (!raw) return null;
+  const match = raw.replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : null;
+}
+
+function listingMatchesHoursRange(listing: Listing, minHours?: number, maxHours?: number) {
+  if (minHours == null && maxHours == null) return true;
+  const hours = getListingHoursUsed(listing);
+  if (hours == null) return false;
+  if (minHours != null && hours < minHours) return false;
+  if (maxHours != null && hours > maxHours) return false;
   return true;
 }
 
@@ -686,6 +741,9 @@ export async function searchListings({
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requestedLocations = parseRequestedValues(filters?.location);
   const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
+  const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
+  const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
+  const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
@@ -693,6 +751,9 @@ export async function searchListings({
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
     Boolean(requestedEngineCcRange) ||
+    Boolean(requestedTaxonomyCategory) ||
+    Boolean(requestedTaxonomySubcategory) ||
+    requestedHoursRange ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -737,6 +798,16 @@ export async function searchListings({
     if (requestedEngineCcRange) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesEngineCcRange(listing, requestedEngineCcRange)
+      );
+    }
+    if (requestedTaxonomyCategory || requestedTaxonomySubcategory) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesTaxonomy(listing, requestedTaxonomyCategory, requestedTaxonomySubcategory)
+      );
+    }
+    if (requestedHoursRange) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
       );
     }
     const ranked = rankListingsForSemanticSearch(
@@ -792,6 +863,9 @@ export async function countMatchingListings(
   const requestedIntents = parseRequestedIntents(filters?.intent);
   const requestedLocations = parseRequestedValues(filters?.location);
   const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
+  const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
+  const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
+  const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
@@ -799,6 +873,9 @@ export async function countMatchingListings(
     requestedIntents.length > 0 ||
     requestedDriveTypes.length > 0 ||
     Boolean(requestedEngineCcRange) ||
+    Boolean(requestedTaxonomyCategory) ||
+    Boolean(requestedTaxonomySubcategory) ||
+    requestedHoursRange ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -846,6 +923,16 @@ export async function countMatchingListings(
     if (requestedEngineCcRange) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesEngineCcRange(listing, requestedEngineCcRange)
+      );
+    }
+    if (requestedTaxonomyCategory || requestedTaxonomySubcategory) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesTaxonomy(listing, requestedTaxonomyCategory, requestedTaxonomySubcategory)
+      );
+    }
+    if (requestedHoursRange) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
       );
     }
 

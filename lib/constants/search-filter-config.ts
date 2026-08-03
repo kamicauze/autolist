@@ -27,6 +27,8 @@ export type SearchFilterId =
   | "driveType"
   | "engineCc"
   | "equipmentType"
+  | "taxonomy"
+  | "hoursUsed"
   | "sellerType"
   | "verifiedOnly";
 
@@ -77,6 +79,7 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
       "price",
       "mileage",
       "engineCc",
+      "bodyType",
       "transmission",
       "fuelType",
       "color",
@@ -98,6 +101,8 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
       "year",
       "price",
       "mileage",
+      "taxonomy",
+      "bodyType",
       "transmission",
       "fuelType",
       "color",
@@ -114,6 +119,8 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
       "make",
       "model",
       "equipmentType",
+      "taxonomy",
+      "hoursUsed",
       "location",
       "sortBy",
       "condition",
@@ -133,6 +140,8 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
       "make",
       "model",
       "equipmentType",
+      "taxonomy",
+      "hoursUsed",
       "location",
       "sortBy",
       "condition",
@@ -173,10 +182,21 @@ export function getSearchFilterLabel(
   return getSearchFilterConfig(category).labels?.[filter] ?? fallback;
 }
 
-/** Engine size buckets for motorbikes; values are "min-max" (open-ended max allowed). */
+/**
+ * Engine size buckets for motorbikes; values are "min-max" (open-ended max allowed).
+ * Bucket boundaries follow the stakeholder doc's CC steps (50…1200).
+ */
 export const ENGINE_CC_OPTIONS = [
-  { label: "Under 150cc", value: "0-150" },
-  { label: "150 - 500cc", value: "150-500" },
-  { label: "500 - 1000cc", value: "500-1000" },
-  { label: "1000cc +", value: "1000-" },
+  { label: "50cc & under", value: "0-50" },
+  { label: "50 - 125cc", value: "50-125" },
+  { label: "125 - 200cc", value: "125-200" },
+  { label: "200 - 400cc", value: "200-400" },
+  { label: "400 - 600cc", value: "400-600" },
+  { label: "600 - 700cc", value: "600-700" },
+  { label: "700 - 800cc", value: "700-800" },
+  { label: "800 - 900cc", value: "800-900" },
+  { label: "900 - 1000cc", value: "900-1000" },
+  { label: "1000 - 1100cc", value: "1000-1100" },
+  { label: "1100 - 1200cc", value: "1100-1200" },
+  { label: "1200cc +", value: "1200-" },
 ] as const;

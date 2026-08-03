@@ -49,6 +49,13 @@ import {
   isSearchFilterVisible,
   type SearchFilterId,
 } from "@/lib/constants/search-filter-config";
+import {
+  BIKE_BODY_TYPES,
+  TRUCK_BODY_TYPES,
+  HOURS_USED_STEPS,
+  getTaxonomyForCategory,
+  getSubcategoriesForTaxonomyCategory,
+} from "@/lib/constants/vehicle-taxonomy";
 
 interface FilterSheetProps {
   makes: string[];
@@ -78,6 +85,10 @@ type FilterSheetState = {
   doors: string;
   driveType: string;
   engineCc: string;
+  taxCategory: string;
+  taxSubcategory: string;
+  hoursMin: string;
+  hoursMax: string;
   sellerTypes: string[];
   verifiedOnly: boolean;
   sortBy: string;
@@ -104,6 +115,10 @@ function createEmptyFilterSheetState(): FilterSheetState {
     doors: "",
     driveType: "",
     engineCc: "",
+    taxCategory: "",
+    taxSubcategory: "",
+    hoursMin: "",
+    hoursMax: "",
     sellerTypes: [],
     verifiedOnly: false,
     sortBy: "newest",
@@ -136,6 +151,10 @@ function buildFilterSheetState(
     doors: initialFilters?.doors || searchParams.get("doors") || emptyState.doors,
     driveType: initialFilters?.driveType || searchParams.get("driveType") || emptyState.driveType,
     engineCc: initialFilters?.engineCc || searchParams.get("engineCc") || emptyState.engineCc,
+    taxCategory: initialFilters?.taxCategory || searchParams.get("taxCategory") || emptyState.taxCategory,
+    taxSubcategory: initialFilters?.taxSubcategory || searchParams.get("taxSubcategory") || emptyState.taxSubcategory,
+    hoursMin: initialFilters?.hoursMin || searchParams.get("hoursMin") || emptyState.hoursMin,
+    hoursMax: initialFilters?.hoursMax || searchParams.get("hoursMax") || emptyState.hoursMax,
     sellerTypes: initialFilters?.sellerTypes || searchParams.get("sellerType")?.split(",").filter(Boolean) || emptyState.sellerTypes,
     verifiedOnly: initialFilters?.verifiedOnly ?? (searchParams.get("verifiedOnly") === "true"),
     sortBy: initialFilters?.sortBy || searchParams.get("sortBy") || emptyState.sortBy,
@@ -193,6 +212,17 @@ function FilterSheetPanel({
 
   const category = new URLSearchParams(searchParamsString).get("category");
   const showFilter = (id: SearchFilterId) => isSearchFilterVisible(category, id);
+  const taxonomyNodes = getTaxonomyForCategory(category);
+  const taxonomySubcategories = getSubcategoriesForTaxonomyCategory(
+    category,
+    localFilters.taxCategory
+  );
+  const bodyTypeOptions =
+    category === "motorbike"
+      ? BIKE_BODY_TYPES.map((type) => ({ value: type, label: type }))
+      : category === "truck"
+        ? TRUCK_BODY_TYPES.map((type) => ({ value: type, label: type }))
+        : BODY_TYPE_OPTIONS;
   const filterLabel = (id: SearchFilterId, fallback: string) =>
     getSearchFilterLabel(category, id, fallback);
 
@@ -351,6 +381,21 @@ function FilterSheetPanel({
     if (localFilters.engineCc) params.set("engineCc", localFilters.engineCc);
     else params.delete("engineCc");
 
+    // Taxonomy category / subcategory (plant, farm, truck)
+    if (localFilters.taxCategory) params.set("taxCategory", localFilters.taxCategory);
+    else params.delete("taxCategory");
+    if (localFilters.taxCategory && localFilters.taxSubcategory) {
+      params.set("taxSubcategory", localFilters.taxSubcategory);
+    } else {
+      params.delete("taxSubcategory");
+    }
+
+    // Hours used (plant, farm)
+    if (localFilters.hoursMin) params.set("hoursMin", localFilters.hoursMin);
+    else params.delete("hoursMin");
+    if (localFilters.hoursMax) params.set("hoursMax", localFilters.hoursMax);
+    else params.delete("hoursMax");
+
     // Advanced: Seller Type
     if (localFilters.sellerTypes.length === 1) {
       params.set("sellerType", localFilters.sellerTypes[0]);
@@ -374,6 +419,8 @@ function FilterSheetPanel({
       driveType: ["driveType"],
       mileage: ["minMileage", "maxMileage"],
       engineCc: ["engineCc"],
+      taxonomy: ["taxCategory", "taxSubcategory"],
+      hoursUsed: ["hoursMin", "hoursMax"],
       sellerType: ["sellerType"],
       verifiedOnly: ["verifiedOnly"],
     };
@@ -689,6 +736,108 @@ function FilterSheetPanel({
           </div>
           ) : null}
 
+          {/* Taxonomy category / subcategory (plant, farm, truck) */}
+          {showFilter("taxonomy") && taxonomyNodes.length > 0 ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">
+                {filterLabel("taxonomy", "Category")}
+              </Label>
+              <Select
+                value={localFilters.taxCategory || "all"}
+                onValueChange={(val) =>
+                  setLocalFilters((p) => ({
+                    ...p,
+                    taxCategory: val === "all" ? "" : val,
+                    taxSubcategory: "",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {taxonomyNodes.map((node) => (
+                    <SelectItem key={node.category} value={node.category}>
+                      {node.category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {taxonomySubcategories.length > 0 ? (
+                <>
+                  <Label className="text-sm font-medium">Subcategory</Label>
+                  <Select
+                    value={localFilters.taxSubcategory || "all"}
+                    onValueChange={(val) =>
+                      setLocalFilters((p) => ({
+                        ...p,
+                        taxSubcategory: val === "all" ? "" : val,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Subcategories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Subcategories</SelectItem>
+                      {taxonomySubcategories.map((sub) => (
+                        <SelectItem key={sub} value={sub}>
+                          {sub}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Hours used (plant, farm) */}
+          {showFilter("hoursUsed") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Hours used</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={localFilters.hoursMin || "any"}
+                  onValueChange={(val) =>
+                    setLocalFilters((p) => ({ ...p, hoursMin: val === "any" ? "" : val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Min hours" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Min</SelectItem>
+                    {HOURS_USED_STEPS.map((step) => (
+                      <SelectItem key={`hmin-${step}`} value={step.toString()}>
+                        {step.toLocaleString()} hrs
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={localFilters.hoursMax || "any"}
+                  onValueChange={(val) =>
+                    setLocalFilters((p) => ({ ...p, hoursMax: val === "any" ? "" : val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Max hours" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Max</SelectItem>
+                    {HOURS_USED_STEPS.filter((step) => step > 0).map((step) => (
+                      <SelectItem key={`hmax-${step}`} value={step.toString()}>
+                        {step.toLocaleString()} hrs
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
+
           {/* Engine size (motorbikes) */}
           {showFilter("engineCc") ? (
             <div className="space-y-3">
@@ -718,7 +867,7 @@ function FilterSheetPanel({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Body Type</Label>
             <div className="flex flex-wrap gap-2">
-              {BODY_TYPE_OPTIONS.map((type) => (
+              {bodyTypeOptions.map((type) => (
                 <FilterChip
                   key={type.value}
                   selected={localFilters.bodyTypes.includes(type.value)}
