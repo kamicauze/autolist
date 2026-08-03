@@ -5,6 +5,7 @@ import { Palette } from "lucide-react";
 import { COLORS } from "@/lib/constants/filters";
 import { cn } from "@/lib/utils";
 import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
+import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import type { VehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { useWizard } from "./wizard-context";
 import {
@@ -47,6 +48,12 @@ export function StepVehicleDetails() {
   const isCarCategory = draft.category === "car";
   const hasStructuredMakeSuggestions =
     !isCarCategory && referenceOptions.makes.length > 0;
+  const taxonomyMakes = draft.category ? MAKES_BY_CATEGORY[draft.category] : undefined;
+  const [manualMakeMode, setManualMakeMode] = React.useState(false);
+
+  React.useEffect(() => {
+    setManualMakeMode(false);
+  }, [draft.category]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -84,6 +91,47 @@ export function StepVehicleDetails() {
 
   const renderReferenceField = (field: (typeof selectedCategoryFields)[number], hasError: boolean) => {
     if (field.key === "make") {
+      if (!isCarCategory && taxonomyMakes && taxonomyMakes.length > 0) {
+        const isListedMake = taxonomyMakes.includes(draft.details.make);
+        const showManualInput =
+          manualMakeMode || (draft.details.make.trim().length > 0 && !isListedMake);
+
+        return (
+          <div className="space-y-2">
+            <select
+              value={showManualInput ? "__other__" : draft.details.make}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "__other__") {
+                  setManualMakeMode(true);
+                  if (isListedMake) updateDetailField("make", "");
+                } else {
+                  setManualMakeMode(false);
+                  updateDetailField("make", value);
+                }
+              }}
+              className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
+            >
+              <option value="">Select</option>
+              {taxonomyMakes.map((make) => (
+                <option key={make} value={make}>
+                  {make}
+                </option>
+              ))}
+              <option value="__other__">Other (enter manually)</option>
+            </select>
+            {showManualInput ? (
+              <input
+                value={draft.details.make}
+                onChange={(event) => updateDetailField("make", event.target.value)}
+                placeholder="Type the make, e.g. a brand not in the list"
+                className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+              />
+            ) : null}
+          </div>
+        );
+      }
+
       if (!isCarCategory && hasStructuredMakeSuggestions) {
         return (
           <>

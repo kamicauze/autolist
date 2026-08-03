@@ -64,6 +64,16 @@ export const listingSchema = z.object({
   doors: z.coerce.number().int().min(1).max(10).optional(),
   drive_type: z.string().trim().optional(),
   details: z.record(z.string(), z.string().trim()).optional(),
+  // Stakeholder taxonomy metadata (non-car categories). Persisted top-level in
+  // listings.metadata so search filters (metadata.taxonomyCategory etc.) match.
+  taxonomyCategory: z.string().trim().optional(),
+  subcategory: z.string().trim().optional(),
+  hours_used: z.coerce.number().min(0).optional(),
+  engineCapacity: z.coerce.number().positive().optional(),
+  enginePowerBhp: z.coerce.number().positive().optional(),
+  axleConfig: z.string().trim().optional(),
+  gvmKg: z.coerce.number().positive().optional(),
+  cabType: z.string().trim().optional(),
   category: z.enum(LISTING_CATEGORIES).optional(),
   country: z.string().trim().optional(),
   cityTown: z.string().trim().optional(),

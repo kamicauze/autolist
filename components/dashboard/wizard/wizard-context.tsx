@@ -26,9 +26,17 @@ import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
 import { isValidPhoneNumber, normalizePhoneInput } from "@/lib/utils/phone";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
 import {
-  FARM_AGRICULTURAL_EQUIPMENT_TYPES,
-  PLANT_CONSTRUCTION_EQUIPMENT_TYPES,
-} from "@/lib/constants/non-car-reference-data";
+  BIKE_BODY_TYPES,
+  BIKE_FUEL_TYPES,
+  TRUCK_AXLE_CONFIGS,
+  TRUCK_BODY_TYPES,
+  TRUCK_CAB_TYPES,
+  TRUCK_CATEGORIES,
+  TRUCK_FUEL_TYPES,
+  TRUCK_GEARBOX_OPTIONS,
+  getSubcategoriesForTaxonomyCategory,
+  getTaxonomyForCategory,
+} from "@/lib/constants/vehicle-taxonomy";
 
 // ─── Types ───
 export type DetailFieldKey =
@@ -37,7 +45,8 @@ export type DetailFieldKey =
   | "engineCapacity" | "fuelType" | "fuelSystem" | "bikeType" | "color"
   | "seats" | "doors" | "axleConfiguration" | "equipmentType" | "operatingHours"
   | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType"
-  | "registrationStatus";
+  | "registrationStatus" | "taxonomyCategory" | "subcategory" | "cabType"
+  | "gvmKg" | "enginePowerBhp";
 
 export type DetailField = {
   key: DetailFieldKey;
@@ -106,7 +115,8 @@ export const DEFAULT_DRAFT: ListingDraft = {
     engineCapacity: "", fuelType: "", fuelSystem: "", bikeType: "", color: "",
     seats: "", doors: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
     operatingWeight: "", operationalStatus: "", powerOutput: "", usageType: "",
-    registrationStatus: "",
+    registrationStatus: "", taxonomyCategory: "", subcategory: "", cabType: "",
+    gvmKg: "", enginePowerBhp: "",
   },
   selectedFeatureIds: [],
   coverImageName: null,
@@ -157,23 +167,31 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Honda" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "CB500X" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2022" },
-    { key: "bikeType", label: "Bike Type", type: "select", required: true, options: [{ value: "sport", label: "Sport" }, { value: "cruiser", label: "Cruiser" }, { value: "touring", label: "Touring" }, { value: "scooter", label: "Scooter" }, { value: "dirt", label: "Dirt/Off-road" }, { value: "standard", label: "Standard/Naked" }] },
-    { key: "engineCapacity", label: "Engine Capacity (cc)", type: "number", required: true, placeholder: "500" },
+    { key: "bodyType", label: "Body Type", type: "select", required: true, options: BIKE_BODY_TYPES.map((value) => ({ value, label: value })) },
+    { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "500" },
+    { key: "enginePowerBhp", label: "Engine Power (BHP, Optional)", type: "number", required: false, placeholder: "47" },
+    { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: BIKE_FUEL_TYPES.map((value) => ({ value: value.toLowerCase(), label: value })) },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "8000" },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Red" },
   ],
   truck: [
+    { key: "taxonomyCategory", label: "Truck Category", type: "select", required: true, options: TRUCK_CATEGORIES.map((value) => ({ value, label: value })) },
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Isuzu" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "FRR" },
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2020" },
-    { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: [{ value: "diesel", label: "Diesel" }, { value: "petrol", label: "Petrol" }, { value: "cng", label: "CNG" }] },
-    { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
+    { key: "bodyType", label: "Body Type", type: "select", required: false, options: TRUCK_BODY_TYPES.map((value) => ({ value, label: value })) },
+    { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: TRUCK_FUEL_TYPES.map((value) => ({ value: value.toLowerCase(), label: value })) },
+    { key: "transmission", label: "Gearbox", type: "select", required: true, options: TRUCK_GEARBOX_OPTIONS.map((value) => ({ value: value.toLowerCase().replace(/-/g, "_"), label: value })) },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "180000" },
-    { key: "axleConfiguration", label: "Axle Configuration", type: "select", required: true, options: [{ value: "4x2", label: "4x2" }, { value: "6x2", label: "6x2" }, { value: "6x4", label: "6x4" }, { value: "8x4", label: "8x4" }] },
+    { key: "axleConfiguration", label: "Axle Configuration", type: "select", required: true, options: TRUCK_AXLE_CONFIGS.map((value) => ({ value, label: value })) },
+    { key: "cabType", label: "Cab Type (Optional)", type: "select", required: false, options: TRUCK_CAB_TYPES.map((value) => ({ value, label: value })) },
+    { key: "gvmKg", label: "GVM (kg, Optional)", type: "number", required: false, placeholder: "18000" },
+    { key: "enginePowerBhp", label: "Engine Power (BHP, Optional)", type: "number", required: false, placeholder: "280" },
     { key: "loadCapacity", label: "Load Capacity (tonnes)", type: "number", required: true, placeholder: "12" },
   ],
   plant_construction: [
-    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: PLANT_CONSTRUCTION_EQUIPMENT_TYPES.map(({ value, label }) => ({ value, label })) },
+    { key: "taxonomyCategory", label: "Category", type: "select", required: true, options: [] },
+    { key: "subcategory", label: "Subcategory", type: "select", required: true, options: [] },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Caterpillar" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "320D" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2018" },
@@ -182,7 +200,8 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
   farm_agricultural: [
-    { key: "equipmentType", label: "Subcategory", type: "select", required: true, options: FARM_AGRICULTURAL_EQUIPMENT_TYPES.map(({ value, label }) => ({ value, label })) },
+    { key: "taxonomyCategory", label: "Category", type: "select", required: true, options: [] },
+    { key: "subcategory", label: "Subcategory", type: "select", required: true, options: [] },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Massey Ferguson" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "MF 385" },
     { key: "year", label: "Year", type: "number", required: true, placeholder: "2019" },
@@ -302,16 +321,22 @@ function getSubmissionMake(draft: ListingDraft) {
 
 function getSubmissionModel(draft: ListingDraft) {
   const equipmentType = draft.details.equipmentType.trim();
-  return draft.details.model.trim() || (equipmentType ? formatEquipmentTypeLabel(equipmentType) : "");
+  return (
+    draft.details.model.trim() ||
+    draft.details.subcategory.trim() ||
+    draft.details.taxonomyCategory.trim() ||
+    (equipmentType ? formatEquipmentTypeLabel(equipmentType) : "")
+  );
 }
 
 function buildAutoListingTitle(details: ListingDraft["details"], category: ListingCategory | "" = "") {
   const trimValue = buildTrimTokens(details.trim).join(", ");
   const variantValue = details.variant.trim();
   const fallbackMake = getEquipmentFallbackMake(category);
-  const equipmentTypeLabel = details.equipmentType.trim()
-    ? formatEquipmentTypeLabel(details.equipmentType.trim())
-    : "";
+  const equipmentTypeLabel =
+    details.subcategory.trim() ||
+    details.taxonomyCategory.trim() ||
+    (details.equipmentType.trim() ? formatEquipmentTypeLabel(details.equipmentType.trim()) : "");
   const parts = [
     details.year.trim(),
     details.make.trim() || fallbackMake,
@@ -598,6 +623,14 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     videoUrl: getListingMetadataString(listing, "videoUrl") || "",
     details: {
       ...DEFAULT_DRAFT.details,
+      // Restore any category-specific detail fields (taxonomyCategory,
+      // subcategory, operatingHours, cabType, gvmKg, enginePowerBhp, ...)
+      // persisted under metadata.details so edits round-trip them.
+      ...(Object.fromEntries(
+        (Object.keys(DEFAULT_DRAFT.details) as DetailFieldKey[])
+          .filter((key) => typeof detailMetadata[key] === "string" && detailMetadata[key])
+          .map((key) => [key, detailMetadata[key]])
+      ) as Partial<ListingDraft["details"]>),
       make: listing.make ?? "",
       model: listing.model ?? "",
       trim: getListingTrim(listing) ?? "",
@@ -973,13 +1006,31 @@ export function WizardProvider({
     () => {
       if (!draft.category) return [];
       const fields = DETAIL_FIELDS_BY_CATEGORY[draft.category];
+      if (draft.category === "plant_construction" || draft.category === "farm_agricultural") {
+        const taxonomyOptions = getTaxonomyForCategory(draft.category).map((node) => ({
+          value: node.category,
+          label: node.category,
+        }));
+        const subcategoryOptions = getSubcategoriesForTaxonomyCategory(
+          draft.category,
+          draft.details.taxonomyCategory
+        ).map((value) => ({ value, label: value }));
+
+        return fields
+          .filter((field) => field.key !== "subcategory" || subcategoryOptions.length > 0)
+          .map((field) => {
+            if (field.key === "taxonomyCategory") return { ...field, options: taxonomyOptions };
+            if (field.key === "subcategory") return { ...field, options: subcategoryOptions };
+            return field;
+          });
+      }
       if (draft.category !== "car") return fields;
       return fields.filter((field) => {
         if (field.key !== "variant") return true;
         return isComplexVariantMake(draft.details.make);
       });
     },
-    [draft.category, draft.details.make]
+    [draft.category, draft.details.make, draft.details.taxonomyCategory]
   );
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const selectedFeatureGroupDefinition = draft.category ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category] : null;
@@ -1021,12 +1072,15 @@ export function WizardProvider({
       draft.details.variant.trim().toLowerCase(),
       draft.details.year.trim(),
       draft.details.equipmentType.trim().toLowerCase(),
+      draft.details.taxonomyCategory.trim().toLowerCase(),
+      draft.details.subcategory.trim().toLowerCase(),
     ].join("|");
 
     if (smartFeatureSuggestionSignatureRef.current === anchor) return;
     const hasSuggestionAnchor =
       draft.category === "plant_construction" || draft.category === "farm_agricultural"
-        ? draft.details.equipmentType.trim().length > 0
+        ? draft.details.equipmentType.trim().length > 0 ||
+          draft.details.taxonomyCategory.trim().length > 0
         : draft.details.make.trim().length > 0 && draft.details.model.trim().length > 0;
     if (!hasSuggestionAnchor) return;
 
@@ -1214,6 +1268,10 @@ export function WizardProvider({
       if (key === "model" && value !== prev.details.model) {
         nextDetails.trim = "";
         nextDetails.variant = "";
+      }
+
+      if (key === "taxonomyCategory" && value !== prev.details.taxonomyCategory) {
+        nextDetails.subcategory = "";
       }
 
       return {
@@ -1481,7 +1539,7 @@ export function WizardProvider({
     if (activeStep === 0) return Boolean(draft.category);
     if (activeStep === 1) {
       if (!draft.category) return false;
-      return DETAIL_FIELDS_BY_CATEGORY[draft.category].filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
+      return selectedCategoryFields.filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
     }
     if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim());
     if (activeStep === 3) return draft.selectedFeatureIds.length > 0;
@@ -1489,7 +1547,7 @@ export function WizardProvider({
     if (activeStep === 5) return !mediaValidationError;
     if (activeStep === 6) return !sellerValidationError;
     return true;
-  }, [activeStep, draft, mediaValidationError, sellerValidationError]);
+  }, [activeStep, draft, mediaValidationError, sellerValidationError, selectedCategoryFields]);
 
   const stepCompletion = React.useMemo(() => {
     const completion = Array.from({ length: LISTING_WIZARD_STEPS.length }, () => false);
@@ -1582,6 +1640,18 @@ export function WizardProvider({
         doors: draft.details.doors ? parseInt(draft.details.doors) : undefined,
         drive_type: draft.details.driveType || undefined,
         details: submissionDetails,
+        // Stakeholder taxonomy metadata (top-level metadata keys search filters on).
+        taxonomyCategory: draft.details.taxonomyCategory || undefined,
+        subcategory: draft.details.subcategory || undefined,
+        hours_used: draft.details.operatingHours ? Number(draft.details.operatingHours) : undefined,
+        engineCapacity:
+          draft.category === "motorbike" && draft.details.engineCapacity && Number.isFinite(Number(draft.details.engineCapacity))
+            ? Number(draft.details.engineCapacity)
+            : undefined,
+        enginePowerBhp: draft.details.enginePowerBhp ? Number(draft.details.enginePowerBhp) : undefined,
+        axleConfig: draft.details.axleConfiguration || undefined,
+        gvmKg: draft.details.gvmKg ? Number(draft.details.gvmKg) : undefined,
+        cabType: draft.details.cabType || undefined,
         category: draft.category || undefined,
         country: draft.country,
         cityTown: draft.cityTown,

@@ -54,6 +54,14 @@ export type CreateListingInput = {
     whatsappNumber?: string;
     allowPhoneCalls?: boolean;
     hidePhoneNumber?: boolean;
+    taxonomyCategory?: string;
+    subcategory?: string;
+    hours_used?: number;
+    engineCapacity?: number;
+    enginePowerBhp?: number;
+    axleConfig?: string;
+    gvmKg?: number;
+    cabType?: string;
 };
 
 type UploadedListingDocument = {
@@ -90,6 +98,16 @@ const STRING_METADATA_FIELDS = [
     "contactName",
     "phoneNumber",
     "whatsappNumber",
+    "taxonomyCategory",
+    "subcategory",
+    "axleConfig",
+    "cabType",
+] as const;
+const NUMBER_METADATA_FIELDS = [
+    "hours_used",
+    "engineCapacity",
+    "enginePowerBhp",
+    "gvmKg",
 ] as const;
 const BOOLEAN_METADATA_FIELDS = [
     "negotiable",
@@ -364,6 +382,13 @@ function applySupplementalListingMetadata(
         }
     }
 
+    for (const field of NUMBER_METADATA_FIELDS) {
+        const value = input[field];
+        if (typeof value === "number" && Number.isFinite(value)) {
+            metadata[field] = value;
+        }
+    }
+
     if (input.documentNames !== undefined) {
         const documentNames = Array.isArray(input.documentNames)
             ? input.documentNames
@@ -438,6 +463,14 @@ export async function insertListingInternal(
         whatsappNumber,
         allowPhoneCalls,
         hidePhoneNumber,
+        taxonomyCategory,
+        subcategory,
+        hours_used,
+        engineCapacity,
+        enginePowerBhp,
+        axleConfig,
+        gvmKg,
+        cabType,
         ...listingValues
     } = data;
     const normalizedDetails = buildListingDetailMetadata({
@@ -478,6 +511,14 @@ export async function insertListingInternal(
         whatsappNumber,
         allowPhoneCalls,
         hidePhoneNumber,
+        taxonomyCategory,
+        subcategory,
+        hours_used,
+        engineCapacity,
+        enginePowerBhp,
+        axleConfig,
+        gvmKg,
+        cabType,
     });
 
     // 2. Duplicate Detection (MVP)
@@ -572,6 +613,14 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         whatsappNumber,
         allowPhoneCalls,
         hidePhoneNumber,
+        taxonomyCategory,
+        subcategory,
+        hours_used,
+        engineCapacity,
+        enginePowerBhp,
+        axleConfig,
+        gvmKg,
+        cabType,
         ...listingValues
     } = input;
 
@@ -669,6 +718,14 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         whatsappNumber,
         allowPhoneCalls,
         hidePhoneNumber,
+        taxonomyCategory,
+        subcategory,
+        hours_used,
+        engineCapacity,
+        enginePowerBhp,
+        axleConfig,
+        gvmKg,
+        cabType,
     });
 
     const { error } = await writeSupabase
