@@ -13,6 +13,7 @@ import {
   LANDING_YEAR_OPTIONS,
 } from "@/lib/constants/landing-search";
 import { NON_CAR_REFERENCE_DATA } from "@/lib/constants/non-car-reference-data";
+import { HOURS_USED_STEPS } from "@/lib/constants/vehicle-taxonomy";
 import {
   DEFAULT_HOME_HERO_CMS_CONTENT,
   type HomepageHeroCmsContent,
@@ -94,6 +95,14 @@ const HERO_YEAR_TO_OPTIONS = [{ label: "To", value: "any" }, ...HERO_YEAR_OPTION
 const HERO_PRICE_OPTIONS = LANDING_PRICE_OPTIONS.filter((option) => option.value !== "any");
 const HERO_PRICE_FROM_OPTIONS = [{ label: "From", value: "any" }, ...HERO_PRICE_OPTIONS];
 const HERO_PRICE_TO_OPTIONS = [{ label: "To", value: "any" }, ...HERO_PRICE_OPTIONS];
+const HERO_HOURS_OPTIONS = [
+  { label: "Any Hours", value: "any" },
+  ...HOURS_USED_STEPS.filter((step) => step > 0).map((step) => ({
+    label: `Under ${new Intl.NumberFormat("en-KE").format(step)} hrs`,
+    value: String(step),
+  })),
+];
+
 const HERO_MILEAGE_OPTIONS = MILEAGE_RANGES.map((range, index) => ({
   label: index === 0 ? "Any Mileage" : range.label,
   value:
@@ -155,6 +164,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
   const [mileageRange, setMileageRange] = React.useState("any");
+  const [maxHours, setMaxHours] = React.useState("any");
   const [priceFrom, setPriceFrom] = React.useState("any");
   const [priceTo, setPriceTo] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
@@ -187,6 +197,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     setYearFrom("any");
     setYearTo("any");
     setMileageRange("any");
+    setMaxHours("any");
     setPriceFrom("any");
     setPriceTo("any");
   }, [activeCategory]);
@@ -243,8 +254,13 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     if (priceTo !== "any") params.set("maxPrice", priceTo);
     if (yearFrom !== "any") params.set("minYear", yearFrom);
     if (yearTo !== "any") params.set("maxYear", yearTo);
-    if (mileageBounds.minMileage) params.set("minMileage", mileageBounds.minMileage);
-    if (mileageBounds.maxMileage) params.set("maxMileage", mileageBounds.maxMileage);
+    const usesHours = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
+    if (usesHours) {
+      if (maxHours !== "any") params.set("hoursMax", maxHours);
+    } else {
+      if (mileageBounds.minMileage) params.set("minMileage", mileageBounds.minMileage);
+      if (mileageBounds.maxMileage) params.set("maxMileage", mileageBounds.maxMileage);
+    }
 
     if (make.trim() && make !== "any") {
       params.set("make", make.trim());
@@ -286,6 +302,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     activeCategory,
     location,
     make,
+    maxHours,
     mileageBounds.maxMileage,
     mileageBounds.minMileage,
     model,
@@ -866,14 +883,18 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                 >
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      Choose Mileage
+                      {activeCategory === "farm_agricultural" || activeCategory === "plant_construction"
+                        ? "Hours Used"
+                        : "Choose Mileage"}
                     </label>
-                    {renderSelectField(
-                      mileageRange,
-                      setMileageRange,
-                      HERO_MILEAGE_OPTIONS,
-                      SlidersHorizontal
-                    )}
+                    {activeCategory === "farm_agricultural" || activeCategory === "plant_construction"
+                      ? renderSelectField(maxHours, setMaxHours, HERO_HOURS_OPTIONS, SlidersHorizontal)
+                      : renderSelectField(
+                          mileageRange,
+                          setMileageRange,
+                          HERO_MILEAGE_OPTIONS,
+                          SlidersHorizontal
+                        )}
                   </div>
 
                   <div>
