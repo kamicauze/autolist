@@ -571,6 +571,16 @@ function getListingMetadataStringArray(listing: Listing, key: string) {
 
 function buildDraftFromListing(listing: Listing): ListingDraft {
   const detailMetadata = getListingMetadataDetails(listing);
+  const topLevelMetadata =
+    listing.metadata && typeof listing.metadata === "object"
+      ? (listing.metadata as Record<string, unknown>)
+      : {};
+  const topLevelString = (key: string) => {
+    const value = topLevelMetadata[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    return "";
+  };
   const sortedImages = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order);
   const [coverImage, ...galleryImages] = sortedImages;
   const sellerTypeMetadata = getListingMetadataString(listing, "sellerType");
@@ -646,7 +656,16 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
         detailMetadata.engine_capacity ??
         detailMetadata.engineDisplacement ??
         detailMetadata.engine_displacement ??
-        "",
+        (topLevelString("engineCapacity") || ""),
+      // Taxonomy fields may live only as top-level metadata keys (search
+      // filters read them there; seeded listings write them there).
+      taxonomyCategory: detailMetadata.taxonomyCategory || topLevelString("taxonomyCategory"),
+      subcategory: detailMetadata.subcategory || topLevelString("subcategory"),
+      operatingHours: detailMetadata.operatingHours || topLevelString("hours_used"),
+      enginePowerBhp: detailMetadata.enginePowerBhp || topLevelString("enginePowerBhp"),
+      axleConfiguration: detailMetadata.axleConfiguration || topLevelString("axleConfig"),
+      gvmKg: detailMetadata.gvmKg || topLevelString("gvmKg"),
+      cabType: detailMetadata.cabType || topLevelString("cabType"),
       color: listing.color ?? detailMetadata.color ?? "",
       registrationStatus: detailMetadata.registrationStatus ?? "",
       seats:
