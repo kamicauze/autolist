@@ -16,6 +16,7 @@ import {
   adminTextareaClass,
 } from "./admin-ui";
 import type { SupportQueueData, SupportTicketListItem } from "@/lib/types/messaging";
+import { parseInsuranceSupportTicketMeta } from "@/lib/insurance/support-ticket-fallback";
 
 type AdminTicketQueueProps = {
   initialData: SupportQueueData | null;
@@ -66,6 +67,7 @@ export function AdminTicketQueue({
 
   const viewer = initialData?.viewer || null;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedId) || tickets[0] || null;
+  const insuranceMeta = parseInsuranceSupportTicketMeta(selectedTicket?.resolutionNote);
 
   React.useEffect(() => {
     const requestedTicket = searchParams.get("ticket");
@@ -311,15 +313,50 @@ export function AdminTicketQueue({
                 />
               </label>
 
-              <label className="space-y-2 text-[13px] font-medium text-[#344054]">
-                Resolution note
-                <textarea
-                  className={adminTextareaClass}
-                  value={resolutionNote}
-                  onChange={(event) => setResolutionNote(event.target.value)}
-                  placeholder="Record the outcome when this ticket is resolved."
-                />
-              </label>
+              {insuranceMeta ? (
+                <div className="space-y-2 text-[13px] font-medium text-[#344054]">
+                  Insurance request details
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-[12px] border border-[#e4e7ec] bg-[#fbfcfd] px-4 py-3 text-[13px] font-normal sm:grid-cols-2">
+                    {[
+                      ["Reference", insuranceMeta.reference],
+                      ["Customer", insuranceMeta.fullName],
+                      ["Email", insuranceMeta.email],
+                      ["Phone", `${insuranceMeta.phoneCountryCode} ${insuranceMeta.phoneNumber}`.trim()],
+                      ["Vehicle", `${insuranceMeta.vehicleYear} ${insuranceMeta.vehicleMakeModel}`],
+                      ["Cover", insuranceMeta.coverType],
+                      ["Preferred start", insuranceMeta.preferredStartDate],
+                      ["Insurer", insuranceMeta.insurerName],
+                      [
+                        "Quote",
+                        insuranceMeta.quoteAmount != null
+                          ? `${insuranceMeta.quoteCurrency} ${new Intl.NumberFormat("en-KE").format(insuranceMeta.quoteAmount)}`
+                          : null,
+                      ],
+                      ["Admin notes", insuranceMeta.adminNotes],
+                    ]
+                      .filter(([, value]) => value)
+                      .map(([label, value]) => (
+                        <div key={label as string}>
+                          <dt className="text-[11px] uppercase tracking-wide text-[#98a2b3]">{label}</dt>
+                          <dd className="text-[#344054]">{value}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                  <p className="text-[12px] font-normal text-[#98a2b3]">
+                    Managed from the Insurance admin page — this record updates automatically.
+                  </p>
+                </div>
+              ) : (
+                <label className="space-y-2 text-[13px] font-medium text-[#344054]">
+                  Resolution note
+                  <textarea
+                    className={adminTextareaClass}
+                    value={resolutionNote}
+                    onChange={(event) => setResolutionNote(event.target.value)}
+                    placeholder="Record the outcome when this ticket is resolved."
+                  />
+                </label>
+              )}
             </div>
           ) : (
             <div className="rounded-[14px] border border-dashed border-[#d0d5dd] bg-[#fbfcfd] px-5 py-8 text-[14px] text-[#6b7280]">
