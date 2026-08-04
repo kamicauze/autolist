@@ -327,7 +327,7 @@ export function CarCard({
       </div>
 
       <div className={cn("flex flex-1 flex-col divide-y divide-border/70", isCompact ? "p-3.5" : "p-4")}>
-        <div className={cn("flex items-start", isCompact ? "min-h-12 pb-2.5" : "min-h-14 pb-3")}>
+        <div className={cn("flex items-start", isCompact ? "pb-2.5" : "pb-3")}>
           <h3
             className={cn(
               "line-clamp-2 break-words font-medium text-card-foreground",
