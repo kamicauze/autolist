@@ -24,6 +24,66 @@ type AdminTicketQueueProps = {
   description?: string;
 };
 
+function humanizeCategory(category: string) {
+  return category
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getTicketKind(ticket: SupportTicketListItem | null) {
+  if (!ticket) return "inquiry" as const;
+  if (parseInsuranceSupportTicketMeta(ticket.resolutionNote)) return "insurance" as const;
+  if (ticket.thread) return "conversation" as const;
+  return "inquiry" as const;
+}
+
+const TICKET_KIND_LABELS = {
+  insurance: "Insurance",
+  conversation: "Conversation",
+  inquiry: "Inquiry",
+} as const;
+
+const STATUS_LABELS: Record<SupportTicketListItem["status"], string> = {
+  open: "Open",
+  triaged: "Triaged",
+  waiting_on_seller: "Waiting on seller",
+  waiting_on_buyer: "Waiting on buyer",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+const INSURANCE_STATUS_LABELS: Record<SupportTicketListItem["status"], string> = {
+  open: "New request",
+  triaged: "Quoted",
+  waiting_on_seller: "Blocked",
+  waiting_on_buyer: "Blocked (waiting on customer)",
+  resolved: "Bound (policy issued)",
+  closed: "Cancelled",
+};
+
+function SummaryLines({ text }: { text: string }) {
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  return (
+    <div className="mt-2 space-y-1">
+      {lines.map((line, index) => {
+        const match = line.match(/^([A-Za-z][A-Za-z ]{0,24}):\s*(.*)$/);
+        if (!match) {
+          return (
+            <p key={index} className="text-[13px] leading-6 text-[#475467]">
+              {line}
+            </p>
+          );
+        }
+        return (
+          <p key={index} className="text-[13px] leading-6 text-[#475467]">
+            <span className="font-semibold text-[#111827]">{match[1]}:</span> {match[2]}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function toneForStatus(status: SupportTicketListItem["status"]) {
   if (status === "resolved") return "green" as const;
   if (status === "closed") return "slate" as const;
@@ -68,6 +128,7 @@ export function AdminTicketQueue({
   const viewer = initialData?.viewer || null;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedId) || tickets[0] || null;
   const insuranceMeta = parseInsuranceSupportTicketMeta(selectedTicket?.resolutionNote);
+  const selectedKind = getTicketKind(selectedTicket);
 
   React.useEffect(() => {
     const requestedTicket = searchParams.get("ticket");
@@ -165,9 +226,10 @@ export function AdminTicketQueue({
             ) : null}
             {tickets.map((ticket) => {
               const active = ticket.id === selectedTicket?.id;
+              const kind = getTicketKind(ticket);
               const contextLabel = ticket.thread
                 ? `${ticket.thread.buyerName || "Buyer"} • ${ticket.listing?.title || "Listing"}`
-                : `${ticket.category.replace(/[_-]+/g, " ")} • ${
+                : `${humanizeCategory(ticket.category)} • ${
                     ticket.createdBy?.fullName || ticket.createdBy?.email || "Public inquiry"
                   }`;
               return (
@@ -190,7 +252,15 @@ export function AdminTicketQueue({
                     <p className="text-[11px] text-[#94a3b8]">{formatTime(ticket.updatedAt)}</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <AdminStatusPill label={ticket.status} tone={toneForStatus(ticket.status)} />
+                    <AdminStatusPill label={TICKET_KIND_LABELS[kind]} tone="slate" />
+                    <AdminStatusPill
+                      label={
+                        kind === "insurance"
+                          ? INSURANCE_STATUS_LABELS[ticket.status]
+                          : STATUS_LABELS[ticket.status]
+                      }
+                      tone={toneForStatus(ticket.status)}
+                    />
                     <AdminStatusPill label={ticket.priority} tone={toneForPriority(ticket.priority)} />
                   </div>
                   <p className="mt-3 line-clamp-2 text-[13px] leading-6 text-[#475467]">
@@ -238,26 +308,76 @@ export function AdminTicketQueue({
               ) : null}
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] p-4">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
-                    Conversation
-                  </p>
-                  <p className="mt-2 text-[13px] leading-6 text-[#344054]">
-                    <span className="font-semibold text-[#111827]">Buyer:</span>{" "}
-                    {selectedTicket.thread?.buyerName || "Unknown"}
-                  </p>
-                  <p className="text-[13px] leading-6 text-[#344054]">
-                    <span className="font-semibold text-[#111827]">Seller:</span>{" "}
-                    {selectedTicket.thread?.sellerName || "Unknown"}
-                  </p>
-                  <p className="text-[13px] leading-6 text-[#344054]">
-                    <span className="font-semibold text-[#111827]">Listing:</span>{" "}
-                    {selectedTicket.listing?.title || "Unknown listing"}
-                  </p>
-                  <p className="mt-2 text-[13px] leading-6 text-[#475467]">
-                    {selectedTicket.thread?.lastMessagePreview || "No message preview."}
-                  </p>
-                </div>
+                {selectedKind === "insurance" && insuranceMeta ? (
+                  <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] p-4">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
+                      Insurance request
+                    </p>
+                    <dl className="mt-2 space-y-1 text-[13px] leading-6">
+                      {[
+                        ["Reference", insuranceMeta.reference],
+                        ["Customer", insuranceMeta.fullName],
+                        ["Email", insuranceMeta.email],
+                        ["Phone", `${insuranceMeta.phoneCountryCode} ${insuranceMeta.phoneNumber}`.trim()],
+                        ["Vehicle", `${insuranceMeta.vehicleYear} ${insuranceMeta.vehicleMakeModel}`],
+                        ["Cover", insuranceMeta.coverType],
+                        ["Preferred start", insuranceMeta.preferredStartDate],
+                        ["Insurer", insuranceMeta.insurerName],
+                        [
+                          "Quote",
+                          insuranceMeta.quoteAmount != null
+                            ? `${insuranceMeta.quoteCurrency} ${new Intl.NumberFormat("en-KE").format(insuranceMeta.quoteAmount)}`
+                            : null,
+                        ],
+                      ]
+                        .filter(([, value]) => value)
+                        .map(([label, value]) => (
+                          <div key={label as string} className="flex gap-2">
+                            <dt className="shrink-0 font-semibold text-[#111827]">{label}:</dt>
+                            <dd className="min-w-0 break-words text-[#344054]">{value}</dd>
+                          </div>
+                        ))}
+                    </dl>
+                  </div>
+                ) : selectedTicket.thread ? (
+                  <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] p-4">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
+                      Conversation
+                    </p>
+                    <p className="mt-2 text-[13px] leading-6 text-[#344054]">
+                      <span className="font-semibold text-[#111827]">Buyer:</span>{" "}
+                      {selectedTicket.thread.buyerName || "Unknown"}
+                    </p>
+                    <p className="text-[13px] leading-6 text-[#344054]">
+                      <span className="font-semibold text-[#111827]">Seller:</span>{" "}
+                      {selectedTicket.thread.sellerName || "Unknown"}
+                    </p>
+                    <p className="text-[13px] leading-6 text-[#344054]">
+                      <span className="font-semibold text-[#111827]">Listing:</span>{" "}
+                      {selectedTicket.listing?.title || "Unknown listing"}
+                    </p>
+                    <p className="mt-2 text-[13px] leading-6 text-[#475467]">
+                      {selectedTicket.thread.lastMessagePreview || "No message preview."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] p-4">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
+                      Request
+                    </p>
+                    <p className="mt-2 text-[13px] leading-6 text-[#344054]">
+                      <span className="font-semibold text-[#111827]">Type:</span>{" "}
+                      {humanizeCategory(selectedTicket.category)}
+                    </p>
+                    <p className="text-[13px] leading-6 text-[#344054]">
+                      <span className="font-semibold text-[#111827]">Submitted by:</span>{" "}
+                      {selectedTicket.createdBy?.fullName || selectedTicket.createdBy?.email || "Public visitor"}
+                    </p>
+                    <p className="mt-2 text-[13px] leading-6 text-[#475467]">
+                      Not linked to a buyer-seller conversation.
+                    </p>
+                  </div>
+                )}
 
                 <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] p-4">
                   <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#667085]">
@@ -286,20 +406,21 @@ export function AdminTicketQueue({
                     value={status}
                     onChange={(event) => setStatus(event.target.value as SupportTicketListItem["status"])}
                   >
-                    <option value="open">Open</option>
-                    <option value="triaged">Triaged</option>
-                    <option value="waiting_on_seller">Waiting on seller</option>
-                    <option value="waiting_on_buyer">Waiting on buyer</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
+                    {(Object.keys(STATUS_LABELS) as SupportTicketListItem["status"][]).map((value) => (
+                      <option key={value} value={value}>
+                        {selectedKind === "insurance" ? INSURANCE_STATUS_LABELS[value] : STATUS_LABELS[value]}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
                 <div className="rounded-[14px] border border-[#eef2f7] bg-[#fbfcfd] px-4 py-3 text-[13px] leading-6 text-[#475467]">
                   <p className="font-semibold text-[#111827]">Customer summary</p>
-                  <p className="mt-2">
-                    {selectedTicket.customerSummary || "No customer summary on this ticket yet."}
-                  </p>
+                  {selectedTicket.customerSummary ? (
+                    <SummaryLines text={selectedTicket.customerSummary} />
+                  ) : (
+                    <p className="mt-2">No customer summary on this ticket yet.</p>
+                  )}
                 </div>
               </div>
 
@@ -314,38 +435,10 @@ export function AdminTicketQueue({
               </label>
 
               {insuranceMeta ? (
-                <div className="space-y-2 text-[13px] font-medium text-[#344054]">
-                  Insurance request details
-                  <dl className="grid grid-cols-1 gap-x-6 gap-y-2 rounded-[12px] border border-[#e4e7ec] bg-[#fbfcfd] px-4 py-3 text-[13px] font-normal sm:grid-cols-2">
-                    {[
-                      ["Reference", insuranceMeta.reference],
-                      ["Customer", insuranceMeta.fullName],
-                      ["Email", insuranceMeta.email],
-                      ["Phone", `${insuranceMeta.phoneCountryCode} ${insuranceMeta.phoneNumber}`.trim()],
-                      ["Vehicle", `${insuranceMeta.vehicleYear} ${insuranceMeta.vehicleMakeModel}`],
-                      ["Cover", insuranceMeta.coverType],
-                      ["Preferred start", insuranceMeta.preferredStartDate],
-                      ["Insurer", insuranceMeta.insurerName],
-                      [
-                        "Quote",
-                        insuranceMeta.quoteAmount != null
-                          ? `${insuranceMeta.quoteCurrency} ${new Intl.NumberFormat("en-KE").format(insuranceMeta.quoteAmount)}`
-                          : null,
-                      ],
-                      ["Admin notes", insuranceMeta.adminNotes],
-                    ]
-                      .filter(([, value]) => value)
-                      .map(([label, value]) => (
-                        <div key={label as string}>
-                          <dt className="text-[11px] uppercase tracking-wide text-[#98a2b3]">{label}</dt>
-                          <dd className="text-[#344054]">{value}</dd>
-                        </div>
-                      ))}
-                  </dl>
-                  <p className="text-[12px] font-normal text-[#98a2b3]">
-                    Managed from the Insurance admin page — this record updates automatically.
-                  </p>
-                </div>
+                <p className="rounded-[12px] border border-[#e4e7ec] bg-[#fbfcfd] px-4 py-3 text-[12px] text-[#98a2b3]">
+                  This ticket is an insurance request — its details are shown above and are managed
+                  from the Insurance admin page. There is no free-text resolution note.
+                </p>
               ) : (
                 <label className="space-y-2 text-[13px] font-medium text-[#344054]">
                   Resolution note
