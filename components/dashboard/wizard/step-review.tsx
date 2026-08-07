@@ -6,8 +6,20 @@ import {
   LISTING_FEATURE_GROUPS_BY_CATEGORY,
   LISTING_FEATURES_BY_CATEGORY,
 } from "@/lib/constants/marketplace";
+import { PencilLine } from "lucide-react";
 import { formatKES, useWizard } from "./wizard-context";
 import { ListingQualityPanel } from "./listing-quality-panel";
+
+export const REVIEW_SECTION_STEPS = {
+  category: 0,
+  details: 1,
+  basics: 2,
+  features: 3,
+  description: 4,
+  media: 5,
+  seller: 6,
+  priceIntelligence: 7,
+} as const;
 
 function formatOptionLabel(
   value: string,
@@ -37,16 +49,29 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 function SummarySection({
   title,
   description,
+  onEdit,
   children,
 }: {
   title: string;
   description: string;
+  onEdit: () => void;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4">
       <div className="border-b border-[#e7e7e7] pb-3">
-        <h3 className="font-heading text-[18px] font-semibold text-[#202224]">{title}</h3>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-heading text-[18px] font-semibold text-[#202224]">{title}</h3>
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${title}`}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border border-[#d9d9d9] bg-white px-3 text-[12px] font-semibold text-primary transition hover:border-primary hover:bg-brand-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
+            Edit
+          </button>
+        </div>
         <p className="mt-1 text-[13px] leading-5 text-[#767676]">{description}</p>
       </div>
       <div className="divide-y divide-[#ececec]">{children}</div>
@@ -55,7 +80,14 @@ function SummarySection({
 }
 
 export function StepReview() {
-  const { draft, isEditing, selectedCategoryFields, marketIndicator, videoFile } = useWizard();
+  const {
+    draft,
+    isEditing,
+    selectedCategoryFields,
+    marketIndicator,
+    videoFile,
+    goToStep,
+  } = useWizard();
 
   const categoryLabel =
     LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "-";
@@ -96,6 +128,12 @@ export function StepReview() {
     `Documents: ${draft.documentNames.length}`,
     `Video: ${videoFile ? `Upload ready (${videoFile.name})` : draft.videoUrl || "Not provided"}`,
   ];
+  const editSection = (stepIndex: number) => {
+    goToStep(stepIndex, { showValidationErrors: false });
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -108,11 +146,19 @@ export function StepReview() {
       </div>
 
       <SummarySection
+        title="Listing Category"
+        description="The marketplace category controls the details and features available in this listing."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.category)}
+      >
+        <SummaryRow label="Category" value={categoryLabel} />
+      </SummarySection>
+
+      <SummarySection
         title="Listing Basics"
         description="Primary public-facing details for the listing card and vehicle page."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.basics)}
       >
         <SummaryRow label="Listing Title" value={draft.title || "-"} />
-        <SummaryRow label="Category" value={categoryLabel} />
         <SummaryRow label="Condition" value={conditionLabel} />
         <SummaryRow label="Price" value={formatKES(draft.priceKes)} />
         <SummaryRow label="Negotiable" value={draft.negotiable ? "Yes" : "No"} />
@@ -121,15 +167,12 @@ export function StepReview() {
           label="Location"
           value={`${draft.locationArea || "-"}, ${draft.cityTown || "-"}, ${draft.country || "-"}`}
         />
-        <SummaryRow
-          label="Description"
-          value={draft.description.trim() || "No description provided."}
-        />
       </SummarySection>
 
       <SummarySection
         title="Vehicle / Equipment Details"
         description="Category-specific technical details captured from the dynamic form."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.details)}
       >
         {detailRows.length > 0 ? (
           detailRows.map((row) => (
@@ -143,6 +186,7 @@ export function StepReview() {
       <SummarySection
         title="Features & Specifications"
         description="All selected feature IDs that will strengthen the listing detail page."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.features)}
       >
         <SummaryRow
           label="Feature Count"
@@ -167,8 +211,20 @@ export function StepReview() {
       </SummarySection>
 
       <SummarySection
+        title="Listing Description"
+        description="Buyer-facing copy used on the public listing page."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.description)}
+      >
+        <SummaryRow
+          label="Description"
+          value={draft.description.trim() || "No description provided."}
+        />
+      </SummarySection>
+
+      <SummarySection
         title="Media & Documents"
         description="Assets attached to the listing, including cover, gallery, documents, and video."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.media)}
       >
         <SummaryRow label="Cover Status" value={hasCoverImage ? "Cover ready" : "No cover selected"} />
         <SummaryRow label="Gallery Images" value={draft.galleryImageNames.join(", ") || "No gallery images uploaded"} />
@@ -183,6 +239,7 @@ export function StepReview() {
       <SummarySection
         title="Seller Information"
         description="Contact and visibility preferences buyers will see when reaching out."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.seller)}
       >
         <SummaryRow
           label="Seller Type"
@@ -215,6 +272,7 @@ export function StepReview() {
       <SummarySection
         title="Price Intelligence & Submission"
         description="Current market signal and what will happen after the listing is submitted."
+        onEdit={() => editSection(REVIEW_SECTION_STEPS.priceIntelligence)}
       >
         <SummaryRow label="Market Position" value={marketIndicator.label} />
         <SummaryRow label="Market Note" value={marketIndicator.note} />

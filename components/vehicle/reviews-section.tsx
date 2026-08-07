@@ -28,7 +28,7 @@ export function ReviewsSection({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="mb-2 text-xl font-bold text-gray-900">Car User Reviews & Rating</h2>
+        <h2 className="mb-2 text-xl font-bold text-gray-900">User Reviews & Ratings</h2>
 
         <div className="mb-6 flex items-center gap-4 rounded-lg border border-brand-muted-border bg-brand-tint p-4">
           <div className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export function ReviewsSection({
 
       {reviews.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-600">
-          Signed-in buyers can leave the first public review from this vehicle page after
+          Signed-in buyers can leave the first public review from this listing page after
           exploring the listing.
         </div>
       ) : (

@@ -692,7 +692,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
         getValue: (listing) => valueOrDash(getListingEngineDisplacement(listing)),
       },
       {
-        label: "Car location",
+        label: "Location",
         getValue: (listing) => valueOrDash(getListingDisplayLocation(listing)),
       },
     ],
@@ -883,7 +883,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
 
               <TabsContent value="overview" className="mt-5">
                 <ComparisonTable
-                  sectionTitle="Car Overview"
+                  sectionTitle="Overview"
                   rows={overviewRows}
                   listings={selectedListings}
                 />

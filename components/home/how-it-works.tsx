@@ -4,7 +4,7 @@ const steps = [
   {
     icon: Search,
     number: "01",
-    title: "Find your ideal car",
+    title: "Find your ideal vehicle",
     description:
       "Browse thousands of listings from private sellers and trusted dealers.",
   },

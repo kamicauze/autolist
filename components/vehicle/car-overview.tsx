@@ -14,125 +14,57 @@ import {
 } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
 import {
-  getListingBodyTypeLabel,
-  getListingEngineDisplacement,
-  getListingFuelTypeLabel,
-  getListingMileageLabel,
-  getListingTransmissionLabel,
-  getListingTrim,
-  getListingVariant,
-} from "@/lib/utils/vehicle-display";
-import {
-  formatListingRegistrationStatus,
-  getListingMetadataString,
-} from "@/lib/utils/listing-details";
+  buildListingOverviewItems,
+  type ListingOverviewItem,
+} from "@/lib/utils/listing-overview";
 
 interface CarOverviewProps {
   listing: Listing;
   location?: string;
 }
 
-interface Item {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-}
+const OVERVIEW_ICONS: Record<string, React.ReactNode> = {
+  Mileage: <Gauge className="h-4 w-4" />,
+  Condition: <BadgeCheck className="h-4 w-4" />,
+  Registration: <BadgeCheck className="h-4 w-4" />,
+  "Fuel Type": <Fuel className="h-4 w-4" />,
+  CC: <Cog className="h-4 w-4" />,
+  Transmission: <Settings className="h-4 w-4" />,
+  "Drive type": <Settings className="h-4 w-4" />,
+  "Body Type": <Car className="h-4 w-4" />,
+  Category: <Car className="h-4 w-4" />,
+  Subcategory: <Cog className="h-4 w-4" />,
+  Trim: <Car className="h-4 w-4" />,
+  "Model Variant": <Cog className="h-4 w-4" />,
+  Color: <Palette className="h-4 w-4" />,
+  Doors: <DoorOpen className="h-4 w-4" />,
+  Seats: <Users className="h-4 w-4" />,
+  Location: <MapPin className="h-4 w-4" />,
+};
 
-function readMetadataValue(metadata: Listing["metadata"], key: string) {
-  const value = metadata && key in metadata ? metadata[key] : null;
-  return value == null ? "" : String(value);
-}
+function OverviewItem({ item }: { item: ListingOverviewItem }) {
+  const icon = OVERVIEW_ICONS[item.label];
 
-function formatRegistrationStatus(listing: Listing) {
-  const status = getListingMetadataString(listing, "registrationStatus");
-  const label = formatListingRegistrationStatus(status);
-  return label === "N/A" ? "" : label;
-}
-
-function OverviewItem({ item }: { item: Item }) {
   return (
     <div className="flex gap-2 rounded-lg border border-gray-100 bg-white p-3">
-      {item.icon ? <div className="mt-0.5 text-gray-400">{item.icon}</div> : null}
-      <div className="min-w-0">
+      {icon ? <div className="mt-0.5 shrink-0 text-gray-400">{icon}</div> : null}
+      <div className="min-w-0 flex-1">
         <p className="text-xs text-gray-500">{item.label}</p>
-        <p className="truncate text-sm font-semibold text-gray-900">{item.value}</p>
+        <p className="break-words text-sm font-semibold leading-snug text-gray-900">
+          {item.value}
+        </p>
       </div>
     </div>
   );
 }
 
 export function CarOverview({ listing, location }: CarOverviewProps) {
-  const items: Item[] = [
-    {
-      label: "Mileage",
-      value: getListingMileageLabel(listing),
-      icon: <Gauge className="h-4 w-4" />,
-    },
-    {
-      label: "Year",
-      value: String(listing.year),
-    },
-    {
-      label: "Registration",
-      value: formatRegistrationStatus(listing),
-      icon: <BadgeCheck className="h-4 w-4" />,
-    },
-    {
-      label: "Fuel Type",
-      value: getListingFuelTypeLabel(listing),
-      icon: <Fuel className="h-4 w-4" />,
-    },
-    {
-      label: "CC",
-      value: getListingEngineDisplacement(listing) || "",
-      icon: <Cog className="h-4 w-4" />,
-    },
-    {
-      label: "Transmission",
-      value: getListingTransmissionLabel(listing),
-      icon: <Settings className="h-4 w-4" />,
-    },
-    {
-      label: "Body Type",
-      value: getListingBodyTypeLabel(listing, ""),
-      icon: <Car className="h-4 w-4" />,
-    },
-    {
-      label: "Trim",
-      value: getListingTrim(listing) || "",
-      icon: <Car className="h-4 w-4" />,
-    },
-    {
-      label: "Model Variant",
-      value: getListingVariant(listing) || "",
-      icon: <Cog className="h-4 w-4" />,
-    },
-    {
-      label: "Color",
-      value: listing.color || "",
-      icon: <Palette className="h-4 w-4" />,
-    },
-    {
-      label: "Doors",
-      value: listing.doors ? String(listing.doors) : readMetadataValue(listing.metadata, "doors"),
-      icon: <DoorOpen className="h-4 w-4" />,
-    },
-    {
-      label: "Seats",
-      value: listing.seats ? String(listing.seats) : readMetadataValue(listing.metadata, "seats"),
-      icon: <Users className="h-4 w-4" />,
-    },
-    {
-      label: "Location",
-      value: location || listing.dealer?.city || "Kenya",
-      icon: <MapPin className="h-4 w-4" />,
-    },
-  ].filter((item) => Boolean(item.value));
+  const items = buildListingOverviewItems(listing, location);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="mb-4 text-lg font-semibold text-gray-900">Overview</h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => (
           <OverviewItem key={item.label} item={item} />
         ))}

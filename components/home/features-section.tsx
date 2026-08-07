@@ -46,14 +46,14 @@ export function FeaturesSection() {
     <section className="py-16 bg-muted">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="h3 mb-4">Find your dream car easily and quickly</h2>
+          <h2 className="h3 mb-4">Find your next vehicle easily and quickly</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             We make it simple to find, compare, and purchase your next vehicle with our streamlined process.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <div
               key={feature.title}
               className="bg-white rounded-xl p-6 text-center hover:shadow-lg transition-shadow"

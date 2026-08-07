@@ -42,8 +42,8 @@ export function useListingEnquiry({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function submitEnquiry() {
-    const trimmed = message.trim();
+  async function submitEnquiry(messageOverride?: string) {
+    const trimmed = (messageOverride ?? message).trim();
     if (!trimmed) {
       setFeedback("Write a message before sending.");
       return false;

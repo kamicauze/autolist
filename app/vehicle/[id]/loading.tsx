@@ -25,7 +25,7 @@ export default function VehicleLoading() {
           </div>
 
           <section className="mt-8 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-700">Car Overview</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Overview</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {Array.from({ length: 20 }).map((_, index) => (
                 <SkeletonRow key={`overview-${index}`} />

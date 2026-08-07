@@ -10,10 +10,10 @@ export function NoPackageWarning() {
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
         <AlertTriangle className="h-8 w-8 text-amber-500" />
       </div>
-      <h2 className="text-xl font-bold text-foreground">No Active Package</h2>
+      <h2 className="text-xl font-bold text-foreground">No active dealer plan</h2>
       <p className="text-sm text-muted-foreground">
-        You need an active listing package to create new listings. Choose a plan
-        to get started and reach more buyers.
+        Listing submission remains open during the dealer pilot. Choose a plan
+        when you are ready to manage membership and billing.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link href="/dashboard/membership">

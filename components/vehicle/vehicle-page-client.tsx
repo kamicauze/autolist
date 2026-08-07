@@ -45,16 +45,10 @@ import { FinancingRequestDialog } from "./financing-request-dialog";
 import { ReportAdDialog } from "./report-ad-dialog";
 import { QuickContactQr } from "./quick-contact-qr";
 import {
-  getListingEngineDisplacement,
   getListingTrim,
   getListingVariant,
 } from "@/lib/utils/vehicle-display";
-import {
-  formatListingCondition,
-  formatListingLabel,
-  formatListingRegistrationStatus,
-  getListingMetadataString,
-} from "@/lib/utils/listing-details";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsDirectionsUrl } from "@/lib/google-maps";
 import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
@@ -78,7 +72,6 @@ interface VehiclePageClientProps {
 
 type SectionKey =
   | "description"
-  | "about"
   | "features"
   | "location"
   | "buySafely"
@@ -88,7 +81,6 @@ type SectionKey =
 
 type PageStatePreset =
   | "base"
-  | "about-open"
   | "expanded"
   | "most-open"
   | "price-adviser";
@@ -96,17 +88,6 @@ type PageStatePreset =
 const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
   base: {
     description: true,
-    about: false,
-    features: false,
-    location: false,
-    buySafely: false,
-    loan: false,
-    insurance: false,
-    reviews: false,
-  },
-  "about-open": {
-    description: false,
-    about: true,
     features: false,
     location: false,
     buySafely: false,
@@ -116,7 +97,6 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
   },
   expanded: {
     description: false,
-    about: false,
     features: true,
     location: true,
     buySafely: true,
@@ -126,7 +106,6 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
   },
   "most-open": {
     description: false,
-    about: true,
     features: true,
     location: true,
     buySafely: true,
@@ -136,7 +115,6 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
   },
   "price-adviser": {
     description: false,
-    about: true,
     features: true,
     location: true,
     buySafely: true,
@@ -183,7 +161,6 @@ function subscribeToOrigin() {
 }
 
 function getPresetFromQuery(value: string | null): PageStatePreset {
-  if (value === "about-open") return "about-open";
   if (value === "expanded") return "expanded";
   if (value === "most-open") return "most-open";
   if (value === "price-adviser") return "price-adviser";
@@ -254,11 +231,6 @@ function MapBlock({
       </Button>
     </div>
   );
-}
-
-function metadataValue(metadata: Listing["metadata"], key: string) {
-  const value = metadata && key in metadata ? metadata[key] : null;
-  return value == null ? "" : String(value);
 }
 
 type ListingDocument = {
@@ -367,30 +339,6 @@ function getListingDocuments(metadata: Listing["metadata"]): ListingDocument[] {
         (candidate) => candidate.name === document.name && candidate.url === document.url
       ) === index
   );
-}
-
-function formatRegistrationStatus(listing: Listing) {
-  const status = getListingMetadataString(listing, "registrationStatus");
-  return formatListingRegistrationStatus(status);
-}
-
-function getModelDescription(listing: Listing) {
-  const bodyType = formatListingLabel(listing.body_type) || "vehicle";
-  const fuelType = formatListingLabel(listing.fuel_type);
-  const transmission = formatListingLabel(listing.transmission);
-  const variant = getListingVariant(listing);
-  const displacement = getListingEngineDisplacement(listing);
-  const seats = listing.seats ? `${listing.seats}-seat` : "";
-  const modelName = [listing.make, listing.model, variant].filter(Boolean).join(" ");
-  const specSummary = [displacement, fuelType, transmission, seats]
-    .filter(Boolean)
-    .join(", ");
-
-  return `${modelName} is a ${bodyType.toLowerCase()} model from ${listing.make}, built for buyers comparing space, comfort, running costs, and everyday usability. ${
-    specSummary
-      ? `Across this model line, shoppers commonly compare configuration details such as ${specSummary}. `
-      : ""
-  }It is best understood by looking at how the model balances practicality, cabin comfort, performance, and long-term ownership needs.`;
 }
 
 export function VehiclePageClient({
@@ -765,40 +713,6 @@ export function VehiclePageClient({
               </AccordionSection>
 
               <AccordionSection
-                title={`About ${listing.make} ${listing.model}`}
-                open={accordionState.about}
-                onOpenChange={(open) => setSectionOpen("about", open)}
-              >
-                <div className="space-y-4 text-sm leading-relaxed text-gray-600">
-                  <p>{getModelDescription(listing)}</p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {[
-                      { label: "Condition", value: formatListingCondition(listing.condition) },
-                      { label: "Registration", value: formatRegistrationStatus(listing) },
-                      { label: "Trim", value: getListingTrim(listing) },
-                      { label: "Model Variant", value: getListingVariant(listing) },
-                      { label: "CC", value: getListingEngineDisplacement(listing) },
-                      {
-                        label: "Drive type",
-                        value:
-                          formatListingLabel(listing.drive_type) ||
-                          formatListingLabel(metadataValue(listing.metadata, "drive_type")),
-                      },
-                      { label: "Stock number", value: metadataValue(listing.metadata, "stock_number") },
-                      { label: "VIN number", value: metadataValue(listing.metadata, "vin") },
-                    ]
-                      .filter((item) => item.value && item.value !== "N/A")
-                      .map((item) => (
-                        <div key={item.label} className="rounded-lg border border-gray-100 p-3">
-                          <p className="text-xs text-gray-500">{item.label}</p>
-                          <p className="font-semibold text-gray-900">{item.value}</p>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </AccordionSection>
-
-              <AccordionSection
                 title="Features"
                 open={accordionState.features}
                 onOpenChange={(open) => setSectionOpen("features", open)}
@@ -825,7 +739,7 @@ export function VehiclePageClient({
               >
                 <div className="space-y-4 text-sm text-gray-600">
                   <p>
-                    Tips for a secure purchase: verify the vehicle documents, inspect the car in
+                    Tips for a secure purchase: verify the vehicle documents, inspect the vehicle in
                     daylight, and use traceable payment channels.
                   </p>
                   <ul className="space-y-2 text-sm">
@@ -868,7 +782,7 @@ export function VehiclePageClient({
               </AccordionSection>
 
               <AccordionSection
-                title="Auto Loan Calculator"
+                title="Loan Calculator"
                 open={accordionState.loan}
                 onOpenChange={(open) => setSectionOpen("loan", open)}
               >
@@ -880,7 +794,7 @@ export function VehiclePageClient({
               </AccordionSection>
 
               <AccordionSection
-                title="Car Reviews & Rating"
+                title="Reviews & Ratings"
                 open={accordionState.reviews}
                 onOpenChange={(open) => setSectionOpen("reviews", open)}
               >
@@ -902,7 +816,12 @@ export function VehiclePageClient({
 
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-5">
-              <SellerCard listingId={listing.id} dealer={listing.dealer} seller={listing.seller} />
+              <SellerCard
+                listingId={listing.id}
+                listingTitle={title}
+                dealer={listing.dealer}
+                seller={listing.seller}
+              />
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>
@@ -981,9 +900,9 @@ export function VehiclePageClient({
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">
-                <h3 className="mb-1 text-base font-semibold text-gray-900">Recommended Used Cars</h3>
+                <h3 className="mb-1 text-base font-semibold text-gray-900">Recommended Listings</h3>
                 <p className="mb-3 text-xs text-gray-500">
-                  Showing more cars you might like
+                  Similar listings you might like
                 </p>
                 <RecommendedCars
                   listings={similarListings}

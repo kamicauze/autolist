@@ -83,8 +83,9 @@ function WizardContent({
     ? null
     : isLoadingPackageAccess
       ? {
-          title: "Checking your seller package",
-          description: "Loading plan access and listing capacity before this draft can be published.",
+          title: "Checking your dealer plan",
+          description:
+            "Loading membership and listing-usage details. Dealer plans do not block listing submission during the pilot.",
           buttonLabel: "Checking...",
           buttonHref: "/dashboard/membership",
           buttonDisabled: true,
@@ -105,24 +106,24 @@ function WizardContent({
           }
         : !packageAccess?.hasActivePlan
           ? {
-              title: "You don't have any active package",
+              title: "No active dealer plan",
               description:
-                "Finish the listing details first, then activate the seller package needed to publish this vehicle publicly. The first package activation on a seller account runs free for 6 months.",
-              buttonLabel: "Get Package",
+                "You can still finish and submit this listing during the dealer pilot. View the available plans when you are ready to manage membership and billing.",
+              buttonLabel: "View Plans",
               buttonHref: "/dashboard/membership",
               buttonDisabled: false,
-              wrapperClass: "border border-[#ffd9d6] bg-[#fff3f2]",
-              iconClass: "bg-[#ffe4e2] text-[#f04438]",
-              buttonClass: "bg-[#f04438] text-white hover:bg-[#d92d20]",
+              wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
+              iconClass: "bg-brand-tint text-primary",
+              buttonClass: "bg-primary text-white hover:bg-brand-hover",
             }
           : !packageAccess.canCreateListing
             ? {
-                title: `${packageAccess.currentPlan?.name || "Current"} package limit reached`,
+                title: `${packageAccess.currentPlan?.name || "Current"} plan allowance used`,
                 description:
                   packageAccess.listingLimit === null
-                    ? "Manage your package details before publishing this listing."
-                    : `You are already using ${packageAccess.usedListings} of ${packageAccess.listingLimit} listing slots. Upgrade or switch package to publish another listing.`,
-                buttonLabel: "Upgrade Package",
+                    ? "Review your membership details. Listing submission remains open during the dealer pilot."
+                    : `${packageAccess.usedListings} of ${packageAccess.listingLimit} listing slots are currently recorded. Pilot submissions remain open; review the plan before limits are enforced.`,
+                buttonLabel: "Review Plans",
                 buttonHref: "/dashboard/membership",
                 buttonDisabled: false,
                 wrapperClass: "border border-[#ffe2b8] bg-[#fff7ed]",
@@ -133,8 +134,8 @@ function WizardContent({
                 title: `${packageAccess.currentPlan?.name || "Seller"} package active`,
                 description:
                   packageAccess.remainingListings === null
-                    ? "Unlimited listing access is active on this account. Finish the steps below and submit when ready."
-                    : `${packageAccess.remainingListings} listing slot${packageAccess.remainingListings === 1 ? "" : "s"} remaining on this account. Finish the steps below and submit when ready.`,
+                    ? "Unlimited listing capacity is recorded on this account. Finish the steps below and submit when ready."
+                    : `${packageAccess.remainingListings} listing slot${packageAccess.remainingListings === 1 ? "" : "s"} remaining on this plan. Pilot submissions remain open while you finish the steps below.`,
                 buttonLabel: "Manage Package",
                 buttonHref: "/dashboard/membership",
                 buttonDisabled: false,
@@ -159,8 +160,8 @@ function WizardContent({
                 ? "The admin update has been saved. The seller will see the refreshed listing data and the notification in their workspace."
                 : "Your changes have been saved. Public listing pages and seller dashboard views will refresh with the updated data."
               : autoApproved
-              ? "The seller dashboard has published your package immediately and buyers can view it now."
-              : "Your package has been sent for review. It will appear publicly as soon as the moderation team approves it."}
+              ? "The seller dashboard has published your listing immediately and buyers can view it now."
+              : "Your listing has been sent for review. It will appear publicly as soon as the moderation team approves it."}
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

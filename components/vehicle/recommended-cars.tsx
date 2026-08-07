@@ -78,7 +78,7 @@ export function RecommendedCars({
     <div>
       {!sidebarMode && (
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Recommended New Cars For You</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Recommended Listings For You</h2>
           <Link
             href="/search"
             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80"

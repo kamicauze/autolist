@@ -22,16 +22,16 @@ import { VEHICLE_TYPE_NAVIGATION_ITEMS } from "@/lib/constants/vehicle-type-navi
 import type { ListingCategory } from "@/lib/constants/marketplace";
 
 const buyMenu = [
-  { name: "New Cars", href: "/search?condition=new" },
-  { name: "Used Cars", href: "/search" },
-  { name: "Compare Cars", href: "/compare" },
+  { name: "New Listings", href: "/search?condition=new" },
+  { name: "All Listings", href: "/search" },
+  { name: "Compare Listings", href: "/compare" },
 ];
 
 const toolsMenu = [
-  { name: "Car Financing", href: "/calculator" },
-  { name: "Value your car", href: "/valuation" },
-  { name: "Compare cars", href: "/compare" },
-  { name: "Car Insurance", href: "/insurance" },
+  { name: "Financing", href: "/calculator" },
+  { name: "Value your vehicle", href: "/valuation" },
+  { name: "Compare listings", href: "/compare" },
+  { name: "Vehicle Insurance", href: "/insurance" },
   { name: "Import Inquiry", href: "/import-inquiry" },
   { name: "Inquiries & Assistance", href: "/inquiries-assistance" },
 ];
@@ -45,11 +45,11 @@ const pagesMenu = [
 
 const desktopLinks = [
   { name: "Home", href: "/" },
-  { name: "Buy a car", menu: buyMenu, key: "buy" },
-  { name: "Sell a car", href: "/sell" },
+  { name: "Buy a vehicle", menu: buyMenu, key: "buy" },
+  { name: "Sell a vehicle", href: "/sell" },
   { name: "News & reviews", href: "/blog" },
   { name: "Tools & Services", menu: toolsMenu, key: "tools" },
-  { name: "Car alerts", href: "/alerts" },
+  { name: "Listing alerts", href: "/alerts" },
   { name: "Pages", menu: pagesMenu, key: "pages" },
 ] as const;
 

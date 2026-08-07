@@ -738,6 +738,25 @@ function buildFreshDraft(
   };
 }
 
+export function buildDraftAfterCategoryChange(
+  previousDraft: ListingDraft,
+  category: ListingDraft["category"]
+): ListingDraft {
+  return {
+    ...DEFAULT_DRAFT,
+    category,
+    details: { ...DEFAULT_DRAFT.details },
+    sellerType: previousDraft.sellerType,
+    useDealerAutoFill: previousDraft.useDealerAutoFill,
+    contactName: previousDraft.contactName,
+    phoneNumber: previousDraft.phoneNumber,
+    whatsappEnabled: previousDraft.whatsappEnabled,
+    whatsappNumber: previousDraft.whatsappNumber,
+    allowPhoneCalls: previousDraft.allowPhoneCalls,
+    hidePhoneNumber: previousDraft.hidePhoneNumber,
+  };
+}
+
 const SUBMISSION_FIELD_METADATA: Record<
   string,
   { label: string; stepId: (typeof LISTING_WIZARD_STEPS)[number]["id"] }
@@ -1253,20 +1272,7 @@ export function WizardProvider({
       setDocumentFiles([]);
       setVideoFile(null);
 
-      return {
-        ...prev,
-        category: nextCategory,
-        title: "",
-        details: { ...DEFAULT_DRAFT.details },
-        selectedFeatureIds: [],
-        coverImageName: null,
-        galleryImageNames: [],
-        coverImageRef: null,
-        galleryImageRefs: [],
-        coverFromGalleryIndex: null,
-        documentNames: [],
-        videoUrl: "",
-      };
+      return buildDraftAfterCategoryChange(prev, nextCategory);
     });
   };
 

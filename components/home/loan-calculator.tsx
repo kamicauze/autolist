@@ -45,10 +45,10 @@ export function LoanCalculator() {
             {/* Calculator Card */}
             <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full border border-white/20">
               <h2 className="text-2xl font-bold text-gray-900">
-                Auto Loan Calculator
+                Loan Calculator
               </h2>
               <p className="text-gray-500 mt-1 mb-6">
-                Use our calculator to estimate your monthly car payments.
+                Use our calculator to estimate your monthly payments.
               </p>
 
               <div className="space-y-4">

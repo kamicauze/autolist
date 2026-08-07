@@ -126,9 +126,9 @@ export default function CalculatorPage() {
       <Header />
 
       <main className="flex-1">
-        <PageHero label="AUTO LOAN CALCULATOR" heading="Calculate your monthly car loan payments">
+        <PageHero label="LOAN CALCULATOR" heading="Calculate your monthly loan payments">
           <div className="mx-auto max-w-xl rounded-2xl border border-border bg-white p-6 shadow-xl sm:p-8">
-            <h3 className="text-lg font-bold text-foreground">Auto loan calculator</h3>
+            <h3 className="text-lg font-bold text-foreground">Loan calculator</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Enter loan details and estimate your monthly repayment.
             </p>
@@ -251,13 +251,13 @@ export default function CalculatorPage() {
 
         <section className="bg-brand-tint py-12 md:py-16">
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Ready to find your car?</h2>
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Ready to find your next vehicle?</h2>
             <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
               Browse listings and apply your budget range using our full search filters.
             </p>
             <Button asChild variant="outline" size="lg" className="mt-6 gap-2 border-primary text-primary">
               <Link href="/search">
-                Browse cars
+                Browse listings
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

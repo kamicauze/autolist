@@ -9,7 +9,7 @@ const sellOptions = [
       "Create your own advert and reach thousands of buyers directly. You set the price and stay in control of the entire process.",
     benefits: [
       "Set your own asking price",
-      "Reach thousands of car buyers",
+      "Reach thousands of buyers",
       "Manage enquiries your way",
     ],
     buttonText: "Create your advert",
@@ -38,7 +38,7 @@ export function SellVehicleSection() {
         {/* Header */}
         <div className="mb-10 text-center">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            Sell your car
+            Sell your vehicle
           </p>
           <h2 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">
             Choose how you want to sell

@@ -15,16 +15,16 @@ const tools = [
     icon: Calculator,
     title: "Monthly payment calculator",
     description:
-      "Calculate your monthly car payments based on price, down payment, and interest rate.",
+      "Calculate your monthly payments based on price, down payment, and interest rate.",
     href: "/calculator",
     iconBg: "bg-green-100",
     iconColor: "text-green-600",
   },
   {
     icon: PiggyBank,
-    title: "Car affordability",
+    title: "Vehicle affordability",
     description:
-      "Find out how much car you can afford based on your income and expenses.",
+      "Find out how much you can afford based on your income and expenses.",
     href: "/calculator",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
@@ -33,7 +33,7 @@ const tools = [
     icon: TrendingUp,
     title: "Value your vehicle",
     description:
-      "Get an instant market valuation for your car using real-time pricing data.",
+      "Get an instant market valuation for your vehicle using real-time pricing data.",
     href: "/tools/valuation",
     iconBg: "bg-orange-100",
     iconColor: "text-orange-600",

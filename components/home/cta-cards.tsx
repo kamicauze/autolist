@@ -16,7 +16,7 @@ export function CTACards() {
               <div className="h-12 w-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
                 <Search className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Are you looking for a car?</h3>
+              <h3 className="text-xl font-bold mb-2">Are you looking for a vehicle?</h3>
               <p className="text-white/80 mb-6">
                 Browse through thousands of verified listings to find your perfect
                 vehicle at the best price.
@@ -40,7 +40,7 @@ export function CTACards() {
               <div className="h-12 w-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
                 <DollarSign className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Do you want to sell a car?</h3>
+              <h3 className="text-xl font-bold mb-2">Do you want to sell a vehicle?</h3>
               <p className="text-white/80 mb-6">
                 List your vehicle for free and reach thousands of potential buyers
                 across Kenya.
@@ -50,7 +50,7 @@ export function CTACards() {
                 variant="secondary"
                 className="bg-white text-secondary hover:bg-white/90"
               >
-                <Link href="/sell">Sell Your Car</Link>
+                <Link href="/sell">Sell Your Vehicle</Link>
               </Button>
             </div>
           </div>

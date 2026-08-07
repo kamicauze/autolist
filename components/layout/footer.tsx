@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 
 const footerLinks = {
   Buying: [
-    { name: "New cars", href: "/search?condition=new" },
-    { name: "Used cars", href: "/search" },
+    { name: "New listings", href: "/search?condition=new" },
+    { name: "All listings", href: "/search" },
     { name: "Compare", href: "/compare" },
-    { name: "Car financing", href: "/calculator" },
-    { name: "Car reviews", href: "/search?sortBy=newest" },
-    { name: "Car valuation", href: "/valuation" },
+    { name: "Financing", href: "/calculator" },
+    { name: "Latest listings", href: "/search?sortBy=newest" },
+    { name: "Vehicle valuation", href: "/valuation" },
   ],
   Selling: [
-    { name: "Sell your car", href: "/sell" },
-    { name: "Car evaluation", href: "/valuation" },
+    { name: "Sell your vehicle", href: "/sell" },
+    { name: "Vehicle valuation", href: "/valuation" },
     { name: "Private seller", href: "/sell" },
     { name: "Dealer advertising", href: "/dealers" },
     { name: "Part exchange", href: "/sell/dealer" },
@@ -64,8 +64,8 @@ export function Footer() {
             <div className="col-span-2 md:col-span-1 lg:col-span-2">
               <h3 className="mb-5 text-sm font-semibold">Newsletter</h3>
               <p className="mb-4 text-sm leading-relaxed text-[#92929D]">
-                Stay on top of the latest car trends, tips, and
-                tricks for selling your Vehicle.
+                Stay on top of the latest marketplace trends, tips, and
+                advice for selling your vehicle.
               </p>
               <div className="flex gap-2">
                 <Input

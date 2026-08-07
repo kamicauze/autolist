@@ -4,9 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
+  CalendarDays,
   Clock3,
-  Loader2,
-  MessageSquareText,
   Phone,
   ShieldCheck,
   Star,
@@ -14,18 +13,11 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconWhatsapp } from "@/components/ui/icons";
-import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AppointmentRequestDialog } from "./appointment-request-dialog";
 
 interface SellerCardProps {
   listingId: string;
+  listingTitle: string;
   dealer?: {
     id: string;
     name: string;
@@ -147,23 +139,8 @@ function getDealerHoursPresentation(socialLinks?: Record<string, unknown> | null
   };
 }
 
-export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
+export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const {
-    feedback,
-    isSubmitting,
-    message,
-    contactName,
-    contactEmail,
-    contactPhone,
-    setMessage,
-    setContactName,
-    setContactEmail,
-    setContactPhone,
-    submitEnquiry,
-  } = useListingEnquiry({
-    listingId,
-  });
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
@@ -210,7 +187,7 @@ export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
           )}
           <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Car transaction handled by Autolist
+            Vehicle transaction handled by Autolist
           </span>
         </div>
 
@@ -281,72 +258,19 @@ export function SellerCard({ listingId, dealer, seller }: SellerCardProps) {
             className="mt-3 w-full gap-2"
             onClick={() => setDialogOpen(true)}
           >
-            <MessageSquareText className="h-4 w-4" />
-            Send enquiry
+            <CalendarDays className="h-4 w-4" />
+            Book an appointment
           </Button>
         </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>Send an enquiry</DialogTitle>
-            <DialogDescription>
-              This sends your message to the seller. Signed-in buyers can continue the conversation in Messages.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              value={contactName}
-              onChange={(event) => setContactName(event.target.value)}
-              placeholder="Your name"
-              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-            />
-            <input
-              value={contactPhone}
-              onChange={(event) => setContactPhone(event.target.value)}
-              placeholder="Phone number"
-              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-            />
-            <input
-              value={contactEmail}
-              onChange={(event) => setContactEmail(event.target.value)}
-              placeholder="Email address"
-              className="h-11 rounded-[12px] border border-[#d7dce5] bg-white px-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:col-span-2"
-            />
-          </div>
-
-          <textarea
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            placeholder="Hi, I’m interested in this vehicle. Is it still available? Can you share the service history and best viewing time?"
-            className="min-h-[140px] w-full rounded-[14px] border border-[#d7dce5] bg-white px-4 py-3 text-[14px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-          />
-
-          {feedback ? (
-            <div className="rounded-[12px] border border-[#d0d5dd] bg-[#f8fafc] px-4 py-3 text-[13px] text-[#475467]">
-              {feedback}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => void submitEnquiry()} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending
-                </>
-              ) : (
-                "Send enquiry"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AppointmentRequestDialog
+        listingId={listingId}
+        listingTitle={listingTitle}
+        viewingLocation={dealer?.address || dealer?.city || "Confirm with the seller"}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </>
   );
 }
