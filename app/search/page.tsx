@@ -19,6 +19,7 @@ import {
 } from "@/lib/constants/landing-search";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
+import { parseFiniteSearchNumber } from "@/lib/search/search-filter-params";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -34,6 +35,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ? LANDING_SEARCH_CATEGORY_CONFIG[categoryParam]
       : null;
   const normalizedCategory = categoryConfig ? categoryParam : undefined;
+  const isTruckSearch = normalizedCategory === "truck";
 
   // Parse array filters (comma-separated)
   const parseArrayParam = (value: string | string[] | undefined): string[] | undefined => {
@@ -41,6 +43,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     if (Array.isArray(value)) return value;
     return value.split(",").filter(Boolean);
   };
+  const parseScalarParam = (
+    value: string | string[] | undefined
+  ): string | undefined => (Array.isArray(value) ? value[0] : value);
 
   // Extract filters from params
   const filters: SearchListingFilters = {
@@ -74,6 +79,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     taxonomySubcategory: params.taxSubcategory as string,
     minHours: params.hoursMin ? Number(params.hoursMin) : undefined,
     maxHours: params.hoursMax ? Number(params.hoursMax) : undefined,
+    axleConfig: isTruckSearch ? parseScalarParam(params.axleConfig) : undefined,
+    cabType: isTruckSearch ? parseScalarParam(params.cabType) : undefined,
+    minGvmKg: isTruckSearch ? parseFiniteSearchNumber(params.gvmMin) : undefined,
+    maxGvmKg: isTruckSearch ? parseFiniteSearchNumber(params.gvmMax) : undefined,
+    minEnginePowerBhp: isTruckSearch
+      ? parseFiniteSearchNumber(params.enginePowerMin)
+      : undefined,
+    maxEnginePowerBhp: isTruckSearch
+      ? parseFiniteSearchNumber(params.enginePowerMax)
+      : undefined,
   };
 
   // Parse sort option

@@ -228,7 +228,11 @@ export const FARM_TAXONOMY: readonly TaxonomyNode[] = [
 ];
 
 /** Truck top-level categories (filtered on metadata.taxonomyCategory). */
-export const TRUCK_CATEGORIES: readonly string[] = ["Rigid Trucks", "Tractor Units"];
+export const TRUCK_CATEGORIES: readonly string[] = [
+  "Rigid Trucks",
+  "Tractor Units",
+  "Trailers",
+];
 
 export const BIKE_BODY_TYPES: readonly string[] = [
   "Adventure", "Bobber", "Cafe Racer", "Chopper", "Classic", "Commuter", "Cruiser",

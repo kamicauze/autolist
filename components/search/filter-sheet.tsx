@@ -52,10 +52,16 @@ import {
 import {
   BIKE_BODY_TYPES,
   TRUCK_BODY_TYPES,
+  TRUCK_AXLE_CONFIGS,
+  TRUCK_CAB_TYPES,
   HOURS_USED_STEPS,
   getTaxonomyForCategory,
   getSubcategoriesForTaxonomyCategory,
 } from "@/lib/constants/vehicle-taxonomy";
+import {
+  clearHiddenSearchFilterParams,
+  serializeSearchFilterParams,
+} from "@/lib/search/search-filter-params";
 
 interface FilterSheetProps {
   makes: string[];
@@ -89,6 +95,12 @@ type FilterSheetState = {
   taxSubcategory: string;
   hoursMin: string;
   hoursMax: string;
+  axleConfig: string;
+  cabType: string;
+  gvmMin: string;
+  gvmMax: string;
+  enginePowerMin: string;
+  enginePowerMax: string;
   sellerTypes: string[];
   verifiedOnly: boolean;
   sortBy: string;
@@ -119,10 +131,46 @@ function createEmptyFilterSheetState(): FilterSheetState {
     taxSubcategory: "",
     hoursMin: "",
     hoursMax: "",
+    axleConfig: "",
+    cabType: "",
+    gvmMin: "",
+    gvmMax: "",
+    enginePowerMin: "",
+    enginePowerMax: "",
     sellerTypes: [],
     verifiedOnly: false,
     sortBy: "newest",
   };
+}
+
+function getCategorySearchExamples(category: string | null) {
+  switch (category) {
+    case "farm_agricultural":
+      return {
+        keyword: "e.g. 4WD, hydraulic remotes",
+        model: "e.g. MF 385, 6155M",
+      };
+    case "plant_construction":
+      return {
+        keyword: "e.g. tracks, quick coupler",
+        model: "e.g. 320D, PC200",
+      };
+    case "truck":
+      return {
+        keyword: "e.g. sleeper cab, PTO",
+        model: "e.g. Actros, FH16",
+      };
+    case "motorbike":
+      return {
+        keyword: "e.g. ABS, panniers",
+        model: "e.g. Africa Twin, R 1250 GS",
+      };
+    default:
+      return {
+        keyword: "e.g. sunroof, heated seats",
+        model: "e.g. Harrier, X5, A4",
+      };
+  }
 }
 
 function buildFilterSheetState(
@@ -155,6 +203,12 @@ function buildFilterSheetState(
     taxSubcategory: initialFilters?.taxSubcategory || searchParams.get("taxSubcategory") || emptyState.taxSubcategory,
     hoursMin: initialFilters?.hoursMin || searchParams.get("hoursMin") || emptyState.hoursMin,
     hoursMax: initialFilters?.hoursMax || searchParams.get("hoursMax") || emptyState.hoursMax,
+    axleConfig: initialFilters?.axleConfig || searchParams.get("axleConfig") || emptyState.axleConfig,
+    cabType: initialFilters?.cabType || searchParams.get("cabType") || emptyState.cabType,
+    gvmMin: initialFilters?.gvmMin || searchParams.get("gvmMin") || emptyState.gvmMin,
+    gvmMax: initialFilters?.gvmMax || searchParams.get("gvmMax") || emptyState.gvmMax,
+    enginePowerMin: initialFilters?.enginePowerMin || searchParams.get("enginePowerMin") || emptyState.enginePowerMin,
+    enginePowerMax: initialFilters?.enginePowerMax || searchParams.get("enginePowerMax") || emptyState.enginePowerMax,
     sellerTypes: initialFilters?.sellerTypes || searchParams.get("sellerType")?.split(",").filter(Boolean) || emptyState.sellerTypes,
     verifiedOnly: initialFilters?.verifiedOnly ?? (searchParams.get("verifiedOnly") === "true"),
     sortBy: initialFilters?.sortBy || searchParams.get("sortBy") || emptyState.sortBy,
@@ -225,6 +279,7 @@ function FilterSheetPanel({
         : BODY_TYPE_OPTIONS;
   const filterLabel = (id: SearchFilterId, fallback: string) =>
     getSearchFilterLabel(category, id, fallback);
+  const searchExamples = getCategorySearchExamples(category);
 
   const setBoundedRangeFilter = useCallback(
     (key: "Year" | "Price", side: "min" | "max", value: string) => {
@@ -396,6 +451,26 @@ function FilterSheetPanel({
     if (localFilters.hoursMax) params.set("hoursMax", localFilters.hoursMax);
     else params.delete("hoursMax");
 
+    // Truck metadata
+    if (localFilters.axleConfig) params.set("axleConfig", localFilters.axleConfig);
+    else params.delete("axleConfig");
+    if (localFilters.cabType) params.set("cabType", localFilters.cabType);
+    else params.delete("cabType");
+    if (localFilters.gvmMin) params.set("gvmMin", localFilters.gvmMin);
+    else params.delete("gvmMin");
+    if (localFilters.gvmMax) params.set("gvmMax", localFilters.gvmMax);
+    else params.delete("gvmMax");
+    if (localFilters.enginePowerMin) {
+      params.set("enginePowerMin", localFilters.enginePowerMin);
+    } else {
+      params.delete("enginePowerMin");
+    }
+    if (localFilters.enginePowerMax) {
+      params.set("enginePowerMax", localFilters.enginePowerMax);
+    } else {
+      params.delete("enginePowerMax");
+    }
+
     // Advanced: Seller Type
     if (localFilters.sellerTypes.length === 1) {
       params.set("sellerType", localFilters.sellerTypes[0]);
@@ -407,31 +482,12 @@ function FilterSheetPanel({
     if (localFilters.verifiedOnly) params.set("verifiedOnly", "true");
     else params.delete("verifiedOnly");
 
-    // Drop params for filters that are hidden in the active category so stale
-    // car-centric filters can't silently constrain non-car results.
-    const paramsByFilter: Partial<Record<SearchFilterId, string[]>> = {
-      bodyType: ["bodyType"],
-      transmission: ["transmission"],
-      fuelType: ["fuelType"],
-      color: ["color"],
-      seats: ["seats"],
-      doors: ["doors"],
-      driveType: ["driveType"],
-      mileage: ["minMileage", "maxMileage"],
-      engineCc: ["engineCc"],
-      taxonomy: ["taxCategory", "taxSubcategory"],
-      hoursUsed: ["hoursMin", "hoursMax"],
-      sellerType: ["sellerType"],
-      verifiedOnly: ["verifiedOnly"],
-    };
-    for (const [filterId, keys] of Object.entries(paramsByFilter)) {
-      if (!showFilter(filterId as SearchFilterId)) {
-        keys.forEach((key) => params.delete(key));
-      }
-    }
+    // Drop hidden filter params so changing category cannot leave irrelevant
+    // constraints active in the URL.
+    clearHiddenSearchFilterParams(params, category);
 
     startTransition(() => {
-      router.push(`/search?${params.toString()}`);
+      router.push(`/search?${serializeSearchFilterParams(params)}`);
       onOpenChange(false);
     });
   };
@@ -446,7 +502,8 @@ function FilterSheetPanel({
       <SheetHeader className="px-6 py-4 border-b">
         <SheetTitle>Filter search</SheetTitle>
         <SheetDescription>
-          Refine marketplace listings by make, model, location, price, year, body type, and more.
+          Refine marketplace listings by make, model, location, price, year, and
+          category-specific details.
         </SheetDescription>
       </SheetHeader>
 
@@ -459,7 +516,7 @@ function FilterSheetPanel({
                 Keyword search
               </Label>
             </div>
-            <p className="text-sm text-gray-500">e.g. sunroof, heated seats</p>
+            <p className="text-sm text-gray-500">{searchExamples.keyword}</p>
             {keywordTags.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {keywordTags.map((keyword) => (
@@ -534,7 +591,7 @@ function FilterSheetPanel({
           <div className="space-y-3">
             <Label className="text-sm font-medium">{filterLabel("model", "Model")}</Label>
             <Input
-              placeholder="e.g. Harrier, X5, A4"
+              placeholder={searchExamples.model}
               value={localFilters.model}
               onChange={(e) =>
                 setLocalFilters((p) => ({ ...p, model: e.target.value }))
@@ -790,6 +847,123 @@ function FilterSheetPanel({
                   </Select>
                 </>
               ) : null}
+            </div>
+          ) : null}
+
+          {/* Truck specifications */}
+          {showFilter("axleConfig") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Axle configuration</Label>
+              <Select
+                value={localFilters.axleConfig || "all"}
+                onValueChange={(val) =>
+                  setLocalFilters((p) => ({
+                    ...p,
+                    axleConfig: val === "all" ? "" : val,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any axle configuration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any axle configuration</SelectItem>
+                  {TRUCK_AXLE_CONFIGS.map((configuration) => (
+                    <SelectItem key={configuration} value={configuration}>
+                      {configuration}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {showFilter("cabType") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Cab type</Label>
+              <Select
+                value={localFilters.cabType || "all"}
+                onValueChange={(val) =>
+                  setLocalFilters((p) => ({
+                    ...p,
+                    cabType: val === "all" ? "" : val,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Any cab type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any cab type</SelectItem>
+                  {TRUCK_CAB_TYPES.map((cabType) => (
+                    <SelectItem key={cabType} value={cabType}>
+                      {cabType}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {showFilter("gvm") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">GVM (kg)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Minimum"
+                  value={localFilters.gvmMin}
+                  onChange={(event) =>
+                    setLocalFilters((p) => ({ ...p, gvmMin: event.target.value }))
+                  }
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Maximum"
+                  value={localFilters.gvmMax}
+                  onChange={(event) =>
+                    setLocalFilters((p) => ({ ...p, gvmMax: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {showFilter("enginePower") ? (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Engine power (BHP)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Minimum"
+                  value={localFilters.enginePowerMin}
+                  onChange={(event) =>
+                    setLocalFilters((p) => ({
+                      ...p,
+                      enginePowerMin: event.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Maximum"
+                  value={localFilters.enginePowerMax}
+                  onChange={(event) =>
+                    setLocalFilters((p) => ({
+                      ...p,
+                      enginePowerMax: event.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
           ) : null}
 

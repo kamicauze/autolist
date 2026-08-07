@@ -29,6 +29,10 @@ export type SearchFilterId =
   | "equipmentType"
   | "taxonomy"
   | "hoursUsed"
+  | "axleConfig"
+  | "gvm"
+  | "cabType"
+  | "enginePower"
   | "sellerType"
   | "verifiedOnly";
 
@@ -103,6 +107,10 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
       "mileage",
       "taxonomy",
       "bodyType",
+      "axleConfig",
+      "gvm",
+      "cabType",
+      "enginePower",
       "transmission",
       "fuelType",
       "color",

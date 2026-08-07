@@ -13,6 +13,11 @@ import {
   getUseCaseScore,
   type SearchDriveType,
 } from "@/lib/search/vehicle-ontology";
+import {
+  hasTruckSearchFilters,
+  listingMatchesTruckSearchFilters,
+  type TruckSearchFilters,
+} from "@/lib/search/truck-search-filters";
 
 const LISTING_CATEGORY_VALUES: readonly ListingCategory[] = [
   "car",
@@ -45,6 +50,33 @@ export interface SearchListingFilters extends ListingFilters {
   /** Hours-used range (plant/farm; matched against metadata.hours_used). */
   minHours?: number;
   maxHours?: number;
+  /** Truck axle configuration (matched against metadata.axleConfig). */
+  axleConfig?: string;
+  /** Truck cab type (matched against metadata.cabType). */
+  cabType?: string;
+  /** Truck GVM range in kilograms (matched against metadata.gvmKg). */
+  minGvmKg?: number;
+  maxGvmKg?: number;
+  /** Truck engine power range in BHP (matched against metadata.enginePowerBhp). */
+  minEnginePowerBhp?: number;
+  maxEnginePowerBhp?: number;
+}
+
+function getRequestedTruckSearchFilters(
+  filters?: SearchListingFilters
+): TruckSearchFilters {
+  if (filters?.category !== "truck") {
+    return {};
+  }
+
+  return {
+    axleConfig: filters.axleConfig?.trim() || undefined,
+    cabType: filters.cabType?.trim() || undefined,
+    minGvmKg: filters.minGvmKg,
+    maxGvmKg: filters.maxGvmKg,
+    minEnginePowerBhp: filters.minEnginePowerBhp,
+    maxEnginePowerBhp: filters.maxEnginePowerBhp,
+  };
 }
 
 // Keywords that merely restate the active category (e.g. /search?category=motorbike&q=motorbike).
@@ -744,6 +776,8 @@ export async function searchListings({
   const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
   const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
   const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
+  const requestedTruckFilters = getRequestedTruckSearchFilters(filters);
+  const requestedTruckMetadataFilters = hasTruckSearchFilters(requestedTruckFilters);
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
@@ -754,6 +788,7 @@ export async function searchListings({
     Boolean(requestedTaxonomyCategory) ||
     Boolean(requestedTaxonomySubcategory) ||
     requestedHoursRange ||
+    requestedTruckMetadataFilters ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -808,6 +843,11 @@ export async function searchListings({
     if (requestedHoursRange) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
+      );
+    }
+    if (requestedTruckMetadataFilters) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesTruckSearchFilters(listing, requestedTruckFilters)
       );
     }
     const ranked = rankListingsForSemanticSearch(
@@ -866,6 +906,8 @@ export async function countMatchingListings(
   const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
   const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
   const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
+  const requestedTruckFilters = getRequestedTruckSearchFilters(filters);
+  const requestedTruckMetadataFilters = hasTruckSearchFilters(requestedTruckFilters);
   const requiresDerivedFiltering =
     requestedUseCase ||
     requestedBodyTypes.length > 0 ||
@@ -876,6 +918,7 @@ export async function countMatchingListings(
     Boolean(requestedTaxonomyCategory) ||
     Boolean(requestedTaxonomySubcategory) ||
     requestedHoursRange ||
+    requestedTruckMetadataFilters ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly);
@@ -933,6 +976,11 @@ export async function countMatchingListings(
     if (requestedHoursRange) {
       processedListings = processedListings.filter((listing) =>
         listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
+      );
+    }
+    if (requestedTruckMetadataFilters) {
+      processedListings = processedListings.filter((listing) =>
+        listingMatchesTruckSearchFilters(listing, requestedTruckFilters)
       );
     }
 
