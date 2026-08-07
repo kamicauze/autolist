@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { nanoid } from "nanoid";
 import sharp from "sharp";
 import { r2 } from "@/lib/r2";
+import { buildListingWatermarkSvgMarkup } from "@/lib/server/listing-watermark";
 import { buildListingImageVariantKey } from "@/lib/utils/image-variants";
 
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -12,8 +13,6 @@ const IMAGE_VARIANTS = {
   card: { width: 960, quality: 76 },
   hero: { width: 1600, quality: 82 },
 } as const;
-
-const WATERMARK_TEXT = "AUTOLIST";
 
 const INTERIOR_HINTS = [
   "interior",
@@ -184,61 +183,13 @@ async function uploadBuffer(key: string, bytes: Buffer, contentType: string) {
   );
 }
 
-function buildWatermarkSvg(width: number, height: number) {
-  const tileWidth = Math.max(260, Math.round(width / 3));
-  const tileHeight = Math.max(150, Math.round(height / 3));
-  const fontSize = Math.max(22, Math.round(width / 28));
-  const strokeWidth = Math.max(1, Math.round(fontSize / 16));
-
-  return Buffer.from(`
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="autolist-watermark" width="${tileWidth}" height="${tileHeight}" patternUnits="userSpaceOnUse">
-          <g transform="translate(${Math.round(tileWidth * 0.5)} ${Math.round(tileHeight * 0.5)}) rotate(-24)">
-            <text
-              x="0"
-              y="0"
-              text-anchor="middle"
-              dominant-baseline="middle"
-              font-family="Arial, Helvetica, sans-serif"
-              font-size="${fontSize}"
-              font-weight="700"
-              letter-spacing="2"
-              fill="#ffffff"
-              fill-opacity="0.34"
-              stroke="#000000"
-              stroke-opacity="0.18"
-              stroke-width="${strokeWidth}"
-            >${WATERMARK_TEXT}</text>
-          </g>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#autolist-watermark)" />
-      <text
-        x="${width - Math.max(24, Math.round(width * 0.025))}"
-        y="${height - Math.max(18, Math.round(height * 0.035))}"
-        text-anchor="end"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="${Math.max(18, Math.round(width / 34))}"
-        font-weight="800"
-        letter-spacing="1.5"
-        fill="#ffffff"
-        fill-opacity="0.72"
-        stroke="#000000"
-        stroke-opacity="0.35"
-        stroke-width="${strokeWidth}"
-      >AUTOLIST.CO.KE</text>
-    </svg>
-  `);
-}
-
 async function addWatermark(image: sharp.Sharp) {
   const { data, info } = await image.toBuffer({ resolveWithObject: true });
 
   return sharp(data)
     .composite([
       {
-        input: buildWatermarkSvg(info.width, info.height),
+        input: Buffer.from(buildListingWatermarkSvgMarkup(info.width, info.height)),
         blend: "over",
       },
     ]);

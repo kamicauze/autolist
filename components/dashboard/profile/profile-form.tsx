@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
-import { createClient } from "@/lib/supabase/client";
 import { deactivateMyAccount } from "@/lib/actions/account";
+import { updateMyProfile } from "@/lib/actions/profile";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
@@ -45,18 +45,24 @@ interface ProfileFormProps {
 type SellerProfileFormState = {
   fullName: string;
   email: string;
+  publicEmail: string;
   phone: string;
   whatsapp: string;
   bio: string;
   city: string;
   address: string;
+  location: string;
   website: string;
   facebook: string;
   twitter: string;
   instagram: string;
+  linkedin: string;
+  tiktok: string;
+  otherSocial: string;
 };
 
 const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidPhone(value: string) {
   if (!value.trim()) {
@@ -196,23 +202,36 @@ export function ProfileForm({
   googleMapsApiKey = null,
 }: ProfileFormProps) {
   const router = useRouter();
+  const approvedDealer =
+    user.id &&
+    profile?.role === "dealer" &&
+    verification?.profile_id === user.id &&
+    verification.status === "APPROVED"
+      ? verification
+      : null;
+  const isApprovedDealerOwner = Boolean(approvedDealer);
   const avatarUrl =
     profile?.role === "dealer"
       ? verification?.logo_url || profile?.avatar_url || undefined
       : profile?.avatar_url || undefined;
   const accountType = accountTypeLabel(profile?.role ?? null, verification);
   const initialForm: SellerProfileFormState = {
-    fullName: profile?.full_name || user.email?.split("@")[0] || "",
+    fullName: approvedDealer?.name || profile?.full_name || user.email?.split("@")[0] || "",
     email: user.email || "",
-    phone: profile?.phone || "",
-    whatsapp: profile?.whatsapp || "",
-    bio: profile?.bio || "",
-    city: profile?.city || "",
-    address: profile?.address || "",
-    website: profile?.website || "",
-    facebook: profile?.facebook_url || "",
-    twitter: profile?.twitter_url || "",
-    instagram: profile?.instagram_url || "",
+    publicEmail: approvedDealer?.email || "",
+    phone: approvedDealer?.mobile || profile?.phone || "",
+    whatsapp: approvedDealer?.whatsapp || profile?.whatsapp || "",
+    bio: approvedDealer?.about_text || profile?.bio || "",
+    city: approvedDealer?.city || profile?.city || "",
+    address: approvedDealer?.address || profile?.address || "",
+    location: approvedDealer?.location || "",
+    website: approvedDealer?.website || profile?.website || "",
+    facebook: approvedDealer?.social_links?.facebook || profile?.facebook_url || "",
+    twitter: approvedDealer?.social_links?.x || profile?.twitter_url || "",
+    instagram: approvedDealer?.social_links?.instagram || profile?.instagram_url || "",
+    linkedin: approvedDealer?.social_links?.linkedin || "",
+    tiktok: approvedDealer?.social_links?.tiktok || "",
+    otherSocial: approvedDealer?.social_links?.other || "",
   };
 
   const [form, setForm] = React.useState<SellerProfileFormState>(initialForm);
@@ -221,8 +240,8 @@ export function ProfileForm({
   const [isSaving, setIsSaving] = React.useState(false);
 
   const displayName = form.fullName.trim() || "Seller";
-  const locationLabel = form.city.trim() || "Location not set";
-  const mapQuery = buildGoogleMapsQuery([form.address, form.city, "Kenya"]);
+  const locationLabel = form.location.trim() || form.city.trim() || "Location not set";
+  const mapQuery = buildGoogleMapsQuery([form.address, form.location, form.city, "Kenya"]);
   const mapUrl = getGoogleMapsSearchUrl(mapQuery);
   const verificationState = verificationSummary(verification, profile?.role ?? null);
   const verificationStatusTone = verificationTone(verification);
@@ -246,19 +265,37 @@ export function ProfileForm({
 
     const normalized = {
       fullName: form.fullName.trim(),
+      publicEmail: form.publicEmail.trim(),
       phone: form.phone.trim(),
       whatsapp: form.whatsapp.trim(),
       bio: form.bio.trim(),
       city: form.city.trim(),
       address: form.address.trim(),
+      location: form.location.trim(),
       website: form.website.trim(),
       facebook: form.facebook.trim(),
       twitter: form.twitter.trim(),
       instagram: form.instagram.trim(),
+      linkedin: form.linkedin.trim(),
+      tiktok: form.tiktok.trim(),
+      otherSocial: form.otherSocial.trim(),
     };
 
     if (!normalized.fullName) {
       setError("Full name is required.");
+      return;
+    }
+
+    if (
+      isApprovedDealerOwner &&
+      (!normalized.publicEmail || !EMAIL_REGEX.test(normalized.publicEmail))
+    ) {
+      setError("Enter a valid public dealership email.");
+      return;
+    }
+
+    if (isApprovedDealerOwner && (!normalized.phone || !normalized.whatsapp)) {
+      setError("Phone number and WhatsApp number are required for a public dealer profile.");
       return;
     }
 
@@ -277,6 +314,9 @@ export function ProfileForm({
       { value: normalized.facebook, label: "Facebook URL" },
       { value: normalized.twitter, label: "Twitter / X URL" },
       { value: normalized.instagram, label: "Instagram URL" },
+      { value: normalized.linkedin, label: "LinkedIn URL" },
+      { value: normalized.tiktok, label: "TikTok URL" },
+      { value: normalized.otherSocial, label: "Other social URL" },
     ];
 
     for (const field of urlFields) {
@@ -291,30 +331,18 @@ export function ProfileForm({
     setSuccess(null);
 
     try {
-      const supabase = createClient();
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: normalized.fullName,
-          avatar_url: avatarUrl || null,
-          phone: normalized.phone || null,
-          whatsapp: normalized.whatsapp || null,
-          bio: normalized.bio || null,
-          city: normalized.city || null,
-          address: normalized.address || null,
-          website: normalized.website || null,
-          facebook_url: normalized.facebook || null,
-          twitter_url: normalized.twitter || null,
-          instagram_url: normalized.instagram || null,
-        })
-        .eq("id", user.id);
+      const result = await updateMyProfile(normalized);
 
-      if (profileError) {
-        setError(profileError.message);
+      if ("error" in result) {
+        setError(result.error || "Unable to update the profile.");
         return;
       }
 
-      setSuccess("Profile updated successfully.");
+      setSuccess(
+        result.dealerId
+          ? "Profile updated. Your public dealer page now reflects these details."
+          : "Profile updated successfully."
+      );
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -327,7 +355,24 @@ export function ProfileForm({
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
         title="Profile"
-        description="Update your public seller profile, contact details, location, and social links."
+        description={
+          isApprovedDealerOwner
+            ? "Update the dealership details buyers see on your public dealer page."
+            : "Update your public seller profile, contact details, location, and social links."
+        }
+        action={
+          approvedDealer ? (
+            <Link
+              href={`/dealers/${approvedDealer.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] border border-brand-muted-border bg-white px-5 text-[13px] font-semibold text-primary transition hover:border-primary"
+            >
+              View public profile
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          ) : null
+        }
       />
 
       <SellerSurface className="p-5 lg:p-6">
@@ -384,7 +429,7 @@ export function ProfileForm({
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="profile-full-name" className={sellerLabelClass}>
-                    Full Name
+                    {isApprovedDealerOwner ? "Dealership Name" : "Full Name"}
                   </label>
                   <input
                     id="profile-full-name"
@@ -396,7 +441,7 @@ export function ProfileForm({
                 </div>
                 <div>
                   <label htmlFor="profile-email" className={sellerLabelClass}>
-                    Email Address
+                    Account Email
                   </label>
                   <input
                     id="profile-email"
@@ -405,6 +450,22 @@ export function ProfileForm({
                     className={`${sellerInputClass} bg-[#f6f6f6]`}
                   />
                 </div>
+                {isApprovedDealerOwner ? (
+                  <div>
+                    <label htmlFor="profile-public-email" className={sellerLabelClass}>
+                      Public Dealership Email
+                    </label>
+                    <input
+                      id="profile-public-email"
+                      type="email"
+                      required
+                      value={form.publicEmail}
+                      onChange={(event) => update("publicEmail", event.target.value)}
+                      className={sellerInputClass}
+                      placeholder="sales@example.com"
+                    />
+                  </div>
+                ) : null}
                 <div>
                   <label htmlFor="profile-phone" className={sellerLabelClass}>
                     Phone Number
@@ -433,7 +494,7 @@ export function ProfileForm({
 
               <div>
                 <label htmlFor="profile-bio" className={sellerLabelClass}>
-                  About Seller
+                  {isApprovedDealerOwner ? "About Dealership" : "About Seller"}
                 </label>
                 <textarea
                   id="profile-bio"
@@ -469,12 +530,28 @@ export function ProfileForm({
                     placeholder="Karen, Nairobi County"
                   />
                 </div>
+                {isApprovedDealerOwner ? (
+                  <div>
+                    <label htmlFor="profile-location" className={sellerLabelClass}>
+                      Area / Location
+                    </label>
+                    <input
+                      id="profile-location"
+                      value={form.location}
+                      onChange={(event) => update("location", event.target.value)}
+                      className={sellerInputClass}
+                      placeholder="Westlands"
+                    />
+                  </div>
+                ) : null}
               </div>
 
               <div className="overflow-hidden rounded-[24px] border border-[#ededed] bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ededed] px-5 py-4">
                   <div>
-                    <p className="text-[13px] font-semibold text-[#202224]">Seller Location</p>
+                    <p className="text-[13px] font-semibold text-[#202224]">
+                      {isApprovedDealerOwner ? "Dealership Location" : "Seller Location"}
+                    </p>
                     <p className="mt-1 text-[12px] text-[#7d7d7d]">
                       {mapQuery || "Add a city or street address to preview your map location."}
                     </p>
@@ -495,7 +572,11 @@ export function ProfileForm({
                   <GoogleMapEmbed
                     apiKey={googleMapsApiKey}
                     query={mapQuery}
-                    title="Seller location map"
+                    title={
+                      isApprovedDealerOwner
+                        ? "Dealership location map"
+                        : "Seller location map"
+                    }
                     fallback={
                       <div className="flex h-full items-center justify-center p-6 text-center">
                         <div>
@@ -667,6 +748,46 @@ export function ProfileForm({
                       placeholder="https://instagram.com/your-handle"
                     />
                   </div>
+                  {isApprovedDealerOwner ? (
+                    <>
+                      <div>
+                        <label htmlFor="profile-linkedin" className={sellerLabelClass}>
+                          LinkedIn
+                        </label>
+                        <input
+                          id="profile-linkedin"
+                          value={form.linkedin}
+                          onChange={(event) => update("linkedin", event.target.value)}
+                          className={sellerInputClass}
+                          placeholder="https://linkedin.com/company/your-dealership"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="profile-tiktok" className={sellerLabelClass}>
+                          TikTok
+                        </label>
+                        <input
+                          id="profile-tiktok"
+                          value={form.tiktok}
+                          onChange={(event) => update("tiktok", event.target.value)}
+                          className={sellerInputClass}
+                          placeholder="https://tiktok.com/@your-dealership"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="profile-other-social" className={sellerLabelClass}>
+                          Other Social Page
+                        </label>
+                        <input
+                          id="profile-other-social"
+                          value={form.otherSocial}
+                          onChange={(event) => update("otherSocial", event.target.value)}
+                          className={sellerInputClass}
+                          placeholder="https://example.com/your-public-page"
+                        />
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
