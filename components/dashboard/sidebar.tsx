@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 import {
   BadgeCheck,
+  CalendarDays,
   Heart,
   KeyRound,
   LayoutDashboard,
@@ -30,6 +31,7 @@ const sellerNav = [
   { name: "My listings", href: "/dashboard/listings", icon: ListOrdered },
   { name: "My favorite", href: "/dashboard/favorites", icon: Heart },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { name: "Customer Requests", href: "/dashboard/customer-requests", icon: CalendarDays },
   { name: "Reviews", href: "/dashboard/reviews", icon: Star },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck },
@@ -48,6 +50,7 @@ const salesAgentPermissionNav: {
 }[] = [
   { permission: "listings.manage", item: { name: "Listings", href: "/dashboard/listings", icon: ListOrdered } },
   { permission: "enquiries.respond", item: { name: "Messages", href: "/dashboard/messages", icon: MessageSquare } },
+  { permission: "enquiries.respond", item: { name: "Customer Requests", href: "/dashboard/customer-requests", icon: CalendarDays } },
   { permission: "reviews.manage", item: { name: "Reviews", href: "/dashboard/reviews", icon: Star } },
   { permission: "billing.view", item: { name: "Membership", href: "/dashboard/membership", icon: BadgeCheck } },
 ];

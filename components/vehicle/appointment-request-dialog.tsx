@@ -21,10 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   buildListingAppointmentDays,
-  buildListingAppointmentMessage,
   LISTING_APPOINTMENT_TIME_SLOTS,
 } from "@/lib/appointments/listing-appointment";
-import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
+import { isListingAppointmentSlotInFuture } from "@/lib/appointments/appointment-request";
+import { useListingAppointment } from "@/lib/hooks/use-listing-appointment";
 import { cn } from "@/lib/utils";
 
 type AppointmentRequestDialogProps = {
@@ -43,6 +43,7 @@ export function AppointmentRequestDialog({
   onOpenChange,
 }: AppointmentRequestDialogProps) {
   const days = useMemo(() => buildListingAppointmentDays(), []);
+  const appointmentReferenceDate = new Date();
   const [selectedDateKey, setSelectedDateKey] = useState(days[0]?.dateKey ?? "");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [confirmed, setConfirmed] = useState(false);
@@ -59,8 +60,8 @@ export function AppointmentRequestDialog({
     setContactEmail,
     setContactPhone,
     setFeedback,
-    submitEnquiry,
-  } = useListingEnquiry({ listingId });
+    submitAppointment,
+  } = useListingAppointment({ listingId });
 
   const selectedDay =
     days.find((day) => day.dateKey === selectedDateKey) ?? days[0];
@@ -84,12 +85,10 @@ export function AppointmentRequestDialog({
       return;
     }
 
-    const requestMessage = buildListingAppointmentMessage({
-      dateLabel: selectedDay.fullLabel,
+    const success = await submitAppointment({
+      date: selectedDay.dateKey,
       timeSlot: selectedTime,
-      note: message,
     });
-    const success = await submitEnquiry(requestMessage);
     if (success) {
       setSubmitted(true);
     }
@@ -145,6 +144,16 @@ export function AppointmentRequestDialog({
                       type="button"
                       onClick={() => {
                         setSelectedDateKey(day.dateKey);
+                        if (
+                          selectedTime &&
+                          !isListingAppointmentSlotInFuture(
+                            day.dateKey,
+                            selectedTime,
+                            appointmentReferenceDate
+                          )
+                        ) {
+                          setSelectedTime("");
+                        }
                         setFeedback(null);
                         setSubmitted(false);
                       }}
@@ -181,6 +190,11 @@ export function AppointmentRequestDialog({
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {LISTING_APPOINTMENT_TIME_SLOTS.map((timeSlot) => {
                   const selected = timeSlot === selectedTime;
+                  const available = isListingAppointmentSlotInFuture(
+                    selectedDateKey,
+                    timeSlot,
+                    appointmentReferenceDate
+                  );
                   return (
                     <button
                       key={timeSlot}
@@ -190,10 +204,14 @@ export function AppointmentRequestDialog({
                         setFeedback(null);
                         setSubmitted(false);
                       }}
+                      disabled={!available}
                       aria-pressed={selected}
+                      aria-label={available ? timeSlot : `${timeSlot}, unavailable`}
                       className={cn(
                         "flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                        selected
+                        !available
+                          ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300"
+                          : selected
                           ? "border-secondary bg-secondary text-secondary-foreground"
                           : "border-gray-200 bg-white text-gray-700 hover:border-primary/50 hover:bg-primary/5"
                       )}

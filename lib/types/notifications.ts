@@ -5,6 +5,8 @@ export type NotificationEventType =
   | "new_message"
   | "ticket_created"
   | "ticket_assigned"
+  | "appointment_requested"
+  | "appointment_status_changed"
   | "listing_status_changed"
   | "listing_updated";
 

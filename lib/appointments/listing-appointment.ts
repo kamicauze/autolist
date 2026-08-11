@@ -82,26 +82,3 @@ export function buildListingAppointmentDays(
     };
   });
 }
-
-export function buildListingAppointmentMessage({
-  dateLabel,
-  timeSlot,
-  note,
-}: {
-  dateLabel: string;
-  timeSlot: string;
-  note?: string;
-}) {
-  const lines = [
-    "Appointment request",
-    `Preferred date: ${dateLabel}`,
-    `Preferred time: ${timeSlot} EAT`,
-  ];
-  const trimmedNote = note?.trim();
-
-  if (trimmedNote) {
-    lines.push(`Message: ${trimmedNote}`);
-  }
-
-  return lines.join("\n");
-}
