@@ -4,8 +4,10 @@ import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
 import { TRUCK_CATEGORIES } from "@/lib/constants/vehicle-taxonomy";
 import {
   buildDraftAfterCategoryChange,
+  buildSellerAccountDefaults,
   DEFAULT_DRAFT,
   DETAIL_FIELDS_BY_CATEGORY,
+  resolveSubmissionListingId,
 } from "./wizard-context";
 import { REVIEW_SECTION_STEPS } from "./step-review";
 
@@ -102,4 +104,41 @@ test("changing an unfinished farm draft to truck starts a clean listing", () => 
   assert.equal(truckDraft.contactName, "Yvonne Karimi");
   assert.equal(truckDraft.phoneNumber, "0712345678");
   assert.equal(truckDraft.whatsappNumber, "0712345678");
+});
+
+test("a failed submission retry continues the draft created by the first attempt", () => {
+  assert.equal(resolveSubmissionListingId(null, null), null);
+  assert.equal(
+    resolveSubmissionListingId(null, "listing-created-on-first-attempt"),
+    "listing-created-on-first-attempt"
+  );
+  assert.equal(
+    resolveSubmissionListingId("listing-being-edited", "listing-created-on-first-attempt"),
+    "listing-being-edited"
+  );
+});
+
+test("new listings require the seller to choose a condition", () => {
+  assert.equal(DEFAULT_DRAFT.condition, "");
+});
+
+test("dealer account defaults fall back to profile contact details", () => {
+  const defaults = buildSellerAccountDefaults({
+    profile: {
+      full_name: "Amina Mwangi",
+      role: "dealer",
+      phone: "+254712345678",
+      whatsapp: "+254733456789",
+    },
+    dealer: {
+      status: "APPROVED",
+      mobile: null,
+      whatsapp: null,
+      contact_person: null,
+    },
+  });
+
+  assert.equal(defaults.sellerType, "dealer");
+  assert.equal(defaults.phoneNumber, "+254712345678");
+  assert.equal(defaults.whatsappNumber, "+254733456789");
 });

@@ -2,7 +2,7 @@
 
 import { useWizard } from "./wizard-context";
 import { MAX_PHONE_INPUT_LENGTH, normalizePhoneInput } from "@/lib/utils/phone";
-import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
+import { sellerInputClass, sellerLabelClass } from "../seller-dashboard-ui";
 
 export function StepSeller() {
   const {
@@ -46,19 +46,14 @@ export function StepSeller() {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={sellerLabelClass}>Seller Type</label>
-            <select
-              value={draft.sellerType}
-              onChange={(event) => {
-                if (draft.useDealerAutoFill) {
-                  applyDealerAutofill(false);
-                }
-                updateField("sellerType", event.target.value as "dealer" | "individual");
-              }}
-              className={sellerSelectClass}
-            >
-              <option value="dealer">Dealer</option>
-              <option value="individual">Individual</option>
-            </select>
+            <div className="flex min-h-12 items-center rounded-[14px] border border-[#ededed] bg-[#faf9f7] px-4">
+              <div>
+                <p className="text-[14px] font-medium text-[#202224]">
+                  {draft.sellerType === "dealer" ? "Dealer account" : "Individual seller account"}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#7b8190]">Set automatically from your account.</p>
+              </div>
+            </div>
           </div>
           <div>
             <label className={sellerLabelClass}>Contact Name</label>

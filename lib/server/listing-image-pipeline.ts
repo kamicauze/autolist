@@ -217,15 +217,27 @@ export async function uploadListingImageAssets(input: {
   contentType: string;
 }) {
   const originalKey = buildOriginalListingImageKey(input.listingId, input.fileName);
+  await uploadBuffer(originalKey, input.bytes, input.contentType || "application/octet-stream");
+  return processStoredListingImageAssets({
+    originalKey,
+    fileName: input.fileName,
+    bytes: input.bytes,
+  });
+}
+
+export async function processStoredListingImageAssets(input: {
+  originalKey: string;
+  fileName: string;
+  bytes: Buffer;
+}) {
   const hash = createHash("sha256").update(input.bytes).digest("hex");
   const perceptualHash = await computePerceptualHashes(input.bytes);
   const coverScore = await scoreListingCoverCandidate(input.fileName, input.bytes);
 
-  await uploadBuffer(originalKey, input.bytes, input.contentType || "application/octet-stream");
-  await uploadListingImageVariants(originalKey, input.bytes);
+  await uploadListingImageVariants(input.originalKey, input.bytes);
 
   return {
-    key: originalKey,
+    key: input.originalKey,
     hash,
     perceptualHash,
     coverScore,

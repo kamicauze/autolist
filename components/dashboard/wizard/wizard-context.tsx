@@ -25,6 +25,11 @@ import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib
 import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
 import { isValidPhoneNumber, normalizePhoneInput } from "@/lib/utils/phone";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
+import { uploadFilesToPresignedTargets } from "@/lib/client/listing-media-upload";
+import {
+  toListingMediaUploadReference,
+  type ListingMediaUploadDescriptor,
+} from "@/lib/listing-media-upload";
 import {
   BIKE_BODY_TYPES,
   BIKE_FUEL_TYPES,
@@ -69,7 +74,7 @@ export type ExistingImageRef = {
 export type ListingDraft = {
   category: ListingCategory | "";
   title: string;
-  condition: (typeof LISTING_CONDITION_OPTIONS)[number]["value"];
+  condition: (typeof LISTING_CONDITION_OPTIONS)[number]["value"] | "";
   priceKes: string;
   negotiable: boolean;
   tradeInAccepted: boolean;
@@ -100,7 +105,7 @@ export type ListingDraft = {
 export const DEFAULT_DRAFT: ListingDraft = {
   category: "",
   title: "",
-  condition: "locally_used",
+  condition: "",
   priceKes: "",
   negotiable: true,
   tradeInAccepted: false,
@@ -270,6 +275,24 @@ type SellerAccountDefaults = {
   whatsappNumber: string;
 };
 
+type SellerAccountProfile = {
+  full_name: string | null;
+  role: AuthenticatedProfileRole | null;
+  phone: string | null;
+  whatsapp: string | null;
+};
+
+type SellerAccountDealer = {
+  status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  mobile: string | null;
+  whatsapp: string | null;
+  contact_person: {
+    name?: string;
+    mobile?: string;
+    whatsapp?: string;
+  } | null;
+};
+
 // ─── Utility functions ───
 export function formatKES(value: string) {
   const amount = Number(value);
@@ -283,12 +306,68 @@ export function formatPriceInput(value: string): string {
   return new Intl.NumberFormat("en-KE").format(Number(numericValue));
 }
 
+export function resolveSubmissionListingId(
+  editingListingId: string | null,
+  createdListingId: string | null
+) {
+  return editingListingId ?? createdListingId;
+}
+
 export function unformatPrice(value: string): string {
   return value.replace(/[^0-9]/g, "");
 }
 
 export function isValidPhone(value: string) {
   return isValidPhoneNumber(value);
+}
+
+export function buildSellerAccountDefaults({
+  profile,
+  dealer,
+  authName = "",
+  authPhone = "",
+}: {
+  profile: SellerAccountProfile | null;
+  dealer: SellerAccountDealer | null;
+  authName?: string;
+  authPhone?: string;
+}): SellerAccountDefaults {
+  const contactName = profile?.full_name?.trim() || authName.trim();
+  const profilePhone = normalizePhoneInput(profile?.phone ?? "");
+  const profileWhatsapp = normalizePhoneInput(profile?.whatsapp ?? "");
+  const normalizedAuthPhone = normalizePhoneInput(authPhone);
+  const fallbackPhone = profilePhone || normalizedAuthPhone;
+  const fallbackWhatsapp = profileWhatsapp || fallbackPhone;
+
+  if (profile?.role !== "dealer") {
+    return {
+      sellerType: "individual",
+      useDealerAutoFill: false,
+      contactName,
+      phoneNumber: fallbackPhone,
+      whatsappEnabled: Boolean(fallbackWhatsapp),
+      whatsappNumber: fallbackWhatsapp,
+    };
+  }
+
+  const dealerPhone =
+    normalizePhoneInput(dealer?.contact_person?.mobile ?? "") ||
+    normalizePhoneInput(dealer?.mobile ?? "") ||
+    fallbackPhone;
+  const dealerWhatsapp =
+    normalizePhoneInput(dealer?.contact_person?.whatsapp ?? "") ||
+    normalizePhoneInput(dealer?.whatsapp ?? "") ||
+    profileWhatsapp ||
+    dealerPhone;
+
+  return {
+    sellerType: "dealer",
+    useDealerAutoFill: true,
+    contactName: dealer?.contact_person?.name?.trim() || contactName,
+    phoneNumber: dealerPhone,
+    whatsappEnabled: Boolean(dealerWhatsapp),
+    whatsappNumber: dealerWhatsapp,
+  };
 }
 
 function buildTrimTokens(value: string) {
@@ -934,67 +1013,34 @@ export function WizardProvider({
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, role")
+        .select("full_name, role, phone, whatsapp")
         .eq("id", user.id)
-        .single<{
-          full_name: string | null;
-          role: AuthenticatedProfileRole | null;
-        }>();
+        .single<SellerAccountProfile>();
 
       const profileRole = profile?.role ?? null;
-      const fallbackName =
-        profile?.full_name?.trim() ||
-        (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") ||
-        "";
-      const fallbackPhone =
-        (typeof user.user_metadata?.phone === "string" ? normalizePhoneInput(user.user_metadata.phone) : "") ||
-        "";
-
-      let defaults: SellerAccountDefaults = {
-        sellerType: profileRole === "dealer" ? "dealer" : "individual",
-        useDealerAutoFill: profileRole === "dealer",
-        contactName: fallbackName,
-        phoneNumber: fallbackPhone,
-        whatsappEnabled: Boolean(fallbackPhone),
-        whatsappNumber: fallbackPhone,
-      };
+      const authName =
+        typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name.trim()
+          : "";
+      const authPhone =
+        typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : "";
+      let dealer: SellerAccountDealer | null = null;
 
       if (profileRole === "dealer") {
-        const { data: dealer } = await supabase
+        const { data } = await supabase
           .from("dealers")
           .select("status, mobile, whatsapp, contact_person")
           .eq("profile_id", user.id)
-          .maybeSingle<{
-            status: "PENDING" | "APPROVED" | "REJECTED" | null;
-            mobile: string | null;
-            whatsapp: string | null;
-            contact_person: {
-              name?: string;
-              mobile?: string;
-              whatsapp?: string;
-            } | null;
-          }>();
-
-        const dealerPhone =
-          normalizePhoneInput(dealer?.contact_person?.mobile ?? "") ||
-          normalizePhoneInput(dealer?.mobile ?? "") ||
-          fallbackPhone;
-        const dealerWhatsapp =
-          normalizePhoneInput(dealer?.contact_person?.whatsapp ?? "") ||
-          normalizePhoneInput(dealer?.whatsapp ?? "") ||
-          dealerPhone;
-
-        defaults = {
-          sellerType: "dealer",
-          useDealerAutoFill: true,
-          contactName:
-            dealer?.contact_person?.name?.trim() ||
-            fallbackName,
-          phoneNumber: dealerPhone,
-          whatsappEnabled: Boolean(dealerWhatsapp),
-          whatsappNumber: dealerWhatsapp,
-        };
+          .maybeSingle<SellerAccountDealer>();
+        dealer = data;
       }
+
+      const defaults = buildSellerAccountDefaults({
+        profile,
+        dealer,
+        authName,
+        authPhone,
+      });
 
       if (!isEditing) {
         const packageAccessResult = await getSellerPackageAccessForUser(supabase, user.id);
@@ -1018,18 +1064,22 @@ export function WizardProvider({
 
       if (!isMounted) return;
       setSellerAccountDefaults(defaults);
-      setDraft((prev) =>
-        prev.useDealerAutoFill
-          ? {
-              ...prev,
-              sellerType: defaults.sellerType,
-              contactName: defaults.contactName || prev.contactName,
-              phoneNumber: defaults.phoneNumber || prev.phoneNumber,
-              whatsappEnabled: defaults.whatsappEnabled,
-              whatsappNumber: defaults.whatsappNumber || prev.whatsappNumber,
-            }
-          : prev
-      );
+      setDraft((prev) => {
+        if (isEditing) return prev;
+
+        return {
+          ...prev,
+          sellerType: defaults.sellerType,
+          ...(prev.useDealerAutoFill
+            ? {
+                contactName: defaults.contactName || prev.contactName,
+                phoneNumber: defaults.phoneNumber || prev.phoneNumber,
+                whatsappEnabled: defaults.whatsappEnabled,
+                whatsappNumber: defaults.whatsappNumber || prev.whatsappNumber,
+              }
+            : {}),
+        };
+      });
     };
 
     void loadSellerDefaults();
@@ -1566,7 +1616,7 @@ export function WizardProvider({
       if (!draft.category) return false;
       return selectedCategoryFields.filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
     }
-    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim());
+    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.condition && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim());
     if (activeStep === 3) return draft.selectedFeatureIds.length > 0;
     if (activeStep === 4) return Boolean(draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
     if (activeStep === 5) return !mediaValidationError;
@@ -1587,6 +1637,7 @@ export function WizardProvider({
     completion[2] = Boolean(
       draft.title.trim() &&
       draft.title.trim().length <= MAX_TITLE_LENGTH &&
+      draft.condition &&
       draft.priceKes &&
       Number(draft.priceKes) > 0 &&
       draft.country.trim() &&
@@ -1702,17 +1753,22 @@ export function WizardProvider({
       try {
         const {
           createListing,
+          finalizeListingDocumentUploads,
+          finalizeListingImageUploads,
+          finalizeListingVideoUpload,
+          prepareListingMediaUploads,
+          reorderListingImages,
           submitListingForReview,
           updateListing,
-          uploadListingDocuments,
-          uploadListingImages,
-          uploadListingVideo,
-          reorderListingImages,
         } = await import("@/lib/actions/listings");
 
-        let listingId = editingListingId;
+        // A first submission attempt may create the draft successfully and then
+        // fail during media upload or review submission. Continue that draft on
+        // retry instead of creating a second listing and tripping duplicate
+        // detection against our own partial attempt.
+        let listingId = resolveSubmissionListingId(editingListingId, createdListingId);
 
-        if (isEditing && listingId) {
+        if (listingId) {
           const updateResult = await updateListing(listingId, listingData);
           if (updateResult.error) {
             setSubmitError(updateResult.error);
@@ -1751,44 +1807,6 @@ export function WizardProvider({
           return;
         }
 
-        if (videoFile) {
-          const videoFormData = new FormData();
-          videoFormData.set("listingId", listingId);
-          videoFormData.set("videoFile", videoFile);
-
-          const videoUploadResult = await uploadListingVideo(videoFormData);
-
-          if ("error" in videoUploadResult) {
-            setSubmitError(videoUploadResult.error || "Unable to upload the video file.");
-            setSubmitIssues(
-              videoUploadResult.error
-                ? [{ message: videoUploadResult.error, stepIndex: 5 }]
-                : []
-            );
-            setIsSubmitting(false);
-            return;
-          }
-        }
-
-        if (documentFiles.length > 0) {
-          const documentFormData = new FormData();
-          documentFormData.set("listingId", listingId);
-          documentFiles.forEach((file) => documentFormData.append("documentFiles", file));
-
-          const documentUploadResult = await uploadListingDocuments(documentFormData);
-
-          if ("error" in documentUploadResult) {
-            setSubmitError(documentUploadResult.error || "Unable to upload listing documents.");
-            setSubmitIssues(
-              documentUploadResult.error
-                ? [{ message: documentUploadResult.error, stepIndex: 5 }]
-                : []
-            );
-            setIsSubmitting(false);
-            return;
-          }
-        }
-
         const hasReplacementMedia = galleryFiles.length > 0;
         const initialExistingImageKeyOrder = getExistingImageKeyOrder(initialDraft);
         const existingImageKeyOrder = getExistingImageKeyOrder(draft);
@@ -1796,42 +1814,149 @@ export function WizardProvider({
           isEditing &&
           !hasReplacementMedia &&
           didExistingImageOrderChange(existingImageKeyOrder, initialExistingImageKeyOrder);
+        const shouldUploadImages = !isEditing || hasReplacementMedia;
+        const selectedCoverIndex =
+          draft.coverFromGalleryIndex !== null && galleryFiles[draft.coverFromGalleryIndex]
+            ? draft.coverFromGalleryIndex
+            : 0;
+        const selectedCoverFile = galleryFiles[selectedCoverIndex];
+        const orderedGalleryFiles = shouldUploadImages
+          ? selectedCoverFile
+            ? [
+                selectedCoverFile,
+                ...galleryFiles.filter((_, index) => index !== selectedCoverIndex),
+              ]
+            : galleryFiles
+          : [];
+        const mediaFiles: Array<{
+          descriptor: ListingMediaUploadDescriptor;
+          file: File;
+        }> = [
+          ...orderedGalleryFiles.map((file, index) => ({
+            descriptor: {
+              clientId: `image-${index}`,
+              kind: "image" as const,
+              name: file.name,
+              size: file.size,
+              contentType: file.type,
+              lastModified: file.lastModified,
+            },
+            file,
+          })),
+          ...documentFiles.map((file, index) => ({
+            descriptor: {
+              clientId: `document-${index}`,
+              kind: "document" as const,
+              name: file.name,
+              size: file.size,
+              contentType: file.type,
+              lastModified: file.lastModified,
+            },
+            file,
+          })),
+          ...(videoFile
+            ? [{
+                descriptor: {
+                  clientId: "video-0",
+                  kind: "video" as const,
+                  name: videoFile.name,
+                  size: videoFile.size,
+                  contentType: videoFile.type,
+                  lastModified: videoFile.lastModified,
+                },
+                file: videoFile,
+              }]
+            : []),
+        ];
 
-        if (!isEditing || hasReplacementMedia) {
-          const uploadFormData = new FormData();
-          uploadFormData.set("listingId", listingId);
-          uploadFormData.set("altTextBase", `${draft.details.make} ${draft.details.model}`.trim());
-
-          const selectedCoverIndex =
-            draft.coverFromGalleryIndex !== null &&
-            galleryFiles[draft.coverFromGalleryIndex]
-              ? draft.coverFromGalleryIndex
-              : 0;
-          const selectedCoverFile = galleryFiles[selectedCoverIndex];
-          const orderedGalleryFiles =
-            selectedCoverFile
-              ? [
-                  selectedCoverFile,
-                  ...galleryFiles.filter((_, index) => index !== selectedCoverIndex),
-                ]
-              : galleryFiles;
-
-          orderedGalleryFiles.forEach((file) => {
-            uploadFormData.append("galleryImages", file);
-          });
-
-          const uploadResult = await uploadListingImages(uploadFormData);
-          if ("error" in uploadResult) {
-            setSubmitError(uploadResult.error || "Unable to upload listing images.");
+        if (mediaFiles.length > 0) {
+          const prepareResult = await prepareListingMediaUploads(
+            listingId,
+            mediaFiles.map(({ descriptor }) => descriptor)
+          );
+          if ("error" in prepareResult) {
+            setSubmitError(prepareResult.error || "Unable to prepare listing media.");
             setSubmitIssues(
-              uploadResult.error
-                ? [{ message: uploadResult.error, stepIndex: 5 }]
-                : []
+              prepareResult.error ? [{ message: prepareResult.error, stepIndex: 5 }] : []
             );
             setIsSubmitting(false);
             return;
           }
-        } else if (existingImageOrderChanged) {
+
+          const filesByClientId = new Map(
+            mediaFiles.map(({ descriptor, file }) => [descriptor.clientId, file])
+          );
+          try {
+            const directUploads = prepareResult.uploads.map((ticket) => {
+              const file = filesByClientId.get(ticket.clientId);
+              if (!file) {
+                throw new Error(`Unable to match "${ticket.name}" to the selected file.`);
+              }
+              return { ticket, file };
+            });
+            await uploadFilesToPresignedTargets(
+              directUploads
+            );
+          } catch (error) {
+            const message = error instanceof Error
+              ? error.message
+              : "Unable to upload listing media. Please try again.";
+            setSubmitError(message);
+            setSubmitIssues([{ message, stepIndex: 5 }]);
+            setIsSubmitting(false);
+            return;
+          }
+
+          const uploadedMedia = prepareResult.uploads.map(toListingMediaUploadReference);
+          const imageUploads = uploadedMedia.filter((upload) => upload.kind === "image");
+          const documentUploads = uploadedMedia.filter((upload) => upload.kind === "document");
+          const uploadedVideo = uploadedMedia.find((upload) => upload.kind === "video");
+
+          if (imageUploads.length > 0) {
+            const imageResult = await finalizeListingImageUploads(
+              listingId,
+              imageUploads,
+              `${draft.details.make} ${draft.details.model}`.trim()
+            );
+            if ("error" in imageResult) {
+              setSubmitError(imageResult.error || "Unable to process listing images.");
+              setSubmitIssues(
+                imageResult.error ? [{ message: imageResult.error, stepIndex: 5 }] : []
+              );
+              setIsSubmitting(false);
+              return;
+            }
+          }
+
+          if (documentUploads.length > 0) {
+            const documentResult = await finalizeListingDocumentUploads(
+              listingId,
+              documentUploads
+            );
+            if ("error" in documentResult) {
+              setSubmitError(documentResult.error || "Unable to process listing documents.");
+              setSubmitIssues(
+                documentResult.error ? [{ message: documentResult.error, stepIndex: 5 }] : []
+              );
+              setIsSubmitting(false);
+              return;
+            }
+          }
+
+          if (uploadedVideo) {
+            const videoResult = await finalizeListingVideoUpload(listingId, uploadedVideo);
+            if ("error" in videoResult) {
+              setSubmitError(videoResult.error || "Unable to process the listing video.");
+              setSubmitIssues(
+                videoResult.error ? [{ message: videoResult.error, stepIndex: 5 }] : []
+              );
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        }
+
+        if (!shouldUploadImages && existingImageOrderChanged) {
           const reorderFormData = new FormData();
           reorderFormData.set("listingId", listingId);
           reorderFormData.set("orderedImageKeys", JSON.stringify(existingImageKeyOrder));

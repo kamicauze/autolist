@@ -64,6 +64,14 @@ function WizardContent({
   const isAdminMode = mode === "admin";
 
   const errorRef = useRef<HTMLDivElement>(null);
+  const previousStepRef = useRef(activeStep);
+  useEffect(() => {
+    if (previousStepRef.current !== activeStep) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      previousStepRef.current = activeStep;
+    }
+  }, [activeStep]);
+
   useEffect(() => {
     if (submitError) {
       errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });

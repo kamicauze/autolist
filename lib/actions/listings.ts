@@ -4,10 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
-import { uploadListingImageAssets } from "@/lib/server/listing-image-pipeline";
+import {
+    processStoredListingImageAssets,
+    uploadListingImageAssets,
+} from "@/lib/server/listing-image-pipeline";
 import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notifications";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
+import {
+    findMatchingOwnerListing,
+    type OwnerListingCandidate,
+} from "@/lib/utils/listing-submission";
 import { getStorageObjectUrl } from "@/lib/utils/listings";
+import {
+    validateListingMediaUploadDescriptors,
+    type ListingMediaUploadDescriptor,
+    type ListingMediaUploadReference,
+} from "@/lib/listing-media-upload";
+import {
+    createListingMediaUploadTicket,
+    promoteListingMediaUpload,
+    readListingMediaUpload,
+} from "@/lib/server/listing-media-upload";
 import { r2 } from "@/lib/r2";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { nanoid } from "nanoid";
@@ -520,13 +537,22 @@ export async function insertListingInternal(
         gvmKg,
         cabType,
     });
+    const listingWriteValues = {
+        dealer_id: dealerId ?? null,
+        ...listingValues,
+        seats: seats ?? null,
+        doors: doors ?? null,
+        drive_type: drive_type || null,
+        metadata: Object.keys(vehicleReferenceMetadata).length > 0 ? vehicleReferenceMetadata : null,
+        features: data.features,
+    };
 
     // 2. Duplicate Detection (MVP)
     // Check if the user already has a listing for this exact vehicle (Make + Model + Year + Price within 1%)
     // This prevents accidental double-clicks or spam.
     const { data: potentialDuplicates } = await supabase
         .from('listings')
-        .select('id, price')
+        .select('id, price, status')
         .eq('seller_id', userId)
         .eq('make', data.make)
         .eq('model', data.model)
@@ -535,14 +561,34 @@ export async function insertListingInternal(
         .neq('status', 'sold');   // Ignore sold listings (they might be selling another one)
 
     if (potentialDuplicates && potentialDuplicates.length > 0) {
-        // Check price similarity (within 1%)
-        const isDuplicate = potentialDuplicates.some(existing => {
-            const priceDiff = Math.abs(existing.price - data.price);
-            const percentDiff = priceDiff / existing.price;
-            return percentDiff < 0.01; // < 1% difference
-        });
+        const matchingListing = findMatchingOwnerListing(
+            potentialDuplicates as OwnerListingCandidate[],
+            data.price,
+        );
 
-        if (isDuplicate) {
+        if (matchingListing?.status === 'draft') {
+            const { data: resumedListing, error: resumeError } = await supabase
+                .from('listings')
+                .update({
+                    ...listingWriteValues,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', matchingListing.id)
+                .eq('seller_id', userId)
+                .eq('status', 'draft')
+                .select()
+                .single();
+
+            if (resumeError) {
+                console.error("Resume Listing Error:", resumeError);
+                return { error: resumeError.message };
+            }
+
+            revalidatePath('/dashboard/listings');
+            return { success: true, data: resumedListing, resumedExistingDraft: true };
+        }
+
+        if (matchingListing) {
             return { error: "You already have a listing for this vehicle. Please update the existing listing or check your drafts." };
         }
     }
@@ -556,14 +602,8 @@ export async function insertListingInternal(
         .from('listings')
         .insert({
             seller_id: userId,
-            dealer_id: dealerId ?? null,
             status: initialStatus,
-            ...listingValues,
-            seats: seats ?? null,
-            doors: doors ?? null,
-            drive_type: drive_type || null,
-            metadata: Object.keys(vehicleReferenceMetadata).length > 0 ? vehicleReferenceMetadata : null,
-            features: data.features // Zod array -> JSONB
+            ...listingWriteValues,
         })
         .select()
         .single();
@@ -1046,6 +1086,277 @@ export async function saveListingImage(
     }
 
     return { success: true };
+}
+
+type PreparedListingImage = {
+    key: string;
+    hash: string;
+    perceptualHash: string;
+    altText: string | null;
+    imageOrder: number;
+};
+
+async function getDuplicateListingImageError(
+    supabase: SupabaseClient,
+    listing: EditableListingRecord,
+    listingId: string,
+    fileName: string,
+    hash: string,
+    perceptualHash: string,
+) {
+    const duplicateCheck = await supabase
+        .from('listing_images')
+        .select('id, image_hash, perceptual_hash, listings!inner(seller_id, id)')
+        .eq('listings.seller_id', listing.seller_id)
+        .neq('listing_id', listingId);
+
+    if (duplicateCheck.error) return duplicateCheck.error.message;
+
+    const duplicateRows = (duplicateCheck.data ?? []) as Array<{
+        id: string;
+        image_hash: string | null;
+        perceptual_hash: string | null;
+    }>;
+    const nextHashes = parsePerceptualHashes(perceptualHash);
+    const hasPerceptualDuplicate = duplicateRows.some((row) =>
+        parsePerceptualHashes(row.perceptual_hash).some((existingHash) =>
+            nextHashes.some((candidateHash) => hammingDistance(existingHash, candidateHash) <= 8)
+        )
+    );
+
+    return duplicateRows.some((row) => row.image_hash === hash) || hasPerceptualDuplicate
+        ? `Duplicate image detected for "${fileName}".`
+        : null;
+}
+
+async function replaceListingImageRows(
+    supabase: SupabaseClient,
+    listingId: string,
+    uploads: PreparedListingImage[],
+) {
+    const { error: deleteError } = await supabase
+        .from("listing_images")
+        .delete()
+        .eq("listing_id", listingId);
+
+    if (deleteError) return deleteError.message;
+
+    const { error: insertError } = await supabase
+        .from("listing_images")
+        .insert(uploads.map((upload) => ({
+            listing_id: listingId,
+            r2_key: upload.key,
+            alt_text: upload.altText,
+            image_order: upload.imageOrder,
+            image_hash: upload.hash,
+            perceptual_hash: upload.perceptualHash,
+            is_watermarked: true,
+        })));
+
+    return insertError?.message ?? null;
+}
+
+export async function prepareListingMediaUploads(
+    listingId: string,
+    descriptors: ListingMediaUploadDescriptor[],
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+    if (!listingId.trim()) return { error: "Listing id is required." };
+
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) return { error: access.error };
+
+    const validationError = validateListingMediaUploadDescriptors(descriptors);
+    if (validationError) return { error: validationError };
+
+    try {
+        const uploads = await Promise.all(
+            descriptors.map((descriptor) => createListingMediaUploadTicket(listingId, descriptor))
+        );
+        return { success: true, uploads };
+    } catch (error) {
+        console.error("Prepare listing media uploads error:", error);
+        return { error: "Unable to prepare media uploads. Please try again." };
+    }
+}
+
+export async function finalizeListingImageUploads(
+    listingId: string,
+    uploads: ListingMediaUploadReference[],
+    altTextBase: string,
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+    if (!listingId.trim()) return { error: "Listing id is required." };
+
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) return { error: access.error };
+    const validationError = validateListingMediaUploadDescriptors(uploads);
+    if (validationError) return { error: validationError };
+    if (uploads.some((upload) => upload.kind !== "image")) {
+        return { error: "Only listing images can be finalized here." };
+    }
+    if (uploads.length < 3) return { error: "At least three listing photos are required." };
+
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const preparedUploads: PreparedListingImage[] = [];
+
+    for (const [index, upload] of uploads.entries()) {
+        try {
+            const bytes = await readListingMediaUpload(listingId, upload);
+            const finalizedUpload = await promoteListingMediaUpload(listingId, upload);
+            const processed = await processStoredListingImageAssets({
+                originalKey: finalizedUpload.key,
+                fileName: upload.name,
+                bytes,
+            });
+            const duplicateError = await getDuplicateListingImageError(
+                writeSupabase,
+                access.listing,
+                listingId,
+                upload.name,
+                processed.hash,
+                processed.perceptualHash,
+            );
+            if (duplicateError) return { error: duplicateError };
+
+            preparedUploads.push({
+                key: processed.key,
+                hash: processed.hash,
+                perceptualHash: processed.perceptualHash,
+                altText: altTextBase.trim() ? `${altTextBase.trim()} - Photo ${index + 1}` : null,
+                imageOrder: index,
+            });
+        } catch (error) {
+            console.error("Finalize listing image upload error:", error);
+            return {
+                error: error instanceof Error
+                    ? error.message
+                    : `Unable to process "${upload.name}". Please try again.`,
+            };
+        }
+    }
+
+    const replaceError = await replaceListingImageRows(writeSupabase, listingId, preparedUploads);
+    if (replaceError) return { error: replaceError };
+
+    if (access.canAdminister) {
+        await emitListingUpdatedNotification({
+            actorId: user.id,
+            listing: access.listing,
+            summary: "An admin updated the listing photos on your behalf.",
+        });
+    }
+
+    revalidateListingPaths(listingId);
+    return { success: true, uploadedCount: preparedUploads.length };
+}
+
+export async function finalizeListingDocumentUploads(
+    listingId: string,
+    uploads: ListingMediaUploadReference[],
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+    if (!listingId.trim()) return { error: "Listing id is required." };
+
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) return { error: access.error };
+    const validationError = validateListingMediaUploadDescriptors(uploads);
+    if (validationError) return { error: validationError };
+    if (uploads.some((upload) => upload.kind !== "document")) {
+        return { error: "Only listing documents can be finalized here." };
+    }
+
+    let finalizedUploads: ListingMediaUploadReference[];
+    try {
+        finalizedUploads = await Promise.all(
+            uploads.map((upload) => promoteListingMediaUpload(listingId, upload))
+        );
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Unable to verify listing documents." };
+    }
+
+    const uploadedDocuments: UploadedListingDocument[] = finalizedUploads.map((upload) => ({
+        name: upload.name,
+        url: getStorageObjectUrl(upload.key),
+        key: upload.key,
+        contentType: upload.contentType,
+        size: upload.size,
+    }));
+    if (uploadedDocuments.some((document) => !document.url.startsWith("http"))) {
+        return { error: "Public asset URL configuration is missing." };
+    }
+
+    const existingMetadata = toMetadataObject(access.listing.metadata);
+    const uploadedKeys = new Set(uploadedDocuments.map((document) => document.key));
+    const existingDocuments = Array.isArray(existingMetadata.documents)
+        ? existingMetadata.documents.filter((document) => {
+            if (!document || typeof document !== "object") return false;
+            const key = (document as Record<string, unknown>).key;
+            return typeof key !== "string" || !uploadedKeys.has(key);
+        })
+        : [];
+    const documents = [...existingDocuments, ...uploadedDocuments];
+    const nextMetadata = {
+        ...existingMetadata,
+        documents,
+        documentNames: documents
+            .map((document) => {
+                const name = (document as Record<string, unknown>).name;
+                return typeof name === "string" ? name.trim() : "";
+            })
+            .filter(Boolean),
+    };
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const { error: updateError } = await writeSupabase
+        .from("listings")
+        .update({ metadata: nextMetadata, updated_at: new Date().toISOString() })
+        .eq("id", listingId);
+    if (updateError) return { error: updateError.message };
+
+    revalidateListingPaths(listingId);
+    return { success: true, documents: uploadedDocuments };
+}
+
+export async function finalizeListingVideoUpload(
+    listingId: string,
+    upload: ListingMediaUploadReference,
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+    if (!listingId.trim()) return { error: "Listing id is required." };
+
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) return { error: access.error };
+    const validationError = validateListingMediaUploadDescriptors([upload]);
+    if (validationError) return { error: validationError };
+    if (upload.kind !== "video") return { error: "Only a listing video can be finalized here." };
+
+    let finalizedUpload: ListingMediaUploadReference;
+    try {
+        finalizedUpload = await promoteListingMediaUpload(listingId, upload);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Unable to verify the listing video." };
+    }
+
+    const videoUrl = getStorageObjectUrl(finalizedUpload.key);
+    if (!videoUrl.startsWith("http")) return { error: "Public asset URL configuration is missing." };
+    const nextMetadata = { ...toMetadataObject(access.listing.metadata), videoUrl };
+    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const { error: updateError } = await writeSupabase
+        .from("listings")
+        .update({ metadata: nextMetadata, updated_at: new Date().toISOString() })
+        .eq("id", listingId);
+    if (updateError) return { error: updateError.message };
+
+    revalidateListingPaths(listingId);
+    return { success: true, videoUrl };
 }
 
 export async function uploadListingImages(formData: FormData) {

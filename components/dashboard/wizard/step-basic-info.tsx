@@ -59,8 +59,12 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             <select
               value={draft.condition}
               onChange={(event) => updateField("condition", event.target.value as typeof draft.condition)}
-              className={sellerSelectClass}
+              className={cn(
+                sellerSelectClass,
+                showValidationErrors && !draft.condition && "border-[#f04438]"
+              )}
             >
+              <option value="">Select condition</option>
               {LISTING_CONDITION_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}

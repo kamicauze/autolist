@@ -116,7 +116,60 @@ export function RecommendedCars({
                     className="absolute inset-0 z-10"
                     aria-label={`View ${title}`}
                   />
-                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/35 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                  <details className="absolute right-1.5 top-1.5 z-20 sm:hidden">
+                    <summary
+                      aria-label="Show listing actions"
+                      className="flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full border border-white/40 bg-white/85 shadow-sm backdrop-blur-md [&::-webkit-details-marker]:hidden"
+                    >
+                      <span aria-hidden="true" className="flex items-center gap-0.5">
+                        <span className="h-0.5 w-0.5 rounded-full bg-primary" />
+                        <span className="h-0.5 w-0.5 rounded-full bg-primary" />
+                        <span className="h-0.5 w-0.5 rounded-full bg-primary" />
+                      </span>
+                    </summary>
+                    <div className="absolute right-0 top-6 flex items-center gap-1 rounded-full border border-white/40 bg-white/85 p-1 shadow-sm backdrop-blur-md">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+
+                          if (!isLoaded || compareLimitReached) {
+                            return;
+                          }
+
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                          toggleCompare(listing.id);
+                        }}
+                        disabled={!isLoaded || compareLimitReached}
+                        aria-label={inCompare ? "Remove from compare" : "Add to compare"}
+                        className={cn(
+                          "flex h-6 w-6 items-center justify-center rounded-full bg-white text-primary",
+                          (!isLoaded || compareLimitReached) && "cursor-not-allowed opacity-60"
+                        )}
+                      >
+                        {inCompare ? <Check className="h-3 w-3" /> : <GitCompare className="h-3 w-3" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                          handleFavoriteToggle(listing.id);
+                        }}
+                        aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
+                        disabled={pendingListingId === listing.id}
+                        className={cn(
+                          "flex h-6 w-6 items-center justify-center rounded-full bg-white text-primary transition-colors hover:text-red-500",
+                          isLiked && "text-red-500"
+                        )}
+                      >
+                        <Heart className={cn("h-3 w-3", isLiked && "fill-current")} />
+                      </button>
+                    </div>
+                  </details>
+                  <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center bg-black/35 opacity-0 transition-opacity sm:flex sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
