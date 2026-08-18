@@ -6,6 +6,26 @@ export type OwnerListingCandidate = {
   status: ListingStatus;
 };
 
+export type CompletedListingSubmission = {
+  success: true;
+  autoApproved: boolean;
+  alreadySubmitted: true;
+};
+
+export function getCompletedListingSubmission(
+  status: ListingStatus
+): CompletedListingSubmission | null {
+  if (status === "active") {
+    return { success: true, autoApproved: true, alreadySubmitted: true };
+  }
+
+  if (status === "pending") {
+    return { success: true, autoApproved: false, alreadySubmitted: true };
+  }
+
+  return null;
+}
+
 export function findMatchingOwnerListing(
   candidates: OwnerListingCandidate[],
   price: number

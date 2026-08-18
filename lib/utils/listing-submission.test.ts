@@ -1,6 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findMatchingOwnerListing } from "./listing-submission";
+import {
+  findMatchingOwnerListing,
+  getCompletedListingSubmission,
+} from "./listing-submission";
+
+test("treats a completed review transition as an idempotent success", () => {
+  assert.deepEqual(getCompletedListingSubmission("active"), {
+    success: true,
+    autoApproved: true,
+    alreadySubmitted: true,
+  });
+  assert.deepEqual(getCompletedListingSubmission("pending"), {
+    success: true,
+    autoApproved: false,
+    alreadySubmitted: true,
+  });
+  assert.equal(getCompletedListingSubmission("draft"), null);
+  assert.equal(getCompletedListingSubmission("rejected"), null);
+});
 
 test("finds the matching owner listing within the duplicate price tolerance", () => {
   const match = findMatchingOwnerListing(

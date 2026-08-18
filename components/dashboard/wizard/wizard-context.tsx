@@ -26,6 +26,7 @@ import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
 import { isValidPhoneNumber, normalizePhoneInput } from "@/lib/utils/phone";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
 import { uploadFilesToPresignedTargets } from "@/lib/client/listing-media-upload";
+import { submitListingReviewWithRecovery } from "@/lib/client/listing-review-submit";
 import {
   toListingMediaUploadReference,
   type ListingMediaUploadDescriptor,
@@ -1975,7 +1976,10 @@ export function WizardProvider({
         }
 
         if (!isEditing) {
-          const submitResult = await submitListingForReview(listingId);
+          const submitResult = await submitListingReviewWithRecovery(
+            listingId,
+            submitListingForReview
+          );
           if ("error" in submitResult) {
             setSubmitError(submitResult.error || "Unable to submit listing for review.");
             setSubmitIssues(

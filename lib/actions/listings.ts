@@ -12,6 +12,7 @@ import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notificat
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
 import {
     findMatchingOwnerListing,
+    getCompletedListingSubmission,
     type OwnerListingCandidate,
 } from "@/lib/utils/listing-submission";
 import { getStorageObjectUrl } from "@/lib/utils/listings";
@@ -1792,6 +1793,10 @@ export async function submitListingForReview(listingId: string) {
         return { error: access.error };
     }
     const listing = access.listing;
+    const completedSubmission = getCompletedListingSubmission(listing.status);
+    if (completedSubmission) {
+        return completedSubmission;
+    }
     if (listing.status !== "draft") {
         return { error: "Listing is not in draft status." };
     }
@@ -1826,15 +1831,39 @@ export async function submitListingForReview(listingId: string) {
 
     const newStatus = autoApproved ? 'active' : 'pending';
 
-    const { error } = await writeSupabase
+    const { data: updatedListing, error } = await writeSupabase
         .from('listings')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', listingId)
-        .eq('status', 'draft');
+        .eq('status', 'draft')
+        .select('status')
+        .maybeSingle<{ status: ListingStatus }>();
 
     if (error) {
         console.error("Submit for Review Error:", error);
         return { error: error.message };
+    }
+
+    if (!updatedListing) {
+        const { data: currentListing, error: currentListingError } = await writeSupabase
+            .from('listings')
+            .select('status')
+            .eq('id', listingId)
+            .maybeSingle<{ status: ListingStatus }>();
+
+        if (currentListingError) {
+            console.error("Submit for Review Status Check Error:", currentListingError);
+            return { error: currentListingError.message };
+        }
+
+        const concurrentSubmission = currentListing
+            ? getCompletedListingSubmission(currentListing.status)
+            : null;
+        if (concurrentSubmission) {
+            return concurrentSubmission;
+        }
+
+        return { error: "The listing status changed before it could be submitted. Please try again." };
     }
 
     revalidatePath('/dashboard/listings');
