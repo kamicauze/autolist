@@ -15,6 +15,9 @@ const dashboardSource = readSource(
 const migrationSource = readSource(
   "../../supabase/migrations/20260818083202_complete_dealer_sale_flow.sql",
 );
+const policyCorrectionSource = readSource(
+  "../../supabase/migrations/20260818085502_restrict_legacy_active_listing_policy_for_dealer_only.sql",
+);
 
 assert.match(pageSource, /isPrivateSellerRole\(profile\?\.role\)/);
 assert.match(pageSource, /\/login\?next=/);
@@ -48,4 +51,19 @@ assert.match(
 assert.match(
   migrationSource,
   /grant execute on function public\.create_listing_offer[\s\S]+to authenticated/,
+);
+assert.match(migrationSource, /target_listing\.seller_id/);
+
+assert.match(
+  policyCorrectionSource,
+  /drop policy if exists "Listings are viewable by public if active or owner\."/,
+);
+assert.match(
+  policyCorrectionSource,
+  /create policy "Owners view all their listings\."[\s\S]+to authenticated/,
+);
+assert.match(policyCorrectionSource, /target_listing\.seller_id/);
+assert.match(
+  policyCorrectionSource,
+  /revoke all on function public\.assert_listing_offer_insertable[\s\S]+from authenticated/,
 );

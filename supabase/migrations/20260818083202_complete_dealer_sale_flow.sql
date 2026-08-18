@@ -122,10 +122,15 @@ declare
   dealer_record record;
   settings_record record;
 begin
-  select id, seller_id, status, sale_channel, currency
+  select
+    target_listing.id,
+    target_listing.seller_id,
+    target_listing.status,
+    target_listing.sale_channel,
+    target_listing.currency
   into listing_record
-  from public.listings
-  where id = p_listing_id;
+  from public.listings as target_listing
+  where target_listing.id = p_listing_id;
 
   if listing_record.id is null then
     raise exception 'Listing not found.';
