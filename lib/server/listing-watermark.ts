@@ -10,10 +10,10 @@ const AUTOLIST_WORDMARK_PATHS = `
 `;
 
 export function buildListingWatermarkSvgMarkup(width: number, height: number) {
-  const tileWidth = Math.max(260, Math.round(width / 3));
-  const tileHeight = Math.max(150, Math.round(height / 3));
-  const patternMarkWidth = Math.round(tileWidth * 0.72);
-  const patternMarkHeight = Math.round(patternMarkWidth * (64 / 470));
+  const markWidth = Math.max(72, Math.round(width * 0.24));
+  const markHeight = Math.round(markWidth * (64 / 470));
+  const markX = Math.round((width - markWidth) / 2);
+  const markY = Math.round((height - markHeight) / 2);
 
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -21,28 +21,18 @@ export function buildListingWatermarkSvgMarkup(width: number, height: number) {
         <symbol id="autolist-wordmark" data-brand="autolist-wordmark" viewBox="0 0 470 64">
           ${AUTOLIST_WORDMARK_PATHS}
         </symbol>
-        <pattern id="autolist-watermark" width="${tileWidth}" height="${tileHeight}" patternUnits="userSpaceOnUse">
-          <g
-            data-watermark-layer="pattern"
-            transform="translate(${Math.round(tileWidth * 0.5)} ${Math.round(tileHeight * 0.5)}) rotate(-24)"
-            opacity="0.34"
-          >
-            <use
-              href="#autolist-wordmark"
-              x="${Math.round(patternMarkWidth / -2)}"
-              y="${Math.round(patternMarkHeight / -2)}"
-              width="${patternMarkWidth}"
-              height="${patternMarkHeight}"
-              color="#ffffff"
-              stroke="#000000"
-              stroke-opacity="0.2"
-              stroke-width="2"
-              paint-order="stroke fill"
-            />
-          </g>
-        </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#autolist-watermark)" />
+      <use
+        id="autolist-watermark"
+        data-watermark-layer="center"
+        href="#autolist-wordmark"
+        x="${markX}"
+        y="${markY}"
+        width="${markWidth}"
+        height="${markHeight}"
+        color="#ffffff"
+        opacity="0.16"
+      />
     </svg>
   `;
 }
