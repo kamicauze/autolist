@@ -1,18 +1,8 @@
 "use client";
 
-import {
-  Car,
-  Fuel,
-  Gauge,
-  Settings,
-  MapPin,
-  Cog,
-  DoorOpen,
-  Palette,
-  Users,
-  BadgeCheck,
-} from "lucide-react";
+import Image from "next/image";
 import { Listing } from "@/lib/types/listing";
+import { LISTING_OVERVIEW_ASSET_PATHS } from "@/lib/constants/listing-overview-assets";
 import {
   buildListingOverviewItems,
   type ListingOverviewItem,
@@ -23,34 +13,23 @@ interface CarOverviewProps {
   location?: string;
 }
 
-const OVERVIEW_ICONS: Record<string, React.ReactNode> = {
-  Mileage: <Gauge className="h-4 w-4" />,
-  Condition: <BadgeCheck className="h-4 w-4" />,
-  Registration: <BadgeCheck className="h-4 w-4" />,
-  "Fuel Type": <Fuel className="h-4 w-4" />,
-  CC: <Cog className="h-4 w-4" />,
-  Transmission: <Settings className="h-4 w-4" />,
-  "Drive type": <Settings className="h-4 w-4" />,
-  "Body Type": <Car className="h-4 w-4" />,
-  Category: <Car className="h-4 w-4" />,
-  Subcategory: <Cog className="h-4 w-4" />,
-  Trim: <Car className="h-4 w-4" />,
-  "Model Variant": <Cog className="h-4 w-4" />,
-  Color: <Palette className="h-4 w-4" />,
-  Doors: <DoorOpen className="h-4 w-4" />,
-  Seats: <Users className="h-4 w-4" />,
-  Location: <MapPin className="h-4 w-4" />,
-};
-
 function OverviewItem({ item }: { item: ListingOverviewItem }) {
-  const icon = OVERVIEW_ICONS[item.label];
-
   return (
-    <div className="flex gap-2 rounded-lg border border-gray-100 bg-white p-3">
-      {icon ? <div className="mt-0.5 shrink-0 text-gray-400">{icon}</div> : null}
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-500">{item.label}</p>
-        <p className="break-words text-sm font-semibold leading-snug text-gray-900">
+    <div className="group flex min-h-28 items-center gap-3 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 transition-[border-color,transform] duration-200 ease-out hover:-translate-y-px hover:border-primary/30">
+      <div className="relative h-20 w-20 shrink-0 sm:h-[5.5rem] sm:w-[5.5rem]">
+        <Image
+          src={LISTING_OVERVIEW_ASSET_PATHS[item.key]}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 80px, 88px"
+          className="object-contain transition-transform duration-200 ease-out group-hover:scale-[1.03]"
+        />
+      </div>
+      <div className="min-w-0 flex-1 py-1">
+        <p className="text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-slate-500">
+          {item.label}
+        </p>
+        <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
           {item.value}
         </p>
       </div>
@@ -64,9 +43,9 @@ export function CarOverview({ listing, location }: CarOverviewProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="mb-4 text-lg font-semibold text-gray-900">Overview</h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3">
         {items.map((item) => (
-          <OverviewItem key={item.label} item={item} />
+          <OverviewItem key={item.key} item={item} />
         ))}
       </div>
     </div>

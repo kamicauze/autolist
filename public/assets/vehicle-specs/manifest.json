@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "canvas": {
+    "width": 1254,
+    "height": 1254,
+    "format": "png",
+    "alpha": true
+  },
+  "palette": {
+    "primaryBlue": "#2563EB",
+    "accentRed": "#E63946",
+    "secondary": "charcoal, navy, silver, white"
+  },
+  "styleAnchor": "/assets/vehicle-specs/engine-size.png",
+  "assets": [
+    { "key": "body-type", "file": "/assets/vehicle-specs/body-type.png", "status": "ready" },
+    { "key": "category", "file": "/assets/vehicle-specs/category.png", "status": "ready" },
+    { "key": "colors", "file": "/assets/vehicle-specs/colors.png", "status": "ready" },
+    { "key": "condition", "file": "/assets/vehicle-specs/condition.png", "status": "ready" },
+    { "key": "doors", "file": "/assets/vehicle-specs/doors.png", "status": "ready" },
+    { "key": "drive-type", "file": "/assets/vehicle-specs/drive-type.png", "status": "ready" },
+    { "key": "engine-size", "file": "/assets/vehicle-specs/engine-size.png", "status": "ready" },
+    { "key": "fuel", "file": "/assets/vehicle-specs/fuel.png", "status": "ready" },
+    { "key": "location", "file": "/assets/vehicle-specs/location.png", "status": "ready" },
+    { "key": "mileage", "file": "/assets/vehicle-specs/mileage.png", "status": "ready" },
+    { "key": "model-variant", "file": "/assets/vehicle-specs/model-variant.png", "status": "ready" },
+    { "key": "registration", "file": "/assets/vehicle-specs/registration.png", "status": "ready" },
+    { "key": "seats", "file": "/assets/vehicle-specs/seats.png", "status": "ready" },
+    { "key": "subcategory", "file": "/assets/vehicle-specs/subcategory.png", "status": "ready" },
+    { "key": "transmission", "file": "/assets/vehicle-specs/transmission.png", "status": "ready" },
+    { "key": "trim", "file": "/assets/vehicle-specs/trim.png", "status": "ready" },
+    { "key": "year", "file": "/assets/vehicle-specs/year.png", "status": "ready" }
+  ]
+}

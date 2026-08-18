@@ -16,9 +16,29 @@ import {
 } from "@/lib/utils/listing-details";
 
 export interface ListingOverviewItem {
+  key: ListingOverviewAssetKey;
   label: string;
   value: string;
 }
+
+export type ListingOverviewAssetKey =
+  | "mileage"
+  | "year"
+  | "condition"
+  | "registration"
+  | "fuel"
+  | "engine-size"
+  | "transmission"
+  | "drive-type"
+  | "body-type"
+  | "category"
+  | "subcategory"
+  | "trim"
+  | "model-variant"
+  | "colors"
+  | "doors"
+  | "seats"
+  | "location";
 
 function registrationStatus(listing: Listing) {
   const value = getListingMetadataString(listing, "registrationStatus");
@@ -62,46 +82,56 @@ export function buildListingOverviewItems(
 ): ListingOverviewItem[] {
   const equipmentTaxonomy = usesEquipmentTaxonomy(listing);
 
-  return [
+  const items: ListingOverviewItem[] = [
     {
+      key: "mileage",
       label: "Mileage",
       value: getListingMileageLabel(listing),
     },
     {
+      key: "year",
       label: "Year",
       value: String(listing.year),
     },
     {
+      key: "condition",
       label: "Condition",
       value: conditionLabel(listing),
     },
     {
+      key: "registration",
       label: "Registration",
       value: registrationStatus(listing),
     },
     {
+      key: "fuel",
       label: "Fuel Type",
       value: getListingFuelTypeLabel(listing),
     },
     {
+      key: "engine-size",
       label: "CC",
       value: getListingEngineDisplacement(listing) || "",
     },
     {
+      key: "transmission",
       label: "Transmission",
       value: getListingTransmissionLabel(listing),
     },
     {
+      key: "drive-type",
       label: "Drive type",
       value: driveTypeLabel(listing),
     },
     {
+      key: equipmentTaxonomy ? "category" : "body-type",
       label: equipmentTaxonomy ? "Category" : "Body Type",
       value: equipmentTaxonomy
         ? getListingMetadataString(listing, "taxonomyCategory") || ""
         : getListingBodyTypeLabel(listing, ""),
     },
     {
+      key: "subcategory",
       label: "Subcategory",
       value: equipmentTaxonomy
         ? getListingMetadataString(listing, "subcategory") ||
@@ -110,18 +140,22 @@ export function buildListingOverviewItems(
         : "",
     },
     {
+      key: "trim",
       label: "Trim",
       value: getListingTrim(listing) || "",
     },
     {
+      key: "model-variant",
       label: "Model Variant",
       value: getListingVariant(listing) || "",
     },
     {
+      key: "colors",
       label: "Color",
       value: listing.color || "",
     },
     {
+      key: "doors",
       label: "Doors",
       value:
         listing.doors != null
@@ -129,6 +163,7 @@ export function buildListingOverviewItems(
           : getListingMetadataString(listing, "doors") || "",
     },
     {
+      key: "seats",
       label: "Seats",
       value:
         listing.seats != null
@@ -136,8 +171,11 @@ export function buildListingOverviewItems(
           : getListingMetadataString(listing, "seats") || "",
     },
     {
+      key: "location",
       label: "Location",
       value: location || listing.dealer?.city || "Kenya",
     },
-  ].filter((item) => Boolean(item.value));
+  ];
+
+  return items.filter((item) => Boolean(item.value));
 }

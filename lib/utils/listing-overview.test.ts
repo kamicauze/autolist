@@ -46,6 +46,9 @@ test("overview includes formatted condition, drive type, and full location", () 
   assert.equal(values.Condition, "Foreign used");
   assert.equal(values["Drive type"], "Four Wheel Drive");
   assert.equal(values.Location, "Industrial Area, Nairobi County");
+  assert.equal(items.find((item) => item.label === "Condition")?.key, "condition");
+  assert.equal(items.find((item) => item.label === "Drive type")?.key, "drive-type");
+  assert.equal(items.find((item) => item.label === "Location")?.key, "location");
 });
 
 test("overview reads nested wizard metadata and omits empty optional facts", () => {
@@ -85,5 +88,14 @@ test("farm and plant overviews replace body type with taxonomy category fields",
     assert.equal(values.Category, "Tractors");
     assert.equal(values.Subcategory, "Medium Tractor");
     assert.equal(values["Body Type"], undefined);
+    assert.equal(items.find((item) => item.label === "Category")?.key, "category");
+    assert.equal(items.find((item) => item.label === "Subcategory")?.key, "subcategory");
   }
+});
+
+test("ordinary vehicle overviews use the body-type illustration key", () => {
+  const items = buildListingOverviewItems(makeListing({ body_type: "Pickup" }));
+
+  assert.equal(items.find((item) => item.label === "Body Type")?.key, "body-type");
+  assert.equal(items.some((item) => item.key === "category"), false);
 });
