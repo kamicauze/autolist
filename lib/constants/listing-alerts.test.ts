@@ -18,6 +18,11 @@ test("listing alerts use category-appropriate preference labels", () => {
   assert.equal(LISTING_ALERT_CATEGORY_CONFIG.van.fields[0].label, "Van type");
   assert.equal(LISTING_ALERT_CATEGORY_CONFIG.motorbike.fields[0].label, "Bike type");
   assert.equal(LISTING_ALERT_CATEGORY_CONFIG.truck.fields[0].label, "Truck type");
+  assert.ok(
+    LISTING_ALERT_CATEGORY_CONFIG.truck.fields[0].options.some(
+      ({ value }) => value === "Trailers"
+    )
+  );
   assert.equal(
     LISTING_ALERT_CATEGORY_CONFIG.plant_construction.brandLabel,
     "Manufacturer"

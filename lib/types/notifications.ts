@@ -8,7 +8,8 @@ export type NotificationEventType =
   | "appointment_requested"
   | "appointment_status_changed"
   | "listing_status_changed"
-  | "listing_updated";
+  | "listing_updated"
+  | "listing_alert_match";
 
 export type NotificationChannel = "in_app" | "email" | "whatsapp";
 export type NotificationDeliveryStatus = "queued" | "sent" | "read" | "failed" | "skipped";

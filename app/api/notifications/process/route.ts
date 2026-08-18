@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processQueuedNotificationDeliveries } from "@/lib/server/notification-delivery";
+import { processQueuedListingAlertJobs } from "@/lib/server/listing-alerts";
 
 function isAuthorized(request: Request) {
   const secret = process.env.NOTIFICATION_PROCESS_SECRET;
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await processQueuedNotificationDeliveries();
-  return NextResponse.json(result);
+  const alertJobs = await processQueuedListingAlertJobs();
+  const deliveries = await processQueuedNotificationDeliveries();
+  return NextResponse.json({ alertJobs, ...deliveries });
 }

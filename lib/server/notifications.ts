@@ -17,6 +17,7 @@ type EmitNotificationEventInput = {
   threadId?: string | null;
   messageId?: string | null;
   ticketId?: string | null;
+  alertMatchId?: string | null;
   payload?: Record<string, unknown>;
   deliveries: DeliveryDraft[];
 };
@@ -78,37 +79,57 @@ export async function emitNotificationEvent(input: EmitNotificationEventInput) {
     return null;
   }
 
-  const { data: event, error: eventError } = await supabase
+  const eventValues = {
+    event_type: input.eventType,
+    actor_id: input.actorId,
+    listing_id: input.listingId || null,
+    thread_id: input.threadId || null,
+    message_id: input.messageId || null,
+    ticket_id: input.ticketId || null,
+    payload: input.payload || {},
+    ...(input.alertMatchId ? { listing_alert_match_id: input.alertMatchId } : {}),
+  };
+
+  let { data: event, error: eventError } = await supabase
     .from("notification_events")
-    .insert({
-      event_type: input.eventType,
-      actor_id: input.actorId,
-      listing_id: input.listingId || null,
-      thread_id: input.threadId || null,
-      message_id: input.messageId || null,
-      ticket_id: input.ticketId || null,
-      payload: input.payload || {},
-    })
+    .insert(eventValues)
     .select("id")
     .single<{ id: string }>();
+
+  if ((eventError || !event) && input.alertMatchId && eventError?.code === "23505") {
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("notification_events")
+      .select("id")
+      .eq("listing_alert_match_id", input.alertMatchId)
+      .maybeSingle<{ id: string }>();
+    event = existingEvent;
+    eventError = existingEventError;
+  }
 
   if (eventError || !event) {
     throw new Error(eventError?.message || "Unable to create notification event.");
   }
 
-  const { error: deliveryError } = await supabase.from("notification_deliveries").insert(
-    deliveries.map((delivery) => ({
-      event_id: event.id,
-      recipient_id: delivery.recipientId,
-      channel: delivery.channel || "in_app",
-      status: delivery.channel && delivery.channel !== "in_app" ? "queued" : "sent",
-      title: delivery.title,
-      body: delivery.body,
-      href: delivery.href || null,
-      metadata: delivery.metadata || {},
-      delivered_at: delivery.channel && delivery.channel !== "in_app" ? null : new Date().toISOString(),
-    }))
-  );
+  const { error: deliveryError } = await supabase
+    .from("notification_deliveries")
+    .upsert(
+      deliveries.map((delivery) => ({
+        event_id: event.id,
+        recipient_id: delivery.recipientId,
+        channel: delivery.channel || "in_app",
+        status: delivery.channel && delivery.channel !== "in_app" ? "queued" : "sent",
+        title: delivery.title,
+        body: delivery.body,
+        href: delivery.href || null,
+        metadata: delivery.metadata || {},
+        delivered_at:
+          delivery.channel && delivery.channel !== "in_app" ? null : new Date().toISOString(),
+      })),
+      {
+        onConflict: "event_id,recipient_id,channel",
+        ignoreDuplicates: true,
+      }
+    );
 
   if (deliveryError) {
     throw new Error(deliveryError.message);
