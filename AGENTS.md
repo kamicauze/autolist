@@ -50,3 +50,8 @@ add 2-3 lines to `portfolio.md`. Commit the workspace repo:
   flight, compact/summarize in place. If the task is done or has changed
   shape, write the handoff and tell the user to start fresh.
 - Never paste secrets or .env contents into the workspace repo.
+- Never use `codex` (case-insensitive), including as a prefix, suffix, or any
+  other substring, in any name, label, tag, or identifier for test data,
+  records, fixtures, accounts, branches, worktrees, work items, artifacts, or
+  generated content. Use a purpose-based name such as `staging_casework_qa` or
+  `sample_recipient`.
