@@ -12,7 +12,6 @@ import {
   ChevronRight,
   GitCompare,
   Heart,
-  MapPin,
   UserRound,
 } from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
@@ -392,8 +391,17 @@ export function CarCard({
             isCompact ? "py-3 text-[11px] leading-[17px]" : "py-3.5 text-[12px] leading-[18px]"
           )}
         >
-          <div className="flex min-w-0 items-start gap-1.5">
-            <MapPin className={cn("shrink-0 text-primary", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+          <div className="flex min-w-0 items-start gap-2">
+            <Image
+              src={LISTING_OVERVIEW_ASSET_PATHS.location}
+              alt=""
+              width={24}
+              height={24}
+              className={cn(
+                "shrink-0 object-contain",
+                isCompact ? "h-5 w-5" : "h-6 w-6"
+              )}
+            />
             <span className="min-w-0 break-words">{location || subtitle || "Kenya"}</span>
           </div>
         </div>
