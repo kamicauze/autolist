@@ -3,6 +3,7 @@ import {
   inferMarketplaceRoleFromNextPath,
   isPrivateSellerRole,
   resolveDealerRegistrationPath,
+  resolveSelfServiceRoleTransition,
 } from "./auth-routing";
 
 assert.equal(resolveDealerRegistrationPath(null), null);
@@ -27,6 +28,28 @@ assert.equal(
 );
 assert.equal(inferMarketplaceRoleFromNextPath("/register/dealer"), "dealer");
 assert.equal(inferMarketplaceRoleFromNextPath("/search"), null);
+
+assert.equal(
+  resolveSelfServiceRoleTransition("buyer", "/dashboard/listings/new"),
+  "seller",
+);
+assert.equal(
+  resolveSelfServiceRoleTransition("buyer", "/sell/dealer?source=header"),
+  "seller",
+);
+assert.equal(
+  resolveSelfServiceRoleTransition("buyer", "https://example.com/dashboard/listings/new"),
+  null,
+);
+assert.equal(
+  resolveSelfServiceRoleTransition("seller", "/dashboard/listings/new"),
+  null,
+);
+assert.equal(
+  resolveSelfServiceRoleTransition("dealer", "/dashboard/listings/new"),
+  null,
+);
+assert.equal(resolveSelfServiceRoleTransition("buyer", "/dashboard"), null);
 
 assert.equal(isPrivateSellerRole("seller"), true);
 assert.equal(isPrivateSellerRole("buyer"), false);

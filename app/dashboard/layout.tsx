@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
-import { resolvePostAuthPath } from "@/lib/supabase/auth-routing";
+import {
+  resolvePostAuthPath,
+  resolveSelfServiceRoleTransition,
+  sanitizeNextPath,
+} from "@/lib/supabase/auth-routing";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
@@ -17,11 +20,6 @@ type DashboardProfileRow = {
   full_name: string | null;
   avatar_url: string | null;
 } | null;
-
-function getIntendedDashboardRole(userMetadata: Record<string, unknown> | undefined) {
-  const intendedRole = userMetadata?.intended_role;
-  return intendedRole === "seller" || intendedRole === "dealer" ? intendedRole : null;
-}
 
 export default async function DashboardLayoutPage({ children }: DashboardLayoutPageProps) {
   const requestHeaders = await headers();
@@ -38,20 +36,16 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
     redirect(`/login?next=${encodeURIComponent(currentPath)}`);
   }
 
-  const intendedDashboardRole = getIntendedDashboardRole(user.user_metadata);
-  if (intendedDashboardRole) {
-    const { data: profileRole } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle<{ role: string | null }>();
+  const { data: profileRole } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle<{ role: string | null }>();
 
-    if (profileRole?.role === "buyer") {
-      await supabase
-        .from("profiles")
-        .update({ role: intendedDashboardRole })
-        .eq("id", user.id);
-    }
+  if (resolveSelfServiceRoleTransition(profileRole?.role, currentPath)) {
+    redirect(
+      `/register/onboarding?role=seller&next=${encodeURIComponent(currentPath)}`,
+    );
   }
 
   const destination = await resolvePostAuthPath(supabase, user.id);

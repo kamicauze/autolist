@@ -46,6 +46,21 @@ export function isPrivateSellerRole(
   return role === "seller";
 }
 
+export function resolveSelfServiceRoleTransition(
+  currentRole: string | null | undefined,
+  requestedPath: string | null | undefined,
+): "seller" | null {
+  if (
+    currentRole === "buyer" &&
+    inferMarketplaceRoleFromNextPath(sanitizeNextPath(requestedPath, "")) ===
+      "seller"
+  ) {
+    return "seller";
+  }
+
+  return null;
+}
+
 export function resolveDealerRegistrationPath(
   dealerStatus: DealerStatus | null | undefined,
 ): string | null {
