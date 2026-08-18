@@ -15,13 +15,13 @@ interface CarOverviewProps {
 
 function OverviewItem({ item }: { item: ListingOverviewItem }) {
   return (
-    <div className="group flex min-h-28 items-center gap-3 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 transition-[border-color,transform] duration-200 ease-out hover:-translate-y-px hover:border-primary/30">
-      <div className="relative h-20 w-20 shrink-0 sm:h-[5.5rem] sm:w-[5.5rem]">
+    <div className="group flex min-h-20 items-center gap-3 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 transition-[border-color,transform] duration-200 ease-out hover:-translate-y-px hover:border-primary/30">
+      <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14">
         <Image
           src={LISTING_OVERVIEW_ASSET_PATHS[item.key]}
           alt=""
           fill
-          sizes="(max-width: 640px) 80px, 88px"
+          sizes="(max-width: 640px) 48px, 56px"
           className="object-contain transition-transform duration-200 ease-out group-hover:scale-[1.03]"
         />
       </div>

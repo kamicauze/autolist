@@ -13,14 +13,17 @@ import {
   GitCompare,
   Heart,
   MapPin,
-  Settings2,
   UserRound,
 } from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
+import { LISTING_OVERVIEW_ASSET_PATHS } from "@/lib/constants/listing-overview-assets";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { IconFuel, IconGear, IconSpeedometer } from "./icons";
+import {
+  buildListingCardFacts,
+  type ListingCardFact,
+} from "@/lib/utils/listing-card-facts";
 
 export interface CarCardProps {
   id: string;
@@ -48,6 +51,30 @@ export interface CarCardProps {
   initialIsFavorited?: boolean;
   href?: string;
   density?: "default" | "compact";
+}
+
+function CardFact({
+  fact,
+  compact,
+}: {
+  fact: ListingCardFact;
+  compact: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Image
+        src={LISTING_OVERVIEW_ASSET_PATHS[fact.key]}
+        alt=""
+        width={24}
+        height={24}
+        className={cn(
+          "shrink-0 object-contain",
+          compact ? "h-5 w-5" : "h-6 w-6"
+        )}
+      />
+      <span className="min-w-0 truncate">{fact.value}</span>
+    </div>
+  );
 }
 
 export function CarCard({
@@ -93,6 +120,13 @@ export function CarCard({
   const inCompare = isInCompare(id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
   const displaySellerLabel = (sellerLabel || _seller.name).replace(/\s+Unit$/i, "");
+  const facts = buildListingCardFacts({
+    fuelType,
+    engineSize,
+    bodyType,
+    transmission,
+    mileage,
+  });
 
   React.useEffect(() => {
     if (typeof initialIsFavorited === "boolean") {
@@ -338,40 +372,19 @@ export function CarCard({
           </h3>
         </div>
 
-        {fuelType || engineSize || bodyType || transmission || mileage ? (
-        <div
-          className={cn(
-            "flex flex-wrap items-center gap-x-4 gap-y-2 font-medium text-muted-foreground",
-            isCompact
-              ? "py-3 text-[11px] leading-[17px]"
-              : "py-3.5 text-[12px] leading-[19.6px]"
-          )}
-        >
-          {fuelType ? (
-            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-              <IconFuel className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-              <span>{fuelType}</span>
-            </div>
-          ) : null}
-          {engineSize || bodyType ? (
-            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-              <Settings2 className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-              <span>{engineSize || bodyType}</span>
-            </div>
-          ) : null}
-          {transmission ? (
-            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-              <IconGear className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-              <span>{transmission}</span>
-            </div>
-          ) : null}
-          {mileage ? (
-            <div className="flex min-w-0 basis-[calc(50%-0.5rem)] items-center gap-1.5 whitespace-nowrap sm:basis-auto">
-              <IconSpeedometer className={cn("shrink-0", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-              <span>{mileage}</span>
-            </div>
-          ) : null}
-        </div>
+        {facts.length > 0 ? (
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-x-3 gap-y-2 font-medium text-muted-foreground",
+              isCompact
+                ? "py-3 text-[11px] leading-[17px]"
+                : "py-3.5 text-[12px] leading-[19.6px]"
+            )}
+          >
+            {facts.map((fact) => (
+              <CardFact key={fact.key} fact={fact} compact={isCompact} />
+            ))}
+          </div>
         ) : null}
         <div
           className={cn(
