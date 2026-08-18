@@ -9,6 +9,7 @@ import {
   SELLER_PACKAGE_FREE_TRIAL_DAYS,
   SELLER_PACKAGE_FREE_TRIAL_MONTHS,
   getSellerPackagePlan,
+  isDealerMembershipAccountRole,
 } from "@/lib/data/membership";
 import type { SellerPackagePlanId } from "@/lib/types/membership";
 
@@ -58,6 +59,20 @@ export async function activateSellerPackagePlan(planId: SellerPackagePlanId) {
 
   if (repRow) {
     return { error: "Sales reps have read-only access to dealership billing." };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle<{ role: string | null }>();
+
+  if (profileError) {
+    return { error: profileError.message };
+  }
+
+  if (!isDealerMembershipAccountRole(profile?.role)) {
+    return { error: "Dealer membership plans are only available to dealer accounts." };
   }
 
   const plan = getSellerPackagePlan(planId);

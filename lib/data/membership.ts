@@ -21,6 +21,10 @@ export const SELLER_PACKAGE_USAGE_STATUSES = [
   "reserved",
 ] as const satisfies readonly ListingStatus[];
 
+export function isDealerMembershipAccountRole(role: unknown): role is "dealer" {
+  return role === "dealer";
+}
+
 export const SELLER_PACKAGE_PLANS: SellerPackagePlan[] = [
   {
     id: "basic",

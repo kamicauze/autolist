@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SELLER_PACKAGE_PLANS } from "./membership";
+import {
+  SELLER_PACKAGE_PLANS,
+  isDealerMembershipAccountRole,
+} from "./membership";
 
 test("dealer membership plans match the approved Drive tier source", () => {
   assert.deepEqual(
@@ -26,4 +29,12 @@ test("dealer membership plans match the approved Drive tier source", () => {
       },
     ]
   );
+});
+
+test("dealer membership access fails closed for private and unknown roles", () => {
+  assert.equal(isDealerMembershipAccountRole("dealer"), true);
+  assert.equal(isDealerMembershipAccountRole("seller"), false);
+  assert.equal(isDealerMembershipAccountRole("buyer"), false);
+  assert.equal(isDealerMembershipAccountRole(null), false);
+  assert.equal(isDealerMembershipAccountRole(undefined), false);
 });

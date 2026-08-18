@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
@@ -14,6 +15,7 @@ import { activateSellerPackagePlan } from "@/lib/actions/membership";
 import {
   SELLER_PACKAGE_PLANS,
   getSellerMembershipDashboardData,
+  isDealerMembershipAccountRole,
 } from "@/lib/data/membership";
 import type {
   SellerMembershipDashboardData,
@@ -43,6 +45,8 @@ const EMPTY_MEMBERSHIP_DATA: SellerMembershipDashboardData = {
   paymentHistory: [],
 };
 
+type MembershipAudience = "private_seller" | "dealer" | "sales_agent";
+
 function formatPaymentAmount(amount: number, currency: string) {
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
@@ -68,6 +72,7 @@ async function loadMembershipForCurrentUser() {
     return {
       data: EMPTY_MEMBERSHIP_DATA,
       error: "You need to sign in to manage seller packages.",
+      audience: null,
     };
   }
 
@@ -86,14 +91,35 @@ async function loadMembershipForCurrentUser() {
       return {
         data: EMPTY_MEMBERSHIP_DATA,
         error: "You do not have access to dealership billing.",
+        audience: "sales_agent" as const,
       };
     }
     const data = await getSellerMembershipDashboardData(supabase, repRow.profile_id);
-    return { data, error: null };
+    return { data, error: null, audience: "sales_agent" as const };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle<{ role: string | null }>();
+
+  if (profileError) {
+    return {
+      data: EMPTY_MEMBERSHIP_DATA,
+      error: profileError.message,
+      audience: null,
+    };
   }
 
   const data = await getSellerMembershipDashboardData(supabase, user.id);
-  return { data, error: null };
+  return {
+    data,
+    error: null,
+    audience: isDealerMembershipAccountRole(profile?.role)
+      ? ("dealer" as const)
+      : ("private_seller" as const),
+  };
 }
 
 function getPlanButtonLabel({
@@ -121,6 +147,7 @@ export function MembershipPage() {
   const [dashboardData, setDashboardData] =
     React.useState<SellerMembershipDashboardData>(EMPTY_MEMBERSHIP_DATA);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [audience, setAudience] = React.useState<MembershipAudience | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
@@ -141,10 +168,12 @@ export function MembershipPage() {
 
         setDashboardData(result.data);
         setLoadError(result.error);
+        setAudience(result.audience);
       } catch (error) {
         if (!isMounted) return;
 
         setDashboardData(EMPTY_MEMBERSHIP_DATA);
+        setAudience(null);
         setLoadError(
           error instanceof Error
             ? error.message
@@ -227,6 +256,7 @@ export function MembershipPage() {
         const refreshed = await loadMembershipForCurrentUser();
         setDashboardData(refreshed.data);
         setLoadError(refreshed.error);
+        setAudience(refreshed.audience);
         router.refresh();
         setActionSuccess(
           result.renewalDate
@@ -249,11 +279,97 @@ export function MembershipPage() {
     });
   };
 
+  if (isLoading && audience === null) {
+    return (
+      <div className="space-y-6 lg:space-y-7">
+        <SellerPageHeader
+          title="Membership"
+          description="Loading the membership options for this account."
+        />
+        <div className="rounded-[28px] border border-[#ededed] bg-white px-6 py-12 text-center text-[14px] text-[#7a7a7a] shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
+          Loading membership details...
+        </div>
+      </div>
+    );
+  }
+
+  if (audience === null) {
+    return (
+      <div className="space-y-6 lg:space-y-7">
+        <SellerPageHeader
+          title="Membership"
+          description="Membership options could not be matched to this account."
+        />
+        <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
+          {loadError || "Unable to load membership details right now."}
+        </div>
+      </div>
+    );
+  }
+
+  if (audience === "private_seller") {
+    return (
+      <div className="space-y-6 lg:space-y-7">
+        <SellerPageHeader
+          title="Private seller access"
+          description="Private listings are free during the pilot. Dealer membership prices do not apply to your account."
+        />
+
+        {loadError ? (
+          <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
+            {loadError}
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <SellerStatCard
+            label="Listing access"
+            value="Free during pilot"
+            icon={<BadgeCheck className="h-5 w-5 text-primary" />}
+            accentClass="bg-brand-tint"
+            note="No dealer membership required"
+          />
+          <SellerStatCard
+            label="Current listings"
+            value={String(dashboardData.access.usedListings)}
+            icon={<ListChecks className="h-5 w-5 text-[#2f9e63]" />}
+            accentClass="bg-[#eaf7ef]"
+            note="Draft, pending, active, and reserved listings"
+          />
+        </div>
+
+        <section className="rounded-[28px] border border-[#ededed] bg-white p-6 shadow-[0_14px_44px_rgba(15,23,42,0.05)] lg:p-8">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
+            Private seller
+          </p>
+          <h2 className="mt-3 font-heading text-[28px] font-semibold text-[#202224]">
+            No paid package is needed
+          </h2>
+          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#666]">
+            You can create and submit private listings without activating a dealer plan. Paid private-seller visibility upgrades are not active in the product yet.
+          </p>
+          <Link
+            href="/dashboard/listings/new"
+            className="mt-6 inline-flex h-12 items-center justify-center rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
+          >
+            Create a listing
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
+  const canManagePlans = audience === "dealer";
+
   return (
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
-        title="Membership"
-        description="Choose the package that fits your listing volume, compare coverage, and review recent billing activity."
+        title={audience === "sales_agent" ? "Dealership membership" : "Dealer membership"}
+        description={
+          audience === "sales_agent"
+            ? "Review the dealership package and recent billing activity. Sales reps have read-only access."
+            : "Choose the package that fits your dealership inventory, compare coverage, and review recent billing activity."
+        }
       />
 
       {(loadError || actionError || actionSuccess) ? (
@@ -359,7 +475,7 @@ export function MembershipPage() {
                   <button
                     type="button"
                     onClick={() => handlePlanSelection(plan.id)}
-                    disabled={isLoading || isPending || isActive}
+                    disabled={!canManagePlans || isLoading || isPending || isActive}
                     className={[
                       "mt-8 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
                       highlighted
@@ -367,7 +483,9 @@ export function MembershipPage() {
                         : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-primary hover:text-primary",
                     ].join(" ")}
                   >
-                    {selectedPlanId === plan.id && isPending
+                    {!canManagePlans
+                      ? "Read only"
+                      : selectedPlanId === plan.id && isPending
                       ? "Activating..."
                       : getPlanButtonLabel({
                           plan,
