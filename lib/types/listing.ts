@@ -1,8 +1,12 @@
-import type { ListingCategory, ListingStatus } from "@/lib/constants/marketplace";
+import type {
+  ListingCategory,
+  ListingStatus,
+} from "@/lib/constants/marketplace";
 
 export type { ListingStatus };
 
-export type ListingCondition = 'new' | 'locally_used' | 'foreign_used' | 'used';
+export type ListingCondition = "new" | "locally_used" | "foreign_used" | "used";
+export type ListingSaleChannel = "standard" | "dealer_public" | "dealer_only";
 
 export interface ListingImage {
   id: string;
@@ -22,6 +26,7 @@ export interface Listing {
   dealer_id: string | null;
   assigned_agent_id?: string | null;
   status: ListingStatus;
+  sale_channel?: ListingSaleChannel;
 
   // Vehicle Data
   make: string;
@@ -91,23 +96,23 @@ export interface ListingFilters {
   seats?: number;
   doors?: number;
   driveType?: string | string[];
-  sellerType?: 'dealer' | 'private';
+  sellerType?: "dealer" | "private";
   verifiedOnly?: boolean;
   minMileage?: number;
   maxMileage?: number;
 }
 
 export type SortOption =
-  | 'newest'
-  | 'oldest'
-  | 'price_low'
-  | 'price_high'
-  | 'year_new'
-  | 'year_old'
-  | 'mileage_low'
-  | 'mileage_high';
+  | "newest"
+  | "oldest"
+  | "price_low"
+  | "price_high"
+  | "year_new"
+  | "year_old"
+  | "mileage_low"
+  | "mileage_high";
 
 export interface ListingSort {
-  field: 'price' | 'year' | 'mileage' | 'created_at';
-  direction: 'asc' | 'desc';
+  field: "price" | "year" | "mileage" | "created_at";
+  direction: "asc" | "desc";
 }

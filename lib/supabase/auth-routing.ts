@@ -1,6 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { UserRole } from "@/lib/constants/marketplace";
 
-type ProfileRole = "buyer" | "seller" | "dealer" | "sales_agent" | "admin" | "super_admin" | "support";
+type ProfileRole =
+  | "buyer"
+  | "seller"
+  | "dealer"
+  | "sales_agent"
+  | "admin"
+  | "super_admin"
+  | "support";
 type DealerStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 const AUTH_PATHS = new Set([
@@ -12,15 +20,34 @@ const AUTH_PATHS = new Set([
 
 export function sanitizeNextPath(
   nextPath: string | null | undefined,
-  fallback = "/dashboard"
+  fallback = "/dashboard",
 ) {
   if (!nextPath) return fallback;
   if (!nextPath.startsWith("/") || nextPath.startsWith("//")) return fallback;
   return nextPath;
 }
 
+export function inferMarketplaceRoleFromNextPath(
+  nextPath: string,
+): UserRole | null {
+  if (nextPath.startsWith("/register/dealer")) return "dealer";
+  if (
+    nextPath.startsWith("/dashboard/listings") ||
+    nextPath.startsWith("/sell/dealer")
+  ) {
+    return "seller";
+  }
+  return null;
+}
+
+export function isPrivateSellerRole(
+  role: string | null | undefined,
+): role is "seller" {
+  return role === "seller";
+}
+
 export function resolveDealerRegistrationPath(
-  dealerStatus: DealerStatus | null | undefined
+  dealerStatus: DealerStatus | null | undefined,
 ): string | null {
   if (!dealerStatus) {
     return null;
@@ -32,7 +59,7 @@ export function resolveDealerRegistrationPath(
 export async function resolvePostAuthPath(
   supabase: SupabaseClient,
   userId: string,
-  requestedPath?: string | null
+  requestedPath?: string | null,
 ) {
   const { data: profile } = await supabase
     .from("profiles")
@@ -48,7 +75,11 @@ export async function resolvePostAuthPath(
   const hasRequestedPath = Boolean(requestedPath);
   const safeRequestedPath = sanitizeNextPath(requestedPath, "");
   const requestedBasePath = safeRequestedPath.split("?")[0];
-  if (hasRequestedPath && safeRequestedPath && !AUTH_PATHS.has(requestedBasePath)) {
+  if (
+    hasRequestedPath &&
+    safeRequestedPath &&
+    !AUTH_PATHS.has(requestedBasePath)
+  ) {
     return safeRequestedPath;
   }
 
@@ -67,7 +98,10 @@ export async function resolvePostAuthPath(
       return "/register/dealer";
     }
 
-    return resolveDealerRegistrationPath(dealerProfile.status) ?? "/dashboard/verification";
+    return (
+      resolveDealerRegistrationPath(dealerProfile.status) ??
+      "/dashboard/verification"
+    );
   }
 
   if (profile.role === "admin" || profile.role === "super_admin") {

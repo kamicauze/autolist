@@ -55,7 +55,7 @@ export function PricingCards() {
               size="lg"
               asChild
             >
-              <Link href="/sell/dealer">Apply as a dealer</Link>
+              <Link href="/register?role=dealer">Apply as a dealer</Link>
             </Button>
           </div>
         );

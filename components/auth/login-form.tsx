@@ -9,7 +9,11 @@ import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
-import { resolvePostAuthPath, sanitizeNextPath } from "@/lib/supabase/auth-routing";
+import {
+  inferMarketplaceRoleFromNextPath,
+  resolvePostAuthPath,
+  sanitizeNextPath,
+} from "@/lib/supabase/auth-routing";
 import {
   FacebookIcon,
   GoogleIcon,
@@ -17,12 +21,6 @@ import {
 } from "@/components/auth/social-auth-button";
 
 type SocialProvider = "google" | "facebook";
-
-function inferRegisterRole(nextPath: string) {
-  if (nextPath.startsWith("/register/dealer")) return "dealer";
-  if (nextPath.startsWith("/dashboard/listings")) return "seller";
-  return null;
-}
 
 export function LoginForm() {
   const router = useRouter();
@@ -39,7 +37,7 @@ export function LoginForm() {
     ? sanitizeNextPath(requestedNextPath, "")
     : "";
   const inferredRole = safeNextPathForOAuth
-    ? inferRegisterRole(safeNextPathForOAuth)
+    ? inferMarketplaceRoleFromNextPath(safeNextPathForOAuth)
     : null;
   const registerParams = new URLSearchParams();
   if (safeNextPathForOAuth) {

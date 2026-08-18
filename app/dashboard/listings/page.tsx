@@ -2,6 +2,7 @@ import { getMyListings } from "@/lib/actions/listings";
 import { MyListings } from "@/components/dashboard/listings/my-listings";
 import {
   getAvailableBidListingsForCurrentDealer,
+  getCurrentApprovedDealer,
   getMyDealerOffers,
   getOffersReceivedByCurrentSeller,
 } from "@/lib/data/offers";
@@ -17,6 +18,7 @@ export default async function DashboardListingsPage() {
     receivedOffers,
     salesAgents,
     viewerRepContext,
+    approvedDealer,
   ] = await Promise.all([
     getMyListings(),
     getAvailableBidListingsForCurrentDealer(),
@@ -24,6 +26,7 @@ export default async function DashboardListingsPage() {
     getOffersReceivedByCurrentSeller(),
     getMySalesAgents(),
     getSalesAgentViewerContext(),
+    getCurrentApprovedDealer(),
   ]);
 
   const isSalesAgentView = Boolean(viewerRepContext);
@@ -36,6 +39,7 @@ export default async function DashboardListingsPage() {
       listings={listings || []}
       salesReps={salesReps}
       isSalesAgentView={isSalesAgentView}
+      canBid={Boolean(approvedDealer)}
       availableBids={availableBidListings.map((listing) => ({
         id: listing.id,
         listingId: listing.id,
@@ -47,15 +51,23 @@ export default async function DashboardListingsPage() {
         year: listing.year,
         mileage: listing.mileage,
         condition: listing.condition?.replace(/_/g, " ") || null,
-        description: listing.description,
-        contactEmail: listing.dealer?.email || null,
-        contactPhone: listing.dealer?.mobile || listing.dealer?.whatsapp || null,
+        description: listing.offer_settings.seller_note || listing.description,
+        contactEmail:
+          typeof listing.metadata?.contactEmail === "string"
+            ? listing.metadata.contactEmail
+            : null,
+        contactPhone:
+          typeof listing.metadata?.phoneNumber === "string"
+            ? listing.metadata.phoneNumber
+            : null,
         canMakeOffer: true,
       }))}
       yourBids={dealerOffers.map((offer) => ({
         id: offer.id,
         listingId: offer.listing_id,
-        listingTitle: offer.listing ? getListingDisplayTitle(offer.listing) : "Listing offer",
+        listingTitle: offer.listing
+          ? getListingDisplayTitle(offer.listing)
+          : "Listing offer",
         buyerName: offer.dealer?.name || "Your dealership",
         amount: offer.amount,
         status: offer.status,
@@ -65,7 +77,9 @@ export default async function DashboardListingsPage() {
       receivedOffers={receivedOffers.map((offer) => ({
         id: offer.id,
         listingId: offer.listing_id,
-        listingTitle: offer.listing ? getListingDisplayTitle(offer.listing) : "Listing offer",
+        listingTitle: offer.listing
+          ? getListingDisplayTitle(offer.listing)
+          : "Listing offer",
         buyerName: offer.dealer?.name || "Dealer",
         amount: offer.amount,
         status: offer.status,

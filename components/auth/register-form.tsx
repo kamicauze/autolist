@@ -22,7 +22,10 @@ import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
-import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
+import {
+  inferMarketplaceRoleFromNextPath,
+  sanitizeNextPath,
+} from "@/lib/supabase/auth-routing";
 import { USER_ROLE_OPTIONS, type UserRole } from "@/lib/constants/marketplace";
 import {
   FacebookIcon,
@@ -62,18 +65,12 @@ function resolveRole(rawRole: string | null): UserRole {
   return isKnownRole ? (rawRole as UserRole) : "buyer";
 }
 
-function inferRoleFromNextPath(nextPath: string): UserRole | null {
-  if (nextPath.startsWith("/register/dealer")) return "dealer";
-  if (nextPath.startsWith("/dashboard/listings")) return "seller";
-  return null;
-}
-
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedNextPath = sanitizeNextPath(searchParams.get("next"), "");
   const requestedRole = searchParams.get("role");
-  const inferredRole = inferRoleFromNextPath(requestedNextPath);
+  const inferredRole = inferMarketplaceRoleFromNextPath(requestedNextPath);
   const initialRole = requestedRole ? resolveRole(requestedRole) : inferredRole || "buyer";
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");

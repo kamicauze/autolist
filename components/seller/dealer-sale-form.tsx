@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
@@ -25,6 +25,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCarModels } from "@/hooks/use-car-models";
+import { uploadFilesToPresignedTargets } from "@/lib/client/listing-media-upload";
+import {
+  isAcceptedListingMediaContentType,
+  LISTING_IMAGE_MAX_BYTES,
+  toListingMediaUploadReference,
+  type ListingMediaUploadDescriptor,
+} from "@/lib/listing-media-upload";
 import { cn } from "@/lib/utils";
 
 type DealerSaleFormState = {
@@ -36,6 +43,8 @@ type DealerSaleFormState = {
   fuelType: string;
   transmission: string;
   mileage: string;
+  expectedPrice: string;
+  marketCondition: "" | "Brand new" | "Locally used" | "Foreign used";
   condition: string;
   serviceHistory: string;
   ownershipDuration: string;
@@ -59,16 +68,22 @@ type WizardStepId = "route" | "vehicle" | "condition" | "photos" | "contact";
 
 const currentYear = new Date().getFullYear();
 const MIN_PHOTOS = 5;
-const DRAFT_STORAGE_KEY = "autolist.dealerSaleDraft";
+const MAX_PHOTOS = 20;
 const years = Array.from({ length: currentYear - 1949 }, (_, index) =>
-  String(currentYear - index)
+  String(currentYear - index),
 );
 
 const fuelTypes = ["Petrol", "Diesel", "Hybrid", "Electric"];
 const transmissions = ["Automatic", "Manual"];
 const conditions = ["Excellent", "Good", "Below average", "Poor"];
 const serviceHistoryOptions = ["Full with dealer", "Full", "Partial", "None"];
-const ownershipDurations = ["0-6 months", "6-12 months", "1-2 years", "2-5 years", "5+ years"];
+const ownershipDurations = [
+  "0-6 months",
+  "6-12 months",
+  "1-2 years",
+  "2-5 years",
+  "5+ years",
+];
 const yesNoOptions = ["Yes", "No"];
 
 const initialForm: DealerSaleFormState = {
@@ -80,6 +95,8 @@ const initialForm: DealerSaleFormState = {
   fuelType: "",
   transmission: "",
   mileage: "",
+  expectedPrice: "",
+  marketCondition: "",
   condition: "Good",
   serviceHistory: "",
   ownershipDuration: "",
@@ -106,8 +123,8 @@ const processSteps = [
     icon: Handshake,
   },
   {
-    title: "Account handoff",
-    description: "Create or login to continue.",
+    title: "Dealer delivery",
+    description: "Publish the request to approved dealers.",
     icon: BadgeCheck,
   },
 ];
@@ -120,12 +137,14 @@ const saleChannelOptions: Array<{
   {
     value: "dealer_public",
     title: "Dealer offers + public listing",
-    description: "Send the car to dealers and continue into a public Autolist advert.",
+    description:
+      "Send the car to dealers now and submit it for normal public-listing review.",
   },
   {
     value: "dealer_only",
     title: "Dealer offers only",
-    description: "Start with dealer offers and keep the car off the public marketplace.",
+    description:
+      "Start with dealer offers and keep the car off the public marketplace.",
   },
 ];
 
@@ -144,7 +163,7 @@ const wizardSteps: Array<{
 function updateFormField<K extends keyof DealerSaleFormState>(
   setter: React.Dispatch<React.SetStateAction<DealerSaleFormState>>,
   key: K,
-  value: DealerSaleFormState[K]
+  value: DealerSaleFormState[K],
 ) {
   setter((current) => ({ ...current, [key]: value }));
 }
@@ -167,7 +186,9 @@ function FieldShell({
         {required ? <span className="text-destructive"> *</span> : null}
       </Label>
       {children}
-      {helper ? <p className="text-xs leading-relaxed text-gray-500">{helper}</p> : null}
+      {helper ? (
+        <p className="text-xs leading-relaxed text-gray-500">{helper}</p>
+      ) : null}
     </div>
   );
 }
@@ -222,7 +243,12 @@ function SegmentedField({
 }) {
   return (
     <FieldShell label={label} required={required}>
-      <div className={cn("grid grid-cols-2 gap-2", options.length > 2 && "sm:grid-cols-4")}>
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-2",
+          options.length > 2 && "sm:grid-cols-4",
+        )}
+      >
         {options.map((option) => {
           const isSelected = value === option;
 
@@ -235,7 +261,7 @@ function SegmentedField({
                 "min-h-11 rounded-lg border px-3 text-sm font-semibold transition active:scale-[0.98]",
                 isSelected
                   ? "border-primary bg-primary text-white"
-                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
               )}
             >
               {option}
@@ -248,15 +274,28 @@ function SegmentedField({
 }
 
 export function DealerSaleForm({ makes }: { makes: string[] }) {
-  const router = useRouter();
   const [form, setForm] = React.useState<DealerSaleFormState>(initialForm);
   const [photos, setPhotos] = React.useState<File[]>([]);
   const [currentStep, setCurrentStep] = React.useState<WizardStepId>("route");
   const [feedback, setFeedback] = React.useState<Feedback | null>(null);
   const [isPending, setIsPending] = React.useState(false);
+  const [submissionStage, setSubmissionStage] = React.useState<string | null>(
+    null,
+  );
+  const [completedListingId, setCompletedListingId] = React.useState<
+    string | null
+  >(null);
+  const [completedChannel, setCompletedChannel] = React.useState<
+    DealerSaleFormState["saleChannel"] | null
+  >(null);
+  const requestIdRef = React.useRef<string | null>(null);
   const { models, isLoading: modelsLoading } = useCarModels(form.make || null);
-  const canTypeModel = Boolean(form.make && !modelsLoading && models.length === 0);
-  const currentStepIndex = wizardSteps.findIndex((step) => step.id === currentStep);
+  const canTypeModel = Boolean(
+    form.make && !modelsLoading && models.length === 0,
+  );
+  const currentStepIndex = wizardSteps.findIndex(
+    (step) => step.id === currentStep,
+  );
   const currentStepMeta = wizardSteps[currentStepIndex] ?? wizardSteps[0];
   const isLastStep = currentStep === "contact";
 
@@ -272,6 +311,8 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
     form.fuelType,
     form.transmission,
     form.mileage,
+    form.expectedPrice,
+    form.marketCondition,
     form.condition,
     form.serviceHistory,
     form.ownershipDuration,
@@ -283,12 +324,14 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
 
   function setField<K extends keyof DealerSaleFormState>(
     key: K,
-    value: DealerSaleFormState[K]
+    value: DealerSaleFormState[K],
   ) {
     updateFormField(setForm, key, value);
   }
 
-  function getMissingFieldMessage(fields: Array<[keyof DealerSaleFormState, string]>) {
+  function getMissingFieldMessage(
+    fields: Array<[keyof DealerSaleFormState, string]>,
+  ) {
     const missingFields = fields.filter(([key]) => !form[key].trim());
 
     if (missingFields.length === 0) return null;
@@ -301,12 +344,14 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
 
     if (stepId === "vehicle") {
       const missingMessage = getMissingFieldMessage([
-      ["year", "Year"],
-      ["make", "Make"],
-      ["model", "Model"],
-      ["fuelType", "Fuel type"],
-      ["transmission", "Gearbox"],
-      ["mileage", "Estimated mileage"],
+        ["year", "Year"],
+        ["make", "Make"],
+        ["model", "Model"],
+        ["fuelType", "Fuel type"],
+        ["transmission", "Gearbox"],
+        ["mileage", "Estimated mileage"],
+        ["expectedPrice", "Expected price"],
+        ["marketCondition", "Marketplace condition"],
       ]);
 
       if (missingMessage) return missingMessage;
@@ -316,16 +361,21 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
         return "Enter a valid mileage so dealers can price the vehicle correctly.";
       }
 
+      const priceValue = Number(form.expectedPrice.replace(/[,\s]/g, ""));
+      if (!Number.isFinite(priceValue) || priceValue <= 0) {
+        return "Enter a valid expected price in Kenya shillings.";
+      }
+
       return null;
     }
 
     if (stepId === "condition") {
       return getMissingFieldMessage([
-      ["serviceHistory", "Service history"],
-      ["ownershipDuration", "Ownership duration"],
-      ["financed", "Vehicle finance status"],
-      ["warranty", "Warranty status"],
-      ["documents", "Ownership documents"],
+        ["serviceHistory", "Service history"],
+        ["ownershipDuration", "Ownership duration"],
+        ["financed", "Vehicle finance status"],
+        ["warranty", "Warranty status"],
+        ["documents", "Ownership documents"],
       ]);
     }
 
@@ -339,9 +389,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
 
     if (stepId === "contact") {
       return getMissingFieldMessage([
-      ["city", "City or town"],
-      ["fullName", "Full name"],
-      ["phone", "Phone number"],
+        ["city", "City or town"],
+        ["fullName", "Full name"],
+        ["phone", "Phone number"],
       ]);
     }
 
@@ -385,36 +435,39 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
   }
 
   function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(event.target.files || []).filter((file) =>
-      file.type.startsWith("image/")
+    const selectedFiles = Array.from(event.target.files || []);
+    const invalidType = selectedFiles.find(
+      (file) => !isAcceptedListingMediaContentType("image", file.type),
     );
+    if (invalidType) {
+      setFeedback({
+        tone: "error",
+        message: `"${invalidType.name}" must be a JPG, PNG, or WebP image.`,
+      });
+      return;
+    }
+    const oversized = selectedFiles.find(
+      (file) => file.size > LISTING_IMAGE_MAX_BYTES,
+    );
+    if (oversized) {
+      setFeedback({
+        tone: "error",
+        message: `"${oversized.name}" exceeds the 10MB image limit.`,
+      });
+      return;
+    }
+    if (selectedFiles.length > MAX_PHOTOS) {
+      setFeedback({
+        tone: "error",
+        message: `Choose up to ${MAX_PHOTOS} vehicle photos.`,
+      });
+      return;
+    }
+    setFeedback(null);
     setPhotos(selectedFiles);
   }
 
-  function getAuthRedirectHref() {
-    const nextPath =
-      form.saleChannel === "dealer_public" ? "/dashboard/listings/new" : "/dashboard";
-    const params = new URLSearchParams({
-      role: "seller",
-      next: nextPath,
-    });
-
-    return `/register?${params.toString()}`;
-  }
-
-  function saveDraftForAuthHandoff() {
-    const draft = {
-      source: "sell-to-dealer",
-      createdAt: new Date().toISOString(),
-      form,
-      photoCount: photos.length,
-      photoNames: photos.map((photo) => photo.name),
-    };
-
-    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFeedback(null);
 
@@ -426,10 +479,133 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
     }
 
     setIsPending(true);
-    window.setTimeout(() => {
-      saveDraftForAuthHandoff();
-      router.push(getAuthRedirectHref());
-    }, 450);
+    setSubmissionStage("Saving your dealer-sale request...");
+    try {
+      const { createDealerSaleDraft, completeDealerSaleRequest } =
+        await import("@/lib/actions/dealer-sales");
+      const { finalizeListingImageUploads, prepareListingMediaUploads } =
+        await import("@/lib/actions/listings");
+
+      requestIdRef.current ||= window.crypto.randomUUID();
+      const draftResult = await createDealerSaleDraft({
+        ...form,
+        requestId: requestIdRef.current,
+        mileage: Number(form.mileage.replace(/[,\s]/g, "")),
+        expectedPrice: Number(form.expectedPrice.replace(/[,\s]/g, "")),
+      });
+
+      if ("error" in draftResult) {
+        throw new Error(draftResult.error);
+      }
+
+      if (draftResult.alreadySubmitted) {
+        setCompletedListingId(draftResult.listingId);
+        setCompletedChannel(form.saleChannel);
+        return;
+      }
+
+      const descriptors: ListingMediaUploadDescriptor[] = photos.map(
+        (photo, index) => ({
+          clientId: `dealer-sale-image-${index}`,
+          kind: "image",
+          name: photo.name,
+          size: photo.size,
+          contentType: photo.type,
+          lastModified: photo.lastModified,
+        }),
+      );
+
+      setSubmissionStage("Uploading vehicle photos...");
+      const prepareResult = await prepareListingMediaUploads(
+        draftResult.listingId,
+        descriptors,
+      );
+      if ("error" in prepareResult) {
+        throw new Error(prepareResult.error);
+      }
+
+      const filesByClientId = new Map(
+        descriptors.map((descriptor, index) => [
+          descriptor.clientId,
+          photos[index],
+        ]),
+      );
+      await uploadFilesToPresignedTargets(
+        prepareResult.uploads.map((ticket) => {
+          const file = filesByClientId.get(ticket.clientId);
+          if (!file)
+            throw new Error(
+              `Unable to match "${ticket.name}" to the selected file.`,
+            );
+          return { ticket, file };
+        }),
+      );
+
+      setSubmissionStage("Processing and securing vehicle photos...");
+      const imageResult = await finalizeListingImageUploads(
+        draftResult.listingId,
+        prepareResult.uploads.map(toListingMediaUploadReference),
+        `${form.year} ${form.make} ${form.model}`,
+      );
+      if ("error" in imageResult) {
+        throw new Error(imageResult.error);
+      }
+
+      setSubmissionStage("Opening the request to approved dealers...");
+      const completeResult = await completeDealerSaleRequest(
+        draftResult.listingId,
+      );
+      if ("error" in completeResult) {
+        throw new Error(completeResult.error);
+      }
+
+      setCompletedListingId(completeResult.listingId);
+      setCompletedChannel(form.saleChannel);
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? `${error.message} Your saved draft can be retried without creating a duplicate.`
+            : "Unable to submit the dealer-sale request. Your saved draft can be retried.",
+      });
+    } finally {
+      setIsPending(false);
+      setSubmissionStage(null);
+    }
+  }
+
+  if (completedListingId) {
+    return (
+      <div className="mx-auto max-w-2xl rounded-[20px] border border-green-200 bg-white p-6 text-center shadow-sm sm:p-10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-700">
+          <Check className="h-7 w-7" />
+        </div>
+        <h1 className="mt-5 text-3xl font-bold text-gray-950">
+          Dealer-sale request submitted
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-gray-600">
+          {completedChannel === "dealer_only"
+            ? "Approved dealers can now review the vehicle and make offers. It is not visible on the public marketplace."
+            : "Approved dealers can now make offers. The public listing remains subject to the normal review process."}
+        </p>
+        <p className="mt-3 text-xs text-gray-500">
+          Accepting an offer records your choice and reserves the listing;
+          payment and ownership transfer happen outside this marketplace
+          workflow.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild>
+            <Link href="/dashboard/listings">View listings and offers</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/listings/${completedListingId}/edit`}>
+              Review vehicle details
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -443,13 +619,17 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
             Get dealer offers or list publicly after one short intake
           </h1>
           <p className="mt-4 text-sm leading-6 text-gray-600">
-            Share the vehicle details and photos buyers need first. After this step,
-            create or login to an account so the request can be attached to your profile.
+            Share the vehicle details and photos buyers need first. This route
+            is reserved for signed-in private sellers and continues in your
+            seller workspace.
           </p>
 
           <div className="mt-6 space-y-3">
             {processSteps.map((step, index) => (
-              <div key={step.title} className="flex gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <div
+                key={step.title}
+                className="flex gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3"
+              >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm">
                   <step.icon className="h-5 w-5" />
                 </div>
@@ -457,7 +637,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   <p className="text-sm font-semibold text-gray-900">
                     {index + 1}. {step.title}
                   </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{step.description}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
+                    {step.description}
+                  </p>
                 </div>
               </div>
             ))}
@@ -467,7 +649,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <p className="text-sm leading-relaxed text-gray-700">
-                A seller account is required before dealer offers or a public listing can be processed.
+                Only a private-seller account can use this dealer-sale intake.
               </p>
             </div>
           </div>
@@ -480,21 +662,26 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
       >
         <div className="mb-6 border-b border-gray-100 pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-              {currentStepMeta.eyebrow} of {wizardSteps.length}
-            </p>
-            <h2 className="mt-2 text-2xl font-bold text-gray-950">{currentStepMeta.title}</h2>
-          </div>
-          <div className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600">
-            {completedVehicleFields}/13 details · {completedPhotoCount}/{MIN_PHOTOS} photos
-          </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                {currentStepMeta.eyebrow} of {wizardSteps.length}
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-gray-950">
+                {currentStepMeta.title}
+              </h2>
+            </div>
+            <div className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600">
+              {completedVehicleFields}/15 details · {completedPhotoCount}/
+              {MIN_PHOTOS} photos
+            </div>
           </div>
 
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100">
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
-              style={{ width: `${((currentStepIndex + 1) / wizardSteps.length) * 100}%` }}
+              style={{
+                width: `${((currentStepIndex + 1) / wizardSteps.length) * 100}%`,
+              }}
             />
           </div>
 
@@ -514,7 +701,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                     isActive
                       ? "border-primary bg-primary text-white"
                       : "border-gray-200 bg-white text-gray-600",
-                    !canOpen && "cursor-not-allowed opacity-50"
+                    !canOpen && "cursor-not-allowed opacity-50",
                   )}
                 >
                   <span className="block text-[10px] font-bold uppercase tracking-wide">
@@ -554,13 +741,15 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                       "rounded-xl border p-4 text-left transition active:scale-[0.98]",
                       isSelected
                         ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
                     )}
                     aria-pressed={isSelected}
                   >
                     <span className="flex items-start justify-between gap-3">
                       <span>
-                        <span className="block text-sm font-bold text-gray-950">{option.title}</span>
+                        <span className="block text-sm font-bold text-gray-950">
+                          {option.title}
+                        </span>
                         <span className="mt-1 block text-xs leading-relaxed text-gray-500">
                           {option.description}
                         </span>
@@ -568,7 +757,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                       <span
                         className={cn(
                           "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-                          isSelected ? "border-primary bg-primary text-white" : "border-gray-300"
+                          isSelected
+                            ? "border-primary bg-primary text-white"
+                            : "border-gray-300",
                         )}
                       >
                         {isSelected ? <Check className="h-3.5 w-3.5" /> : null}
@@ -609,7 +800,11 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                 required
               />
               {canTypeModel ? (
-                <FieldShell label="Model" required helper="Type the model if it is not listed.">
+                <FieldShell
+                  label="Model"
+                  required
+                  helper="Type the model if it is not listed."
+                >
                   <Input
                     value={form.model}
                     onChange={(event) => setField("model", event.target.value)}
@@ -622,13 +817,18 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   label="Model"
                   value={form.model}
                   onValueChange={(value) => setField("model", value)}
-                  placeholder={modelsLoading ? "Loading models..." : "Select model"}
+                  placeholder={
+                    modelsLoading ? "Loading models..." : "Select model"
+                  }
                   options={models}
                   required
                   disabled={!form.make || modelsLoading}
                 />
               )}
-              <FieldShell label="Variant" helper="Use Unsure if you do not know the exact trim.">
+              <FieldShell
+                label="Variant"
+                helper="Use Unsure if you do not know the exact trim."
+              >
                 <Input
                   value={form.variant}
                   onChange={(event) => setField("variant", event.target.value)}
@@ -652,7 +852,11 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                 options={transmissions}
                 required
               />
-              <FieldShell label="Estimated mileage" required helper="Kilometres on the odometer.">
+              <FieldShell
+                label="Estimated mileage"
+                required
+                helper="Kilometres on the odometer."
+              >
                 <Input
                   inputMode="numeric"
                   value={form.mileage}
@@ -661,10 +865,43 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   className="h-11 border-gray-200 text-sm"
                 />
               </FieldShell>
-              <FieldShell label="Registration number" helper="Optional. Helps speed up ownership checks.">
+              <FieldShell
+                label="Expected price (KES)"
+                required
+                helper="A starting point for dealer offers, not a guaranteed valuation."
+              >
+                <Input
+                  inputMode="numeric"
+                  value={form.expectedPrice}
+                  onChange={(event) =>
+                    setField("expectedPrice", event.target.value)
+                  }
+                  placeholder="e.g. 3,500,000"
+                  className="h-11 border-gray-200 text-sm"
+                />
+              </FieldShell>
+              <SelectField
+                label="Marketplace condition"
+                value={form.marketCondition}
+                onValueChange={(value) =>
+                  setField(
+                    "marketCondition",
+                    value as DealerSaleFormState["marketCondition"],
+                  )
+                }
+                placeholder="Select marketplace condition"
+                options={["Brand new", "Locally used", "Foreign used"]}
+                required
+              />
+              <FieldShell
+                label="Registration number"
+                helper="Optional. Helps speed up ownership checks."
+              >
                 <Input
                   value={form.registration}
-                  onChange={(event) => setField("registration", event.target.value.toUpperCase())}
+                  onChange={(event) =>
+                    setField("registration", event.target.value.toUpperCase())
+                  }
                   placeholder="KAA 123A"
                   className="h-11 border-gray-200 text-sm"
                 />
@@ -680,7 +917,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                 3
               </span>
-              <h3 className="text-lg font-bold text-gray-950">Condition and ownership</h3>
+              <h3 className="text-lg font-bold text-gray-950">
+                Condition and ownership
+              </h3>
             </div>
 
             <div className="grid gap-4">
@@ -704,7 +943,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                 <SelectField
                   label="Ownership duration"
                   value={form.ownershipDuration}
-                  onValueChange={(value) => setField("ownershipDuration", value)}
+                  onValueChange={(value) =>
+                    setField("ownershipDuration", value)
+                  }
                   placeholder="How long have you owned it?"
                   options={ownershipDurations}
                   required
@@ -743,7 +984,6 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   className="min-h-24 border-gray-200 text-sm"
                 />
               </FieldShell>
-
             </div>
           </section>
 
@@ -755,7 +995,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                 4
               </span>
-              <h3 className="text-lg font-bold text-gray-950">Vehicle photos</h3>
+              <h3 className="text-lg font-bold text-gray-950">
+                Vehicle photos
+              </h3>
             </div>
 
             <FieldShell
@@ -768,7 +1010,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   "flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center transition active:scale-[0.99]",
                   photos.length >= MIN_PHOTOS
                     ? "border-green-300 bg-green-50"
-                    : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-brand-tint/40"
+                    : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-brand-tint/40",
                 )}
               >
                 <Camera className="h-7 w-7 text-primary" />
@@ -778,7 +1020,8 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                     : "Choose vehicle photos"}
                 </span>
                 <span className="mt-1 text-xs leading-relaxed text-gray-500">
-                  Minimum {MIN_PHOTOS}. JPG, PNG, or WebP images are accepted.
+                  Minimum {MIN_PHOTOS}, maximum {MAX_PHOTOS}. Each JPG, PNG, or
+                  WebP image can be up to 10MB.
                 </span>
                 <Input
                   type="file"
@@ -815,7 +1058,9 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                 5
               </span>
-              <h3 className="text-lg font-bold text-gray-950">Contact details</h3>
+              <h3 className="text-lg font-bold text-gray-950">
+                Contact details
+              </h3>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -862,11 +1107,13 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               "mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed",
               feedback.tone === "success"
                 ? "border-green-200 bg-green-50 text-green-800"
-                : "border-red-200 bg-red-50 text-red-800"
+                : "border-red-200 bg-red-50 text-red-800",
             )}
           >
             <div className="flex gap-2">
-              {feedback.tone === "success" ? <Check className="mt-0.5 h-4 w-4 shrink-0" /> : null}
+              {feedback.tone === "success" ? (
+                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : null}
               <span>{feedback.message}</span>
             </div>
           </div>
@@ -875,7 +1122,8 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
         <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-relaxed text-gray-500">
             {isLastStep
-              ? "Continue to register or login so this request can be saved to your seller account."
+              ? submissionStage ||
+                "Submit this request to approved dealers from your private-seller account."
               : "Complete this step to continue through the seller intake."}
           </p>
           <div className="flex gap-2 sm:justify-end">
@@ -895,8 +1143,14 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                 disabled={isPending}
                 className="h-12 shrink-0 rounded-lg px-5 font-semibold active:scale-[0.98]"
               >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                {isPending ? "Preparing account step..." : "Continue to account"}
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+                {isPending
+                  ? "Submitting request..."
+                  : "Submit dealer-sale request"}
               </Button>
             ) : (
               <Button

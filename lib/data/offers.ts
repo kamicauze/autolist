@@ -25,7 +25,7 @@ type OfferSettingsWithListingRow = ListingOfferSettings & {
   listing: Listing | null;
 };
 
-async function getCurrentApprovedDealer(): Promise<DealerProfile | null> {
+export async function getCurrentApprovedDealer(): Promise<DealerProfile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -52,7 +52,7 @@ async function getCurrentApprovedDealer(): Promise<DealerProfile | null> {
 }
 
 export async function getAvailableBidListingsForCurrentDealer(
-  limit = 24
+  limit = 24,
 ): Promise<AvailableBidListing[]> {
   const dealer = await getCurrentApprovedDealer();
 
@@ -67,11 +67,11 @@ export async function getAvailableBidListingsForCurrentDealer(
       `
         *,
         listing:listings!inner(${OFFER_LISTING_SELECT})
-      `
+      `,
     )
     .eq("is_enabled", true)
     .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-    .eq("listing.status", "active")
+    .in("listing.status", ["pending", "active"])
     .neq("listing.seller_id", dealer.profile_id)
     .order("updated_at", { ascending: false })
     .limit(limit);
@@ -116,7 +116,7 @@ export async function getMyDealerOffers(limit = 50): Promise<ListingOffer[]> {
 }
 
 export async function getOffersReceivedByCurrentSeller(
-  limit = 50
+  limit = 50,
 ): Promise<ListingOffer[]> {
   const supabase = await createClient();
   const {
@@ -165,7 +165,7 @@ export async function getOfferEvents(offerId: string): Promise<OfferEvent[]> {
 }
 
 export async function getOfferSettingsForListing(
-  listingId: string
+  listingId: string,
 ): Promise<ListingOfferSettings | null> {
   const normalizedListingId = listingId.trim();
   if (!normalizedListingId) {
