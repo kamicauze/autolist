@@ -7,6 +7,11 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LISTING_ALERT_CATEGORY_CONFIG } from "@/lib/constants/listing-alerts";
+import {
+  LISTING_CATEGORY_OPTIONS,
+  type ListingCategory,
+} from "@/lib/constants/marketplace";
 import {
   Select,
   SelectContent,
@@ -25,7 +30,7 @@ const alertSteps = [
   {
     icon: Mail,
     title: "Get notified",
-    description: "Receive instant email updates when a matching car is posted.",
+    description: "Receive instant email updates when a matching listing is posted.",
   },
   {
     icon: Smartphone,
@@ -35,18 +40,26 @@ const alertSteps = [
 ];
 
 export default function AlertsPage() {
+  const [category, setCategory] = React.useState<ListingCategory>("car");
   const [notificationMethods, setNotificationMethods] = React.useState({
     email: true,
     push: false,
     priceDrop: true,
   });
+  const categoryConfig = LISTING_ALERT_CATEGORY_CONFIG[category];
+  const categoryLabel = LISTING_CATEGORY_OPTIONS.find(
+    (option) => option.value === category
+  )?.label;
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="flex-1 bg-white">
-        <PageHero label="CAR ALERTS" heading="Get instant notification when a car is available">
+        <PageHero
+          label="LISTING ALERTS"
+          heading="Get notified when the right listing becomes available"
+        >
           <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl sm:p-7">
             <h3 className="text-base font-semibold text-gray-900">Personal Information</h3>
 
@@ -74,61 +87,92 @@ export default function AlertsPage() {
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold text-gray-900">Car Preferences</h4>
+                <h4 className="text-sm font-semibold text-gray-900">Listing Preferences</h4>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Make</Label>
-                    <Select defaultValue="any">
-                      <SelectTrigger className="h-10">
+                    <Label htmlFor="alert-category">Category</Label>
+                    <Select
+                      value={category}
+                      onValueChange={(value) => setCategory(value as ListingCategory)}
+                    >
+                      <SelectTrigger id="alert-category" className="h-10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="any">Any Make</SelectItem>
-                        <SelectItem value="toyota">Toyota</SelectItem>
-                        <SelectItem value="nissan">Nissan</SelectItem>
-                        <SelectItem value="bmw">BMW</SelectItem>
+                        {LISTING_CATEGORY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Model</Label>
-                    <Select defaultValue="any">
-                      <SelectTrigger className="h-10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any Model</SelectItem>
-                        <SelectItem value="harrier">Harrier</SelectItem>
-                        <SelectItem value="x5">X5</SelectItem>
-                        <SelectItem value="demio">Demio</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="alert-location">Location</Label>
+                    <Input id="alert-location" placeholder="Any location" className="h-10" />
+                  </div>
+
+                  <div
+                    key={category}
+                    className="contents"
+                    aria-label={`${categoryLabel ?? "Listing"} preferences`}
+                  >
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`alert-make-${category}`}>
+                        {categoryConfig.brandLabel}
+                      </Label>
+                      <Input
+                        id={`alert-make-${category}`}
+                        placeholder={`Any ${categoryConfig.brandLabel.toLowerCase()}`}
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`alert-model-${category}`}>
+                        {categoryConfig.modelLabel}
+                      </Label>
+                      <Input
+                        id={`alert-model-${category}`}
+                        placeholder={`Any ${categoryConfig.modelLabel.toLowerCase()}`}
+                        className="h-10"
+                      />
+                    </div>
+
+                    {categoryConfig.fields.map((field, index) => (
+                      <div key={field.label} className="space-y-1.5">
+                        <Label htmlFor={`alert-category-field-${index}`}>
+                          {field.label}
+                        </Label>
+                        <Select defaultValue="any">
+                          <SelectTrigger
+                            id={`alert-category-field-${index}`}
+                            className="h-10"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Year From</Label>
-                    <Input type="number" placeholder="e.g. 2016" className="h-10" />
+                    <Label htmlFor="alert-year-from">Year From</Label>
+                    <Input id="alert-year-from" type="number" placeholder="e.g. 2016" className="h-10" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Year To</Label>
-                    <Input type="number" placeholder="e.g. 2024" className="h-10" />
+                    <Label htmlFor="alert-year-to">Year To</Label>
+                    <Input id="alert-year-to" type="number" placeholder="e.g. 2024" className="h-10" />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label>Fuel Type</Label>
-                    <Select defaultValue="any">
-                      <SelectTrigger className="h-10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any Fuel</SelectItem>
-                        <SelectItem value="petrol">Petrol</SelectItem>
-                        <SelectItem value="diesel">Diesel</SelectItem>
-                        <SelectItem value="hybrid">Hybrid</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="space-y-1.5">
                     <Label>Price Range</Label>
                     <Select defaultValue="any">
@@ -191,7 +235,7 @@ export default function AlertsPage() {
         </PageHero>
 
         <section className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-bold text-gray-900">How car alerts work</h2>
+          <h2 className="text-center text-2xl font-bold text-gray-900">How listing alerts work</h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {alertSteps.map((step) => (
               <div key={step.title} className="rounded-xl border border-gray-200 bg-white p-5 text-center">
