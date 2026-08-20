@@ -10,7 +10,6 @@ import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import {
-  inferMarketplaceRoleFromNextPath,
   resolvePostAuthPath,
   sanitizeNextPath,
 } from "@/lib/supabase/auth-routing";
@@ -29,27 +28,14 @@ export function LoginForm() {
   const [password, setPassword] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
+  const [socialLoading, setSocialLoading] =
+    React.useState<SocialProvider | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
 
   const requestedNextPath = searchParams.get("next");
   const safeNextPathForOAuth = requestedNextPath
     ? sanitizeNextPath(requestedNextPath, "")
     : "";
-  const inferredRole = safeNextPathForOAuth
-    ? inferMarketplaceRoleFromNextPath(safeNextPathForOAuth)
-    : null;
-  const registerParams = new URLSearchParams();
-  if (safeNextPathForOAuth) {
-    registerParams.set("next", safeNextPathForOAuth);
-  }
-  if (inferredRole) {
-    registerParams.set("role", inferredRole);
-  }
-  const registerHref = safeNextPathForOAuth
-    ? `/register?${registerParams.toString()}`
-    : "/register";
-
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
@@ -68,7 +54,7 @@ export function LoginForm() {
       setErrorMessage(
         isDeactivated
           ? "This account has been deactivated. Contact support to reactivate it."
-          : error.message
+          : error.message,
       );
       setIsLoading(false);
       return;
@@ -84,7 +70,11 @@ export function LoginForm() {
       return;
     }
 
-    const destination = await resolvePostAuthPath(supabase, user.id, requestedNextPath);
+    const destination = await resolvePostAuthPath(
+      supabase,
+      user.id,
+      requestedNextPath,
+    );
     router.replace(destination);
     router.refresh();
   };
@@ -107,12 +97,40 @@ export function LoginForm() {
   };
 
   return (
-    <form className="space-y-5" onSubmit={handleLogin}>
-      <div className="space-y-4">
-        <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="login-email">
+    <form className="space-y-3" onSubmit={handleLogin}>
+      <div className="grid gap-2">
+        <SocialAuthButton
+          label="Continue with Google"
+          icon={<GoogleIcon />}
+          onClick={() => handleSocialLogin("google")}
+          disabled={isLoading || !!socialLoading}
+          data-testid="login-google"
+          className="h-12 rounded-[10px] border-2 border-primary/70 text-[#2f3a48] hover:border-primary hover:bg-brand-tint"
+        />
+        <SocialAuthButton
+          label="Continue with Facebook"
+          icon={<FacebookIcon />}
+          onClick={() => handleSocialLogin("facebook")}
+          disabled={isLoading || !!socialLoading}
+          data-testid="login-facebook"
+          className="h-12 rounded-[10px] border-2 border-primary/70 text-[#2f3a48] hover:border-primary hover:bg-brand-tint"
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-[#dfe3e8]" />
+        <span className="text-xs text-[#696f78]">or</span>
+        <div className="h-px flex-1 bg-[#dfe3e8]" />
+      </div>
+
+      <div className="space-y-3">
+        <label
+          className="block space-y-2 text-sm font-medium text-[#24272C]"
+          htmlFor="login-email"
+        >
           <span>Email address</span>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
+            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa2ad]" />
             <Input
               id="login-email"
               type="email"
@@ -120,20 +138,20 @@ export function LoginForm() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
+              className="h-12 rounded-[12px] border-[#cfd5dc] pl-11 text-[15px] focus-visible:border-primary focus-visible:ring-primary/20"
               placeholder="name@example.com"
               data-testid="login-email"
             />
           </div>
-          <span className="block text-[12px] font-normal text-[#8a8a8a]">
-            Use the email connected to your buyer, seller, or dealer account.
-          </span>
         </label>
 
-        <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="login-password">
+        <label
+          className="block space-y-2 text-sm font-medium text-[#24272C]"
+          htmlFor="login-password"
+        >
           <span>Password</span>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
+            <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa2ad]" />
             <Input
               id="login-password"
               type={showPassword ? "text" : "password"}
@@ -141,7 +159,7 @@ export function LoginForm() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-primary/30"
+              className="h-12 rounded-[12px] border-[#cfd5dc] px-11 text-[15px] focus-visible:border-primary focus-visible:ring-primary/20"
               placeholder="********"
               data-testid="login-password"
             />
@@ -151,16 +169,22 @@ export function LoginForm() {
               onClick={() => setShowPassword((current) => !current)}
               className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#8a8a8a] transition hover:bg-[#f3f4f6] hover:text-[#24272C]"
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
         </label>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-[12px] text-[#8a8a8a]">Protected by Supabase Auth.</p>
-        <Link href="/forgot-password" className="text-sm font-semibold text-[#24272C] hover:text-primary">
-          Forgot password
+      <div className="flex items-center justify-start">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-semibold text-[#24272C] underline decoration-[#aeb5bd] underline-offset-4 hover:text-primary"
+        >
+          Forgot your password?
         </Link>
       </div>
 
@@ -176,42 +200,12 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        className="h-12 w-full rounded-[14px] text-base transition active:translate-y-px"
+        className="h-12 w-full rounded-[10px] text-base transition active:translate-y-px"
         disabled={isLoading || !!socialLoading}
         data-testid="login-submit"
       >
-        {isLoading ? "Logging in..." : "Login"}
+        {isLoading ? "Signing in..." : "Sign in"}
       </Button>
-
-      <p className="text-center text-sm text-[#24272C]">
-        Don&apos;t have an account?{" "}
-        <Link href={registerHref} className="text-primary hover:underline">
-          Register
-        </Link>
-      </p>
-
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#EDEDED]" />
-        <span className="text-xs text-[#696665]">or login with</span>
-        <div className="h-px flex-1 bg-[#EDEDED]" />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SocialAuthButton
-          label="Google"
-          icon={<GoogleIcon />}
-          onClick={() => handleSocialLogin("google")}
-          disabled={isLoading || !!socialLoading}
-          data-testid="login-google"
-        />
-        <SocialAuthButton
-          label="Facebook"
-          icon={<FacebookIcon />}
-          onClick={() => handleSocialLogin("facebook")}
-          disabled={isLoading || !!socialLoading}
-          data-testid="login-facebook"
-        />
-      </div>
     </form>
   );
 }

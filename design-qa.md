@@ -1,40 +1,38 @@
-# Design QA — Listing appointment request
+# Login vehicle-panel refinement QA
 
-## Visual source and implementation
+- Visual direction: the supplied mobile.de account reference plus the preceding
+  local two-panel Autolist login implementation.
+- Implementation: `http://localhost:3000/login`
+- Vehicle asset: existing `public/hero-car.jpg` (1920 x 1280).
+- Matched desktop comparison: previous and refined implementations reviewed side
+  by side from a 1600 x 709 browser capture (1333 x 591 CSS viewport at the
+  active browser density).
+- Responsive check: 390 x 844 viewport.
 
-- Source visual truth: local stakeholder reference image (not checked in)
-- Source dimensions: 1024 × 1536 px
-- Desktop implementation evidence: local upper-state and form/action screenshots (not checked in)
-- Desktop viewport: 1280 × 720 CSS px at the in-app browser's standard density
-- Mobile implementation evidence: local responsive screenshot (not checked in)
-- Mobile viewport: 390 × 844 CSS px
+## Review
 
-The reference is a full-page concept, while the implementation is a responsive modal within the existing listing page. The comparison therefore evaluates hierarchy, date/time controls, request-only messaging, summary, form, privacy treatment, and primary action rather than matching full-page geometry.
+- The login shell is vertically centered: the measured desktop card gaps were
+  approximately 19 CSS pixels above and below the card.
+- The right panel now uses a full-bleed, real vehicle photograph while preserving
+  the existing Autolist benefits and truthful account copy.
+- Benefit text sits in a floating glass panel using a 70%-opaque white surface,
+  backdrop blur, translucent border, and soft shadow. Text contrast remains clear
+  over the image.
+- Form spacing and controls were compacted so the complete sign-in action remains
+  visible without scrolling in the checked desktop viewport.
+- At 390 x 844, the form and vehicle panel stack cleanly without horizontal
+  overflow; the glass panel remains readable over the image.
+- No P0, P1, or P2 visual issues remain in the checked unauthenticated login state.
 
-## Comparison history
+## Previous verified surface
 
-1. The first implementation comparison found two material visual issues: a low-contrast close control and blue appointment accents that diverged from the reference and the active theme.
-2. The close control was corrected to use accessible theme tokens.
-3. Selected time and primary appointment action states were changed to the theme's orange secondary accent.
-4. The source and both final desktop states were reviewed together in one comparison input. The two-week date grid, one-hour time choices, details form, request summary, request-only language, and orange action treatment are aligned with the source intent.
-5. Availability dots and availability claims were intentionally omitted because the product does not currently collect seller availability. Showing them would communicate unsupported data.
-
-## Interaction and responsive checks
-
-- Opened the appointment request from the listing's seller card.
-- Confirmed exactly 14 Nairobi calendar dates, from 7–20 August 2026 in the fixed verification state.
-- Selected the 10:00 AM–11:00 AM time and confirmed the summary updated.
-- Confirmed the details form, optional 250-character message, seller-confirmation checkbox, and request action remain accessible while scrolling.
-- Exercised the missing-confirmation validation without submitting a real request.
-- Confirmed the modal stacks and scrolls at 390 × 844 without horizontal overflow.
-- Confirmed the seller's separate “Message the Seller” form remains available.
-
-## Console and known differences
-
-- No runtime console errors were observed.
-- One pre-existing listing-image LCP warning was observed and is outside this appointment surface.
-- The implementation uses the dedicated appointment-request endpoint and first-class appointment records; it does not claim real-time availability or create a reservation.
-- No actionable P0, P1, or P2 visual defects remain.
+The preceding appointment-request QA record used a 1024 x 1536 stakeholder
+reference, a 1280 x 720 desktop viewport, and a 390 x 844 mobile viewport. It
+verified the 14-day Nairobi request flow, one-hour selection, request summary,
+privacy/confirmation treatment, responsive scrolling, and the absence of
+unsupported real-time availability claims. That surface passed with no P0, P1,
+or P2 visual defects; one pre-existing listing-image LCP warning remained out of
+scope.
 
 ## Final result
 

@@ -1,8 +1,12 @@
-import { AdminDealersClient } from "@/components/admin/admin-dealers-client";
+import { AdminVerificationClient } from "@/components/admin/admin-verification-client";
 import { getPendingDealerVerifications } from "@/lib/data/dealers";
+import { getPendingSellerVerifications } from "@/lib/data/seller-verification";
 
 export default async function AdminVerificationPage() {
-  const dealers = await getPendingDealerVerifications();
+  const [dealers, sellers] = await Promise.all([
+    getPendingDealerVerifications(),
+    getPendingSellerVerifications(),
+  ]);
 
-  return <AdminDealersClient dealers={dealers} />;
+  return <AdminVerificationClient dealers={dealers} sellers={sellers} />;
 }

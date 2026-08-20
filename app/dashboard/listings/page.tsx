@@ -8,9 +8,15 @@ import {
 } from "@/lib/data/offers";
 import { getMySalesAgents } from "@/lib/data/sales-agents";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
+import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
+import { createClient } from "@/lib/supabase/server";
 import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
 export default async function DashboardListingsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const [
     { data: listings },
     availableBidListings,
@@ -19,6 +25,7 @@ export default async function DashboardListingsPage() {
     salesAgents,
     viewerRepContext,
     approvedDealer,
+    accountContext,
   ] = await Promise.all([
     getMyListings(),
     getAvailableBidListingsForCurrentDealer(),
@@ -27,6 +34,7 @@ export default async function DashboardListingsPage() {
     getMySalesAgents(),
     getSalesAgentViewerContext(),
     getCurrentApprovedDealer(),
+    user ? getDashboardAccountContext(supabase, user.id) : null,
   ]);
 
   const isSalesAgentView = Boolean(viewerRepContext);
@@ -39,6 +47,7 @@ export default async function DashboardListingsPage() {
       listings={listings || []}
       salesReps={salesReps}
       isSalesAgentView={isSalesAgentView}
+      isPrivateSeller={accountContext?.profileRole === "seller"}
       canBid={Boolean(approvedDealer)}
       availableBids={availableBidListings.map((listing) => ({
         id: listing.id,

@@ -2,7 +2,14 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { CheckCircle2, Clock, ExternalLink, FileText, ImageIcon, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  FileText,
+  ImageIcon,
+  XCircle,
+} from "lucide-react";
 import { approveDealer, rejectDealer } from "@/lib/actions/dealers";
 import { getImageUrl } from "@/lib/utils/listings";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
@@ -17,6 +24,7 @@ import {
 
 interface AdminDealersClientProps {
   dealers: DealerVerificationRecord[];
+  embedded?: boolean;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -34,11 +42,16 @@ function isImageDocument(mimeType: string | null) {
   return mimeType?.startsWith("image/") ?? false;
 }
 
-export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
+export function AdminDealersClient({
+  dealers,
+  embedded = false,
+}: AdminDealersClientProps) {
   const [processingId, setProcessingId] = React.useState<string | null>(null);
   const [dealerRows, setDealerRows] = React.useState(dealers);
   const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
-  const [rejectingDealerId, setRejectingDealerId] = React.useState<string | null>(null);
+  const [rejectingDealerId, setRejectingDealerId] = React.useState<
+    string | null
+  >(null);
 
   const handleApprove = async (dealerId: string) => {
     setProcessingId(dealerId);
@@ -50,7 +63,9 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
       return;
     }
 
-    setDealerRows((current) => current.filter((dealer) => dealer.id !== dealerId));
+    setDealerRows((current) =>
+      current.filter((dealer) => dealer.id !== dealerId),
+    );
     setFeedback({ tone: "success", message: "Dealer verification approved." });
     setProcessingId(null);
   };
@@ -65,22 +80,27 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
       return;
     }
 
-    setDealerRows((current) => current.filter((dealer) => dealer.id !== dealerId));
+    setDealerRows((current) =>
+      current.filter((dealer) => dealer.id !== dealerId),
+    );
     setFeedback({ tone: "success", message: "Dealer verification rejected." });
     setRejectingDealerId(null);
     setProcessingId(null);
   };
 
-  const rejectingDealer = dealerRows.find((dealer) => dealer.id === rejectingDealerId) ?? null;
+  const rejectingDealer =
+    dealerRows.find((dealer) => dealer.id === rejectingDealerId) ?? null;
 
   if (dealerRows.length === 0) {
     return (
       <div className="space-y-6">
-        <AdminPageHeader title="Verification (KYC)" />
+        {!embedded ? <AdminPageHeader title="Verification (KYC)" /> : null}
         <AdminFeedbackBanner feedback={feedback} />
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-          <h3 className="mt-4 text-lg font-semibold text-slate-900">No pending dealer reviews</h3>
+          <h3 className="mt-4 text-lg font-semibold text-slate-900">
+            No pending dealer reviews
+          </h3>
           <p className="mt-1 text-sm text-slate-500">
             New verification submissions will show up here automatically.
           </p>
@@ -91,19 +111,21 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Verification (KYC)"
-        action={
-          <Badge variant="warning" className="gap-1">
-            <Clock className="h-3 w-3" />
-            {dealerRows.length} Pending
-          </Badge>
-        }
-      />
+      {!embedded ? (
+        <AdminPageHeader
+          title="Verification (KYC)"
+          action={
+            <Badge variant="warning" className="gap-1">
+              <Clock className="h-3 w-3" />
+              {dealerRows.length} Pending
+            </Badge>
+          }
+        />
+      ) : null}
 
       <p className="text-sm text-slate-600">
-        {dealerRows.length} dealer application{dealerRows.length === 1 ? "" : "s"} waiting for
-        review.
+        {dealerRows.length} dealer application
+        {dealerRows.length === 1 ? "" : "s"} waiting for review.
       </p>
 
       <AdminFeedbackBanner feedback={feedback} />
@@ -121,11 +143,14 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-slate-900">{dealer.name}</h3>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        {dealer.name}
+                      </h3>
                       <Badge variant="warning">Pending review</Badge>
                     </div>
                     <p className="mt-1 text-sm text-slate-600">
-                      Submitted {formatDate(dealer.submitted_at || dealer.created_at)}
+                      Submitted{" "}
+                      {formatDate(dealer.submitted_at || dealer.created_at)}
                     </p>
                   </div>
 
@@ -151,7 +176,9 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                             <p>{dealer.business_name || dealer.name}</p>
                             <p>{dealer.address || "No address provided"}</p>
                             <p>
-                              {[dealer.city, dealer.location].filter(Boolean).join(" • ") || "No location"}
+                              {[dealer.city, dealer.location]
+                                .filter(Boolean)
+                                .join(" • ") || "No location"}
                             </p>
                             <p>{dealer.email}</p>
                             <p>{dealer.mobile}</p>
@@ -165,10 +192,18 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                         Primary Contact
                       </p>
                       <div className="mt-3 space-y-1 text-sm text-slate-700">
-                        <p>{dealer.contact_person?.name || "No contact name"}</p>
-                        <p>{dealer.contact_person?.role || "No role provided"}</p>
-                        <p>{dealer.contact_person?.mobile || "No phone provided"}</p>
-                        <p>{dealer.contact_person?.email || "No email provided"}</p>
+                        <p>
+                          {dealer.contact_person?.name || "No contact name"}
+                        </p>
+                        <p>
+                          {dealer.contact_person?.role || "No role provided"}
+                        </p>
+                        <p>
+                          {dealer.contact_person?.mobile || "No phone provided"}
+                        </p>
+                        <p>
+                          {dealer.contact_person?.email || "No email provided"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -178,7 +213,9 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                         About
                       </p>
-                      <p className="mt-3 text-sm leading-6 text-slate-700">{dealer.about_text}</p>
+                      <p className="mt-3 text-sm leading-6 text-slate-700">
+                        {dealer.about_text}
+                      </p>
                     </div>
                   ) : null}
 
@@ -289,7 +326,9 @@ export function AdminDealersClient({ dealers }: AdminDealersClientProps) {
         label="Rejection reason"
         placeholder="Documents are unreadable, expired, or do not match the dealership profile."
         confirmLabel="Reject dealer"
-        pending={Boolean(rejectingDealerId && processingId === rejectingDealerId)}
+        pending={Boolean(
+          rejectingDealerId && processingId === rejectingDealerId,
+        )}
         onConfirm={(reason) => {
           if (!rejectingDealerId) return;
           void handleReject(rejectingDealerId, reason);

@@ -18,6 +18,9 @@ import {
   DollarSign,
   Eye,
   Gauge,
+  Gavel,
+  Info,
+  ListChecks,
   Pencil,
   Rocket,
   Search,
@@ -48,12 +51,17 @@ import {
 } from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
 import {
+  buildDashboardPaginationItems,
+  paginateDashboardItems,
+} from "@/lib/utils/dashboard-listing-pagination";
+import {
   SellerStatusPill,
   formatDashboardCurrency,
   formatDashboardDate,
 } from "../seller-dashboard-ui";
 
 type ListingTab = "all" | "received-offers" | "available-bids" | "your-bids";
+type ListingPrimaryTab = "listings" | "bids";
 
 type OfferRow = {
   id: string;
@@ -87,15 +95,17 @@ interface MyListingsProps {
   offersLoading?: boolean;
   salesReps?: AssignableRep[];
   isSalesAgentView?: boolean;
+  isPrivateSeller?: boolean;
   canBid?: boolean;
 }
 
-const tabs: Array<{ value: ListingTab; label: string }> = [
-  { value: "all", label: "All listings" },
+const bidTabs: Array<{ value: Exclude<ListingTab, "all">; label: string }> = [
   { value: "received-offers", label: "Received offers" },
   { value: "available-bids", label: "Available bids" },
   { value: "your-bids", label: "Your bids" },
 ];
+
+const LISTINGS_PAGE_SIZE = 10;
 
 const listingStatusOptions = [
   "all",
@@ -215,42 +225,126 @@ function FigmaListingStatusPill({ status }: { status: Listing["status"] }) {
 }
 
 function ListingViewTabs({
-  activeTab,
-  onSelectTab,
-  canBid,
+  activeView,
+  onSelectView,
 }: {
-  activeTab: ListingTab;
-  onSelectTab: (tab: ListingTab) => void;
-  canBid: boolean;
+  activeView: ListingPrimaryTab;
+  onSelectView: (tab: ListingPrimaryTab) => void;
 }) {
-  const visibleTabs = canBid
-    ? tabs
-    : tabs.filter(
-        (tab) => tab.value !== "available-bids" && tab.value !== "your-bids",
-      );
-
   return (
-    <div className="flex items-center gap-[13px]">
-      {visibleTabs.map((tab) => {
-        const active = tab.value === activeTab;
+    <div className="inline-flex items-center gap-1 rounded-[12px] border border-[#e1e5ea] bg-[#f5f7fa] p-1.5">
+      {[
+        { value: "listings" as const, label: "Listings", icon: ListChecks },
+        { value: "bids" as const, label: "Bids", icon: Gavel },
+      ].map((tab) => {
+        const active = tab.value === activeView;
+        const Icon = tab.icon;
 
         return (
           <button
             key={tab.value}
             type="button"
-            onClick={() => onSelectTab(tab.value)}
+            onClick={() => onSelectView(tab.value)}
             className={cn(
-              "inline-flex h-[45px] items-center justify-center rounded-[10px] px-[18px] text-[16px] font-medium leading-6 transition",
+              "inline-flex h-[42px] items-center justify-center rounded-[9px] px-5 text-[14px] font-semibold transition",
               active
-                ? "bg-primary text-white shadow-[0_10px_15px_rgb(var(--primary-rgb)/0.3),0_4px_6px_rgb(var(--primary-rgb)/0.3)]"
-                : "border border-[#e5e7eb] bg-white text-[#364153] hover:border-[#cbd5e1]",
+                ? "bg-white text-primary shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
+                : "text-[#667085] hover:text-[#24272c]",
             )}
           >
+            <Icon className="mr-2 h-4 w-4" />
             {tab.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function BidViewTabs({
+  activeTab,
+  onSelectTab,
+  canBid,
+}: {
+  activeTab: Exclude<ListingTab, "all">;
+  onSelectTab: (tab: Exclude<ListingTab, "all">) => void;
+  canBid: boolean;
+}) {
+  const visibleTabs = canBid
+    ? bidTabs
+    : bidTabs.filter((tab) => tab.value === "received-offers");
+
+  return (
+    <div className="flex flex-wrap gap-2 border-b border-[#e8e8e8] pb-3">
+      {visibleTabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          onClick={() => onSelectTab(tab.value)}
+          className={cn(
+            "inline-flex h-10 items-center rounded-[9px] px-4 text-[13px] font-semibold transition",
+            activeTab === tab.value
+              ? "bg-primary text-white"
+              : "border border-[#e2e5e9] bg-white text-[#5f6673] hover:border-primary/40 hover:text-primary",
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PrivateSellerListingGuide() {
+  return (
+    <section className="rounded-[18px] border border-[#d6e4fa] bg-[#f5f9ff] p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+          <Info className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold text-[#202224]">
+            Two ways to submit your vehicle
+          </h2>
+          <p className="mt-1 text-[13px] leading-5 text-[#68717d]">
+            Private sellers do not place bids. Approved dealers bid on eligible
+            seller requests.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-[14px] border border-[#dfe7f2] bg-white p-4">
+              <p className="text-[13px] font-semibold text-[#202224]">
+                Publish on Autolist
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-[#68717d]">
+                Create a listing and submit it for moderation. It appears
+                publicly after approval.
+              </p>
+              <Link
+                href="/dashboard/listings/new"
+                className="mt-3 inline-flex text-[12px] font-semibold text-primary hover:underline"
+              >
+                Add a public listing
+              </Link>
+            </div>
+            <div className="rounded-[14px] border border-[#dfe7f2] bg-white p-4">
+              <p className="text-[13px] font-semibold text-[#202224]">
+                Request dealer offers
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-[#68717d]">
+                Submit the dealer-sale form. Eligible dealers can offer, and
+                responses appear under Bids.
+              </p>
+              <Link
+                href="/sell/dealer"
+                className="mt-3 inline-flex text-[12px] font-semibold text-primary hover:underline"
+              >
+                Sell to dealers
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -934,14 +1028,17 @@ export function MyListings({
   offersLoading = false,
   salesReps = [],
   isSalesAgentView = false,
+  isPrivateSeller = false,
   canBid = false,
 }: MyListingsProps) {
   const router = useRouter();
   const [listingItems, setListingItems] = React.useState(listings);
   const [assignError, setAssignError] = React.useState<string | null>(null);
-  const [activeTab, setActiveTab] = React.useState<ListingTab>(() =>
-    canBid && availableBids?.length ? "available-bids" : "all",
-  );
+  const [activeView, setActiveView] =
+    React.useState<ListingPrimaryTab>("listings");
+  const [activeBidTab, setActiveBidTab] = React.useState<
+    Exclude<ListingTab, "all">
+  >(canBid && availableBids?.length ? "available-bids" : "received-offers");
   const [query, setQuery] = React.useState("");
   const [status, setStatus] =
     React.useState<(typeof listingStatusOptions)[number]>("all");
@@ -953,6 +1050,7 @@ export function MyListings({
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [deletingIds, setDeletingIds] = React.useState<string[]>([]);
   const [pendingIds, setPendingIds] = React.useState<string[]>([]);
+  const [currentPage, setCurrentPage] = React.useState(1);
 
   React.useEffect(() => {
     setListingItems(listings);
@@ -994,7 +1092,23 @@ export function MyListings({
     });
   }, [filteredListings, sortOrder]);
 
-  const visibleIds = displayListings.map((listing) => listing.id);
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [fromDate, query, sortOrder, status, toDate]);
+
+  const pagination = React.useMemo(
+    () =>
+      paginateDashboardItems(displayListings, currentPage, LISTINGS_PAGE_SIZE),
+    [currentPage, displayListings],
+  );
+
+  React.useEffect(() => {
+    if (currentPage !== pagination.currentPage) {
+      setCurrentPage(pagination.currentPage);
+    }
+  }, [currentPage, pagination.currentPage]);
+
+  const visibleIds = pagination.items.map((listing) => listing.id);
   const selectedVisibleIds = selectedIds.filter((id) =>
     visibleIds.includes(id),
   );
@@ -1169,13 +1283,7 @@ export function MyListings({
   return (
     <div className="space-y-[30px]">
       <h1 className="font-heading text-[34px] font-semibold leading-none text-[#111827]">
-        {activeTab === "available-bids"
-          ? "Available dealer requests"
-          : activeTab === "received-offers"
-            ? "Offers received"
-            : activeTab === "your-bids"
-              ? "Your dealer offers"
-              : "All listings"}
+        My listings
       </h1>
 
       {assignError ? (
@@ -1185,303 +1293,380 @@ export function MyListings({
       ) : null}
 
       <ListingViewTabs
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        canBid={canBid}
+        activeView={activeView}
+        onSelectView={(view) => {
+          setActiveView(view);
+          if (view === "bids" && !canBid) setActiveBidTab("received-offers");
+        }}
       />
 
-      {activeTab === "available-bids" ? (
-        <BidsPlaceholder
-          rows={availableBids}
-          loading={offersLoading}
-          mode="available"
-        />
-      ) : activeTab === "received-offers" ? (
-        <BidsPlaceholder
-          rows={receivedOffers}
-          loading={offersLoading}
-          mode="received"
-        />
-      ) : activeTab === "your-bids" ? (
-        <BidsPlaceholder rows={yourBids} loading={offersLoading} mode="mine" />
-      ) : (
-        <section className="rounded-[20px] border border-[#ededed] bg-white px-[22px] py-[22px] shadow-[0_1px_2px_rgba(15,23,42,0.02)] xl:px-[30px] xl:py-[30px]">
-          <div className="grid gap-[10px] lg:grid-cols-[1.05fr_1fr_1fr_1fr]">
-            <label className="flex h-[54px] min-w-0 items-center gap-3 rounded-[8px] border border-[#ededed] bg-white px-4">
-              <Search className="h-4 w-4 shrink-0 text-[#9a9aa5]" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search..."
-                className="h-full min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#24272c] outline-none placeholder:text-[#696665]"
-              />
-            </label>
-
-            <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
-              {!fromDate ? (
-                <span className="pointer-events-none absolute left-4 text-[14px] text-[#696665]">
-                  From date
-                </span>
-              ) : null}
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(event) => setFromDate(event.target.value)}
-                aria-label="From date"
-                className={cn(
-                  "h-full min-w-0 flex-1 border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none",
-                  !fromDate && "text-transparent focus:text-[#24272c]",
-                )}
-              />
-              <CalendarDays className="pointer-events-none absolute right-4 h-4 w-4 text-[#9a9aa5]" />
-            </label>
-
-            <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
-              {!toDate ? (
-                <span className="pointer-events-none absolute left-4 text-[14px] text-[#696665]">
-                  To date
-                </span>
-              ) : null}
-              <input
-                type="date"
-                value={toDate}
-                onChange={(event) => setToDate(event.target.value)}
-                aria-label="To date"
-                className={cn(
-                  "h-full min-w-0 flex-1 border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none",
-                  !toDate && "text-transparent focus:text-[#24272c]",
-                )}
-              />
-              <CalendarDays className="pointer-events-none absolute right-4 h-4 w-4 text-[#9a9aa5]" />
-            </label>
-
-            <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
-              <select
-                value={status}
-                onChange={(event) =>
-                  setStatus(event.target.value as typeof status)
-                }
-                aria-label="Status"
-                className="h-full min-w-0 flex-1 appearance-none border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none"
-              >
-                {listingStatusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option === "all" ? "Status" : normalizeStatusLabel(option)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 h-4 w-4 text-[#24272c]" />
-            </label>
-          </div>
-
-          <div className="mt-[21px] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[12px] font-medium text-primary">
-              {displayListings.length} results found
+      {activeView === "bids" ? (
+        <section className="space-y-5 rounded-[20px] border border-[#ededed] bg-white px-[22px] py-[22px] shadow-[0_1px_2px_rgba(15,23,42,0.02)] xl:px-[30px] xl:py-[30px]">
+          <div>
+            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+              {activeBidTab === "available-bids"
+                ? "Available dealer requests"
+                : activeBidTab === "your-bids"
+                  ? "Your dealer offers"
+                  : "Offers received"}
+            </h2>
+            <p className="mt-1 text-[13px] leading-5 text-[#747474]">
+              {isPrivateSeller
+                ? "Approved dealers respond to eligible seller requests here. You remain in control of accepting, countering, or rejecting an offer."
+                : "Review the offer activity available to this account."}
             </p>
-
-            <label className="flex items-center gap-1 self-start text-[12px] text-[#696665] sm:self-auto">
-              <span>Sort By</span>
-              <select
-                value={sortOrder}
-                onChange={(event) =>
-                  setSortOrder(event.target.value as typeof sortOrder)
-                }
-                className="appearance-none border-0 bg-transparent pr-5 text-[12px] font-medium text-[#24272c] outline-none"
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-              </select>
-              <ChevronDown className="-ml-5 h-3.5 w-3.5 text-[#24272c]" />
-            </label>
           </div>
+          <BidViewTabs
+            activeTab={activeBidTab}
+            onSelectTab={setActiveBidTab}
+            canBid={canBid}
+          />
+          {activeBidTab === "available-bids" ? (
+            <BidsPlaceholder
+              rows={availableBids}
+              loading={offersLoading}
+              mode="available"
+            />
+          ) : activeBidTab === "your-bids" ? (
+            <BidsPlaceholder
+              rows={yourBids}
+              loading={offersLoading}
+              mode="mine"
+            />
+          ) : (
+            <BidsPlaceholder
+              rows={receivedOffers}
+              loading={offersLoading}
+              mode="received"
+            />
+          )}
+        </section>
+      ) : (
+        <div className="space-y-5">
+          {isPrivateSeller ? <PrivateSellerListingGuide /> : null}
+          <section className="rounded-[20px] border border-[#ededed] bg-white px-[22px] py-[22px] shadow-[0_1px_2px_rgba(15,23,42,0.02)] xl:px-[30px] xl:py-[30px]">
+            <div className="grid gap-[10px] lg:grid-cols-[1.05fr_1fr_1fr_1fr]">
+              <label className="flex h-[54px] min-w-0 items-center gap-3 rounded-[8px] border border-[#ededed] bg-white px-4">
+                <Search className="h-4 w-4 shrink-0 text-[#9a9aa5]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search..."
+                  className="h-full min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#24272c] outline-none placeholder:text-[#696665]"
+                />
+              </label>
 
-          <div className="relative mt-[11px] overflow-x-auto pb-2">
-            {selectedIds.length > 0 ? (
-              <div className="absolute left-[18px] top-[300px] z-30 flex min-h-[96px] w-[min(640px,calc(100vw-96px))] flex-wrap items-center gap-4 rounded-[20px] border border-[rgba(255,255,255,0.1)] bg-[#24272c] px-5 py-4 shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
-                <div className="flex h-12 items-center gap-3 border-r border-[rgba(255,255,255,0.2)] pr-6">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-[18px] font-bold text-white">
-                    {selectedIds.length}
+              <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
+                {!fromDate ? (
+                  <span className="pointer-events-none absolute left-4 text-[14px] text-[#696665]">
+                    From date
                   </span>
-                  <span>
-                    <span className="block text-[16px] font-medium leading-6 text-white">
-                      Items selected
-                    </span>
-                    <span className="block text-[12px] leading-[18px] text-[rgba(255,255,255,0.6)]">
-                      Choose an action
-                    </span>
+                ) : null}
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(event) => setFromDate(event.target.value)}
+                  aria-label="From date"
+                  className={cn(
+                    "h-full min-w-0 flex-1 border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none",
+                    !fromDate && "text-transparent focus:text-[#24272c]",
+                  )}
+                />
+                <CalendarDays className="pointer-events-none absolute right-4 h-4 w-4 text-[#9a9aa5]" />
+              </label>
+
+              <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
+                {!toDate ? (
+                  <span className="pointer-events-none absolute left-4 text-[14px] text-[#696665]">
+                    To date
                   </span>
-                </div>
+                ) : null}
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(event) => setToDate(event.target.value)}
+                  aria-label="To date"
+                  className={cn(
+                    "h-full min-w-0 flex-1 border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none",
+                    !toDate && "text-transparent focus:text-[#24272c]",
+                  )}
+                />
+                <CalendarDays className="pointer-events-none absolute right-4 h-4 w-4 text-[#9a9aa5]" />
+              </label>
 
-                <div className="ml-auto flex items-center gap-2">
-                  <SelectionActionButton
-                    icon={<Trash2 className="h-4 w-4" />}
-                    label="Delete"
-                    tone="danger"
-                    onClick={handleBulkDelete}
-                    disabled={deletingIds.length > 0}
-                  />
-                  <SelectionActionButton
-                    icon={<Archive className="h-4 w-4" />}
-                    label="Archive"
-                    tone="purple"
-                    onClick={handleBulkArchive}
-                    disabled={pendingIds.length > 0}
-                  />
-                  <SelectionActionButton
-                    icon={<Copy className="h-4 w-4" />}
-                    label="Duplicate"
-                    tone="amber"
-                    onClick={handleBulkDuplicate}
-                    disabled={pendingIds.length > 0}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIds([])}
-                    className="ml-5 flex h-10 w-10 items-center justify-center border-l border-[rgba(255,255,255,0.2)] pl-5 text-white/70 transition hover:text-white"
-                    aria-label="Clear selected listings"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            ) : null}
+              <label className="relative flex h-[54px] min-w-0 items-center rounded-[8px] border border-[#ededed] bg-white px-4">
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value as typeof status)
+                  }
+                  aria-label="Status"
+                  className="h-full min-w-0 flex-1 appearance-none border-0 bg-transparent pr-8 text-[14px] text-[#24272c] outline-none"
+                >
+                  {listingStatusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "all"
+                        ? "Status"
+                        : normalizeStatusLabel(option)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-4 h-4 w-4 text-[#24272c]" />
+              </label>
+            </div>
 
-            <table className="w-full min-w-[780px] table-fixed border-separate border-spacing-0">
-              <colgroup>
-                <col className="w-[36px]" />
-                <col className="w-[38%]" />
-                <col className="w-[92px]" />
-                <col className="w-[108px]" />
-                <col className="w-[116px]" />
-              </colgroup>
-              <thead>
-                <tr className="h-[34px] bg-[#24272c] text-left text-[12px] font-medium text-white">
-                  <th className="rounded-l-[5px] px-2">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleVisibleSelection}
-                      aria-label="Select all listings"
-                      className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
+            <div className="mt-[21px] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[12px] font-medium text-primary">
+                {displayListings.length} results found
+              </p>
+
+              <label className="flex items-center gap-1 self-start text-[12px] text-[#696665] sm:self-auto">
+                <span>Sort By</span>
+                <select
+                  value={sortOrder}
+                  onChange={(event) =>
+                    setSortOrder(event.target.value as typeof sortOrder)
+                  }
+                  className="appearance-none border-0 bg-transparent pr-5 text-[12px] font-medium text-[#24272c] outline-none"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                </select>
+                <ChevronDown className="-ml-5 h-3.5 w-3.5 text-[#24272c]" />
+              </label>
+            </div>
+
+            <div className="relative mt-[11px] overflow-x-auto pb-2">
+              {selectedIds.length > 0 ? (
+                <div className="absolute left-[18px] top-[300px] z-30 flex min-h-[96px] w-[min(640px,calc(100vw-96px))] flex-wrap items-center gap-4 rounded-[20px] border border-[rgba(255,255,255,0.1)] bg-[#24272c] px-5 py-4 shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
+                  <div className="flex h-12 items-center gap-3 border-r border-[rgba(255,255,255,0.2)] pr-6">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-[18px] font-bold text-white">
+                      {selectedIds.length}
+                    </span>
+                    <span>
+                      <span className="block text-[16px] font-medium leading-6 text-white">
+                        Items selected
+                      </span>
+                      <span className="block text-[12px] leading-[18px] text-[rgba(255,255,255,0.6)]">
+                        Choose an action
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="ml-auto flex items-center gap-2">
+                    <SelectionActionButton
+                      icon={<Trash2 className="h-4 w-4" />}
+                      label="Delete"
+                      tone="danger"
+                      onClick={handleBulkDelete}
+                      disabled={deletingIds.length > 0}
                     />
-                  </th>
-                  <th className="px-0">Listing</th>
-                  <th className="border-l border-[#3a3d43] px-2">Status</th>
-                  <th className="border-l border-[#3a3d43] px-2">
-                    Posting date
-                  </th>
-                  <th className="rounded-r-[5px] border-l border-[#3a3d43] px-0 text-center">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayListings.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="border-b border-[#ededed] py-16 text-center text-[14px] text-[#696665]"
+                    <SelectionActionButton
+                      icon={<Archive className="h-4 w-4" />}
+                      label="Archive"
+                      tone="purple"
+                      onClick={handleBulkArchive}
+                      disabled={pendingIds.length > 0}
+                    />
+                    <SelectionActionButton
+                      icon={<Copy className="h-4 w-4" />}
+                      label="Duplicate"
+                      tone="amber"
+                      onClick={handleBulkDuplicate}
+                      disabled={pendingIds.length > 0}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds([])}
+                      className="ml-5 flex h-10 w-10 items-center justify-center border-l border-[rgba(255,255,255,0.2)] pl-5 text-white/70 transition hover:text-white"
+                      aria-label="Clear selected listings"
                     >
-                      No owned listings match the current filter.
-                    </td>
-                  </tr>
-                ) : (
-                  displayListings.map((listing) => {
-                    const title = getListingDisplayTitle(listing);
-                    const subtitle =
-                      getListingSubtitle(listing) ||
-                      `${listing.year} ${listing.make} ${listing.model}`;
-                    const selected = selectedIds.includes(listing.id);
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
-                    return (
-                      <tr
-                        key={listing.id}
-                        className={cn(
-                          "h-[96px]",
-                          selected ? "bg-[#fbfdff]" : "bg-white",
-                        )}
+              <table className="w-full min-w-[780px] table-fixed border-separate border-spacing-0">
+                <colgroup>
+                  <col className="w-[36px]" />
+                  <col className="w-[38%]" />
+                  <col className="w-[92px]" />
+                  <col className="w-[108px]" />
+                  <col className="w-[116px]" />
+                </colgroup>
+                <thead>
+                  <tr className="h-[34px] bg-[#24272c] text-left text-[12px] font-medium text-white">
+                    <th className="rounded-l-[5px] px-2">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleVisibleSelection}
+                        aria-label="Select all listings"
+                        className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
+                      />
+                    </th>
+                    <th className="px-0">Listing</th>
+                    <th className="border-l border-[#3a3d43] px-2">Status</th>
+                    <th className="border-l border-[#3a3d43] px-2">
+                      Posting date
+                    </th>
+                    <th className="rounded-r-[5px] border-l border-[#3a3d43] px-0 text-center">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayListings.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="border-b border-[#ededed] py-16 text-center text-[14px] text-[#696665]"
                       >
-                        <td className="border-b border-[#ededed] px-2 align-top pt-[35px]">
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleListingSelection(listing.id)}
-                            aria-label={`Select ${title}`}
-                            className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
-                          />
-                        </td>
-                        <td className="border-b border-[#ededed] py-3 pr-3 align-top">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="relative h-[68px] w-[112px] shrink-0 overflow-hidden rounded-[8px] bg-[#d9d9d9]">
-                              <Image
-                                src={getListingImageUrl(listing)}
-                                alt={title}
-                                fill
-                                className="object-cover"
-                                sizes="112px"
+                        No owned listings match the current filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    pagination.items.map((listing) => {
+                      const title = getListingDisplayTitle(listing);
+                      const subtitle =
+                        getListingSubtitle(listing) ||
+                        `${listing.year} ${listing.make} ${listing.model}`;
+                      const selected = selectedIds.includes(listing.id);
+
+                      return (
+                        <tr
+                          key={listing.id}
+                          className={cn(
+                            "h-[96px]",
+                            selected ? "bg-[#fbfdff]" : "bg-white",
+                          )}
+                        >
+                          <td className="border-b border-[#ededed] px-2 align-top pt-[35px]">
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() =>
+                                toggleListingSelection(listing.id)
+                              }
+                              aria-label={`Select ${title}`}
+                              className="h-4 w-4 rounded-[2px] border-[#9a9aa5] accent-primary"
+                            />
+                          </td>
+                          <td className="border-b border-[#ededed] py-3 pr-3 align-top">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <div className="relative h-[68px] w-[112px] shrink-0 overflow-hidden rounded-[8px] bg-[#d9d9d9]">
+                                <Image
+                                  src={getListingImageUrl(listing)}
+                                  alt={title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="112px"
+                                />
+                              </div>
+                              <div className="min-w-0 pt-0">
+                                <p className="truncate font-heading text-[15px] font-medium leading-[1.25] text-[#24272c]">
+                                  {title}
+                                </p>
+                                <p className="mt-1 truncate text-[11px] leading-[1.35] text-[#696665]">
+                                  {subtitle}
+                                </p>
+                                <p className="mt-2 text-[13px] font-medium leading-[1.4] text-primary">
+                                  {formatListingPrice(listing)}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="border-b border-l border-[#ededed] px-2 py-3 align-top">
+                            <FigmaListingStatusPill status={listing.status} />
+                          </td>
+                          <td className="border-b border-l border-[#ededed] px-2 py-3 align-top text-[12px] leading-[1.4] text-[#24272c]">
+                            {formatDashboardDate(listing.created_at)}
+                          </td>
+                          <td className="border-b border-l border-[#ededed] py-3 px-2 align-top">
+                            <div className="flex justify-center">
+                              <ListingRowActions
+                                listing={listing}
+                                onDelete={handleDeleteListing}
+                                onDuplicate={handleDuplicate}
+                                onGoLive={handleGoLive}
+                                onHold={handleHold}
+                                onAssign={handleAssign}
+                                salesReps={salesReps}
+                                canManageOwner={!isSalesAgentView}
+                                isDeleting={deletingIds.includes(listing.id)}
+                                isPending={pendingIds.includes(listing.id)}
                               />
                             </div>
-                            <div className="min-w-0 pt-0">
-                              <p className="truncate font-heading text-[15px] font-medium leading-[1.25] text-[#24272c]">
-                                {title}
-                              </p>
-                              <p className="mt-1 truncate text-[11px] leading-[1.35] text-[#696665]">
-                                {subtitle}
-                              </p>
-                              <p className="mt-2 text-[13px] font-medium leading-[1.4] text-primary">
-                                {formatListingPrice(listing)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="border-b border-l border-[#ededed] px-2 py-3 align-top">
-                          <FigmaListingStatusPill status={listing.status} />
-                        </td>
-                        <td className="border-b border-l border-[#ededed] px-2 py-3 align-top text-[12px] leading-[1.4] text-[#24272c]">
-                          {formatDashboardDate(listing.created_at)}
-                        </td>
-                        <td className="border-b border-l border-[#ededed] py-3 px-2 align-top">
-                          <div className="flex justify-center">
-                            <ListingRowActions
-                              listing={listing}
-                              onDelete={handleDeleteListing}
-                              onDuplicate={handleDuplicate}
-                              onGoLive={handleGoLive}
-                              onHold={handleHold}
-                              onAssign={handleAssign}
-                              salesReps={salesReps}
-                              canManageOwner={!isSalesAgentView}
-                              isDeleting={deletingIds.includes(listing.id)}
-                              isPending={pendingIds.includes(listing.id)}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="mt-[27px] flex justify-center gap-[10px]">
-            {["<", "1", "2", "3", "4", "...", ">"].map((item) => (
+            <nav
+              className="mt-[27px] flex flex-wrap justify-center gap-[10px]"
+              aria-label="Listing pages"
+            >
               <button
-                key={item}
                 type="button"
-                disabled={item === "<" || item === ">" || item === "..."}
-                className={cn(
-                  "flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-[#ededed] text-[16px] font-medium leading-[1.4]",
-                  item === "3"
-                    ? "border-primary bg-primary text-white"
-                    : "bg-white text-[#24272c] disabled:text-[#24272c]",
-                )}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={pagination.currentPage === 1}
+                aria-label="Previous listing page"
+                className="flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-[#ededed] bg-white text-[16px] font-medium text-[#24272c] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {item}
+                &lt;
               </button>
-            ))}
-          </div>
-        </section>
+              {buildDashboardPaginationItems(
+                pagination.currentPage,
+                pagination.totalPages,
+              ).map((item, index) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${index}`}
+                    className="flex h-[44px] w-[32px] items-center justify-center text-[#696665]"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setCurrentPage(item)}
+                    aria-current={
+                      pagination.currentPage === item ? "page" : undefined
+                    }
+                    aria-label={`Listing page ${item}`}
+                    className={cn(
+                      "flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-[#ededed] text-[16px] font-medium leading-[1.4]",
+                      pagination.currentPage === item
+                        ? "border-primary bg-primary text-white"
+                        : "bg-white text-[#24272c] hover:border-primary/40",
+                    )}
+                  >
+                    {item}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) =>
+                    Math.min(pagination.totalPages, page + 1),
+                  )
+                }
+                disabled={pagination.currentPage === pagination.totalPages}
+                aria-label="Next listing page"
+                className="flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-[#ededed] bg-white text-[16px] font-medium text-[#24272c] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                &gt;
+              </button>
+            </nav>
+          </section>
+        </div>
       )}
     </div>
   );

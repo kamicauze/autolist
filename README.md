@@ -12,7 +12,7 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
 -   **Vehicle Listings**: Cars, Motorbikes, Vans, Trucks, Plant & Farm Vehicles.
 -   **User Roles**: Buyer, Individual Seller, Dealer, Sales Agent, Support, Admin, Super Admin.
 -   **Listing Lifecycle**: Draft → Pending Approval → Active → Reserved → Sold.
--   **Trust**: Mandatory dealer verification, progressive seller verification (phone), admin moderation.
+-   **Trust**: Mandatory dealer verification, private-seller identity and phone verification, admin moderation.
 -   **Payments**: M-Pesa & Stripe for **platform services only** (Featured listings, Dealer subscriptions).
 
 ### ❌ Out of Scope
@@ -62,6 +62,9 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
     WHATSAPP_ACCESS_TOKEN=
     WHATSAPP_PHONE_NUMBER_ID=
     WHATSAPP_API_VERSION=v21.0
+
+    # HMAC secret for private-seller phone verification (minimum 32 characters)
+    SELLER_PHONE_OTP_SECRET=
 
     # Protected endpoint for queued notification delivery
     NOTIFICATION_PROCESS_SECRET=

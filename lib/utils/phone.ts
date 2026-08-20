@@ -16,3 +16,25 @@ export function normalizePhoneInput(value: string) {
 export function isValidPhoneNumber(value: string) {
   return PHONE_REGEX.test(normalizePhoneInput(value));
 }
+
+export function normalizePhoneForVerification(value: string) {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+
+  if (digits.length === 10 && digits.startsWith("0")) {
+    return `+254${digits.slice(1)}`;
+  }
+
+  if (
+    digits.length === 9 &&
+    (digits.startsWith("7") || digits.startsWith("1"))
+  ) {
+    return `+254${digits}`;
+  }
+
+  if (digits.length === 12 && digits.startsWith("254")) {
+    return `+${digits}`;
+  }
+
+  return trimmed.startsWith("+") ? `+${digits}` : trimmed;
+}

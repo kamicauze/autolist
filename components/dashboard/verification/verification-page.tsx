@@ -15,7 +15,9 @@ import {
   SellerSurface,
 } from "../seller-dashboard-ui";
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
+import { getMySellerVerification } from "@/lib/data/seller-verification";
 import { createClient } from "@/lib/supabase/server";
+import { SellerVerificationPanel } from "./seller-verification-panel";
 import { VerificationUploadPanel } from "./verification-upload-panel";
 
 function formatDate(value: string | null | undefined) {
@@ -38,36 +40,21 @@ const GUIDELINES = [
 const TIMELINE = [
   {
     title: "Upload documents",
-    description: "Add required files and optional supporting documents from your dashboard.",
+    description:
+      "Add required files and optional supporting documents from your dashboard.",
     icon: UploadCloud,
   },
   {
     title: "Autolist review",
-    description: "The operations team checks business details, contact identity, and document quality.",
+    description:
+      "The operations team checks business details, contact identity, and document quality.",
     icon: FileSearch,
   },
   {
     title: "Verification decision",
-    description: "Approved accounts unlock trust signals; rejected accounts can resubmit updates.",
+    description:
+      "Approved accounts unlock trust signals; rejected accounts can resubmit updates.",
     icon: ClipboardCheck,
-  },
-];
-
-const SELLER_TIMELINE = [
-  {
-    title: "Complete seller profile",
-    description: "Keep your name, phone, city, and buyer-facing profile details accurate.",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "Submit listings for review",
-    description: "Each listing still goes through listing-level quality and moderation checks.",
-    icon: FileSearch,
-  },
-  {
-    title: "Upgrade to dealer if needed",
-    description: "Only dealerships need business documents, contact-person ID, and dealer review.",
-    icon: ShieldCheck,
   },
 ];
 
@@ -96,8 +83,12 @@ function SummaryCard({
           {icon}
         </div>
         <div>
-          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">{title}</h2>
-          <p className="mt-2 text-[14px] leading-6 text-[#6d6d6d]">{description}</p>
+          <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+            {title}
+          </h2>
+          <p className="mt-2 text-[14px] leading-6 text-[#6d6d6d]">
+            {description}
+          </p>
         </div>
       </div>
     </div>
@@ -109,9 +100,10 @@ export async function VerificationPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [accountContext, dealer] = await Promise.all([
+  const [accountContext, dealer, sellerVerification] = await Promise.all([
     user ? getDashboardAccountContext(supabase, user.id) : null,
     getMyDealerVerification(),
+    getMySellerVerification(),
   ]);
 
   if (accountContext?.kind === "seller" && !dealer) {
@@ -119,79 +111,16 @@ export async function VerificationPage() {
       <div className="space-y-6 lg:space-y-7">
         <SellerPageHeader
           title="Account Verification"
-          description="Individual sellers do not go through dealership verification."
+          description="Verify your identity document and phone ownership without exposing either on your public listings."
         />
-
-        <SummaryCard
-          icon={<ShieldCheck className="h-5 w-5 text-primary" />}
-          title="Individual seller account"
-          description="This account is set up as an individual seller. Dealership verification only applies when you register a dealer business profile."
-          tone="blue"
-        />
-
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <SellerSurface className="p-6">
-            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
-              Seller trust checks
-            </h2>
-            <p className="mt-2 text-[14px] leading-6 text-[#6d6d6d]">
-              For individual sellers, trust is handled through your profile details and listing
-              review. You should not be asked for company registration documents or dealer
-              verification unless you choose to create a dealership account.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href="/dashboard/profile"
-                className="inline-flex h-11 items-center justify-center rounded-[12px] bg-primary px-5 text-[13px] font-semibold text-white"
-              >
-                Update seller profile
-              </a>
-              <a
-                href="/dashboard/listings/new"
-                className="inline-flex h-11 items-center justify-center rounded-[12px] border border-[#d9d9d9] bg-white px-5 text-[13px] font-semibold text-[#24272c]"
-              >
-                Add a listing
-              </a>
-            </div>
-          </SellerSurface>
-
-          <SellerSurface className="p-6">
-            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
-              Review process
-            </h2>
-            <div className="mt-5 space-y-4">
-              {SELLER_TIMELINE.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.title} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-tint text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      {index < SELLER_TIMELINE.length - 1 ? (
-                        <div className="my-2 h-8 w-px bg-[#e6e6e6]" />
-                      ) : null}
-                    </div>
-                    <div className="pb-2">
-                      <h3 className="text-[14px] font-semibold text-[#202224]">{item.title}</h3>
-                      <p className="mt-1 text-[13px] leading-5 text-[#747474]">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SellerSurface>
-        </div>
+        <SellerVerificationPanel verification={sellerVerification} />
       </div>
     );
   }
 
-  const statusTone =
-    !dealer
-      ? ("amber" as const)
-      : dealer.status === "APPROVED"
+  const statusTone = !dealer
+    ? ("amber" as const)
+    : dealer.status === "APPROVED"
       ? ("green" as const)
       : dealer.status === "REJECTED"
         ? ("red" as const)
@@ -222,7 +151,10 @@ export async function VerificationPage() {
         <SummaryCard
           icon={<ShieldAlert className="h-5 w-5 text-[#f04438]" />}
           title="Verification needs attention"
-          description={dealer.rejection_reason || "Update your submitted documents and send them again for review."}
+          description={
+            dealer.rejection_reason ||
+            "Update your submitted documents and send them again for review."
+          }
           tone="red"
         />
       ) : (
@@ -242,10 +174,14 @@ export async function VerificationPage() {
                 Verification documents
               </h2>
               <p className="mt-1 text-[13px] text-[#7a7a7a]">
-                Replace files, save a draft, or send updated documents back to review.
+                Replace files, save a draft, or send updated documents back to
+                review.
               </p>
             </div>
-            <SellerStatusPill label={dealer?.status || "NOT STARTED"} tone={statusTone} />
+            <SellerStatusPill
+              label={dealer?.status || "NOT STARTED"}
+              tone={statusTone}
+            />
           </div>
 
           <div className="mt-6">
@@ -273,23 +209,31 @@ export async function VerificationPage() {
                     </div>
                   ) : null}
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Dealer</p>
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">
+                      Dealer
+                    </p>
                     <p className="mt-3 text-[15px] font-semibold text-[#202224]">
                       {dealer?.name || "Not created yet"}
                     </p>
                     <p className="mt-1 text-[14px] text-[#707070]">
-                      {dealer?.email || "Complete dealer registration to attach business details."}
+                      {dealer?.email ||
+                        "Complete dealer registration to attach business details."}
                     </p>
                     {dealer?.mobile ? (
-                      <p className="mt-1 text-[14px] text-[#707070]">{dealer.mobile}</p>
+                      <p className="mt-1 text-[14px] text-[#707070]">
+                        {dealer.mobile}
+                      </p>
                     ) : null}
                   </div>
                 </div>
               </div>
               <div className="rounded-[20px] border border-[#ededed] bg-[#faf9f7] p-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Timeline</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">
+                  Timeline
+                </p>
                 <p className="mt-3 text-[14px] text-[#707070]">
-                  Submitted: {formatDate(dealer?.submitted_at || dealer?.created_at)}
+                  Submitted:{" "}
+                  {formatDate(dealer?.submitted_at || dealer?.created_at)}
                 </p>
                 <p className="mt-2 text-[14px] text-[#707070]">
                   Reviewed: {formatDate(dealer?.reviewed_at)}
@@ -327,7 +271,9 @@ export async function VerificationPage() {
                       ) : null}
                     </div>
                     <div className="pb-2">
-                      <h3 className="text-[14px] font-semibold text-[#202224]">{item.title}</h3>
+                      <h3 className="text-[14px] font-semibold text-[#202224]">
+                        {item.title}
+                      </h3>
                       <p className="mt-1 text-[13px] leading-5 text-[#747474]">
                         {item.description}
                       </p>
@@ -339,10 +285,15 @@ export async function VerificationPage() {
           </SellerSurface>
 
           <SellerSurface className="p-6">
-            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">Guidelines</h2>
+            <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
+              Guidelines
+            </h2>
             <div className="mt-5 space-y-3">
               {GUIDELINES.map((guideline) => (
-                <div key={guideline} className="flex items-start gap-3 text-[13px] leading-5 text-[#6d6d6d]">
+                <div
+                  key={guideline}
+                  className="flex items-start gap-3 text-[13px] leading-5 text-[#6d6d6d]"
+                >
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2f9e63]" />
                   <span>{guideline}</span>
                 </div>
