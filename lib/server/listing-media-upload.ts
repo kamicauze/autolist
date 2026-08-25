@@ -19,12 +19,6 @@ import {
 
 const PRESIGNED_UPLOAD_TTL_SECONDS = 10 * 60;
 
-function getR2BucketName() {
-  const bucketName = process.env.R2_BUCKET_NAME?.trim();
-  if (!bucketName) throw new Error("R2 bucket configuration is missing.");
-  return bucketName;
-}
-
 function buildDescriptorFingerprint(descriptor: ListingMediaUploadDescriptor) {
   return createHash("sha256")
     .update([
@@ -36,6 +30,24 @@ function buildDescriptorFingerprint(descriptor: ListingMediaUploadDescriptor) {
     ].join("|"))
     .digest("hex")
     .slice(0, 24);
+}
+
+export function getFinalListingMediaObjectKey(
+  listingId: string,
+  descriptor: ListingMediaUploadDescriptor
+) {
+  return buildListingMediaObjectKey(
+    listingId,
+    descriptor.kind,
+    buildDescriptorFingerprint(descriptor),
+    descriptor.name
+  );
+}
+
+function getR2BucketName() {
+  const bucketName = process.env.R2_BUCKET_NAME?.trim();
+  if (!bucketName) throw new Error("R2 bucket configuration is missing.");
+  return bucketName;
 }
 
 export async function createListingMediaUploadTicket(
@@ -124,12 +136,7 @@ export async function promoteListingMediaUpload(
 ) {
   await inspectListingMediaUpload(listingId, upload);
   const bucketName = getR2BucketName();
-  const finalKey = buildListingMediaObjectKey(
-    listingId,
-    upload.kind,
-    buildDescriptorFingerprint(upload),
-    upload.name
-  );
+  const finalKey = getFinalListingMediaObjectKey(listingId, upload);
 
   await r2.send(
     new CopyObjectCommand({

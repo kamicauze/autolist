@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ListingMediaUploadTicket } from "@/lib/listing-media-upload";
-import { uploadFilesToPresignedTargets } from "./listing-media-upload";
+import {
+  LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR,
+  finalizeListingImagesWithRecovery,
+  uploadFilesToPresignedTargets,
+} from "./listing-media-upload";
 
 function ticket(clientId: string, name: string): ListingMediaUploadTicket {
   return {
@@ -62,4 +66,54 @@ test("surfaces a safe filename-specific error when R2 rejects an upload", async 
     uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file }], { fetchImpl }),
     /Unable to upload "front.jpg"/
   );
+});
+
+test("surfaces a stable-origin hint when the browser upload is blocked", async () => {
+  const rejectedTicket = ticket("image-0", "front.jpg");
+  const file = new File([new Uint8Array([1, 2, 3])], "front.jpg", {
+    type: "image/jpeg",
+  });
+  const fetchImpl = (async () => {
+    throw new TypeError("Failed to fetch");
+  }) as typeof fetch;
+
+  await assert.rejects(
+    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file }], { fetchImpl }),
+    /stable Autolist site link/
+  );
+});
+
+test("continues when finalized image rows prove a lost action response completed", async () => {
+  const imageTicket = ticket("image-0", "front.jpg");
+  let verifyAttempts = 0;
+  const result = await finalizeListingImagesWithRecovery({
+    listingId: "listing-one",
+    uploads: [imageTicket],
+    altTextBase: "Toyota Harrier",
+    finalize: async () => {
+      throw new Error("Server action transport interrupted");
+    },
+    verify: async () => {
+      verifyAttempts += 1;
+      return { success: true, uploadedCount: 1 };
+    },
+  });
+
+  assert.equal(verifyAttempts, 1);
+  assert.deepEqual(result, { success: true, uploadedCount: 1 });
+});
+
+test("keeps the draft recoverable when image finalization cannot be verified", async () => {
+  const imageTicket = ticket("image-0", "front.jpg");
+  const result = await finalizeListingImagesWithRecovery({
+    listingId: "listing-one",
+    uploads: [imageTicket],
+    altTextBase: "Toyota Harrier",
+    finalize: async () => {
+      throw new Error("Server action transport interrupted");
+    },
+    verify: async () => ({ error: "Listing image processing did not finish." }),
+  });
+
+  assert.deepEqual(result, { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR });
 });

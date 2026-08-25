@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  areListingImageUploadsFinalized,
   buildListingMediaObjectKey,
   buildListingMediaUploadObjectKey,
   isListingMediaKeyForListing,
@@ -76,4 +77,24 @@ test("finalization references do not retain presigned bearer URLs", () => {
   assert.equal("uploadUrl" in reference, false);
   assert.equal("expiresAt" in reference, false);
   assert.equal(reference.key, "listings/listing-one/uploads/image/abc123-front-view.jpg");
+});
+
+test("finalized image recovery requires every expected key in cover order", () => {
+  const expectedKeys = ["media/front.jpg", "media/side.jpg", "media/rear.jpg"];
+  const rows = expectedKeys.map((r2_key, image_order) => ({ r2_key, image_order }));
+
+  assert.equal(areListingImageUploadsFinalized(expectedKeys, rows), true);
+  assert.equal(areListingImageUploadsFinalized(expectedKeys, rows.slice(0, 2)), false);
+  assert.equal(
+    areListingImageUploadsFinalized(expectedKeys, [rows[1], rows[0], rows[2]]),
+    true
+  );
+  assert.equal(
+    areListingImageUploadsFinalized(expectedKeys, [
+      { ...rows[0], image_order: 1 },
+      rows[1],
+      rows[2],
+    ]),
+    false
+  );
 });

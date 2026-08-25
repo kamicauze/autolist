@@ -1,4 +1,7 @@
-import type { ListingMediaUploadTicket } from "@/lib/listing-media-upload";
+import type {
+  ListingMediaUploadReference,
+  ListingMediaUploadTicket,
+} from "@/lib/listing-media-upload";
 
 type PresignedUploadFile = {
   ticket: ListingMediaUploadTicket;
@@ -8,6 +11,30 @@ type PresignedUploadFile = {
 type UploadOptions = {
   concurrency?: number;
   fetchImpl?: typeof fetch;
+};
+
+export const LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR =
+  "Your draft and uploaded photos were saved, but we could not finish posting the listing. Try posting again; it will continue the same draft.";
+
+type ListingImageFinalizationResult = {
+  success?: boolean;
+  uploadedCount?: number;
+  error?: string;
+};
+
+type FinalizeListingImagesInput = {
+  listingId: string;
+  uploads: ListingMediaUploadReference[];
+  altTextBase: string;
+  finalize: (
+    listingId: string,
+    uploads: ListingMediaUploadReference[],
+    altTextBase: string
+  ) => Promise<ListingImageFinalizationResult>;
+  verify: (
+    listingId: string,
+    uploads: ListingMediaUploadReference[]
+  ) => Promise<ListingImageFinalizationResult>;
 };
 
 export async function uploadFilesToPresignedTargets(
@@ -23,11 +50,18 @@ export async function uploadFilesToPresignedTargets(
       const currentIndex = nextIndex;
       nextIndex += 1;
       const { ticket, file } = uploads[currentIndex];
-      const response = await fetchImpl(ticket.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": ticket.contentType },
-        body: file,
-      });
+      let response: Response;
+      try {
+        response = await fetchImpl(ticket.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": ticket.contentType },
+          body: file,
+        });
+      } catch {
+        throw new Error(
+          `Unable to upload "${ticket.name}". The upload connection was blocked or interrupted. Please open the stable Autolist site link, not a one-off preview URL, and try again.`
+        );
+      }
 
       if (!response.ok) {
         throw new Error(`Unable to upload "${ticket.name}". Please try again.`);
@@ -36,4 +70,25 @@ export async function uploadFilesToPresignedTargets(
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+}
+
+export async function finalizeListingImagesWithRecovery({
+  listingId,
+  uploads,
+  altTextBase,
+  finalize,
+  verify,
+}: FinalizeListingImagesInput): Promise<ListingImageFinalizationResult> {
+  try {
+    return await finalize(listingId, uploads, altTextBase);
+  } catch {
+    try {
+      const verified = await verify(listingId, uploads);
+      return verified.success
+        ? verified
+        : { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR };
+    } catch {
+      return { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR };
+    }
+  }
 }

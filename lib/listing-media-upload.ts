@@ -18,6 +18,11 @@ export type ListingMediaUploadTicket = ListingMediaUploadReference & {
   expiresAt: string;
 };
 
+export type FinalizedListingImageRow = {
+  r2_key: string;
+  image_order: number;
+};
+
 export const LISTING_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 export const LISTING_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 export const LISTING_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
@@ -187,4 +192,13 @@ export function toListingMediaUploadReference(ticket: ListingMediaUploadTicket) 
     lastModified: ticket.lastModified,
     key: ticket.key,
   };
+}
+
+export function areListingImageUploadsFinalized(
+  expectedKeys: string[],
+  rows: FinalizedListingImageRow[]
+) {
+  return rows.length === expectedKeys.length && expectedKeys.every((key, index) =>
+    rows.some((row) => row.r2_key === key && row.image_order === index)
+  );
 }

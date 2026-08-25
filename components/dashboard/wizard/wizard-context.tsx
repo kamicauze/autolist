@@ -25,7 +25,10 @@ import { getListingDisplayTitle, getListingTrim, getListingVariant } from "@/lib
 import { isComplexVariantMake } from "@/lib/utils/vehicle-variant-visibility";
 import { isValidPhoneNumber, normalizePhoneInput } from "@/lib/utils/phone";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
-import { uploadFilesToPresignedTargets } from "@/lib/client/listing-media-upload";
+import {
+  finalizeListingImagesWithRecovery,
+  uploadFilesToPresignedTargets,
+} from "@/lib/client/listing-media-upload";
 import { submitListingReviewWithRecovery } from "@/lib/client/listing-review-submit";
 import {
   toListingMediaUploadReference,
@@ -1761,6 +1764,7 @@ export function WizardProvider({
           reorderListingImages,
           submitListingForReview,
           updateListing,
+          verifyListingImageUploadsFinalized,
         } = await import("@/lib/actions/listings");
 
         // A first submission attempt may create the draft successfully and then
@@ -1914,11 +1918,13 @@ export function WizardProvider({
           const uploadedVideo = uploadedMedia.find((upload) => upload.kind === "video");
 
           if (imageUploads.length > 0) {
-            const imageResult = await finalizeListingImageUploads(
+            const imageResult = await finalizeListingImagesWithRecovery({
               listingId,
-              imageUploads,
-              `${draft.details.make} ${draft.details.model}`.trim()
-            );
+              uploads: imageUploads,
+              altTextBase: `${draft.details.make} ${draft.details.model}`.trim(),
+              finalize: finalizeListingImageUploads,
+              verify: verifyListingImageUploadsFinalized,
+            });
             if ("error" in imageResult) {
               setSubmitError(imageResult.error || "Unable to process listing images.");
               setSubmitIssues(

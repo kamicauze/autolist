@@ -17,12 +17,14 @@ import {
 } from "@/lib/utils/listing-submission";
 import { getStorageObjectUrl } from "@/lib/utils/listings";
 import {
+    areListingImageUploadsFinalized,
     validateListingMediaUploadDescriptors,
     type ListingMediaUploadDescriptor,
     type ListingMediaUploadReference,
 } from "@/lib/listing-media-upload";
 import {
     createListingMediaUploadTicket,
+    getFinalListingMediaObjectKey,
     promoteListingMediaUpload,
     readListingMediaUpload,
 } from "@/lib/server/listing-media-upload";
@@ -1254,6 +1256,42 @@ export async function finalizeListingImageUploads(
 
     revalidateListingPaths(listingId);
     return { success: true, uploadedCount: preparedUploads.length };
+}
+
+export async function verifyListingImageUploadsFinalized(
+    listingId: string,
+    uploads: ListingMediaUploadReference[],
+) {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return { error: "Unauthorized" };
+    if (!listingId.trim()) return { error: "Listing id is required." };
+
+    const access = await getEditableListingAccess(supabase, user.id, listingId);
+    if ("error" in access) return { error: access.error };
+    const validationError = validateListingMediaUploadDescriptors(uploads);
+    if (validationError) return { error: validationError };
+    if (uploads.some((upload) => upload.kind !== "image")) {
+        return { error: "Only listing images can be verified here." };
+    }
+    if (uploads.length < 3) return { error: "At least three listing photos are required." };
+
+    const expectedKeys = uploads.map((upload) =>
+        getFinalListingMediaObjectKey(listingId, upload)
+    );
+    const readSupabase = access.canAdminister ? createAdminClient() : supabase;
+    const { data: rows, error } = await readSupabase
+        .from("listing_images")
+        .select("r2_key, image_order")
+        .eq("listing_id", listingId);
+
+    if (error) return { error: error.message };
+    const finalizedRows = (rows ?? []) as Array<{ r2_key: string; image_order: number }>;
+    const completed = areListingImageUploadsFinalized(expectedKeys, finalizedRows);
+
+    return completed
+        ? { success: true, uploadedCount: expectedKeys.length }
+        : { error: "Listing image processing did not finish." };
 }
 
 export async function finalizeListingDocumentUploads(
