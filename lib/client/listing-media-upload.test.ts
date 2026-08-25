@@ -103,6 +103,35 @@ test("continues when finalized image rows prove a lost action response completed
   assert.deepEqual(result, { success: true, uploadedCount: 1 });
 });
 
+test("waits for a still-running finalizer before continuing the saved draft", async () => {
+  const imageTicket = ticket("image-0", "front.jpg");
+  let verifyAttempts = 0;
+  const delays: number[] = [];
+  const result = await finalizeListingImagesWithRecovery({
+    listingId: "listing-one",
+    uploads: [imageTicket],
+    altTextBase: "Toyota Harrier",
+    finalize: async () => {
+      throw new Error("Server action transport interrupted");
+    },
+    verify: async () => {
+      verifyAttempts += 1;
+      return verifyAttempts === 3
+        ? { success: true, uploadedCount: 1 }
+        : { error: "Listing image processing did not finish." };
+    },
+    verifyAttempts: 4,
+    verifyDelayMs: 3_000,
+    sleep: async (delayMs) => {
+      delays.push(delayMs);
+    },
+  });
+
+  assert.equal(verifyAttempts, 3);
+  assert.deepEqual(delays, [3_000, 3_000]);
+  assert.deepEqual(result, { success: true, uploadedCount: 1 });
+});
+
 test("keeps the draft recoverable when image finalization cannot be verified", async () => {
   const imageTicket = ticket("image-0", "front.jpg");
   const result = await finalizeListingImagesWithRecovery({
@@ -113,6 +142,9 @@ test("keeps the draft recoverable when image finalization cannot be verified", a
       throw new Error("Server action transport interrupted");
     },
     verify: async () => ({ error: "Listing image processing did not finish." }),
+    verifyAttempts: 2,
+    verifyDelayMs: 0,
+    sleep: async () => undefined,
   });
 
   assert.deepEqual(result, { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR });

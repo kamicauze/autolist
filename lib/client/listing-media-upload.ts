@@ -35,7 +35,17 @@ type FinalizeListingImagesInput = {
     listingId: string,
     uploads: ListingMediaUploadReference[]
   ) => Promise<ListingImageFinalizationResult>;
+  verifyAttempts?: number;
+  verifyDelayMs?: number;
+  sleep?: (delayMs: number) => Promise<void>;
 };
+
+const DEFAULT_FINALIZATION_VERIFY_ATTEMPTS = 16;
+const DEFAULT_FINALIZATION_VERIFY_DELAY_MS = 3_000;
+
+function wait(delayMs: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+}
 
 export async function uploadFilesToPresignedTargets(
   uploads: PresignedUploadFile[],
@@ -78,17 +88,28 @@ export async function finalizeListingImagesWithRecovery({
   altTextBase,
   finalize,
   verify,
+  verifyAttempts = DEFAULT_FINALIZATION_VERIFY_ATTEMPTS,
+  verifyDelayMs = DEFAULT_FINALIZATION_VERIFY_DELAY_MS,
+  sleep = wait,
 }: FinalizeListingImagesInput): Promise<ListingImageFinalizationResult> {
   try {
     return await finalize(listingId, uploads, altTextBase);
   } catch {
-    try {
-      const verified = await verify(listingId, uploads);
-      return verified.success
-        ? verified
-        : { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR };
-    } catch {
-      return { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR };
+    const attempts = Math.max(1, Math.floor(verifyAttempts));
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const verified = await verify(listingId, uploads);
+        if (verified.success) return verified;
+      } catch {
+        // The finalizer may still be completing after its response was lost.
+      }
+
+      if (attempt < attempts - 1) {
+        await sleep(Math.max(0, verifyDelayMs));
+      }
     }
+
+    return { error: LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR };
   }
 }
