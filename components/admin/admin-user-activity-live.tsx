@@ -13,7 +13,6 @@ import {
   Star,
   Store,
   Tag,
-  UserRound,
 } from "lucide-react";
 import {
   AdminDataTable,
@@ -98,10 +97,6 @@ function latestActivityDate(data: AdminUserActivityData) {
   return data.timeline[0]?.occurredAt || data.profile?.updated_at || data.profile?.created_at || null;
 }
 
-function summaryValue(data: AdminUserActivityData, label: string) {
-  return data.summary.find((item) => item.label === label)?.value ?? 0;
-}
-
 function userInitials(name: string | null | undefined, email: string | null | undefined) {
   const source = name || email || "User";
   const words = source
@@ -143,7 +138,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return <h3 className="font-heading text-[16px] font-semibold text-[#111827]">{children}</h3>;
 }
 
-function DetailRow({
+function CaseFact({
   label,
   value,
 }: {
@@ -151,38 +146,11 @@ function DetailRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3 border-t border-[#eef2f7] py-3 text-[13px]">
-      <dt className="text-[#64748b]">{label}</dt>
-      <dd className="min-w-0 font-medium text-[#111827]">{value}</dd>
-    </div>
-  );
-}
-
-function SummaryMetric({
-  label,
-  value,
-  note,
-  icon,
-}: {
-  label: string;
-  value: number;
-  note: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="border-t border-[#e5e7eb] py-4">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f8fafc] text-primary">
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#64748b]">{label}</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-2">
-            <span className="font-mono text-[22px] font-semibold text-[#0f172a]">{value.toLocaleString("en-KE")}</span>
-            <span className="text-[12px] text-[#64748b]">{note}</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-w-0 border-t border-[#e5e7eb] pt-3 text-[13px]">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#64748b]">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words font-medium leading-5 text-[#111827]">{value}</dd>
     </div>
   );
 }
@@ -367,10 +335,6 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
 
   const displayName = profile.full_name || profile.email || "Unnamed user";
   const latestAt = latestActivityDate(data);
-  const enquiryCount = summaryValue(data, "Enquiries");
-  const conversationCount = summaryValue(data, "Conversations");
-  const commerceCount = summaryValue(data, "Commerce");
-  const engagementCount = summaryValue(data, "Engagement");
   const timelineGroups = groupAdminUserActivityTimelineByDay(data.timeline);
   const modules = buildAdminUserActivityModules({
     timeline: data.timeline.length,
@@ -414,9 +378,8 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-[18px] border border-[#dbe3ef] bg-[#f8fafc]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="px-6 py-6 md:px-8 md:py-7">
+      <section className="overflow-hidden rounded-[18px] border border-[#dbe3ef] bg-white">
+        <div className="bg-[#f8fafc] px-6 py-6 md:px-8 md:py-7">
             <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-[#0f172a] font-heading text-[18px] font-semibold text-white">
@@ -453,97 +416,60 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 border-t border-[#dbe3ef] pt-4 text-[12px] text-[#64748b] md:grid-cols-3">
+            <div className="mt-6 grid gap-3 border-t border-[#dbe3ef] pt-4 text-[12px] text-[#64748b] sm:grid-cols-2 lg:grid-cols-3">
               <span>Role: <span className="font-medium text-[#111827]">{profile.role}</span></span>
               <span>Account ID: <span className="font-mono text-[#111827]">{profile.id.slice(0, 8)}</span></span>
               <span>Dealer: <span className="font-medium text-[#111827]">{dealer?.status || "No record"}</span></span>
             </div>
-          </div>
+        </div>
 
-          <div className="border-t border-[#dbe3ef] bg-white px-6 py-6 lg:border-l lg:border-t-0">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">Fast read</p>
-            <div className="mt-3 grid grid-cols-2 gap-x-5">
-              <SummaryMetric
-                label="Listings"
-                value={data.listings.length}
-                note={`${data.listings.filter((listing) => listing.status === "active").length} active`}
-                icon={<CarFront className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label="Enquiries"
-                value={enquiryCount}
-                note={`${data.sentEnquiries.length} sent`}
-                icon={<Mail className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label="Messages"
-                value={conversationCount}
-                note={`${data.messages.length} recent`}
-                icon={<MessageSquareText className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label="Commerce"
-                value={commerceCount}
-                note={`${data.payments.length} payments`}
-                icon={<ReceiptText className="h-4 w-4" />}
-              />
-              <SummaryMetric
-                label="Engagement"
-                value={engagementCount}
-                note={`${data.favorites.length} saved`}
-                icon={<Heart className="h-4 w-4" />}
-              />
+        <div className="grid border-t border-[#dbe3ef] xl:grid-cols-2 xl:divide-x xl:divide-[#e5e7eb]">
+          <section className="px-6 py-5 md:px-8">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              <Mail className="h-4 w-4" />
+              Account details
             </div>
-          </div>
+            <dl className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+              <CaseFact label="Email" value={profile.email || "No email"} />
+              <CaseFact label="Phone" value={profile.phone || "Not set"} />
+              <CaseFact label="WhatsApp" value={profile.whatsapp || "Not set"} />
+              <CaseFact
+                label="Location"
+                value={[profile.city, profile.address].filter(Boolean).join(" / ") || "Not set"}
+              />
+              <CaseFact label="Website" value={profile.website || "Not set"} />
+            </dl>
+          </section>
+
+          <section className="border-t border-[#e5e7eb] bg-[#fbfdff] px-6 py-5 md:px-8 xl:border-t-0">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              <Store className="h-4 w-4" />
+              Dealer details
+            </div>
+            {dealer ? (
+              <dl className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
+                <CaseFact label="Dealer" value={dealer.name} />
+                <CaseFact label="Business" value={dealer.business_name || "Not set"} />
+                <CaseFact
+                  label="Status"
+                  value={<AdminStatusPill label={dealer.status.toLowerCase()} tone={statusTone(dealer.status)} />}
+                />
+                <CaseFact label="Contact" value={dealer.mobile || dealer.email || "Not set"} />
+                <CaseFact label="Submitted" value={formatDate(dealer.submitted_at)} />
+                <CaseFact label="Verified" value={formatDate(dealer.verified_at)} />
+              </dl>
+            ) : (
+              <p className="mt-3 border-t border-[#e5e7eb] pt-3 text-[13px] leading-6 text-[#64748b]">
+                No dealer application or dealer record is linked to this account.
+              </p>
+            )}
+          </section>
         </div>
       </section>
 
       <ModuleLauncher modules={modules} />
 
-      <div className="grid gap-6 xl:grid-cols-[292px_minmax(0,1fr)]">
-        <aside className="xl:sticky xl:top-6 xl:self-start">
-          <section className="overflow-hidden rounded-[16px] border border-[#e5e7eb] bg-white">
-            <div className="px-5 py-5">
-              <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-                <UserRound className="h-4 w-4" />
-                Account context
-              </div>
-              <dl>
-                <DetailRow label="Email" value={profile.email || "No email"} />
-                <DetailRow label="Phone" value={profile.phone || "Not set"} />
-                <DetailRow label="WhatsApp" value={profile.whatsapp || "Not set"} />
-                <DetailRow
-                  label="Location"
-                  value={[profile.city, profile.address].filter(Boolean).join(" / ") || "Not set"}
-                />
-                <DetailRow label="Website" value={profile.website || "Not set"} />
-              </dl>
-            </div>
-
-            <div className="border-t border-[#e5e7eb] bg-[#fbfdff] px-5 py-5">
-              <div className="mb-3 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-                <Store className="h-4 w-4" />
-                Dealer record
-              </div>
-              {dealer ? (
-                <dl>
-                  <DetailRow label="Dealer" value={dealer.name} />
-                  <DetailRow label="Business" value={dealer.business_name || "Not set"} />
-                  <DetailRow label="Status" value={<AdminStatusPill label={dealer.status.toLowerCase()} tone={statusTone(dealer.status)} />} />
-                  <DetailRow label="Contact" value={dealer.mobile || dealer.email || "Not set"} />
-                  <DetailRow label="Submitted" value={formatDate(dealer.submitted_at)} />
-                  <DetailRow label="Verified" value={formatDate(dealer.verified_at)} />
-                </dl>
-              ) : (
-                <p className="border-t border-[#eef2f7] pt-3 text-[13px] leading-6 text-[#64748b]">
-                  No dealer application or dealer record is linked to this account.
-                </p>
-              )}
-            </div>
-          </section>
-        </aside>
-
-        <div className="space-y-6">
+      <div className="space-y-6">
           <AdminSectionCard
             id="timeline"
             title="Activity Timeline"
@@ -563,7 +489,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </div>
           </AdminSectionCard>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-6 [&>section]:min-w-0 2xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.6fr)]">
             <AdminSectionCard id="listings" title="All Listings" description="Every listing owned by this user or dealer profile.">
               <AdminDataTable columns={["Listing", "Status", "Price", "Created"]}>
                 {data.listings.length > 0 ? (
@@ -608,7 +534,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="enquiries" className="grid gap-6 xl:grid-cols-2">
+          <div id="enquiries" className="grid gap-6 [&>section]:min-w-0 xl:grid-cols-2">
             <AdminSectionCard title="Enquiries Sent" description="Buyer enquiries this user sent to listings or dealers.">
               <AdminDataTable columns={["Listing", "Message", "Status", "Created"]}>
                 {data.sentEnquiries.length > 0 ? (
@@ -650,7 +576,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="messages" className="grid gap-6 xl:grid-cols-2">
+          <div id="messages" className="grid gap-6 [&>section]:min-w-0 xl:grid-cols-2">
             <AdminSectionCard title="Conversation Threads" description="Buyer/seller/dealer conversations tied to this account.">
               <AdminDataTable columns={["Listing", "Counterparty", "Status", "Last message"]}>
                 {data.conversations.length > 0 ? (
@@ -695,7 +621,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="commerce" className="grid gap-6 xl:grid-cols-2">
+          <div id="commerce" className="grid gap-6 [&>section]:min-w-0 xl:grid-cols-2">
             <AdminSectionCard title="Payments & Membership" description="Payment records and seller package entitlements.">
               <div className="space-y-5">
                 <SectionHeading>Payments</SectionHeading>
@@ -749,7 +675,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
             </AdminSectionCard>
           </div>
 
-          <div id="engagement" className="grid gap-6 xl:grid-cols-2">
+          <div id="engagement" className="grid gap-6 [&>section]:min-w-0 xl:grid-cols-2">
             <AdminSectionCard title="Reviews, Favorites & Offers" description="Engagement and dealer-offer history connected to the account.">
               <div className="space-y-5">
                 <SectionHeading>Favorites</SectionHeading>
@@ -815,7 +741,6 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
               </AdminDataTable>
             </AdminSectionCard>
           </div>
-        </div>
       </div>
     </div>
   );
