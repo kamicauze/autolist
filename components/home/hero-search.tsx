@@ -29,6 +29,11 @@ import {
 } from "@/components/cms/cms-tracking";
 import { cn } from "@/lib/utils";
 import {
+  getLandingSearchButtonLabel,
+  reconcileLandingRange,
+  type LandingSearchCountStatus,
+} from "@/lib/search/landing-search-controls";
+import {
   BusFront,
   CarFront,
   ChevronLeft,
@@ -67,8 +72,14 @@ const CATEGORY_CONFIG: Record<ListingCategory, HeroCategoryConfig> = {
   motorbike: { icon: Motorbike, ...LANDING_SEARCH_CATEGORY_CONFIG.motorbike },
   van: { icon: BusFront, ...LANDING_SEARCH_CATEGORY_CONFIG.van },
   truck: { icon: Truck, ...LANDING_SEARCH_CATEGORY_CONFIG.truck },
-  plant_construction: { icon: Construction, ...LANDING_SEARCH_CATEGORY_CONFIG.plant_construction },
-  farm_agricultural: { icon: Tractor, ...LANDING_SEARCH_CATEGORY_CONFIG.farm_agricultural },
+  plant_construction: {
+    icon: Construction,
+    ...LANDING_SEARCH_CATEGORY_CONFIG.plant_construction,
+  },
+  farm_agricultural: {
+    icon: Tractor,
+    ...LANDING_SEARCH_CATEGORY_CONFIG.farm_agricultural,
+  },
 };
 
 const HERO_HEADLINES: Record<ListingCategory, string> = {
@@ -80,21 +91,28 @@ const HERO_HEADLINES: Record<ListingCategory, string> = {
   farm_agricultural: "Let's Find Your Perfect Farm Equipment",
 };
 
-const HERO_CTA_LABELS: Record<ListingCategory, string> = {
-  car: "Find Your Car",
-  motorbike: "Find A Bike",
-  van: "Find A Van",
-  truck: "Find A Truck",
-  plant_construction: "Find Equipment",
-  farm_agricultural: "Find Machinery",
-};
-
-const HERO_YEAR_OPTIONS = LANDING_YEAR_OPTIONS.filter((option) => option.value !== "any");
-const HERO_YEAR_FROM_OPTIONS = [{ label: "From", value: "any" }, ...HERO_YEAR_OPTIONS];
-const HERO_YEAR_TO_OPTIONS = [{ label: "To", value: "any" }, ...HERO_YEAR_OPTIONS];
-const HERO_PRICE_OPTIONS = LANDING_PRICE_OPTIONS.filter((option) => option.value !== "any");
-const HERO_PRICE_FROM_OPTIONS = [{ label: "From", value: "any" }, ...HERO_PRICE_OPTIONS];
-const HERO_PRICE_TO_OPTIONS = [{ label: "To", value: "any" }, ...HERO_PRICE_OPTIONS];
+const HERO_YEAR_OPTIONS = LANDING_YEAR_OPTIONS.filter(
+  (option) => option.value !== "any",
+);
+const HERO_YEAR_FROM_OPTIONS = [
+  { label: "From", value: "any" },
+  ...HERO_YEAR_OPTIONS,
+];
+const HERO_YEAR_TO_OPTIONS = [
+  { label: "To", value: "any" },
+  ...HERO_YEAR_OPTIONS,
+];
+const HERO_PRICE_OPTIONS = LANDING_PRICE_OPTIONS.filter(
+  (option) => option.value !== "any",
+);
+const HERO_PRICE_FROM_OPTIONS = [
+  { label: "From", value: "any" },
+  ...HERO_PRICE_OPTIONS,
+];
+const HERO_PRICE_TO_OPTIONS = [
+  { label: "To", value: "any" },
+  ...HERO_PRICE_OPTIONS,
+];
 const HERO_HOURS_OPTIONS = [
   { label: "Any Hours", value: "any" },
   ...HOURS_USED_STEPS.filter((step) => step > 0).map((step) => ({
@@ -103,13 +121,34 @@ const HERO_HOURS_OPTIONS = [
   })),
 ];
 
-const HERO_MILEAGE_OPTIONS = MILEAGE_RANGES.map((range, index) => ({
-  label: index === 0 ? "Any Mileage" : range.label,
-  value:
-    index === 0
-      ? "any"
-      : `${"min" in range && typeof range.min === "number" ? String(range.min) : ""}:${"max" in range && typeof range.max === "number" ? String(range.max) : ""}`,
-}));
+const HERO_MILEAGE_VALUES = Array.from(
+  new Set(
+    MILEAGE_RANGES.flatMap((range) => {
+      const values: number[] = [];
+      if ("min" in range && typeof range.min === "number")
+        values.push(range.min);
+      if ("max" in range && typeof range.max === "number")
+        values.push(range.max);
+      return values;
+    }),
+  ),
+).sort((left, right) => left - right);
+const formatMileage = (value: number) =>
+  `${new Intl.NumberFormat("en-KE").format(value)} km`;
+const HERO_MILEAGE_FROM_OPTIONS = [
+  { label: "From (km)", value: "any" },
+  ...HERO_MILEAGE_VALUES.map((value) => ({
+    label: formatMileage(value),
+    value: String(value),
+  })),
+];
+const HERO_MILEAGE_TO_OPTIONS = [
+  { label: "To (km)", value: "any" },
+  ...HERO_MILEAGE_VALUES.map((value) => ({
+    label: formatMileage(value),
+    value: String(value),
+  })),
+];
 
 const PANEL_INPUT_CLASS =
   "h-[42px] w-full rounded-[12px] border-[0.5px] border-[#d1d5dc] bg-white px-3.5 text-[14px] text-[#202224] placeholder:text-[#8b93a7] outline-none transition focus:border-primary/70";
@@ -152,31 +191,47 @@ function getBannerHref(banner: CmsBanner | null | undefined) {
   return "";
 }
 
-export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearchProps) {
+export function HeroSearch({
+  makes,
+  totalCount,
+  content,
+  heroBanner,
+}: HeroSearchProps) {
   const router = useRouter();
   const heroContent = content ?? DEFAULT_HOME_HERO_CMS_CONTENT;
-  const heroSlides = React.useMemo(() => getHeroSlides(heroContent), [heroContent]);
+  const heroSlides = React.useMemo(
+    () => getHeroSlides(heroContent),
+    [heroContent],
+  );
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = React.useState(0);
-  const [activeCategory, setActiveCategory] = React.useState<ListingCategory>("car");
+  const [activeCategory, setActiveCategory] =
+    React.useState<ListingCategory>("car");
   const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
   const [model, setModel] = React.useState("");
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
-  const [mileageRange, setMileageRange] = React.useState("any");
+  const [mileageFrom, setMileageFrom] = React.useState("any");
+  const [mileageTo, setMileageTo] = React.useState("any");
   const [maxHours, setMaxHours] = React.useState("any");
   const [priceFrom, setPriceFrom] = React.useState("any");
   const [priceTo, setPriceTo] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
   const [matchingCount, setMatchingCount] = React.useState(totalCount);
-  const carouselEnabled = !heroBanner && heroContent.carouselEnabled && heroSlides.length > 1;
+  const [countStatus, setCountStatus] =
+    React.useState<LandingSearchCountStatus>("loading");
+  const carouselEnabled =
+    !heroBanner && heroContent.carouselEnabled && heroSlides.length > 1;
   const activeHeroSlide = heroSlides[activeHeroSlideIndex] ?? heroSlides[0];
   const carouselIntervalMs = heroContent.carouselIntervalSeconds * 1000;
   const heroBannerHref = getBannerHref(heroBanner);
-  const heroBannerIsExternal = heroBannerHref ? isExternalHref(heroBannerHref) : false;
+  const heroBannerIsExternal = heroBannerHref
+    ? isExternalHref(heroBannerHref)
+    : false;
   const heroImageUrl = heroBanner?.desktopImageUrl || activeHeroSlide.imageUrl;
-  const heroImageAlt = heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
+  const heroImageAlt =
+    heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
   const hasSponsoredHero = Boolean(heroBanner);
 
   useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
@@ -188,7 +243,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
   }, [activeCategory, makes]);
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
-    activeCategory === "car" && make !== "any" ? make : null
+    activeCategory === "car" && make !== "any" ? make : null,
   );
 
   React.useEffect(() => {
@@ -196,7 +251,8 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     setModel("");
     setYearFrom("any");
     setYearTo("any");
-    setMileageRange("any");
+    setMileageFrom("any");
+    setMileageTo("any");
     setMaxHours("any");
     setPriceFrom("any");
     setPriceTo("any");
@@ -235,15 +291,6 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     activeCategory === "car"
       ? "Narrow by location, make, model, year and the key car filters from the design."
       : "Start with the essentials here, then open more filters for a tighter match.";
-  const mileageBounds = React.useMemo(() => {
-    if (mileageRange === "any") {
-      return { minMileage: "", maxMileage: "" };
-    }
-
-    const [minMileage, maxMileage] = mileageRange.split(":");
-    return { minMileage, maxMileage };
-  }, [mileageRange]);
-
   const buildSearchParams = React.useCallback(() => {
     const params = new URLSearchParams();
     const qParts: string[] = [];
@@ -254,12 +301,14 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     if (priceTo !== "any") params.set("maxPrice", priceTo);
     if (yearFrom !== "any") params.set("minYear", yearFrom);
     if (yearTo !== "any") params.set("maxYear", yearTo);
-    const usesHours = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
+    const usesHours =
+      activeCategory === "farm_agricultural" ||
+      activeCategory === "plant_construction";
     if (usesHours) {
       if (maxHours !== "any") params.set("hoursMax", maxHours);
     } else {
-      if (mileageBounds.minMileage) params.set("minMileage", mileageBounds.minMileage);
-      if (mileageBounds.maxMileage) params.set("maxMileage", mileageBounds.maxMileage);
+      if (mileageFrom !== "any") params.set("minMileage", mileageFrom);
+      if (mileageTo !== "any") params.set("maxMileage", mileageTo);
     }
 
     if (make.trim() && make !== "any") {
@@ -303,8 +352,8 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     location,
     make,
     maxHours,
-    mileageBounds.maxMileage,
-    mileageBounds.minMileage,
+    mileageFrom,
+    mileageTo,
     model,
     priceFrom,
     priceTo,
@@ -313,30 +362,40 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
   ]);
 
   const deferredCountQuery = React.useDeferredValue(
-    React.useMemo(() => buildSearchParams().toString(), [buildSearchParams])
+    React.useMemo(() => buildSearchParams().toString(), [buildSearchParams]),
   );
 
   React.useEffect(() => {
     const controller = new AbortController();
 
     const updateCount = async () => {
+      setCountStatus("loading");
+
       try {
-        const response = await fetch(`/api/listings/count?${deferredCountQuery}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/listings/count?${deferredCountQuery}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          },
+        );
 
         if (!response.ok) {
+          setCountStatus("error");
           return;
         }
 
         const data = (await response.json()) as { count?: number };
         if (typeof data.count === "number") {
           setMatchingCount(data.count);
+          setCountStatus("ready");
+        } else {
+          setCountStatus("error");
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Failed to update landing listing count:", error);
+          setCountStatus("error");
         }
       }
     };
@@ -366,30 +425,16 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     currentFrom: string,
     currentTo: string,
     setFrom: React.Dispatch<React.SetStateAction<string>>,
-    setTo: React.Dispatch<React.SetStateAction<string>>
+    setTo: React.Dispatch<React.SetStateAction<string>>,
   ) => {
-    const nextFrom = side === "from" ? nextValue : currentFrom;
-    const nextTo = side === "to" ? nextValue : currentTo;
-    const fromNumber = Number(nextFrom);
-    const toNumber = Number(nextTo);
-
-    if (
-      nextFrom !== "any" &&
-      nextTo !== "any" &&
-      Number.isFinite(fromNumber) &&
-      Number.isFinite(toNumber) &&
-      fromNumber > toNumber
-    ) {
-      setFrom(nextValue);
-      setTo(nextValue);
-      return;
-    }
-
-    if (side === "from") {
-      setFrom(nextValue);
-    } else {
-      setTo(nextValue);
-    }
+    const nextRange = reconcileLandingRange({
+      side,
+      nextValue,
+      currentFrom,
+      currentTo,
+    });
+    setFrom(nextRange.from);
+    setTo(nextRange.to);
   };
 
   const initialCarFilters = React.useMemo(
@@ -402,11 +447,27 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
       bodyTypes: [],
       minYear: yearFrom !== "any" ? yearFrom : "",
       maxYear: yearTo !== "any" ? yearTo : "",
-      minMileage: mileageBounds.minMileage,
-      maxMileage: mileageBounds.maxMileage,
+      minMileage: mileageFrom !== "any" ? mileageFrom : "",
+      maxMileage: mileageTo !== "any" ? mileageTo : "",
     }),
-    [location, make, mileageBounds.maxMileage, mileageBounds.minMileage, model, priceFrom, priceTo, yearFrom, yearTo]
+    [
+      location,
+      make,
+      mileageFrom,
+      mileageTo,
+      model,
+      priceFrom,
+      priceTo,
+      yearFrom,
+      yearTo,
+    ],
   );
+
+  const searchButtonLabel = getLandingSearchButtonLabel({
+    category: activeCategory,
+    count: matchingCount,
+    status: countStatus,
+  });
 
   const renderMakeField = () => {
     const MakeIcon = CarFront;
@@ -427,16 +488,16 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               </option>
             ))}
           </select>
-          <span className={PANEL_CHEVRON_CLASS}>
-            ▾
-          </span>
+          <span className={PANEL_CHEVRON_CLASS}>▾</span>
         </div>
       );
     }
 
     const datalistId = `landing-make-options-${activeCategory}`;
     const placeholder =
-      activeConfig.makeMode === "suggested" ? `Any ${activeConfig.brandLabel.toLowerCase()}` : `Enter ${activeConfig.brandLabel.toLowerCase()}`;
+      activeConfig.makeMode === "suggested"
+        ? `Any ${activeConfig.brandLabel.toLowerCase()}`
+        : `Enter ${activeConfig.brandLabel.toLowerCase()}`;
 
     return (
       <div className="relative">
@@ -468,7 +529,9 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
           <ModelIcon className={PANEL_ICON_CLASS} />
           <select
             value={model || "any"}
-            onChange={(event) => setModel(event.target.value === "any" ? "" : event.target.value)}
+            onChange={(event) =>
+              setModel(event.target.value === "any" ? "" : event.target.value)
+            }
             disabled={make === "any" || modelsLoading}
             className={`${PANEL_INPUT_CLASS} appearance-none pl-10 pr-10 disabled:cursor-not-allowed disabled:opacity-45`}
           >
@@ -481,9 +544,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               </option>
             ))}
           </select>
-          <span className={PANEL_CHEVRON_CLASS}>
-            ▾
-          </span>
+          <span className={PANEL_CHEVRON_CLASS}>▾</span>
         </div>
       );
     }
@@ -505,7 +566,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     value: string,
     onChange: (nextValue: string) => void,
     options: ReadonlyArray<{ label: string; value: string }>,
-    icon: LucideIcon
+    icon: LucideIcon,
   ) => {
     const Icon = icon;
 
@@ -533,17 +594,23 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
     fromOptions: ReadonlyArray<{ label: string; value: string }>,
     toValue: string,
     onToChange: (nextValue: string) => void,
-    toOptions: ReadonlyArray<{ label: string; value: string }>
+    toOptions: ReadonlyArray<{ label: string; value: string }>,
+    fromAriaLabel: string,
+    toAriaLabel: string,
   ) => (
     <div className="grid grid-cols-2 gap-2">
       <div className="relative">
         <select
+          aria-label={fromAriaLabel}
           value={fromValue}
           onChange={(event) => onFromChange(event.target.value)}
           className={`${PANEL_INPUT_CLASS} appearance-none pr-10`}
         >
           {fromOptions.map((option) => (
-            <option key={`${option.label}-${option.value}`} value={option.value}>
+            <option
+              key={`${option.label}-${option.value}`}
+              value={option.value}
+            >
               {option.label}
             </option>
           ))}
@@ -553,12 +620,16 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
 
       <div className="relative">
         <select
+          aria-label={toAriaLabel}
           value={toValue}
           onChange={(event) => onToChange(event.target.value)}
           className={`${PANEL_INPUT_CLASS} appearance-none pr-10`}
         >
           {toOptions.map((option) => (
-            <option key={`${option.label}-${option.value}`} value={option.value}>
+            <option
+              key={`${option.label}-${option.value}`}
+              value={option.value}
+            >
               {option.label}
             </option>
           ))}
@@ -574,14 +645,14 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
         className={cn(
           "mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8",
           hasSponsoredHero &&
-            "lg:grid lg:grid-cols-[minmax(390px,430px)_minmax(0,1fr)] lg:items-stretch lg:gap-5"
+            "lg:grid lg:grid-cols-[minmax(390px,430px)_minmax(0,1fr)] lg:items-stretch lg:gap-5",
         )}
       >
         <div
           className={cn(
             "relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]",
             hasSponsoredHero &&
-              "order-1 h-[250px] rounded-[22px] sm:h-[330px] md:h-[390px] lg:order-2 lg:h-[520px]"
+              "order-1 h-[250px] rounded-[22px] sm:h-[330px] md:h-[390px] lg:order-2 lg:h-[520px]",
           )}
         >
           <Image
@@ -625,7 +696,9 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                   type="button"
                   onClick={() => setActiveHeroSlideIndex(index)}
                   className={`h-2 rounded-full transition ${
-                    index === activeHeroSlideIndex ? "w-6 bg-white" : "w-2 bg-white/55 hover:bg-white/80"
+                    index === activeHeroSlideIndex
+                      ? "w-6 bg-white"
+                      : "w-2 bg-white/55 hover:bg-white/80"
                   }`}
                   aria-label={`Show hero image ${index + 1}`}
                   aria-pressed={index === activeHeroSlideIndex}
@@ -637,19 +710,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
           <div
             className={cn(
               "absolute inset-0 z-10 flex flex-col px-4 pb-6 pt-14 sm:px-6 sm:pt-16 md:pb-8 lg:px-8",
-              hasSponsoredHero && "justify-end pt-10"
+              hasSponsoredHero && "justify-end pt-10",
             )}
           >
             <div
               className={cn(
                 "flex flex-1 flex-col items-center text-center",
-                hasSponsoredHero && "items-start justify-end text-left"
+                hasSponsoredHero && "items-start justify-end text-left",
               )}
             >
               <h1
                 className={cn(
                   "max-w-4xl text-3xl font-bold text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.34)] sm:text-4xl md:text-5xl lg:text-6xl",
-                  hasSponsoredHero && "max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-[44px]"
+                  hasSponsoredHero &&
+                    "max-w-2xl text-2xl sm:text-3xl md:text-4xl lg:text-[44px]",
                 )}
               >
                 {heroContent.headline}
@@ -657,7 +731,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               <p
                 className={cn(
                   "mt-3 max-w-2xl text-base text-white/88 drop-shadow-[0_1px_12px_rgba(0,0,0,0.34)] sm:text-lg",
-                  hasSponsoredHero && "max-w-xl text-sm leading-6 sm:text-base"
+                  hasSponsoredHero && "max-w-xl text-sm leading-6 sm:text-base",
                 )}
               >
                 {heroContent.subheading}
@@ -707,13 +781,13 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             "relative z-10",
             hasSponsoredHero
               ? "order-2 mt-3 lg:order-1 lg:mt-0 lg:flex lg:h-full lg:items-center"
-              : "-mt-14 sm:-mt-16 md:-mt-30"
+              : "-mt-14 sm:-mt-16 md:-mt-30",
           )}
         >
           <div
             className={cn(
               "mx-auto mb-3 flex max-w-[980px] justify-end",
-              hasSponsoredHero && "max-w-none"
+              hasSponsoredHero && "max-w-none",
             )}
           >
             <div className="flex flex-wrap items-center gap-2">
@@ -734,20 +808,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
             onSubmit={handleSearch}
             className={cn(
               "mx-auto max-w-[980px] overflow-hidden rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
-              hasSponsoredHero && "max-w-none lg:w-full"
+              hasSponsoredHero && "max-w-none lg:w-full",
             )}
           >
             <div className="flex flex-col lg:flex-row">
               <aside
                 className={cn(
                   "relative border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
-                  hasSponsoredHero && "lg:w-[58px]"
+                  hasSponsoredHero && "lg:w-[58px]",
                 )}
               >
                 <div
                   className={cn(
                     "grid grid-cols-3 gap-[0.5px] bg-border/70 p-[0.5px] lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3",
-                    hasSponsoredHero && "lg:p-2"
+                    hasSponsoredHero && "lg:p-2",
                   )}
                 >
                   {LANDING_SEARCH_CATEGORY_ORDER.map((category) => {
@@ -769,7 +843,10 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                         title={config.label}
                       >
                         <Icon
-                          className={cn("h-6 w-6 sm:h-7 sm:w-7", hasSponsoredHero && "lg:h-5 lg:w-5")}
+                          className={cn(
+                            "h-6 w-6 sm:h-7 sm:w-7",
+                            hasSponsoredHero && "lg:h-5 lg:w-5",
+                          )}
                           strokeWidth={1.7}
                         />
                       </button>
@@ -781,20 +858,20 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
               <div
                 className={cn(
                   "flex-1 px-4 py-4 sm:px-5 lg:px-8 lg:py-6",
-                  hasSponsoredHero && "lg:px-4 lg:py-4"
+                  hasSponsoredHero && "lg:px-4 lg:py-4",
                 )}
               >
                 <div
                   className={cn(
                     "flex flex-col gap-3 border-b-[0.5px] border-[#eef1f6] pb-4 md:flex-row md:items-start md:justify-between",
-                    hasSponsoredHero && "pb-3 md:flex-col"
+                    hasSponsoredHero && "pb-3 md:flex-col",
                   )}
                 >
                   <div>
                     <h2
                       className={cn(
                         "text-[22px] font-bold leading-[1.2] text-[#202224]",
-                        hasSponsoredHero && "text-[20px]"
+                        hasSponsoredHero && "text-[20px]",
                       )}
                     >
                       {HERO_HEADLINES[activeCategory]}
@@ -802,7 +879,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     <p
                       className={cn(
                         "mt-1 text-sm text-[#667085]",
-                        hasSponsoredHero && "text-[13px] leading-5"
+                        hasSponsoredHero && "text-[13px] leading-5",
                       )}
                     >
                       {heroDescription}
@@ -821,7 +898,7 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                 <div
                   className={cn(
                     "mt-4 grid gap-4 xl:grid-cols-4",
-                    hasSponsoredHero && "gap-3 sm:grid-cols-2 xl:grid-cols-2"
+                    hasSponsoredHero && "gap-3 sm:grid-cols-2 xl:grid-cols-2",
                   )}
                 >
                   <div>
@@ -836,7 +913,9 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                         className={`${PANEL_INPUT_CLASS} appearance-none pl-10 pr-10`}
                       >
                         <option value="any">Any Location</option>
-                        {LOCATIONS.filter((item) => item !== "All Locations").map((item) => (
+                        {LOCATIONS.filter(
+                          (item) => item !== "All Locations",
+                        ).map((item) => (
                           <option key={item} value={item}>
                             {item}
                           </option>
@@ -848,14 +927,18 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {activeCategory === "car" ? "Make" : activeConfig.brandLabel}
+                      {activeCategory === "car"
+                        ? "Make"
+                        : activeConfig.brandLabel}
                     </label>
                     {renderMakeField()}
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {activeCategory === "car" ? "Model" : activeConfig.modelLabel}
+                      {activeCategory === "car"
+                        ? "Model"
+                        : activeConfig.modelLabel}
                     </label>
                     {renderModelField()}
                   </div>
@@ -866,11 +949,29 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     </label>
                     {renderRangeField(
                       yearFrom,
-                      (nextValue) => setBoundedRange("from", nextValue, yearFrom, yearTo, setYearFrom, setYearTo),
+                      (nextValue) =>
+                        setBoundedRange(
+                          "from",
+                          nextValue,
+                          yearFrom,
+                          yearTo,
+                          setYearFrom,
+                          setYearTo,
+                        ),
                       HERO_YEAR_FROM_OPTIONS,
                       yearTo,
-                      (nextValue) => setBoundedRange("to", nextValue, yearFrom, yearTo, setYearFrom, setYearTo),
-                      HERO_YEAR_TO_OPTIONS
+                      (nextValue) =>
+                        setBoundedRange(
+                          "to",
+                          nextValue,
+                          yearFrom,
+                          yearTo,
+                          setYearFrom,
+                          setYearTo,
+                        ),
+                      HERO_YEAR_TO_OPTIONS,
+                      "Year from",
+                      "Year to",
                     )}
                   </div>
                 </div>
@@ -878,22 +979,50 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                 <div
                   className={cn(
                     "mt-4 grid gap-4 xl:grid-cols-4",
-                    hasSponsoredHero && "mt-3 gap-3 sm:grid-cols-2 xl:grid-cols-2"
+                    hasSponsoredHero &&
+                      "mt-3 gap-3 sm:grid-cols-2 xl:grid-cols-2",
                   )}
                 >
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {activeCategory === "farm_agricultural" || activeCategory === "plant_construction"
+                      {activeCategory === "farm_agricultural" ||
+                      activeCategory === "plant_construction"
                         ? "Hours Used"
-                        : "Choose Mileage"}
+                        : "Mileage (km)"}
                     </label>
-                    {activeCategory === "farm_agricultural" || activeCategory === "plant_construction"
-                      ? renderSelectField(maxHours, setMaxHours, HERO_HOURS_OPTIONS, SlidersHorizontal)
-                      : renderSelectField(
-                          mileageRange,
-                          setMileageRange,
-                          HERO_MILEAGE_OPTIONS,
-                          SlidersHorizontal
+                    {activeCategory === "farm_agricultural" ||
+                    activeCategory === "plant_construction"
+                      ? renderSelectField(
+                          maxHours,
+                          setMaxHours,
+                          HERO_HOURS_OPTIONS,
+                          SlidersHorizontal,
+                        )
+                      : renderRangeField(
+                          mileageFrom,
+                          (nextValue) =>
+                            setBoundedRange(
+                              "from",
+                              nextValue,
+                              mileageFrom,
+                              mileageTo,
+                              setMileageFrom,
+                              setMileageTo,
+                            ),
+                          HERO_MILEAGE_FROM_OPTIONS,
+                          mileageTo,
+                          (nextValue) =>
+                            setBoundedRange(
+                              "to",
+                              nextValue,
+                              mileageFrom,
+                              mileageTo,
+                              setMileageFrom,
+                              setMileageTo,
+                            ),
+                          HERO_MILEAGE_TO_OPTIONS,
+                          "Mileage from in kilometres",
+                          "Mileage to in kilometres",
                         )}
                   </div>
 
@@ -903,11 +1032,29 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                     </label>
                     {renderRangeField(
                       priceFrom,
-                      (nextValue) => setBoundedRange("from", nextValue, priceFrom, priceTo, setPriceFrom, setPriceTo),
+                      (nextValue) =>
+                        setBoundedRange(
+                          "from",
+                          nextValue,
+                          priceFrom,
+                          priceTo,
+                          setPriceFrom,
+                          setPriceTo,
+                        ),
                       HERO_PRICE_FROM_OPTIONS,
                       priceTo,
-                      (nextValue) => setBoundedRange("to", nextValue, priceFrom, priceTo, setPriceFrom, setPriceTo),
-                      HERO_PRICE_TO_OPTIONS
+                      (nextValue) =>
+                        setBoundedRange(
+                          "to",
+                          nextValue,
+                          priceFrom,
+                          priceTo,
+                          setPriceFrom,
+                          setPriceTo,
+                        ),
+                      HERO_PRICE_TO_OPTIONS,
+                      "Price from",
+                      "Price to",
                     )}
                   </div>
 
@@ -925,10 +1072,12 @@ export function HeroSearch({ makes, totalCount, content, heroBanner }: HeroSearc
                   <div className="flex flex-col justify-end">
                     <button
                       type="submit"
-                      className="flex h-[42px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-primary/90"
+                      disabled={countStatus === "loading"}
+                      aria-busy={countStatus === "loading"}
+                      className="flex h-[42px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-primary/90 active:translate-y-px disabled:cursor-wait disabled:opacity-75"
                     >
                       <Search className="h-4 w-4" />
-                      {HERO_CTA_LABELS[activeCategory]}
+                      <span aria-live="polite">{searchButtonLabel}</span>
                     </button>
                   </div>
                 </div>
