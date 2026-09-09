@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
@@ -72,7 +73,18 @@ type TicketRow = {
     | null;
 };
 
-async function getViewer(supabase: Awaited<ReturnType<typeof createClient>>) {
+type SupportQueueViewerRole = Extract<ProfileRole, "admin" | "super_admin" | "support">;
+
+export function isSupportQueueViewerRole(
+  role: ProfileRole | string | null | undefined
+): role is SupportQueueViewerRole {
+  return role === "admin" || role === "super_admin" || role === "support";
+}
+
+async function getViewer(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileClient: SupabaseClient = supabase
+) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -81,7 +93,7 @@ async function getViewer(supabase: Awaited<ReturnType<typeof createClient>>) {
     return null;
   }
 
-  const { data: profile, error } = await supabase
+  const { data: profile, error } = await profileClient
     .from("profiles")
     .select("id, email, full_name, role")
     .eq("id", user.id)
@@ -120,7 +132,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     return null;
   }
 
-  const viewer = await getViewer(supabase);
+  const viewer = await getViewer(supabase, adminSupabase ?? supabase);
 
   if (!viewer) {
     return {
@@ -275,9 +287,9 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
 export const getSupportQueueData = cache(async (): Promise<SupportQueueData | null> => {
   const supabase = await createClient();
   const adminSupabase = createOptionalAdminClient();
-  const viewer = await getViewer(supabase);
+  const viewer = await getViewer(supabase, adminSupabase ?? supabase);
 
-  if (!viewer || !["admin", "super_admin", "support"].includes(viewer.role)) {
+  if (!viewer || !isSupportQueueViewerRole(viewer.role)) {
     return null;
   }
 
