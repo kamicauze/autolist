@@ -11,6 +11,7 @@ type PresignedUploadFile = {
 type UploadOptions = {
   concurrency?: number;
   fetchImpl?: typeof fetch;
+  onProgress?: (completed: number, total: number) => void;
 };
 
 export const LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR =
@@ -54,6 +55,7 @@ export async function uploadFilesToPresignedTargets(
   const concurrency = Math.max(1, Math.min(options.concurrency ?? 3, uploads.length || 1));
   const fetchImpl = options.fetchImpl ?? fetch;
   let nextIndex = 0;
+  let completed = 0;
 
   const worker = async () => {
     while (nextIndex < uploads.length) {
@@ -76,6 +78,9 @@ export async function uploadFilesToPresignedTargets(
       if (!response.ok) {
         throw new Error(`Unable to upload "${ticket.name}". Please try again.`);
       }
+
+      completed += 1;
+      options.onProgress?.(completed, uploads.length);
     }
   };
 

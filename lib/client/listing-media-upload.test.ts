@@ -25,6 +25,7 @@ test("uploads file bytes directly to each presigned target with bounded concurre
   const calls: Array<{ url: string; method: string | undefined; contentType: string | null }> = [];
   let active = 0;
   let maxActive = 0;
+  const progress: Array<[number, number]> = [];
   const fetchImpl = (async (input: URL | RequestInfo, init?: RequestInit) => {
     active += 1;
     maxActive = Math.max(maxActive, active);
@@ -45,10 +46,15 @@ test("uploads file bytes directly to each presigned target with bounded concurre
     }),
   }));
 
-  await uploadFilesToPresignedTargets(uploads, { concurrency: 2, fetchImpl });
+  await uploadFilesToPresignedTargets(uploads, {
+    concurrency: 2,
+    fetchImpl,
+    onProgress: (completed, total) => progress.push([completed, total]),
+  });
 
   assert.equal(calls.length, 3);
   assert.equal(maxActive, 2);
+  assert.deepEqual(progress, [[1, 3], [2, 3], [3, 3]]);
   assert.deepEqual(
     calls.map(({ method, contentType }) => ({ method, contentType })),
     Array.from({ length: 3 }, () => ({ method: "PUT", contentType: "image/jpeg" }))

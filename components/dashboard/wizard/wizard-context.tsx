@@ -514,6 +514,7 @@ interface WizardContextValue {
   activeStep: number;
   showValidationErrors: boolean;
   isSubmitting: boolean;
+  submissionStatus: string | null;
   submitError: string | null;
   submitIssues: WizardIssue[];
   submitted: boolean;
@@ -941,6 +942,7 @@ export function WizardProvider({
   const [submitted, setSubmitted] = React.useState(false);
   const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submissionStatus, setSubmissionStatus] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [submitIssues, setSubmitIssues] = React.useState<WizardIssue[]>([]);
   const [createdListingId, setCreatedListingId] = React.useState<string | null>(editingListingId);
@@ -1752,6 +1754,7 @@ export function WizardProvider({
       };
 
       setIsSubmitting(true);
+      setSubmissionStatus(isEditing ? "Saving listing changes..." : "Saving your listing draft...");
       setSubmitError(null);
       setSubmitIssues([]);
       try {
@@ -1875,6 +1878,9 @@ export function WizardProvider({
         ];
 
         if (mediaFiles.length > 0) {
+          setSubmissionStatus(
+            `Preparing ${mediaFiles.length} media file${mediaFiles.length === 1 ? "" : "s"}...`
+          );
           const prepareResult = await prepareListingMediaUploads(
             listingId,
             mediaFiles.map(({ descriptor }) => descriptor)
@@ -1899,8 +1905,14 @@ export function WizardProvider({
               }
               return { ticket, file };
             });
+            setSubmissionStatus(`Uploading media (0 of ${directUploads.length})...`);
             await uploadFilesToPresignedTargets(
-              directUploads
+              directUploads,
+              {
+                onProgress: (completed, total) => {
+                  setSubmissionStatus(`Uploading media (${completed} of ${total})...`);
+                },
+              }
             );
           } catch (error) {
             const message = error instanceof Error
@@ -1918,6 +1930,9 @@ export function WizardProvider({
           const uploadedVideo = uploadedMedia.find((upload) => upload.kind === "video");
 
           if (imageUploads.length > 0) {
+            setSubmissionStatus(
+              `Processing ${imageUploads.length} image${imageUploads.length === 1 ? "" : "s"}...`
+            );
             const imageResult = await finalizeListingImagesWithRecovery({
               listingId,
               uploads: imageUploads,
@@ -1936,6 +1951,9 @@ export function WizardProvider({
           }
 
           if (documentUploads.length > 0) {
+            setSubmissionStatus(
+              `Processing ${documentUploads.length} document${documentUploads.length === 1 ? "" : "s"}...`
+            );
             const documentResult = await finalizeListingDocumentUploads(
               listingId,
               documentUploads
@@ -1951,6 +1969,7 @@ export function WizardProvider({
           }
 
           if (uploadedVideo) {
+            setSubmissionStatus("Processing listing video...");
             const videoResult = await finalizeListingVideoUpload(listingId, uploadedVideo);
             if ("error" in videoResult) {
               setSubmitError(videoResult.error || "Unable to process the listing video.");
@@ -1964,6 +1983,7 @@ export function WizardProvider({
         }
 
         if (!shouldUploadImages && existingImageOrderChanged) {
+          setSubmissionStatus("Saving image order...");
           const reorderFormData = new FormData();
           reorderFormData.set("listingId", listingId);
           reorderFormData.set("orderedImageKeys", JSON.stringify(existingImageKeyOrder));
@@ -1982,6 +2002,7 @@ export function WizardProvider({
         }
 
         if (!isEditing) {
+          setSubmissionStatus("Submitting listing for review...");
           const submitResult = await submitListingReviewWithRecovery(
             listingId,
             submitListingForReview
@@ -2003,6 +2024,7 @@ export function WizardProvider({
         }
 
         localStorage.removeItem(storageKey);
+        setSubmissionStatus(isEditing ? "Listing changes saved." : "Listing submitted.");
         setSubmitted(true);
       } catch (error) {
         console.error("Listing submission failed", error);
@@ -2010,6 +2032,7 @@ export function WizardProvider({
         setSubmitIssues([]);
       } finally {
         setIsSubmitting(false);
+        setSubmissionStatus(null);
       }
       return;
     }
@@ -2023,7 +2046,7 @@ export function WizardProvider({
 
   const value: WizardContextValue = {
     isEditing, editingListingId,
-    draft, activeStep, showValidationErrors, isSubmitting, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
+    draft, activeStep, showValidationErrors, isSubmitting, submissionStatus, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
     galleryFiles, documentFiles, videoFile,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet, featureSuggestion,

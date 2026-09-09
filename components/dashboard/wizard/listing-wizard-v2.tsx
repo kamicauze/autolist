@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, PackageOpen } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
@@ -46,6 +46,7 @@ function WizardContent({
     submitted,
     autoApproved,
     isSubmitting,
+    submissionStatus,
     submitError,
     submitIssues,
     stepCompletion,
@@ -279,6 +280,20 @@ function WizardContent({
           </>
         }
       >
+        {isSubmitting && submissionStatus ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-5 flex items-center gap-3 rounded-[18px] border border-brand-muted-border bg-brand-soft-surface px-4 py-4 text-[14px] text-primary"
+          >
+            <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+            <div>
+              <p className="font-semibold">Submitting your listing</p>
+              <p className="mt-1 text-[13px] text-[#5f6b66]">{submissionStatus}</p>
+            </div>
+          </div>
+        ) : null}
+
         {submitError ? (
           <div ref={errorRef} className="mb-5 rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-4 text-[14px] text-[#d92d20]">
             <p className="font-semibold text-[#d92d20]">Submission Error</p>
