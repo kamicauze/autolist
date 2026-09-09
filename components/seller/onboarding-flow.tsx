@@ -68,10 +68,10 @@ const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
   },
   seller: {
     icon: BriefcaseBusiness,
-    title: "Seller",
+    title: "Private seller",
     summary: "Create listings, receive buyer inquiries, and keep contact details ready for leads.",
-    savedOutcome: "Seller profile saved.",
-    nextStep: "Create your first listing from the seller dashboard.",
+    savedOutcome: "Private seller profile saved.",
+    nextStep: "Create your first listing from your dashboard.",
     destinationLabel: "Create listing",
   },
   dealer: {
@@ -358,7 +358,7 @@ export function OnboardingFlow({
       eyebrow="Autolist Setup"
       footerMeta={
         activeStep === 2 && isSellerLike
-          ? "Phone and city are required for seller and dealer accounts."
+          ? "Phone and city are required for private seller and dealer accounts."
           : `Step ${activeStep + 1} of ${ONBOARDING_STEPS.length}`
       }
       footer={
@@ -538,7 +538,7 @@ export function OnboardingFlow({
                   </p>
                   <p className="mt-1 text-[13px] leading-5 text-[#696665]">
                     {isSellerLike
-                      ? "Sellers and dealers need a phone number and city so buyer inquiries can route correctly."
+                      ? "Private sellers and dealers need a phone number and city so buyer inquiries can route correctly."
                       : "Buyers can add optional contact details now or complete them later in profile settings."}
                   </p>
                 </div>

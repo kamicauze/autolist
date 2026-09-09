@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { AuthModalShell } from "@/components/auth/auth-modal-shell";
+import { RegisterAccountShell } from "@/components/auth/login-account-shell";
 import { RegisterForm } from "@/components/auth/register-form";
 import { resolvePostAuthPath, sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import { USER_ROLE_OPTIONS } from "@/lib/constants/marketplace";
@@ -42,18 +42,19 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
     redirect(destination);
   }
 
+  const requestedNextPath =
+    typeof resolvedSearchParams?.next === "string"
+      ? sanitizeNextPath(resolvedSearchParams.next, "")
+      : "";
+  const loginHref = requestedNextPath
+    ? `/login?next=${encodeURIComponent(requestedNextPath)}`
+    : "/login";
+
   return (
-    <AuthModalShell
-      title="Create your account"
-      eyebrow="Join Autolist"
-      description="Choose the account type that matches how you buy, sell, or manage inventory."
-      imageAlt="Autolist registration"
-      imageSrc="/sample-car-2.jpg"
-      className="max-w-[1420px] md:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]"
-    >
+    <RegisterAccountShell loginHref={loginHref}>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-gray-100" aria-hidden />}>
         <RegisterForm />
       </Suspense>
-    </AuthModalShell>
+    </RegisterAccountShell>
   );
 }

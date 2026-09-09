@@ -18,7 +18,7 @@ test("login adopts the supplied two-panel account structure with truthful Autoli
   assert.match(shell, /Your advantages with an Autolist account/);
   assert.match(shell, /Manage listings and dealer offers/);
   assert.match(shell, /min-h-\[100dvh\] items-center/);
-  assert.match(shell, /src="\/hero-car\.jpg"/);
+  assert.match(shell, /imageSrc="\/hero-car\.jpg"/);
   assert.match(shell, /backdrop-blur-xl/);
   assert.doesNotMatch(shell, /mobile\.de/i);
 });

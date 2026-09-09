@@ -6,7 +6,7 @@ export const USER_ROLE_OPTIONS = [
   },
   {
     value: "seller",
-    label: "Seller",
+    label: "Private seller",
     description: "List your vehicle directly and manage offers from buyers.",
   },
   {

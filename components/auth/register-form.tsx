@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
   Car,
@@ -39,6 +40,7 @@ import {
 } from "@/components/auth/social-auth-button";
 
 type SocialProvider = "google" | "facebook";
+type RegistrationStep = "role" | "details";
 
 const ROLE_PRESENTATION: Record<
   UserRole,
@@ -56,7 +58,7 @@ const ROLE_PRESENTATION: Record<
   seller: {
     icon: BriefcaseBusiness,
     caption: "Best for listing a personal vehicle and managing buyer messages.",
-    nextLabel: "Seller onboarding",
+    nextLabel: "Private seller onboarding",
   },
   dealer: {
     icon: Store,
@@ -82,6 +84,7 @@ export function RegisterForm() {
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>(initialRole);
+  const [registrationStep, setRegistrationStep] = React.useState<RegistrationStep>("role");
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -108,6 +111,12 @@ export function RegisterForm() {
   ];
   const passwordStrength = passwordChecks.filter((item) => item.valid).length;
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+
+  const selectRole = (role: UserRole) => {
+    setSelectedRole(role);
+    setErrorMessage(null);
+    setInfoMessage(null);
+  };
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -207,85 +216,155 @@ export function RegisterForm() {
     }
   };
 
-  return (
-    <form className="space-y-5" onSubmit={handleRegister}>
-      <div className="grid gap-4 rounded-[18px] border border-[#eef2f7] bg-[#fbfcfe] p-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="space-y-3">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <p className="text-sm font-semibold text-[#24272C]">Account type</p>
-            <p className="max-w-md text-xs leading-5 text-[#696665] sm:text-right">
-              Choose the path that matches how you want to use Autolist.
+  if (registrationStep === "role") {
+    return (
+      <section className="space-y-5" aria-labelledby="account-type-heading">
+        <div className="flex items-center justify-between gap-4 border-b border-[#dfe3e8] pb-4">
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
+              Step 1 of 2
             </p>
+            <h2
+              id="account-type-heading"
+              className="mt-1 font-heading text-[22px] font-semibold text-[#20242a] sm:text-[24px]"
+            >
+              How will you use Autolist?
+            </h2>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {USER_ROLE_OPTIONS.map((option) => {
-              const selected = selectedRole === option.value;
-              const rolePresentation = ROLE_PRESENTATION[option.value];
-              const RoleIcon = rolePresentation.icon;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`group grid min-h-[156px] grid-rows-[auto_1fr_auto] gap-3 rounded-[14px] border px-3.5 py-3 text-left transition-[border-color,background-color,transform] duration-200 active:translate-y-px ${
-                    selected
-                      ? "border-primary bg-white text-[#24272C] shadow-[0_10px_28px_rgb(var(--primary-rgb)/0.08)]"
-                      : "border-[#EDEDED] bg-white/70 text-[#696665] hover:border-primary/40 hover:bg-white"
-                  }`}
-                  onClick={() => setSelectedRole(option.value)}
-                  data-testid={`register-role-${option.value}`}
-                  aria-pressed={selected}
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-[12px] transition ${
-                        selected
-                          ? "bg-primary text-white"
-                          : "bg-[#f1f5f9] text-[#64748b] group-hover:text-primary"
-                      }`}
-                    >
-                      <RoleIcon className="h-4 w-4" />
-                    </span>
-                    {selected ? (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    ) : (
-                      <ArrowRight className="h-4 w-4 text-[#c3c7cf] transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    <span className="mt-1 block text-xs leading-5">{rolePresentation.caption}</span>
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex gap-1.5" aria-label="Registration progress">
+            <span className="h-1.5 w-10 rounded-full bg-primary" />
+            <span className="h-1.5 w-10 rounded-full bg-[#dfe3e8]" />
           </div>
         </div>
 
-        <aside className="grid gap-3 rounded-[16px] border border-brand-muted-border bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start xl:block">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-brand-tint text-primary">
-            <SelectedRoleIcon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 xl:mt-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
-              Selected path
-            </p>
-            <h2 className="mt-2 font-heading text-[20px] font-semibold text-[#24272C]">
-              {selectedRoleOption?.label}
-            </h2>
-            <p className="mt-2 text-[12px] leading-5 text-[#696665]">
-              {selectedRoleOption?.description}
-            </p>
-            <div className="mt-4 rounded-[12px] border border-[#eef2f7] bg-[#f8fafc] px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">
-                Next step
+        <p className="max-w-2xl text-sm leading-6 text-[#696f78]">
+          Pick the account that matches what you need today. You can come back and change this
+          choice before creating your account.
+        </p>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          {USER_ROLE_OPTIONS.map((option) => {
+            const selected = selectedRole === option.value;
+            const rolePresentation = ROLE_PRESENTATION[option.value];
+            const RoleIcon = rolePresentation.icon;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`group grid min-h-[168px] grid-rows-[auto_1fr] gap-4 rounded-[16px] border-2 px-4 py-4 text-left transition-[border-color,background-color,transform,box-shadow] duration-200 active:translate-y-px ${
+                  selected
+                    ? "border-primary bg-brand-tint/60 text-[#20242a] shadow-[0_12px_28px_rgb(var(--primary-rgb)/0.10)]"
+                    : "border-[#dfe3e8] bg-white text-[#555d68] hover:border-primary/45 hover:bg-[#fbfcfe]"
+                }`}
+                onClick={() => selectRole(option.value)}
+                data-testid={`register-role-${option.value}`}
+                aria-pressed={selected}
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-[13px] transition-colors ${
+                      selected
+                        ? "bg-primary text-white"
+                        : "bg-[#f1f4f8] text-[#657080] group-hover:text-primary"
+                    }`}
+                  >
+                    <RoleIcon className="h-5 w-5" />
+                  </span>
+                  {selected ? (
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 text-[#aeb5bd] transition-transform group-hover:translate-x-0.5" />
+                  )}
+                </span>
+                <span>
+                  <span className="block text-base font-semibold text-[#20242a]">
+                    {option.label}
+                  </span>
+                  <span className="mt-1.5 block text-[13px] leading-5">
+                    {rolePresentation.caption}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-3 rounded-[16px] border border-[#dfe3e8] bg-[#f8f9fb] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-primary shadow-sm">
+              <SelectedRoleIcon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7b8490]">
+                Selected account
               </p>
-              <p className="mt-1 text-[13px] font-semibold text-[#24272C]">
-                {selectedRolePresentation.nextLabel}
+              <p className="mt-0.5 text-sm font-semibold leading-5 text-[#20242a] sm:truncate">
+                {selectedRoleOption?.label} · {selectedRolePresentation.nextLabel}
               </p>
             </div>
           </div>
-        </aside>
+          <Button
+            type="button"
+            className="h-12 rounded-[12px] px-6 text-base transition active:translate-y-px"
+            onClick={() => setRegistrationStep("details")}
+            data-testid="register-role-continue"
+          >
+            Continue as {selectedRoleOption?.label}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+
+        <p className="text-center text-sm text-[#555d68]">
+          Already registered?{" "}
+          <Link href={loginHref} className="font-semibold text-primary hover:underline">
+            Login
+          </Link>
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <form className="space-y-5" onSubmit={handleRegister}>
+      <div className="flex items-center justify-between gap-4 border-b border-[#dfe3e8] pb-4">
+        <div>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
+            Step 2 of 2
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[#20242a]">
+            Create your {selectedRoleOption?.label.toLowerCase()} account
+          </p>
+        </div>
+        <div className="flex gap-1.5" aria-label="Registration progress">
+          <span className="h-1.5 w-10 rounded-full bg-primary" />
+          <span className="h-1.5 w-10 rounded-full bg-primary" />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-[16px] border border-primary/20 bg-brand-tint/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-primary shadow-sm">
+            <SelectedRoleIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
+              {selectedRoleOption?.label}
+            </p>
+            <p className="mt-0.5 text-[13px] leading-5 text-[#555d68]">
+              {selectedRolePresentation.nextLabel} follows account creation.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-white px-4 text-sm font-semibold text-primary transition hover:border-primary/45 hover:bg-white/80 active:translate-y-px"
+          onClick={() => setRegistrationStep("role")}
+          data-testid="register-change-role"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Change account type
+        </button>
       </div>
 
       <div className="space-y-4 rounded-[18px] border border-[#eef2f7] bg-white p-4">
