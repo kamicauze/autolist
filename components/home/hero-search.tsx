@@ -22,6 +22,7 @@ import {
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import { QuickSearchDialog } from "./quick-search-dialog";
+import { VehicleCategoryIcon } from "./vehicle-category-icon";
 import type { CmsBanner } from "@/lib/types/cms-banners";
 import {
   trackCmsBannerClick,
@@ -34,24 +35,18 @@ import {
   type LandingSearchCountStatus,
 } from "@/lib/search/landing-search-controls";
 import {
-  BusFront,
   CarFront,
   ChevronLeft,
   ChevronRight,
-  Construction,
   MapPin,
-  Motorbike,
   Search,
   SlidersHorizontal,
   Sparkles,
-  Tractor,
-  Truck,
   type LucideIcon,
 } from "lucide-react";
 
 type HeroCategoryConfig = {
   label: string;
-  icon: LucideIcon;
   brandLabel: string;
   modelLabel: string;
   resultLabelPlural: string;
@@ -68,18 +63,21 @@ type HeroCategoryConfig = {
 };
 
 const CATEGORY_CONFIG: Record<ListingCategory, HeroCategoryConfig> = {
-  car: { icon: CarFront, ...LANDING_SEARCH_CATEGORY_CONFIG.car },
-  motorbike: { icon: Motorbike, ...LANDING_SEARCH_CATEGORY_CONFIG.motorbike },
-  van: { icon: BusFront, ...LANDING_SEARCH_CATEGORY_CONFIG.van },
-  truck: { icon: Truck, ...LANDING_SEARCH_CATEGORY_CONFIG.truck },
-  plant_construction: {
-    icon: Construction,
-    ...LANDING_SEARCH_CATEGORY_CONFIG.plant_construction,
-  },
-  farm_agricultural: {
-    icon: Tractor,
-    ...LANDING_SEARCH_CATEGORY_CONFIG.farm_agricultural,
-  },
+  car: LANDING_SEARCH_CATEGORY_CONFIG.car,
+  motorbike: LANDING_SEARCH_CATEGORY_CONFIG.motorbike,
+  van: LANDING_SEARCH_CATEGORY_CONFIG.van,
+  truck: LANDING_SEARCH_CATEGORY_CONFIG.truck,
+  plant_construction: LANDING_SEARCH_CATEGORY_CONFIG.plant_construction,
+  farm_agricultural: LANDING_SEARCH_CATEGORY_CONFIG.farm_agricultural,
+};
+
+const CATEGORY_SHORT_LABELS: Record<ListingCategory, string> = {
+  car: "Cars",
+  motorbike: "Bikes",
+  van: "Vans",
+  truck: "Trucks",
+  plant_construction: "Plant",
+  farm_agricultural: "Farm",
 };
 
 const HERO_HEADLINES: Record<ListingCategory, string> = {
@@ -814,19 +812,18 @@ export function HeroSearch({
             <div className="flex flex-col lg:flex-row">
               <aside
                 className={cn(
-                  "relative border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:w-[74px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
-                  hasSponsoredHero && "lg:w-[58px]",
+                  "relative border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:w-[88px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
+                  hasSponsoredHero && "lg:w-[72px]",
                 )}
               >
                 <div
                   className={cn(
-                    "grid grid-cols-3 gap-[0.5px] bg-border/70 p-[0.5px] lg:grid-cols-1 lg:gap-0 lg:bg-transparent lg:p-3",
-                    hasSponsoredHero && "lg:p-2",
+                    "grid grid-cols-5 gap-1 p-2 lg:h-full lg:grid-cols-1 lg:grid-rows-5 lg:gap-0 lg:bg-transparent",
+                    hasSponsoredHero && "lg:p-1.5",
                   )}
                 >
                   {LANDING_SEARCH_CATEGORY_ORDER.map((category) => {
                     const config = CATEGORY_CONFIG[category];
-                    const Icon = config.icon;
                     const isActive = activeCategory === category;
 
                     return (
@@ -834,21 +831,39 @@ export function HeroSearch({
                         key={category}
                         type="button"
                         onClick={() => setActiveCategory(category)}
-                        className={`flex min-h-[45px] items-center justify-center bg-white transition ${
+                        className={`group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] px-1 transition-[background-color,color,transform] duration-300 active:scale-[0.98] lg:h-full lg:min-h-0 ${
                           isActive
-                            ? "text-primary shadow-[inset_0_0_0_1px_rgb(var(--primary-rgb)/0.12)]"
-                            : "text-[#7b8190] hover:text-[#202224]"
-                        } lg:h-[45px] lg:rounded-[12px] ${hasSponsoredHero ? "lg:h-[40px]" : ""}`}
+                            ? "bg-primary/[0.07] text-primary"
+                            : "text-[#737b8c] hover:bg-white hover:text-[#202224]"
+                        }`}
                         aria-pressed={isActive}
+                        aria-label={config.label}
                         title={config.label}
                       >
-                        <Icon
+                        <span
                           className={cn(
-                            "h-6 w-6 sm:h-7 sm:w-7",
-                            hasSponsoredHero && "lg:h-5 lg:w-5",
+                            "flex h-8 w-11 items-center justify-center rounded-[10px] border border-white/80 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_3px_8px_rgba(31,41,55,0.08)] transition-[transform,border-color,background-color] duration-300 group-hover:-translate-y-px",
+                            isActive &&
+                              "border-primary/20 bg-primary/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_10px_rgb(var(--primary-rgb)/0.14)]",
+                            hasSponsoredHero && "lg:w-10",
                           )}
-                          strokeWidth={1.7}
-                        />
+                        >
+                          <VehicleCategoryIcon
+                            category={category}
+                            className={cn(
+                              "h-6 w-8",
+                              hasSponsoredHero && "lg:h-5 lg:w-7",
+                            )}
+                          />
+                        </span>
+                        <span
+                          className={cn(
+                            "max-w-full truncate text-[10px] font-semibold leading-none tracking-[-0.01em]",
+                            hasSponsoredHero && "lg:text-[9px]",
+                          )}
+                        >
+                          {CATEGORY_SHORT_LABELS[category]}
+                        </span>
                       </button>
                     );
                   })}

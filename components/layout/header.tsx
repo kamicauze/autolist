@@ -58,13 +58,13 @@ function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory 
     <div className="hidden xl:block border-b border-gray-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <div className="flex min-h-9 items-center justify-between gap-4">
-          <nav className="flex items-center gap-2 text-[12px]">
+          <nav className="flex items-center gap-2 text-[13px]">
             {VEHICLE_TYPE_NAVIGATION_ITEMS.map((type) => (
               <Link
                 key={type.name}
                 href={type.href}
                 className={cn(
-                  "border-b-2 px-2 py-2 font-medium text-gray-500 transition-colors hover:text-gray-900",
+                  "border-b-2 px-2 py-2 font-semibold tracking-[-0.01em] text-gray-600 transition-colors hover:text-gray-900",
                   activeCategory === type.category
                     ? "border-primary text-primary"
                     : "border-transparent"
@@ -268,7 +268,7 @@ export function Header() {
                         setOpenMenu((current) => (current === item.key ? null : item.key));
                       }}
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-gray-700 transition-colors hover:text-gray-900",
+                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-gray-700 transition-colors hover:text-gray-900",
                         isOpen && "text-gray-900"
                       )}
                     >
@@ -304,7 +304,7 @@ export function Header() {
                     }
                   }}
                   className={cn(
-                    "rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:text-gray-900",
+                    "rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] transition-colors hover:text-gray-900",
                     pathname === item.href ? "text-primary" : "text-gray-700"
                   )}
                 >
