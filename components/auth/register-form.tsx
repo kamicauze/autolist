@@ -23,6 +23,11 @@ import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import {
+  getRegistrationErrorMessage,
+  RegistrationRequestTimeoutError,
+  withRegistrationRequestTimeout,
+} from "@/lib/supabase/registration-request";
+import {
   inferMarketplaceRoleFromNextPath,
   sanitizeNextPath,
 } from "@/lib/supabase/auth-routing";
@@ -121,52 +126,67 @@ export function RegisterForm() {
 
     setIsLoading(true);
 
-    const supabase = createClient();
-    const normalizedEmail = normalizeAuthEmail(email);
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: {
-        emailRedirectTo: getAuthCallbackUrl(nextPath),
-        data: {
-          full_name: fullName.trim(),
-          intended_role: selectedRole,
-        },
-      },
-    });
+    const progressTimer = window.setTimeout(() => {
+      setInfoMessage("Still creating your account. Keep this page open while we finish.");
+    }, 5_000);
 
-    if (error) {
-      setErrorMessage(error.message);
-      setIsLoading(false);
-      return;
-    }
-
-    if (data.user && data.session) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName.trim(),
-          role: selectedRole,
+    try {
+      const supabase = createClient();
+      const normalizedEmail = normalizeAuthEmail(email);
+      const { data, error } = await withRegistrationRequestTimeout(
+        supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            emailRedirectTo: getAuthCallbackUrl(nextPath),
+            data: {
+              full_name: fullName.trim(),
+              intended_role: selectedRole,
+            },
+          },
         })
-        .eq("id", data.user.id);
+      );
 
-      if (profileError) {
-        setErrorMessage(profileError.message);
-        setIsLoading(false);
+      if (error) {
+        setErrorMessage(getRegistrationErrorMessage(error.message));
         return;
       }
-    }
 
-    if (data.session) {
-      router.replace(nextPath);
-      router.refresh();
-      return;
-    }
+      if (data.user && data.session) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: fullName.trim(),
+            role: selectedRole,
+          })
+          .eq("id", data.user.id);
 
-    setInfoMessage(
-      "Account created. Check your email to verify your account, then sign in to continue."
-    );
-    setIsLoading(false);
+        if (profileError) {
+          setErrorMessage(profileError.message);
+          return;
+        }
+      }
+
+      if (data.session) {
+        router.replace(nextPath);
+        router.refresh();
+        return;
+      }
+
+      setInfoMessage(
+        "Account created. Check your email to verify your account, then sign in to continue."
+      );
+    } catch (error) {
+      setInfoMessage(null);
+      setErrorMessage(
+        error instanceof RegistrationRequestTimeoutError
+          ? "Creating your account took too long. Your details are still here. Check your email before retrying, or try again when your connection is stable."
+          : "We could not reach the account service. Your details are still here, so you can try again."
+      );
+    } finally {
+      window.clearTimeout(progressTimer);
+      setIsLoading(false);
+    }
   };
 
   const handleSocialRegister = async (provider: SocialProvider) => {

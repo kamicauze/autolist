@@ -1,9 +1,27 @@
 import assert from "node:assert/strict";
 import {
   isMissingDealerDetailWorkflowColumn,
+  normalizeLegacyAdminDealerDocument,
   normalizeAdminDealerDetailRow,
   shouldIgnoreOptionalMissingHistoryError,
 } from "./admin-user-detail";
+
+assert.deepEqual(
+  normalizeLegacyAdminDealerDocument({
+    id: "document-1",
+    document_type: "incorporation_certificate",
+    file_url: "dealer-verification/document-1.pdf",
+    uploaded_at: "2026-09-09T00:00:00.000Z",
+  }),
+  {
+    id: "document-1",
+    document_type: "incorporation_certificate",
+    display_name: "Certificate of incorporation",
+    mime_type: null,
+    size_bytes: null,
+    created_at: "2026-09-09T00:00:00.000Z",
+  }
+);
 
 assert.equal(
   isMissingDealerDetailWorkflowColumn({

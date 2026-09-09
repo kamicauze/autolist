@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingDealerVerificationDocumentsStorageShape } from "@/lib/data/dealer-verification-schema";
 import type { AdminProfileRole } from "@/lib/data/admin";
 import {
   sortAdminUserActivityTimeline,
@@ -93,6 +94,13 @@ type DealerDocumentRow = {
   mime_type: string | null;
   size_bytes: number | null;
   created_at: string;
+};
+
+type LegacyDealerDocumentRow = {
+  id: string;
+  document_type: string;
+  file_url: string;
+  uploaded_at: string;
 };
 
 type ListingRelationRow = {
@@ -344,6 +352,78 @@ async function createAdminDetailClient() {
   return createOptionalAdminClient() ?? (await createClient());
 }
 
+function dealerDocumentDisplayName(documentType: string) {
+  const labels: Record<string, string> = {
+    company_logo: "Company logo",
+    contact_photo: "Contact person photo",
+    incorporation_certificate: "Certificate of incorporation",
+    contact_id: "Contact person ID",
+  };
+
+  return (
+    labels[documentType] ||
+    documentType
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ") ||
+    "Dealer document"
+  );
+}
+
+export function normalizeLegacyAdminDealerDocument(
+  document: LegacyDealerDocumentRow
+): DealerDocumentRow {
+  return {
+    id: document.id,
+    document_type: document.document_type,
+    display_name: dealerDocumentDisplayName(document.document_type),
+    mime_type: null,
+    size_bytes: null,
+    created_at: document.uploaded_at,
+  };
+}
+
+async function readDealerDocuments(
+  supabase: Awaited<ReturnType<typeof createAdminDetailClient>>,
+  dealerId: string,
+  errors: string[]
+) {
+  const richResult = await supabase
+    .from("dealer_verification_documents")
+    .select("id, document_type, display_name, mime_type, size_bytes, created_at")
+    .eq("dealer_id", dealerId)
+    .order("created_at", { ascending: false });
+
+  if (!richResult.error) {
+    return (richResult.data || []) as DealerDocumentRow[];
+  }
+
+  if (isMissingRelationError(richResult.error)) return [];
+
+  if (!isMissingDealerVerificationDocumentsStorageShape(richResult.error)) {
+    errors.push(`Dealer documents: ${richResult.error.message || "Unable to load records."}`);
+    return [];
+  }
+
+  const legacyResult = await supabase
+    .from("dealer_verification_documents")
+    .select("id, document_type, file_url, uploaded_at")
+    .eq("dealer_id", dealerId)
+    .order("uploaded_at", { ascending: false });
+
+  if (legacyResult.error) {
+    if (!isMissingRelationError(legacyResult.error)) {
+      errors.push(`Dealer documents: ${legacyResult.error.message || "Unable to load records."}`);
+    }
+    return [];
+  }
+
+  return ((legacyResult.data || []) as LegacyDealerDocumentRow[]).map(
+    normalizeLegacyAdminDealerDocument
+  );
+}
+
 function firstRelation<T>(value: T | T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
@@ -569,16 +649,7 @@ export const getAdminUserActivityData = cache(
       userAuditLogs,
     ] = await Promise.all([
       dealer
-        ? readRows<DealerDocumentRow>(
-            supabase
-              .from("dealer_verification_documents")
-              .select("id, document_type, display_name, mime_type, size_bytes, created_at")
-              .eq("dealer_id", dealer.id)
-              .order("created_at", { ascending: false }),
-            "Dealer documents",
-            errors,
-            true
-          )
+        ? readDealerDocuments(supabase, dealer.id, errors)
         : Promise.resolve([]),
       readRows<EnquiryRow>(
         supabase
