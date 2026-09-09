@@ -36,6 +36,7 @@ import { nanoid } from "nanoid";
 
 import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
+import { getActiveSubscriptionPriorityBySellerId } from "@/lib/data/listings";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import { type SupabaseClient } from "@supabase/supabase-js";
 
@@ -1891,10 +1892,24 @@ export async function submitListingForReview(listingId: string) {
     }
 
     const newStatus = autoApproved ? 'active' : 'pending';
+    const priorityBySellerId = await getActiveSubscriptionPriorityBySellerId([listing.seller_id]);
+    const shouldFeatureFromSubscription = (priorityBySellerId.get(listing.seller_id) ?? 0) > 0;
+    const submissionUpdate: {
+        status: ListingStatus;
+        is_featured?: boolean;
+        updated_at: string;
+    } = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+    };
+
+    if (shouldFeatureFromSubscription) {
+        submissionUpdate.is_featured = true;
+    }
 
     const { data: updatedListing, error } = await writeSupabase
         .from('listings')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update(submissionUpdate)
         .eq('id', listingId)
         .eq('status', 'draft')
         .select('status')

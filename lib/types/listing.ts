@@ -98,6 +98,7 @@ export interface ListingFilters {
   driveType?: string | string[];
   sellerType?: "dealer" | "private";
   verifiedOnly?: boolean;
+  featured?: boolean;
   minMileage?: number;
   maxMileage?: number;
 }

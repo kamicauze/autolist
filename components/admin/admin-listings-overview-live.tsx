@@ -7,6 +7,8 @@ import {
   CarFront,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Gauge,
   Hash,
@@ -27,6 +29,10 @@ import {
 } from "@/components/admin/admin-ui";
 import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
 import type { AdminListingsOverviewData } from "@/lib/data/admin";
+import {
+  buildDashboardPaginationItems,
+  paginateDashboardItems,
+} from "@/lib/utils/dashboard-listing-pagination";
 import { getImageUrl } from "@/lib/utils/listings";
 
 function formatCurrency(amount: number, currency: string) {
@@ -67,6 +73,7 @@ function formatMileage(value: number | null) {
 const statusOptions = Object.entries(LISTING_STATUS_META) as Array<
   [ListingStatus, (typeof LISTING_STATUS_META)[ListingStatus]]
 >;
+const ADMIN_LISTINGS_PAGE_SIZE = 20;
 
 export function AdminListingsOverviewLive({ data }: { data: AdminListingsOverviewData }) {
   const [query, setQuery] = React.useState("");
@@ -74,6 +81,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
   const [sellerType, setSellerType] = React.useState<"all" | "Dealer" | "Private">("all");
   const [featured, setFeatured] = React.useState<"all" | "featured" | "standard">("all");
   const [expandedIds, setExpandedIds] = React.useState<string[]>([]);
+  const [currentPage, setCurrentPage] = React.useState(1);
 
   const filteredListings = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -108,6 +116,33 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
       return matchesQuery && matchesStatus && matchesSellerType && matchesFeatured;
     });
   }, [data.listings, featured, query, sellerType, status]);
+
+  const pagination = React.useMemo(
+    () => paginateDashboardItems(filteredListings, currentPage, ADMIN_LISTINGS_PAGE_SIZE),
+    [currentPage, filteredListings]
+  );
+  const paginationItems = React.useMemo(
+    () => buildDashboardPaginationItems(pagination.currentPage, pagination.totalPages),
+    [pagination.currentPage, pagination.totalPages]
+  );
+  const rangeStart =
+    filteredListings.length === 0
+      ? 0
+      : (pagination.currentPage - 1) * ADMIN_LISTINGS_PAGE_SIZE + 1;
+  const rangeEnd =
+    filteredListings.length === 0
+      ? 0
+      : rangeStart + pagination.items.length - 1;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [featured, query, sellerType, status]);
+
+  React.useEffect(() => {
+    if (currentPage !== pagination.currentPage) {
+      setCurrentPage(pagination.currentPage);
+    }
+  }, [currentPage, pagination.currentPage]);
 
   const hasActiveFilters =
     query.trim().length > 0 || status !== "all" || sellerType !== "all" || featured !== "all";
@@ -231,8 +266,12 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
         <div className="mb-3 flex items-center justify-between gap-3 text-[12px] text-[#6b7280]">
           <span>
-            Showing {filteredListings.length.toLocaleString("en-KE")} of{" "}
-            {data.listings.length.toLocaleString("en-KE")} loaded listings
+            {filteredListings.length === 0
+              ? "Showing 0 matching listings"
+              : `Showing ${rangeStart.toLocaleString("en-KE")}-${rangeEnd.toLocaleString("en-KE")} of ${filteredListings.length.toLocaleString("en-KE")} matching listings`}
+            {filteredListings.length === data.listings.length
+              ? null
+              : ` (${data.listings.length.toLocaleString("en-KE")} loaded)`}
           </span>
           {hasActiveFilters ? (
             <span className="font-medium text-primary">Filters active</span>
@@ -241,7 +280,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
         <AdminDataTable columns={["", "Listing", "Seller", "Status", "Price", "Created", "Actions"]}>
           {filteredListings.length > 0 ? (
-            filteredListings.map((listing) => {
+            pagination.items.map((listing) => {
               const isExpanded = expandedIds.includes(listing.id);
 
               return (
@@ -398,6 +437,61 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
             </tr>
           )}
         </AdminDataTable>
+
+        {pagination.totalPages > 1 ? (
+          <div className="mt-5 flex flex-col gap-3 border-t border-[#eef2f7] pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[12px] text-[#6b7280]">
+              Page {pagination.currentPage.toLocaleString("en-KE")} of{" "}
+              {pagination.totalPages.toLocaleString("en-KE")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={pagination.currentPage === 1}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-[#d1d5db] bg-white text-[#374151] transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Previous listings page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              {paginationItems.map((item, index) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${index}`}
+                    className="inline-flex h-9 w-9 items-center justify-center text-[13px] font-semibold text-[#9ca3af]"
+                  >
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setCurrentPage(item)}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-[8px] border text-[13px] font-semibold transition ${
+                      item === pagination.currentPage
+                        ? "border-primary bg-primary text-white"
+                        : "border-[#d1d5db] bg-white text-[#374151] hover:border-primary hover:text-primary"
+                    }`}
+                    aria-current={item === pagination.currentPage ? "page" : undefined}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(pagination.totalPages, page + 1))
+                }
+                disabled={pagination.currentPage === pagination.totalPages}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-[#d1d5db] bg-white text-[#374151] transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="Next listings page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </AdminSectionCard>
     </div>
   );

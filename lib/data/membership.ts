@@ -59,6 +59,12 @@ const SELLER_PACKAGE_PLAN_MAP = new Map(
   SELLER_PACKAGE_PLANS.map((plan) => [plan.id, plan])
 );
 
+export const SELLER_PACKAGE_FEATURED_PRIORITY: Record<SellerPackagePlanId, number> = {
+  enterprise: 300,
+  professional: 200,
+  basic: 100,
+};
+
 const MEMBERSHIP_DATE_FORMATTER = new Intl.DateTimeFormat("en-KE", {
   day: "2-digit",
   month: "short",
@@ -188,6 +194,11 @@ export function getSellerPackagePlan(planId: string | null | undefined) {
   }
 
   return SELLER_PACKAGE_PLAN_MAP.get(planId as SellerPackagePlanId) ?? null;
+}
+
+export function getSellerPackageFeaturedPriority(planId: string | null | undefined) {
+  const plan = getSellerPackagePlan(planId);
+  return plan ? SELLER_PACKAGE_FEATURED_PRIORITY[plan.id] : 0;
 }
 
 export function isSellerPackageEntitlementActive(

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  SELLER_PACKAGE_FEATURED_PRIORITY,
   SELLER_PACKAGE_PLANS,
+  getSellerPackageFeaturedPriority,
   isDealerMembershipAccountRole,
 } from "./membership";
 
@@ -37,4 +39,16 @@ test("dealer membership access fails closed for private and unknown roles", () =
   assert.equal(isDealerMembershipAccountRole("buyer"), false);
   assert.equal(isDealerMembershipAccountRole(null), false);
   assert.equal(isDealerMembershipAccountRole(undefined), false);
+});
+
+test("featured listing priority follows subscription tier", () => {
+  assert.deepEqual(SELLER_PACKAGE_FEATURED_PRIORITY, {
+    enterprise: 300,
+    professional: 200,
+    basic: 100,
+  });
+  assert.equal(getSellerPackageFeaturedPriority("enterprise"), 300);
+  assert.equal(getSellerPackageFeaturedPriority("professional"), 200);
+  assert.equal(getSellerPackageFeaturedPriority("basic"), 100);
+  assert.equal(getSellerPackageFeaturedPriority("unknown"), 0);
 });

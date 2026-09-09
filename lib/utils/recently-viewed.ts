@@ -1,5 +1,5 @@
 const STORAGE_KEY = "autolist-recently-viewed";
-const MAX_ITEMS = 12;
+const MAX_ITEMS = 100;
 
 export function getRecentlyViewedIds(): string[] {
   if (typeof window === "undefined") {

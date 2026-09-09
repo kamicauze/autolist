@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
+import { getSellerPackageFeaturedPriority } from "@/lib/data/membership";
 import { inferBodyTypesFromText, normalizeBodyTypeValue } from "@/lib/utils/body-type";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
@@ -39,6 +41,12 @@ const PLANT_CONSTRUCTION_CATEGORY_PATTERN =
   /\b(excavator|loader|forklift|telehandler|construction|plant equipment|crane|dozer|grader|roller|compactor|compressor|generator|dumper)\b/;
 const FARM_AGRICULTURAL_CATEGORY_PATTERN =
   /\b(farm|agricultural|harvester|plough|tractor\b|cultivator|sprayer|baler)\b/;
+const FEATURED_LISTING_PRIORITY_POOL_LIMIT = 100;
+
+type ActiveEntitlementPriorityRow = {
+  user_id: string;
+  plan_id: string;
+};
 
 export interface SearchListingFilters extends ListingFilters {
   /** Engine size bucket for motorbikes, formatted "min-max" (max optional), e.g. "150-500" or "1000-". */
@@ -171,6 +179,62 @@ function listingMatchesEngineCcRange(
   if (cc < range.min) return false;
   if (range.max != null && cc > range.max) return false;
   return true;
+}
+
+export async function getActiveSubscriptionPriorityBySellerId(sellerIds: string[]) {
+  const uniqueSellerIds = Array.from(new Set(sellerIds.filter(Boolean)));
+  if (uniqueSellerIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const adminSupabase = createOptionalAdminClient();
+  if (!adminSupabase) {
+    return new Map<string, number>();
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await adminSupabase
+    .from("seller_package_entitlements")
+    .select("user_id, plan_id")
+    .in("user_id", uniqueSellerIds)
+    .eq("status", "active")
+    .lte("starts_at", now)
+    .gt("ends_at", now);
+
+  if (error) {
+    console.error("Error fetching featured listing subscription priority:", error);
+    return new Map<string, number>();
+  }
+
+  const priorityBySellerId = new Map<string, number>();
+  for (const row of (data || []) as ActiveEntitlementPriorityRow[]) {
+    priorityBySellerId.set(
+      row.user_id,
+      Math.max(
+        priorityBySellerId.get(row.user_id) ?? 0,
+        getSellerPackageFeaturedPriority(row.plan_id)
+      )
+    );
+  }
+
+  return priorityBySellerId;
+}
+
+export function sortFeaturedListingsBySubscriptionPriority(
+  listings: Listing[],
+  priorityBySellerId: Map<string, number>
+) {
+  return [...listings].sort((left, right) => {
+    const priorityDifference =
+      (priorityBySellerId.get(right.seller_id) ?? 0) -
+      (priorityBySellerId.get(left.seller_id) ?? 0);
+
+    if (priorityDifference !== 0) {
+      return priorityDifference;
+    }
+
+    return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+  });
 }
 
 function normalizeTaxonomyLabel(value: string) {
@@ -489,7 +553,7 @@ interface ListingQuery {
   gte(column: string, value: number): this;
   lte(column: string, value: number): this;
   in(column: string, values: string[]): this;
-  eq(column: string, value: string | number): this;
+  eq(column: string, value: string | number | boolean): this;
   not(column: string, operator: string, value: string | null): this;
   is(column: string, value: null): this;
 }
@@ -565,6 +629,9 @@ function applyListingFilters<TQuery extends ListingQuery>(
     nextQuery = nextQuery.not("dealer_id", "is", null);
   } else if (filters?.sellerType === "private") {
     nextQuery = nextQuery.is("dealer_id", null);
+  }
+  if (filters?.featured) {
+    nextQuery = nextQuery.eq("is_featured", true);
   }
   if (!options?.skipLocation && filters?.location) {
     nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "dealer.city", filters.location);
@@ -656,6 +723,11 @@ async function fetchListingsForDerivedFiltering({
 
 export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
   const supabase = await createClient();
+  const requestedLimit = Math.max(0, limit);
+  if (requestedLimit === 0) {
+    return [];
+  }
+  const poolLimit = Math.max(requestedLimit, FEATURED_LISTING_PRIORITY_POOL_LIMIT);
 
   const { data, error } = await supabase
     .from("listings")
@@ -668,14 +740,22 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
     .eq("status", "active")
     .eq("is_featured", true)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(poolLimit);
 
   if (error) {
     console.error("Error fetching featured listings:", error);
     return [];
   }
 
-  return data as Listing[];
+  const listings = (data || []) as Listing[];
+  const priorityBySellerId = await getActiveSubscriptionPriorityBySellerId(
+    listings.map((listing) => listing.seller_id)
+  );
+
+  return sortFeaturedListingsBySubscriptionPriority(listings, priorityBySellerId).slice(
+    0,
+    requestedLimit
+  );
 }
 
 export async function getNewestListings(limit = 8): Promise<Listing[]> {
@@ -791,7 +871,8 @@ export async function searchListings({
     requestedTruckMetadataFilters ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
-    Boolean(filters?.verifiedOnly);
+    Boolean(filters?.verifiedOnly) ||
+    Boolean(filters?.featured);
 
   if (requiresDerivedFiltering) {
     const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
@@ -819,6 +900,9 @@ export async function searchListings({
       processedListings = processedListings.filter((listing) =>
         listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
       );
+    }
+    if (filters?.featured) {
+      processedListings = processedListings.filter((listing) => listing.is_featured);
     }
     if (filters?.location) {
       processedListings = processedListings.filter((listing) =>
@@ -921,7 +1005,8 @@ export async function countMatchingListings(
     requestedTruckMetadataFilters ||
     Boolean(filters?.location) ||
     Boolean(filters?.category) ||
-    Boolean(filters?.verifiedOnly);
+    Boolean(filters?.verifiedOnly) ||
+    Boolean(filters?.featured);
 
   if (requiresDerivedFiltering) {
     const baseListings = await fetchListingsForDerivedFiltering({
@@ -952,6 +1037,9 @@ export async function countMatchingListings(
       processedListings = processedListings.filter((listing) =>
         listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
       );
+    }
+    if (filters?.featured) {
+      processedListings = processedListings.filter((listing) => listing.is_featured);
     }
     if (filters?.location) {
       processedListings = processedListings.filter((listing) =>

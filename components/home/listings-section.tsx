@@ -1,7 +1,14 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
+import {
+  getHomepageListingRailViewAllHref,
+  type HomepageListingRailTab,
+} from "@/lib/homepage-listing-rails";
 import type { Listing } from "@/lib/types/listing";
 import { getRotatedFeaturedListings } from "@/lib/utils/featured-listing-rotation";
 import {
@@ -30,6 +37,7 @@ export function ListingsSection({
   showTabs = true,
   content,
 }: ListingsSectionProps) {
+  const [activeTab, setActiveTab] = React.useState<HomepageListingRailTab>("featured");
   const sectionContent = content ?? DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT;
   const displayListings =
     featuredListings.length > 0 ? featuredListings : newestListings;
@@ -39,6 +47,7 @@ export function ListingsSection({
     sectionContent.featuredLimit
   );
   const tabsEnabled = showTabs && sectionContent.showTabs;
+  const viewAllHref = getHomepageListingRailViewAllHref(activeTab, isAuthenticated);
 
   return (
     <section className="py-12 md:py-16">
@@ -46,7 +55,7 @@ export function ListingsSection({
         {/* Header */}
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="h4">{title}</h2>
-          <Link href="/search" className="self-start sm:self-auto">
+          <Link href={viewAllHref} className="self-start sm:self-auto">
             <Button variant="ghost" className="gap-2">
               {sectionContent.viewAllLabel}
               <IconChevronRight className="h-4 w-4" />
@@ -55,7 +64,11 @@ export function ListingsSection({
         </div>
 
         {tabsEnabled ? (
-          <Tabs defaultValue="featured" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as HomepageListingRailTab)}
+            className="w-full"
+          >
             <div className="-mx-4 mb-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mb-6 sm:px-0 sm:pb-0">
               <TabsList className="h-auto min-w-max justify-start gap-2 bg-transparent p-0">
                 <TabsTrigger

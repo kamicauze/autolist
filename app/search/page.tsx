@@ -28,7 +28,7 @@ interface SearchPageProps {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
-  const limit = 12; // 4 columns x 3 rows
+  const limit = 20; // 4 columns x 5 rows
   const categoryParam = params.category as ListingCategory | undefined;
   const categoryConfig: LandingSearchCategoryConfig | null =
     categoryParam && categoryParam in LANDING_SEARCH_CATEGORY_CONFIG
@@ -72,6 +72,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     driveType: params.driveType as string,
     sellerType: params.sellerType as SearchListingFilters["sellerType"],
     verifiedOnly: params.verifiedOnly === "true",
+    featured: params.featured === "true",
     minMileage: params.minMileage ? Number(params.minMileage) : undefined,
     maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
     engineCc: params.engineCc as string,

@@ -3,7 +3,12 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
-import { getFeaturedListings, searchListings } from "@/lib/data/listings";
+import {
+  getActiveSubscriptionPriorityBySellerId,
+  getFeaturedListings,
+  searchListings,
+  sortFeaturedListingsBySubscriptionPriority,
+} from "@/lib/data/listings";
 import type { Listing } from "@/lib/types/listing";
 import type {
   AdminFeaturedListingPinsData,
@@ -179,6 +184,7 @@ export async function getActiveFeaturedListingPins(limit = 8): Promise<FeaturedL
     .select(FEATURED_LISTING_PIN_SELECT)
     .eq("status", "active")
     .eq("listing.status", "active")
+    .eq("listing.is_featured", true)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gt.${now}`)
     .order("sort_order", { ascending: true })
@@ -199,10 +205,21 @@ export async function getActiveFeaturedListingPins(limit = 8): Promise<FeaturedL
     return [];
   }
 
-  return ((data || []) as unknown as FeaturedListingPinRow[])
+  const pins = ((data || []) as unknown as FeaturedListingPinRow[])
     .map(mapFeaturedListingPinRow)
     .filter((pin): pin is FeaturedListingPin => Boolean(pin))
     .filter((pin) => pin.visibility === "live");
+  const priorityBySellerId = await getActiveSubscriptionPriorityBySellerId(
+    pins.map((pin) => pin.listing.seller_id)
+  );
+  const pinByListingId = new Map(pins.map((pin) => [pin.listing.id, pin]));
+
+  return sortFeaturedListingsBySubscriptionPriority(
+    pins.map((pin) => pin.listing),
+    priorityBySellerId
+  )
+    .map((listing) => pinByListingId.get(listing.id))
+    .filter((pin): pin is FeaturedListingPin => Boolean(pin));
 }
 
 export const getAdminFeaturedListingPinsData = cache(
