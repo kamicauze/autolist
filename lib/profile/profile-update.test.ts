@@ -16,6 +16,7 @@ const input = profileUpdateSchema.parse({
   city: " Nairobi ",
   address: " Waiyaki Way ",
   location: " Westlands ",
+  openingHours: " Mon–Fri 08:00–17:00 ",
   website: "https://ridgeway.example",
   facebook: "",
   twitter: "https://x.com/ridgeway",
@@ -58,6 +59,7 @@ test("maps public dealer fields and preserves unrelated dealer metadata", () => 
       website: "https://ridgeway.example",
       social_links: {
         business_hours: { monday: "08:00-17:00" },
+        opening_hours: "Mon–Fri 08:00–17:00",
         x: "https://x.com/ridgeway",
         instagram: "https://instagram.com/ridgeway",
         linkedin: "https://linkedin.com/company/ridgeway",

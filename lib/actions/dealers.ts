@@ -6,6 +6,11 @@ import { revalidatePath } from "next/cache";
 import { r2 } from "@/lib/r2";
 import { requireAdminAction } from "@/lib/admin/guard";
 import {
+  createDealerKycReference,
+  DEALER_KYC_BUCKET,
+  getDealerKycStoragePath,
+} from "@/lib/dealers/kyc-storage";
+import {
   isDealerVerificationDocumentsUnavailable,
   schemaErrorIncludes,
   type PostgrestSchemaError,
@@ -115,10 +120,10 @@ function assertFile(file: File | null, allowedTypes: Set<string>, label: string,
   }
 }
 
-async function uploadDealerFile(
+async function uploadDealerPublicFile(
   userId: string,
   file: File,
-  folder: "branding" | "contact" | "verification"
+  folder: "branding" | "contact"
 ) {
   if (!R2_BUCKET_NAME) {
     throw new Error("R2 bucket configuration is missing.");
@@ -148,6 +153,54 @@ async function uploadDealerFile(
     r2Key,
     sizeBytes: file.size,
   };
+}
+
+async function uploadDealerKycFile(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  file: File,
+  documentType: "incorporation_certificate" | "contact_id",
+) {
+  const extension = file.name.includes(".")
+    ? file.name.slice(file.name.lastIndexOf("."))
+    : "";
+  const baseName = extension ? file.name.slice(0, -extension.length) : file.name;
+  const storagePath = `${userId}/${documentType}/${Date.now()}-${nanoid(10)}-${sanitizeFileName(
+    `${baseName}${extension}`,
+  )}`;
+  const { error } = await admin.storage.from(DEALER_KYC_BUCKET).upload(
+    storagePath,
+    Buffer.from(await file.arrayBuffer()),
+    {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    },
+  );
+
+  if (error) {
+    throw new Error(`Unable to store ${file.name} securely: ${error.message}`);
+  }
+
+  return {
+    displayName: file.name,
+    mimeType: file.type || "application/octet-stream",
+    publicUrl: null,
+    r2Key: createDealerKycReference(storagePath),
+    sizeBytes: file.size,
+  };
+}
+
+async function removeDealerKycReferences(
+  admin: ReturnType<typeof createAdminClient>,
+  references: Array<string | null | undefined>,
+) {
+  const storagePaths = references
+    .map((reference) => (reference ? getDealerKycStoragePath(reference) : null))
+    .filter((path): path is string => Boolean(path));
+
+  if (storagePaths.length > 0) {
+    await admin.storage.from(DEALER_KYC_BUCKET).remove(storagePaths);
+  }
 }
 
 async function logAudit(
@@ -231,13 +284,18 @@ export async function submitDealerVerification(formData: FormData) {
 
     const [logoUpload, contactPhotoUpload, incorporationUpload, idUpload] =
       await Promise.all([
-        companyLogo ? uploadDealerFile(user.id, companyLogo, "branding") : Promise.resolve(null),
-        contactPhoto ? uploadDealerFile(user.id, contactPhoto, "contact") : Promise.resolve(null),
+        companyLogo ? uploadDealerPublicFile(user.id, companyLogo, "branding") : Promise.resolve(null),
+        contactPhoto ? uploadDealerPublicFile(user.id, contactPhoto, "contact") : Promise.resolve(null),
         incorporationCertificate
-          ? uploadDealerFile(user.id, incorporationCertificate, "verification")
+          ? uploadDealerKycFile(
+              adminSupabase,
+              user.id,
+              incorporationCertificate,
+              "incorporation_certificate",
+            )
           : Promise.resolve(null),
         contactPersonId
-          ? uploadDealerFile(user.id, contactPersonId, "verification")
+          ? uploadDealerKycFile(adminSupabase, user.id, contactPersonId, "contact_id")
           : Promise.resolve(null),
       ]);
 
@@ -325,6 +383,10 @@ export async function submitDealerVerification(formData: FormData) {
     }
 
     if (dealerError || !dealer) {
+      await removeDealerKycReferences(adminSupabase, [
+        incorporationUpload?.r2Key,
+        idUpload?.r2Key,
+      ]);
       return { error: dealerError?.message || "Unable to save the dealer profile." };
     }
 
@@ -505,7 +567,7 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
 
     const { data: existingDocuments, error: documentsError } = await adminSupabase
       .from("dealer_verification_documents")
-      .select("document_type")
+      .select("document_type, r2_key")
       .eq("dealer_id", dealer.id);
 
     if (documentsError && !isMissingDealerVerificationDocumentsTable(documentsError)) {
@@ -513,7 +575,10 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
     }
 
     const existingDocumentTypes = new Set(
-      ((existingDocuments || []) as Array<{ document_type: DealerVerificationDocumentType }>).map(
+      ((existingDocuments || []) as Array<{
+        document_type: DealerVerificationDocumentType;
+        r2_key: string;
+      }>).map(
         (document) => document.document_type
       )
     );
@@ -536,13 +601,18 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
 
     const [logoUpload, contactPhotoUpload, incorporationUpload, idUpload] =
       await Promise.all([
-        companyLogo ? uploadDealerFile(user.id, companyLogo, "branding") : Promise.resolve(null),
-        contactPhoto ? uploadDealerFile(user.id, contactPhoto, "contact") : Promise.resolve(null),
+        companyLogo ? uploadDealerPublicFile(user.id, companyLogo, "branding") : Promise.resolve(null),
+        contactPhoto ? uploadDealerPublicFile(user.id, contactPhoto, "contact") : Promise.resolve(null),
         incorporationCertificate
-          ? uploadDealerFile(user.id, incorporationCertificate, "verification")
+          ? uploadDealerKycFile(
+              adminSupabase,
+              user.id,
+              incorporationCertificate,
+              "incorporation_certificate",
+            )
           : Promise.resolve(null),
         contactPersonId
-          ? uploadDealerFile(user.id, contactPersonId, "verification")
+          ? uploadDealerKycFile(adminSupabase, user.id, contactPersonId, "contact_id")
           : Promise.resolve(null),
       ]);
 
@@ -692,6 +762,16 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
         return { error: updateError.message };
       }
     }
+
+    await removeDealerKycReferences(
+      adminSupabase,
+      ((existingDocuments || []) as Array<{
+        document_type: DealerVerificationDocumentType;
+        r2_key: string;
+      }>)
+        .filter((document) => uploadedTypes.includes(document.document_type))
+        .map((document) => document.r2_key),
+    );
 
     await logAudit(
       user.id,

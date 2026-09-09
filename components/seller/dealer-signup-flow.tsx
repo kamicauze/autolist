@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -708,7 +709,18 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 onChange={(event) => updateField("acceptDealerTerms", event.target.checked)}
                 data-testid="dealer-accept-terms"
               />
-              I agree to Dealer Terms & Conditions *
+              <span>
+                I agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Dealer Terms &amp; Conditions
+                </Link>{" "}
+                *
+              </span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -717,7 +729,18 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 onChange={(event) => updateField("acceptPrivacyPolicy", event.target.checked)}
                 data-testid="dealer-accept-privacy"
               />
-              I agree to Data & Privacy Policy *
+              <span>
+                I agree to the{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Data &amp; Privacy Policy
+                </Link>{" "}
+                *
+              </span>
             </label>
           </div>
         </div>

@@ -44,6 +44,7 @@ export const profileUpdateSchema = z.object({
   city: z.string().trim().max(160),
   address: z.string().trim().max(300),
   location: z.string().trim().max(200),
+  openingHours: z.string().trim().max(500),
   website: optionalHttpUrl,
   facebook: optionalHttpUrl,
   twitter: optionalHttpUrl,
@@ -113,6 +114,7 @@ export function buildDealerPublicProfileUpdate(
     x: input.twitter,
     tiktok: input.tiktok,
     other: input.otherSocial,
+    opening_hours: input.openingHours,
   };
 
   for (const [key, value] of Object.entries(managedSocialLinks)) {

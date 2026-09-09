@@ -112,7 +112,9 @@ function toHoursRows(value: unknown): DealerHoursRow[] {
     .filter((entry): entry is DealerHoursRow => Boolean(entry));
 }
 
-function getDealerHoursPresentation(socialLinks?: Record<string, unknown> | null) {
+export function getDealerHoursPresentation(
+  socialLinks?: Record<string, unknown> | null,
+) {
   const hoursSource = DEALER_HOURS_KEYS
     .map((key) => socialLinks?.[key])
     .find((value) => value != null);

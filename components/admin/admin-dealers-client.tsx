@@ -11,7 +11,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { approveDealer, rejectDealer } from "@/lib/actions/dealers";
-import { getImageUrl } from "@/lib/utils/listings";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -241,7 +240,17 @@ export function AdminDealersClient({
                     </p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {dealer.documents.map((document) => {
-                        const url = getImageUrl(document.r2_key);
+                        const url = document.review_url;
+                        if (!url) {
+                          return (
+                            <div
+                              key={document.id}
+                              className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-500"
+                            >
+                              {document.display_name} is not available for review.
+                            </div>
+                          );
+                        }
                         return (
                           <a
                             key={document.id}

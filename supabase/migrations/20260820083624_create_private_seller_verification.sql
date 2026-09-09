@@ -42,6 +42,23 @@ create table if not exists public.seller_phone_verification_challenges (
   updated_at timestamp with time zone not null default timezone('utc'::text, now())
 );
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'seller_verification_documents_profile_verification_fkey'
+      and conrelid = 'public.seller_verification_documents'::regclass
+  ) then
+    alter table public.seller_verification_documents
+      add constraint seller_verification_documents_profile_verification_fkey
+      foreign key (profile_id)
+      references public.seller_verifications(profile_id)
+      on delete cascade;
+  end if;
+end
+$$;
+
 create index if not exists seller_verifications_review_queue_idx
   on public.seller_verifications (status, submitted_at)
   where status = 'pending';
@@ -84,8 +101,8 @@ create policy "Verification admins view seller verification document metadata."
     or public.has_permission((select auth.uid()), 'admin.manage_dealers')
   );
 
-revoke all on public.seller_verifications from public, anon;
-revoke all on public.seller_verification_documents from public, anon;
+revoke all on public.seller_verifications from public, anon, authenticated;
+revoke all on public.seller_verification_documents from public, anon, authenticated;
 revoke all on public.seller_phone_verification_challenges from public, anon, authenticated;
 grant select on public.seller_verifications to authenticated;
 grant select on public.seller_verification_documents to authenticated;

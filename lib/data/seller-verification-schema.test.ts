@@ -28,6 +28,10 @@ test("seller KYC storage stays private and metadata is protected by RLS", () => 
     /revoke all on public\.seller_phone_verification_challenges from public, anon, authenticated/,
   );
   assert.doesNotMatch(migration, /on\s+storage\.objects/i);
+  assert.match(
+    migration,
+    /seller_verification_documents_profile_verification_fkey/,
+  );
 });
 
 test("phone OTPs are digested, bounded, and restricted to stored private sellers", () => {
@@ -43,4 +47,11 @@ test("pending and approved verification records are immutable to the seller", ()
   assert.match(actions, /data\.status === "pending"/);
   assert.match(actions, /data\.status === "approved"/);
   assert.match(actions, /ensureEditableSellerVerification/);
+});
+
+test("seller submission and approval require both national ID sides", () => {
+  const requiredSides = actions.match(/!documentTypes\.has\("national_id_(front|back)"\)/g);
+  assert.equal(requiredSides?.length, 4);
+  assert.match(actions, /Upload both sides of your national ID before submitting KYC/);
+  assert.match(actions, /Both sides of the seller national ID are required/);
 });

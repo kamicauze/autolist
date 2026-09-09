@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  createDealerKycReviewUrl,
+  getDealerKycStoragePath,
+} from "@/lib/dealers/kyc-storage";
 import { isDealerVerificationSchemaMismatch } from "@/lib/data/dealer-verification-schema";
+import { getImageUrl } from "@/lib/utils/listings";
 import type { Listing } from "@/lib/types/listing";
 import type {
   DealerProfile,
@@ -171,6 +176,41 @@ function normalizeDealerVerificationRecord(record: DealerVerificationRecord | nu
   };
 }
 
+function isPrivateDealerDocument(document: DealerVerificationDocument) {
+  return (
+    document.document_type === "incorporation_certificate" ||
+    document.document_type === "contact_id"
+  );
+}
+
+async function addDealerDocumentReviewUrls(
+  record: DealerVerificationRecord | null,
+): Promise<DealerVerificationRecord | null> {
+  const normalized = normalizeDealerVerificationRecord(record);
+  if (!normalized) return null;
+
+  return {
+    ...normalized,
+    documents: await Promise.all(
+      normalized.documents.map(async (document) => {
+        const isPrivateReference = Boolean(
+          getDealerKycStoragePath(document.r2_key),
+        );
+        const signedUrl = isPrivateDealerDocument(document) && isPrivateReference
+          ? await createDealerKycReviewUrl(document.r2_key)
+          : null;
+
+        return {
+          ...document,
+          review_url:
+            signedUrl ||
+            (isPrivateReference ? null : getImageUrl(document.r2_key)),
+        };
+      }),
+    ),
+  };
+}
+
 export async function getMyDealerVerification(): Promise<DealerVerificationRecord | null> {
   const supabase = await createClient();
   const {
@@ -203,7 +243,7 @@ export async function getMyDealerVerification(): Promise<DealerVerificationRecor
     return null;
   }
 
-  return normalizeDealerVerificationRecord(data as DealerVerificationRecord | null);
+  return addDealerDocumentReviewUrls(data as DealerVerificationRecord | null);
 }
 
 export async function getPendingDealerVerifications(): Promise<DealerVerificationRecord[]> {
@@ -223,7 +263,7 @@ export async function getPendingDealerVerifications(): Promise<DealerVerificatio
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role !== "admin") {
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
     return [];
   }
 
@@ -253,7 +293,13 @@ export async function getPendingDealerVerifications(): Promise<DealerVerificatio
     return [];
   }
 
-  return ((data || []) as DealerVerificationRecord[]).map((record) =>
-    normalizeDealerVerificationRecord(record)
-  ).filter((record): record is DealerVerificationRecord => Boolean(record));
+  const records = await Promise.all(
+    ((data || []) as DealerVerificationRecord[]).map((record) =>
+      addDealerDocumentReviewUrls(record),
+    ),
+  );
+
+  return records.filter(
+    (record): record is DealerVerificationRecord => Boolean(record),
+  );
 }

@@ -28,10 +28,12 @@ interface RecommendedCarsProps {
   favoriteListingIds?: string[];
 }
 
+const EMPTY_FAVORITE_LISTING_IDS: string[] = [];
+
 export function RecommendedCars({
   listings,
   sidebarMode = false,
-  favoriteListingIds = [],
+  favoriteListingIds = EMPTY_FAVORITE_LISTING_IDS,
 }: RecommendedCarsProps) {
   const router = useRouter();
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();

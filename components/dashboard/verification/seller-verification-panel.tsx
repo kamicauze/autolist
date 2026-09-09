@@ -37,17 +37,17 @@ const DOCUMENTS: Array<{
 }> = [
   {
     type: "national_id_front",
-    title: "ID document",
+    title: "National ID front",
     description:
-      "Upload the front of your national ID, passport, or a PDF containing the complete document.",
+      "Upload a clear image or PDF of the front of your national ID.",
     required: true,
   },
   {
     type: "national_id_back",
-    title: "Reverse side",
+    title: "National ID back",
     description:
-      "Add the reverse side when the document has important information on both sides.",
-    required: false,
+      "Upload a clear image or PDF of the back of your national ID.",
+    required: true,
   },
 ];
 
@@ -111,15 +111,20 @@ export function SellerVerificationPanel({
   const [error, setError] = React.useState<string | null>(null);
 
   const meta = statusMeta(record?.status || "draft");
-  const hasId = Boolean(
+  const hasIdFront = Boolean(
     record?.documents.some(
       (document) => document.document_type === "national_id_front",
+    ),
+  );
+  const hasIdBack = Boolean(
+    record?.documents.some(
+      (document) => document.document_type === "national_id_back",
     ),
   );
   const phoneVerified = Boolean(record?.phone && record.phone_verified_at);
   const locked = record?.status === "pending" || record?.status === "approved";
   const canSubmit =
-    verification.setupAvailable && hasId && phoneVerified && !locked;
+    verification.setupAvailable && hasIdFront && hasIdBack && phoneVerified && !locked;
 
   function clearFeedback() {
     setMessage(null);
@@ -264,8 +269,8 @@ export function SellerVerificationPanel({
           </div>
           <div className="flex shrink-0 gap-2">
             <SellerStatusPill
-              label={hasId ? "ID uploaded" : "ID required"}
-              tone={hasId ? "green" : "amber"}
+              label={hasIdFront && hasIdBack ? "ID uploaded" : "ID sides required"}
+              tone={hasIdFront && hasIdBack ? "green" : "amber"}
             />
             <SellerStatusPill
               label={phoneVerified ? "Phone verified" : "Phone required"}

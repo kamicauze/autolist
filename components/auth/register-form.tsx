@@ -91,6 +91,8 @@ export function RegisterForm() {
   const [socialLoading, setSocialLoading] = React.useState<SocialProvider | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [acceptTerms, setAcceptTerms] = React.useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
 
   React.useEffect(() => {
     setSelectedRole(initialRole);
@@ -133,6 +135,11 @@ export function RegisterForm() {
       return;
     }
 
+    if (!acceptTerms || !acceptPrivacy) {
+      setErrorMessage("Accept the Terms and Privacy Policy before creating your account.");
+      return;
+    }
+
     setIsLoading(true);
 
     const progressTimer = window.setTimeout(() => {
@@ -151,6 +158,8 @@ export function RegisterForm() {
             data: {
               full_name: fullName.trim(),
               intended_role: selectedRole,
+              terms_accepted_at: new Date().toISOString(),
+              privacy_accepted_at: new Date().toISOString(),
             },
           },
         })
@@ -201,6 +210,12 @@ export function RegisterForm() {
   const handleSocialRegister = async (provider: SocialProvider) => {
     setErrorMessage(null);
     setInfoMessage(null);
+
+    if (!acceptTerms || !acceptPrivacy) {
+      setErrorMessage("Accept the Terms and Privacy Policy before creating your account.");
+      return;
+    }
+
     setSocialLoading(provider);
 
     const supabase = createClient();
@@ -511,6 +526,60 @@ export function RegisterForm() {
           </label>
         </div>
       </div>
+
+      <fieldset className="space-y-3 rounded-[18px] border border-[#eef2f7] bg-white p-4">
+        <legend className="px-1 text-sm font-semibold text-[#24272C]">
+          Agreements
+        </legend>
+        <label className="flex items-start gap-3 text-sm leading-5 text-[#555d68]">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(event) => {
+              setAcceptTerms(event.target.checked);
+              setErrorMessage(null);
+            }}
+            className="mt-1 h-4 w-4 rounded border-[#cbd5e1] text-primary accent-primary"
+            data-testid="register-accept-terms"
+          />
+          <span>
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-primary hover:underline"
+            >
+              Terms and Conditions
+            </Link>
+            .
+          </span>
+        </label>
+        <label className="flex items-start gap-3 text-sm leading-5 text-[#555d68]">
+          <input
+            type="checkbox"
+            checked={acceptPrivacy}
+            onChange={(event) => {
+              setAcceptPrivacy(event.target.checked);
+              setErrorMessage(null);
+            }}
+            className="mt-1 h-4 w-4 rounded border-[#cbd5e1] text-primary accent-primary"
+            data-testid="register-accept-privacy"
+          />
+          <span>
+            I agree to the{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-primary hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+      </fieldset>
 
       {errorMessage && (
         <div

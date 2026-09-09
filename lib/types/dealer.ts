@@ -14,6 +14,7 @@ export interface DealerSocialLinks {
   x?: string;
   tiktok?: string;
   other?: string;
+  opening_hours?: string;
   [key: string]: string | undefined;
 }
 
@@ -63,6 +64,7 @@ export interface DealerVerificationDocument {
   mime_type: string | null;
   size_bytes: number | null;
   created_at: string;
+  review_url?: string | null;
 }
 
 export interface DealerVerificationRecord extends DealerProfile {

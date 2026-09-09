@@ -590,12 +590,16 @@ export async function submitSellerVerification() {
     if (!verification?.phone || !verification.phone_verified_at) {
       return { error: "Verify your phone number before submitting KYC." };
     }
+    const documentTypes = new Set(
+      (documents || []).map((document) => document.document_type),
+    );
     if (
-      !(documents || []).some(
-        (document) => document.document_type === "national_id_front",
-      )
+      !documentTypes.has("national_id_front") ||
+      !documentTypes.has("national_id_back")
     ) {
-      return { error: "Upload your ID document before submitting KYC." };
+      return {
+        error: "Upload both sides of your national ID before submitting KYC.",
+      };
     }
     if (verification.status === "approved") {
       return { error: "This seller account is already verified." };
@@ -669,12 +673,14 @@ export async function approveSellerVerification(
   if (!verification.phone_verified_at) {
     return { error: "The seller phone number is not verified." };
   }
+  const documentTypes = new Set(
+    (documents || []).map((document) => document.document_type),
+  );
   if (
-    !(documents || []).some(
-      (document) => document.document_type === "national_id_front",
-    )
+    !documentTypes.has("national_id_front") ||
+    !documentTypes.has("national_id_back")
   ) {
-    return { error: "The seller ID document is missing." };
+    return { error: "Both sides of the seller national ID are required." };
   }
 
   const reviewedAt = new Date().toISOString();

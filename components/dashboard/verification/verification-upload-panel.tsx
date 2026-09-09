@@ -17,7 +17,6 @@ import type {
   DealerVerificationDocument,
   DealerVerificationRecord,
 } from "@/lib/types/dealer";
-import { getImageUrl } from "@/lib/utils/listings";
 import { cn } from "@/lib/utils";
 import {
   sellerGhostButtonClass,
@@ -175,9 +174,9 @@ export function VerificationUploadPanel({
                 </div>
               </div>
 
-              {currentDocument ? (
+              {currentDocument?.review_url ? (
                 <a
-                  href={getImageUrl(currentDocument.r2_key)}
+                  href={currentDocument.review_url}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-4 flex items-center justify-between gap-3 rounded-[14px] border border-[#e6e6e6] bg-white px-3 py-3 text-[13px] transition hover:border-primary/30"

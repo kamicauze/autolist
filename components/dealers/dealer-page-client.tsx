@@ -22,6 +22,7 @@ import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
+import { getDealerHoursPresentation } from "@/components/vehicle/seller-card";
 
 interface DealerPageClientProps {
   dealer: DealerProfile;
@@ -114,6 +115,7 @@ function DealerSidebar({
     buildGoogleMapsQuery([dealer.address, dealer.location, dealer.city, "Kenya"]) ||
     "Nairobi, Kenya";
   const mapUrl = getGoogleMapsSearchUrl(locationLabel);
+  const businessHours = getDealerHoursPresentation(dealer.social_links);
 
   return (
     <aside className="space-y-5">
@@ -140,18 +142,18 @@ function DealerSidebar({
 
         <div className="mt-5 space-y-2 text-sm">
           <h4 className="font-semibold text-gray-900">Business hours</h4>
-          <div className="flex items-center justify-between text-gray-600">
-            <span>Mon - Fri:</span>
-            <span>06:00 AM - 09:00 PM</span>
-          </div>
-          <div className="flex items-center justify-between text-gray-600">
-            <span>Sat - Sun:</span>
-            <span>07:00 AM - 07:00 PM</span>
-          </div>
-          <div className="flex items-center justify-between text-gray-600">
-            <span>Holiday:</span>
-            <span>Closed</span>
-          </div>
+          {businessHours.rows.map((row) => (
+            <div
+              key={`${row.label}-${row.value}`}
+              className="flex items-start justify-between gap-3 text-gray-600"
+            >
+              <span>{row.label}:</span>
+              <span className="text-right">{row.value}</span>
+            </div>
+          ))}
+          {businessHours.note ? (
+            <p className="text-xs leading-5 text-gray-500">{businessHours.note}</p>
+          ) : null}
         </div>
 
         <div className="mt-5 border-t border-gray-100 pt-4">

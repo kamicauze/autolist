@@ -52,6 +52,7 @@ type SellerProfileFormState = {
   city: string;
   address: string;
   location: string;
+  openingHours: string;
   website: string;
   facebook: string;
   twitter: string;
@@ -225,6 +226,10 @@ export function ProfileForm({
     city: approvedDealer?.city || profile?.city || "",
     address: approvedDealer?.address || profile?.address || "",
     location: approvedDealer?.location || "",
+    openingHours:
+      typeof approvedDealer?.social_links?.opening_hours === "string"
+        ? approvedDealer.social_links.opening_hours
+        : "",
     website: approvedDealer?.website || profile?.website || "",
     facebook: approvedDealer?.social_links?.facebook || profile?.facebook_url || "",
     twitter: approvedDealer?.social_links?.x || profile?.twitter_url || "",
@@ -272,6 +277,7 @@ export function ProfileForm({
       city: form.city.trim(),
       address: form.address.trim(),
       location: form.location.trim(),
+      openingHours: form.openingHours.trim(),
       website: form.website.trim(),
       facebook: form.facebook.trim(),
       twitter: form.twitter.trim(),
@@ -504,6 +510,25 @@ export function ProfileForm({
                   placeholder="Describe the kind of vehicles you sell and what buyers should know."
                 />
               </div>
+
+              {isApprovedDealerOwner ? (
+                <div>
+                  <label htmlFor="profile-opening-hours" className={sellerLabelClass}>
+                    Opening Hours
+                  </label>
+                  <textarea
+                    id="profile-opening-hours"
+                    value={form.openingHours}
+                    onChange={(event) => update("openingHours", event.target.value)}
+                    className={sellerTextareaClass}
+                    placeholder="Mon–Fri 08:00–17:00; Sat 09:00–14:00; Sun closed"
+                    data-testid="profile-opening-hours"
+                  />
+                  <p className="mt-2 text-[12px] leading-5 text-[#7d7d7d]">
+                    These hours appear on your public dealer profile and vehicle listings.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>

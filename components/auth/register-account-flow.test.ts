@@ -52,3 +52,13 @@ test("Private seller remains presentation copy over the existing seller role val
   assert.match(onboarding, /Private seller profile saved/);
   assert.doesNotMatch(onboarding, /title: "Seller"/);
 });
+
+test("account creation requires readable Terms and Privacy consent", () => {
+  assert.match(form, /data-testid="register-accept-terms"/);
+  assert.match(form, /data-testid="register-accept-privacy"/);
+  assert.match(form, /href="\/terms"[\s\S]*?target="_blank"/);
+  assert.match(form, /href="\/privacy"[\s\S]*?target="_blank"/);
+  assert.match(form, /if \(!acceptTerms \|\| !acceptPrivacy\)/);
+  assert.match(form, /terms_accepted_at: new Date\(\)\.toISOString\(\)/);
+  assert.match(form, /privacy_accepted_at: new Date\(\)\.toISOString\(\)/);
+});
