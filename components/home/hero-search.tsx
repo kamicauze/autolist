@@ -831,7 +831,7 @@ export function HeroSearch({
                         key={category}
                         type="button"
                         onClick={() => setActiveCategory(category)}
-                        className={`group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] px-1 transition-[background-color,color,transform] duration-300 active:scale-[0.98] lg:h-full lg:min-h-0 ${
+                        className={`group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] px-1 transition-[background-color,color,transform] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 active:scale-[0.98] lg:h-full lg:min-h-0 ${
                           isActive
                             ? "bg-primary/[0.07] text-primary"
                             : "text-[#737b8c] hover:bg-white hover:text-[#202224]"

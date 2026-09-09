@@ -64,7 +64,7 @@ function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory 
                 key={type.name}
                 href={type.href}
                 className={cn(
-                  "border-b-2 px-2 py-2 font-semibold tracking-[-0.01em] text-gray-600 transition-colors hover:text-gray-900",
+                  "rounded-sm border-b-2 px-2 py-2 font-semibold tracking-[-0.01em] text-gray-600 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
                   activeCategory === type.category
                     ? "border-primary text-primary"
                     : "border-transparent"
@@ -268,7 +268,7 @@ export function Header() {
                         setOpenMenu((current) => (current === item.key ? null : item.key));
                       }}
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-gray-700 transition-colors hover:text-gray-900",
+                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-gray-700 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
                         isOpen && "text-gray-900"
                       )}
                     >
@@ -304,7 +304,7 @@ export function Header() {
                     }
                   }}
                   className={cn(
-                    "rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] transition-colors hover:text-gray-900",
+                    "rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
                     pathname === item.href ? "text-primary" : "text-gray-700"
                   )}
                 >

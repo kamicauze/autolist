@@ -24,6 +24,7 @@ test("homepage category selector uses one consistent labelled icon system", () =
   assert.match(heroSource, /lg:h-full/);
   assert.match(heroSource, /aria-pressed=\{isActive\}/);
   assert.match(heroSource, /bg-primary\/\[0\.07\]/);
+  assert.match(heroSource, /focus-visible:ring-primary\/70/);
   assert.doesNotMatch(heroSource, /icon: Construction/);
 });
 
@@ -41,6 +42,7 @@ test("Plant is represented by a purpose-drawn excavator", () => {
 test("desktop navigation typography is slightly larger and heavier", () => {
   assert.match(headerSource, /text-\[13px\]/);
   assert.match(headerSource, /font-semibold tracking-\[-0\.01em\]/);
+  assert.match(headerSource, /focus-visible:ring-primary\/70/);
   assert.doesNotMatch(
     headerSource,
     /text-\[12px\] font-medium text-gray-700 transition-colors/
