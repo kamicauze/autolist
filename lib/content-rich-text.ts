@@ -3,6 +3,8 @@ const ALLOWED_TAGS = new Set([
   "blockquote",
   "br",
   "em",
+  "figcaption",
+  "figure",
   "h2",
   "h3",
   "img",
@@ -15,7 +17,7 @@ const ALLOWED_TAGS = new Set([
   "ul",
 ]);
 
-const BLOCK_TAGS = new Set(["blockquote", "h2", "h3", "li", "ol", "p", "ul"]);
+const BLOCK_TAGS = new Set(["blockquote", "figcaption", "figure", "h2", "h3", "li", "ol", "p", "ul"]);
 
 function escapeHtml(value: string) {
   return value
@@ -24,6 +26,23 @@ function escapeHtml(value: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function decodeAttributeEntities(value: string) {
+  let decoded = value;
+
+  for (let pass = 0; pass < 8; pass += 1) {
+    const next = decoded
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">");
+    if (next === decoded) break;
+    decoded = next;
+  }
+
+  return decoded;
 }
 
 function containsHtml(value: string) {
@@ -38,7 +57,7 @@ function normalizeTagName(tagName: string) {
 }
 
 function sanitizeHref(value: string) {
-  const trimmed = value.trim();
+  const trimmed = decodeAttributeEntities(value).trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("/")) return escapeHtml(trimmed);
 
@@ -55,7 +74,7 @@ function sanitizeHref(value: string) {
 }
 
 function sanitizeImageSrc(value: string) {
-  const trimmed = value.trim();
+  const trimmed = decodeAttributeEntities(value).trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("/")) return escapeHtml(trimmed);
 
@@ -115,7 +134,9 @@ export function sanitizeContentHtml(value: string) {
         const srcMatch = String(rawAttributes).match(/\ssrc=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
         const altMatch = String(rawAttributes).match(/\salt=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
         const src = sanitizeImageSrc(srcMatch?.[1] ?? srcMatch?.[2] ?? srcMatch?.[3] ?? "");
-        const alt = escapeHtml(altMatch?.[1] ?? altMatch?.[2] ?? altMatch?.[3] ?? "");
+        const alt = escapeHtml(
+          decodeAttributeEntities(altMatch?.[1] ?? altMatch?.[2] ?? altMatch?.[3] ?? "")
+        );
         return src ? `<img src="${src}" alt="${alt}">` : "";
       }
 
@@ -135,7 +156,7 @@ export function getContentPlainText(value: string) {
   const html = normalizeRichTextContent(value);
   return html
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|h2|h3|li|blockquote)>/gi, "\n")
+    .replace(/<\/(p|h2|h3|li|blockquote|figcaption|figure)>/gi, "\n")
     .replace(/<\/?(ol|ul)>/gi, "\n")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/g, " ")
@@ -147,6 +168,13 @@ export function getContentPlainText(value: string) {
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
+}
+
+export function countInlineImagesWithoutAltText(value: string) {
+  const html = normalizeRichTextContent(value);
+  const images = html.matchAll(/<img\s+[^>]*alt="([^"]*)"[^>]*>/gi);
+
+  return Array.from(images).filter((match) => !(match[1] ?? "").trim()).length;
 }
 
 export function hasRichTextContent(value: string) {

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   CalendarDays,
+  Eye,
   ExternalLink,
   FileText,
   Globe2,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/actions/content-posts";
 import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import { AdminCmsMediaField } from "@/components/admin/admin-cms-media-library";
+import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
 import type { AdminCmsMediaData, CmsMediaAsset } from "@/lib/types/cms-media";
 import type {
   AdminContentPostsData,
@@ -154,6 +156,7 @@ export function AdminBlogsContentLive({
   const [editor, setEditor] = React.useState(() => createEditorState(data.posts[0] ?? null));
   const [feedback, setFeedback] = React.useState<FeedbackState>(null);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
+  const [showArticlePreview, setShowArticlePreview] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
   const selectedPost = posts.find((post) => post.id === selectedId) ?? posts[0] ?? null;
@@ -389,7 +392,7 @@ export function AdminBlogsContentLive({
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-6 [&>section]:min-w-0 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminSectionCard
           data-tour="blogs-list"
           title="Posts"
@@ -413,6 +416,7 @@ export function AdminBlogsContentLive({
                   onClick={() => {
                     setSelectedId(post.id);
                     setFeedback(null);
+                    setShowArticlePreview(false);
                   }}
                   className={cn(
                     "w-full px-6 py-5 text-left transition",
@@ -742,6 +746,45 @@ export function AdminBlogsContentLive({
                 onAssetUploaded={addMediaAsset}
                 onFeedback={setFeedback}
               />
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className={cn(adminGhostButtonClass, "gap-2")}
+                  aria-expanded={showArticlePreview}
+                  aria-controls="article-draft-preview"
+                  onClick={() => setShowArticlePreview((current) => !current)}
+                >
+                  <Eye className="h-4 w-4" />
+                  {showArticlePreview ? "Hide article preview" : "Preview article"}
+                </button>
+              </div>
+
+              {showArticlePreview ? (
+                <section
+                  id="article-draft-preview"
+                  aria-label="Article draft preview"
+                  className="overflow-hidden rounded-[18px] border border-[#dbe3ee] bg-white"
+                >
+                  <div className="border-b border-[#e8edf5] bg-[#f8fafc] px-5 py-3">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+                      Draft preview
+                    </p>
+                  </div>
+                  <article className="mx-auto max-w-[780px] px-5 py-7 sm:px-8">
+                    <p className="text-[12px] font-medium text-primary">
+                      {getContentPostSubcategoryLabel(editor.subcategory) ?? getCategoryLabel(editor.category)}
+                    </p>
+                    <h2 className="mt-3 font-heading text-[28px] font-semibold leading-tight text-[#111827] sm:text-[34px]">
+                      {editor.title.trim() || "Untitled article"}
+                    </h2>
+                    {editor.excerpt.trim() ? (
+                      <p className="mt-4 text-[16px] leading-7 text-[#64748b]">{editor.excerpt}</p>
+                    ) : null}
+                    <RichContentRenderer body={editor.body} className="mt-7" />
+                  </article>
+                </section>
+              ) : null}
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">

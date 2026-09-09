@@ -4,7 +4,11 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
-import { hasRichTextContent, normalizeRichTextContent } from "@/lib/content-rich-text";
+import {
+  countInlineImagesWithoutAltText,
+  hasRichTextContent,
+  normalizeRichTextContent,
+} from "@/lib/content-rich-text";
 import { normalizeContentPostCategory } from "@/lib/content-post-categories";
 import { getCategoryForContentPostSubcategory } from "@/lib/content-post-subcategories";
 import { CONTENT_POST_SELECT, normalizeContentPost } from "@/lib/data/content-posts";
@@ -325,6 +329,10 @@ export async function updateContentPost(
     );
     const coverImageUrl = normalizeOptionalCoverImageUrl(parsed.data.coverImageUrl);
     const galleryImageUrls = normalizeGalleryImageUrls(parsed.data.galleryImageUrls);
+    const body = normalizeBody(parsed.data.body);
+    if (countInlineImagesWithoutAltText(body) > 0) {
+      return { error: "Add alt text to every image in the article body before saving." };
+    }
     const category = parsed.data.subcategory
       ? getCategoryForContentPostSubcategory(parsed.data.subcategory)
       : parsed.data.category;
@@ -335,7 +343,7 @@ export async function updateContentPost(
         title: parsed.data.title.trim(),
         slug,
         excerpt: parsed.data.excerpt.trim(),
-        body: normalizeBody(parsed.data.body),
+        body,
         category,
         subcategory: parsed.data.subcategory,
         cover_image_url: coverImageUrl,
