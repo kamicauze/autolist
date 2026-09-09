@@ -32,3 +32,12 @@ export function buildListingImageVariantKey(
   const baseName = fileName.includes(".") ? fileName.slice(0, fileName.lastIndexOf(".")) : fileName;
   return `${directory}/${LISTING_VARIANT_SEGMENTS[variant]}/${baseName}.webp`;
 }
+
+export function getListingImageAssetKeys(originalKey: string) {
+  return [
+    originalKey,
+    buildListingImageVariantKey(originalKey, "thumb"),
+    buildListingImageVariantKey(originalKey, "card"),
+    buildListingImageVariantKey(originalKey, "hero"),
+  ];
+}

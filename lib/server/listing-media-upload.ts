@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import {
   CopyObjectCommand,
+  DeleteObjectsCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -16,6 +17,7 @@ import {
   type ListingMediaUploadReference,
   type ListingMediaUploadTicket,
 } from "@/lib/listing-media-upload";
+import { getListingImageAssetKeys } from "@/lib/utils/image-variants";
 
 const PRESIGNED_UPLOAD_TTL_SECONDS = 10 * 60;
 
@@ -155,4 +157,43 @@ export async function promoteListingMediaUpload(
   );
 
   return { ...upload, key: finalKey };
+}
+
+async function deleteR2Objects(keys: string[]) {
+  if (keys.length === 0) return;
+
+  const result = await r2.send(
+    new DeleteObjectsCommand({
+      Bucket: getR2BucketName(),
+      Delete: {
+        Objects: [...new Set(keys)].map((Key) => ({ Key })),
+        Quiet: true,
+      },
+    })
+  );
+
+  if (result.Errors?.length) {
+    throw new Error("Unable to remove incomplete listing media from storage.");
+  }
+}
+
+export async function discardListingMediaUploads(
+  listingId: string,
+  uploads: ListingMediaUploadReference[]
+) {
+  const keys = uploads
+    .filter((upload) => isListingMediaUploadKeyForListing(upload.key, listingId, upload.kind))
+    .map((upload) => upload.key);
+  await deleteR2Objects(keys);
+}
+
+export async function discardListingImageAssets(
+  listingId: string,
+  originalKeys: string[]
+) {
+  const mediaPrefix = `listings/${listingId}/media/image/`;
+  const keys = originalKeys
+    .filter((key) => key.startsWith(mediaPrefix))
+    .flatMap(getListingImageAssetKeys);
+  await deleteR2Objects(keys);
 }

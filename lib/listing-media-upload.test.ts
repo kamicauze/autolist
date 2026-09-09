@@ -10,6 +10,7 @@ import {
   validateListingMediaUploadDescriptors,
   type ListingMediaUploadDescriptor,
 } from "./listing-media-upload";
+import { getListingImageAssetKeys } from "./utils/image-variants";
 
 function imageDescriptor(
   overrides: Partial<ListingMediaUploadDescriptor> = {}
@@ -96,5 +97,17 @@ test("finalized image recovery requires every expected key in cover order", () =
       rows[2],
     ]),
     false
+  );
+});
+
+test("an image asset family includes the original and every generated variant", () => {
+  assert.deepEqual(
+    getListingImageAssetKeys("listings/listing-one/media/image/abc-front.jpg"),
+    [
+      "listings/listing-one/media/image/abc-front.jpg",
+      "listings/listing-one/media/image/variants/thumb/abc-front.webp",
+      "listings/listing-one/media/image/variants/card/abc-front.webp",
+      "listings/listing-one/media/image/variants/hero/abc-front.webp",
+    ]
   );
 });

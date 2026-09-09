@@ -24,6 +24,8 @@ import {
 } from "@/lib/listing-media-upload";
 import {
     createListingMediaUploadTicket,
+    discardListingImageAssets,
+    discardListingMediaUploads,
     getFinalListingMediaObjectKey,
     promoteListingMediaUpload,
     readListingMediaUpload,
@@ -1206,10 +1208,22 @@ export async function finalizeListingImageUploads(
 
     const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
     const preparedUploads: PreparedListingImage[] = [];
+    const { data: existingRows, error: existingRowsError } = await writeSupabase
+        .from("listing_images")
+        .select("r2_key")
+        .eq("listing_id", listingId);
+    if (existingRowsError) return { error: existingRowsError.message };
 
-    for (const [index, upload] of uploads.entries()) {
-        try {
+    const existingKeys = new Set(
+        (existingRows ?? []).map((row: { r2_key: string }) => row.r2_key)
+    );
+    const generatedKeys = new Set<string>();
+
+    try {
+        for (const [index, upload] of uploads.entries()) {
             const bytes = await readListingMediaUpload(listingId, upload);
+            const finalKey = getFinalListingMediaObjectKey(listingId, upload);
+            if (!existingKeys.has(finalKey)) generatedKeys.add(finalKey);
             const finalizedUpload = await promoteListingMediaUpload(listingId, upload);
             const processed = await processStoredListingImageAssets({
                 originalKey: finalizedUpload.key,
@@ -1224,7 +1238,7 @@ export async function finalizeListingImageUploads(
                 processed.hash,
                 processed.perceptualHash,
             );
-            if (duplicateError) return { error: duplicateError };
+            if (duplicateError) throw new Error(duplicateError);
 
             preparedUploads.push({
                 key: processed.key,
@@ -1233,18 +1247,27 @@ export async function finalizeListingImageUploads(
                 altText: altTextBase.trim() ? `${altTextBase.trim()} - Photo ${index + 1}` : null,
                 imageOrder: index,
             });
-        } catch (error) {
-            console.error("Finalize listing image upload error:", error);
-            return {
-                error: error instanceof Error
-                    ? error.message
-                    : `Unable to process "${upload.name}". Please try again.`,
-            };
         }
-    }
 
-    const replaceError = await replaceListingImageRows(writeSupabase, listingId, preparedUploads);
-    if (replaceError) return { error: replaceError };
+        const replaceError = await replaceListingImageRows(writeSupabase, listingId, preparedUploads);
+        if (replaceError) throw new Error(replaceError);
+    } catch (error) {
+        console.error("Finalize listing image upload error:", error);
+        const cleanupResults = await Promise.allSettled([
+            discardListingMediaUploads(listingId, uploads),
+            discardListingImageAssets(listingId, [...generatedKeys]),
+        ]);
+        cleanupResults.forEach((result) => {
+            if (result.status === "rejected") {
+                console.error("Discard incomplete listing image upload error:", result.reason);
+            }
+        });
+        return {
+            error: error instanceof Error
+                ? error.message
+                : "Unable to process listing photos. Please try again.",
+        };
+    }
 
     if (access.canAdminister) {
         await emitListingUpdatedNotification({
