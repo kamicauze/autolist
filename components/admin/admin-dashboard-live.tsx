@@ -26,6 +26,7 @@ function formatCurrency(amount: number, currency: string) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
     day: "numeric",
     month: "short",
     year: "numeric",

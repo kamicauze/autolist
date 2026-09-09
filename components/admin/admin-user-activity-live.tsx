@@ -33,6 +33,7 @@ import { AdminUserDeactivateControl } from "@/components/admin/admin-user-deacti
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not set";
   return new Date(value).toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
     day: "numeric",
     month: "short",
     year: "numeric",
