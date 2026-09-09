@@ -10,6 +10,7 @@ const source = readFileSync(
 assert.match(source, /Account details/);
 assert.match(source, /Dealer details/);
 assert.match(source, /History index/);
+assert.match(source, /Open KYC queue/);
 assert.match(
   source,
   /2xl:grid-cols-\[minmax\(0,1\.4fr\)_minmax\(360px,0\.6fr\)\]/

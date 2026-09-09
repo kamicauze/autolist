@@ -512,7 +512,16 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
               </AdminDataTable>
             </AdminSectionCard>
 
-            <AdminSectionCard id="dealer-verification" title="Dealer Verification" description="Dealer record and submitted document metadata.">
+            <AdminSectionCard
+              id="dealer-verification"
+              title="Dealer Verification"
+              description="Dealer record and submitted document metadata."
+              action={
+                <Link href="/admin/verification" className={adminGhostButtonClass}>
+                  Open KYC queue
+                </Link>
+              }
+            >
               <div className="mb-5 space-y-2 text-[13px] text-[#374151]">
                 <p>Review notes: <span className="font-medium text-[#111827]">{dealer?.review_notes || "None"}</span></p>
                 <p>Verification notes: <span className="font-medium text-[#111827]">{dealer?.verification_notes || "None"}</span></p>
