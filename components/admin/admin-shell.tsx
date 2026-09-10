@@ -4,8 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ExternalLink,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
   Plus,
   ChevronDown,
@@ -34,6 +37,23 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setSidebarCollapsed(window.localStorage.getItem("admin-sidebar-collapsed") === "true");
+    } catch {
+      setSidebarCollapsed(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem("admin-sidebar-collapsed", String(sidebarCollapsed));
+    } catch {
+      // Ignore storage failures; the toggle still works for the current session.
+    }
+  }, [sidebarCollapsed]);
 
   React.useEffect(() => {
     setSidebarOpen(false);
@@ -92,16 +112,51 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
       <aside
         data-tour="admin-sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/5 bg-[#24272c] text-white transition-transform duration-300 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/5 bg-[#24272c] text-white transition-[width,transform] duration-300 lg:translate-x-0",
+          sidebarCollapsed ? "lg:w-[84px]" : "lg:w-[280px]",
           sidebarOpen
             ? "translate-x-0"
             : "-translate-x-full pointer-events-none lg:pointer-events-auto"
         )}
       >
-        <div className="flex items-center justify-between border-b border-white/5 px-[18px] py-6">
-          <Link href="/admin/dashboard" className="font-heading text-[28px] font-semibold text-white">
-            Auto<span className="text-[#ef4444]">list</span>
+        <div
+          className={cn(
+            "flex items-center border-b border-white/5 px-[18px] py-6",
+            sidebarCollapsed ? "justify-between lg:flex-col lg:justify-center lg:gap-3 lg:px-3" : "justify-between"
+          )}
+        >
+          <Link
+            href="/admin/dashboard"
+            title={sidebarCollapsed ? "Autolist admin dashboard" : undefined}
+            className={cn(
+              "font-heading font-semibold text-white transition-[font-size]",
+              sidebarCollapsed ? "lg:text-[20px]" : "text-[28px]"
+            )}
+          >
+            <span className={cn(sidebarCollapsed ? "lg:sr-only" : null)}>
+              Auto<span className="text-[#ef4444]">list</span>
+            </span>
+            <span aria-hidden className={cn("hidden", sidebarCollapsed ? "lg:inline" : null)}>
+              A<span className="text-[#ef4444]">l</span>
+            </span>
           </Link>
+          <button
+            type="button"
+            aria-label={sidebarCollapsed ? "Expand admin sidebar" : "Collapse admin sidebar"}
+            aria-expanded={!sidebarCollapsed}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={cn(
+              "hidden rounded-[10px] border border-white/10 p-2 text-white/70 transition hover:bg-white/6 hover:text-white active:translate-y-[1px] lg:inline-flex",
+              sidebarCollapsed ? "mt-1" : null
+            )}
+            onClick={() => setSidebarCollapsed((current) => !current)}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
           <button
             type="button"
             aria-label="Close admin navigation"
@@ -112,9 +167,16 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
           </button>
         </div>
 
-        <div className="border-b border-white/5 px-[18px] py-6">
-          <p className="mb-3 text-[12px] font-medium text-white/35">Profile</p>
-          <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "border-b border-white/5 px-[18px] py-6",
+            sidebarCollapsed ? "lg:px-3" : null
+          )}
+        >
+          <p className={cn("mb-3 text-[12px] font-medium text-white/35", sidebarCollapsed ? "lg:sr-only" : null)}>
+            Profile
+          </p>
+          <div className={cn("flex items-center gap-3", sidebarCollapsed ? "lg:justify-center" : null)}>
             <Avatar
               src={avatarUrl}
               alt={displayName}
@@ -122,17 +184,24 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
               size="md"
               className="bg-white/10"
             />
-            <div className="min-w-0">
+            <div className={cn("min-w-0", sidebarCollapsed ? "lg:sr-only" : null)}>
               <p className="truncate text-[12px] text-white/45">Account</p>
               <p className="truncate text-[14px] text-white">{user.email}</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+        <nav
+          className={cn(
+            "flex-1 space-y-6 overflow-y-auto py-6",
+            sidebarCollapsed ? "px-4 lg:px-3" : "px-4"
+          )}
+        >
           {ADMIN_NAV_SECTIONS.map((section) => (
             <div key={section.title} className="space-y-2">
-              <AdminSidebarSectionTitle>{section.title}</AdminSidebarSectionTitle>
+              <div className={cn(sidebarCollapsed ? "lg:sr-only" : null)}>
+                <AdminSidebarSectionTitle>{section.title}</AdminSidebarSectionTitle>
+              </div>
               <div className="space-y-1">
                 {section.items.map((item) => (
                   <AdminNavLink
@@ -142,6 +211,7 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
                     icon={item.icon}
                     badge={badgeCounts?.[item.href] ?? item.badge}
                     active={isActive(item.href)}
+                    collapsed={sidebarCollapsed}
                     onClick={() => setSidebarOpen(false)}
                   />
                 ))}
@@ -150,26 +220,39 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
           ))}
         </nav>
 
-        <div className="space-y-2 border-t border-white/5 px-4 py-4">
+        <div className={cn("space-y-2 border-t border-white/5 py-4", sidebarCollapsed ? "px-4 lg:px-3" : "px-4")}>
           <Link
             href="/"
             onClick={() => setSidebarOpen(false)}
-            className="flex w-full items-center justify-center rounded-[10px] bg-white px-4 py-3 text-[14px] font-semibold text-[#24272c] transition hover:bg-white/90 active:scale-[0.98]"
+            title={sidebarCollapsed ? "View website" : undefined}
+            aria-label={sidebarCollapsed ? "View website" : undefined}
+            className={cn(
+              "flex w-full items-center justify-center rounded-[10px] bg-white text-[14px] font-semibold text-[#24272c] transition hover:bg-white/90 active:scale-[0.98]",
+              sidebarCollapsed ? "px-4 py-3 lg:h-11 lg:px-0 lg:py-0" : "px-4 py-3"
+            )}
           >
-            View website
+            <ExternalLink
+              className={cn("h-4 w-4", sidebarCollapsed ? "hidden lg:block" : "hidden")}
+            />
+            <span className={cn(sidebarCollapsed ? "lg:sr-only" : null)}>View website</span>
           </Link>
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-[10px] px-4 py-3 text-left text-[14px] font-medium text-white/90 transition-colors hover:bg-white/5 hover:text-white"
+            title={sidebarCollapsed ? "Sign out" : undefined}
+            aria-label={sidebarCollapsed ? "Sign out" : undefined}
+            className={cn(
+              "flex w-full items-center rounded-[10px] text-left text-[14px] font-medium text-white/90 transition-colors hover:bg-white/5 hover:text-white",
+              sidebarCollapsed ? "gap-3 px-4 py-3 lg:h-11 lg:justify-center lg:px-0 lg:py-0" : "gap-3 px-4 py-3"
+            )}
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            Sign Out
+            <span className={cn(sidebarCollapsed ? "lg:sr-only" : null)}>Sign Out</span>
           </button>
         </div>
       </aside>
 
-      <div className="lg:pl-[280px]">
+      <div className={cn("transition-[padding] duration-300", sidebarCollapsed ? "lg:pl-[84px]" : "lg:pl-[280px]")}>
         <header className="sticky top-0 z-30 border-b border-[#f1f5f9] bg-white/95 backdrop-blur">
           <div className="flex min-h-[78px] items-center gap-4 px-6">
             <button

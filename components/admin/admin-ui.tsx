@@ -442,6 +442,7 @@ export function AdminNavLink({
   active,
   badge,
   onClick,
+  collapsed = false,
 }: {
   href: string;
   label: string;
@@ -449,22 +450,30 @@ export function AdminNavLink({
   active?: boolean;
   badge?: number;
   onClick?: () => void;
+  collapsed?: boolean;
 }) {
   return (
     <Link
       href={href}
       onClick={onClick}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-[10px] px-4 py-3 text-[14px] font-medium transition",
+        "relative flex items-center gap-3 rounded-[10px] text-[14px] font-medium transition",
+        "px-4 py-3",
+        collapsed ? "lg:h-11 lg:justify-center lg:px-0 lg:py-0" : null,
         active ? "bg-primary text-white" : "text-white/90 hover:bg-white/6"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <Icon className={cn("h-4 w-4 shrink-0", collapsed ? "lg:h-5 lg:w-5" : null)} />
+      <span className={cn("min-w-0 flex-1 truncate", collapsed ? "lg:sr-only" : null)}>
+        {label}
+      </span>
       {badge ? (
         <span
           className={cn(
             "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+            collapsed ? "lg:absolute lg:right-1 lg:top-1 lg:h-4 lg:min-w-4 lg:px-1 lg:text-[10px]" : null,
             active
               ? "bg-white/20 text-white"
               : badge > 10
