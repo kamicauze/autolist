@@ -13,6 +13,9 @@ import { getListingById, getSimilarListings } from "@/lib/data/listings";
 import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { getListingReviewsData } from "@/lib/data/reviews";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
+import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
+import type { ListingCategory } from "@/lib/constants/marketplace";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
 import { RecordRecentlyViewed } from "@/components/vehicle/record-recently-viewed";
 import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
@@ -58,6 +61,9 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
   const googleMapsApiKey = getGoogleMapsApiKey();
   const title = getListingDisplayTitle(listing);
   const location = getListingDisplayLocation(listing);
+  const bannerCategoryTarget = getCmsBannerCategoryTargetForListingCategory(
+    getListingMetadataString(listing, "category") as ListingCategory | null
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,7 +71,11 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
       <main className="flex-1 bg-gray-50">
         <RecordRecentlyViewed listingId={listing.id} />
-        <PublicCmsAdGrid placement="vehicle_detail" contentClassName="py-6">
+        <PublicCmsAdGrid
+          placement="vehicle_detail"
+          categoryTarget={bannerCategoryTarget}
+          contentClassName="py-6"
+        >
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
@@ -75,6 +85,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
           />
           <PublicCmsBannerPlacement
             placement="listing_global_top"
+            categoryTarget={bannerCategoryTarget}
             variant="compact"
             className="mb-6 max-w-none px-0 py-0"
           />

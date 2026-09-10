@@ -19,6 +19,7 @@ import {
 } from "@/lib/constants/landing-search";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
+import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
 import { parseFiniteSearchNumber } from "@/lib/search/search-filter-params";
 
 interface SearchPageProps {
@@ -134,6 +135,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   ]);
 
   const totalPages = Math.ceil(total / limit);
+  const bannerCategoryTarget =
+    getCmsBannerCategoryTargetForListingCategory(normalizedCategory);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -142,6 +145,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <main className="flex-1 bg-white">
         <PublicCmsAdGrid
           placement="search_sidebar"
+          categoryTarget={bannerCategoryTarget}
           className="gap-5 xl:grid-cols-[112px_minmax(0,1120px)_112px] xl:justify-center 2xl:max-w-[1560px] 2xl:grid-cols-[128px_minmax(0,1180px)_128px]"
           contentClassName="py-5"
         >
@@ -160,11 +164,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <Suspense fallback={<div className="animate-pulse h-16 bg-gray-200 rounded-lg" />}>
             <PublicCmsBannerPlacement
               placement="listing_global_top"
+              categoryTarget={bannerCategoryTarget}
               variant="compact"
               className="mb-5 max-w-none px-0 py-0"
             />
             <PublicCmsBannerPlacement
               placement="search_top"
+              categoryTarget={bannerCategoryTarget}
               variant="compact"
               className="mb-5 max-w-none px-0 py-0"
             />

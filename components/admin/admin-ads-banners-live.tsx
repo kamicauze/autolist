@@ -5,6 +5,7 @@
 import * as React from "react";
 import {
   Bell,
+  Check,
   Eye,
   FileBadge2,
   ImageIcon,
@@ -12,6 +13,13 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   createCmsBannerDraft,
   deleteCmsBanner,
@@ -21,9 +29,12 @@ import { AdminCmsMediaField } from "@/components/admin/admin-cms-media-library";
 import {
   CMS_BANNER_PLACEMENT_LABELS,
   CMS_BANNER_PLACEMENTS,
+  CMS_BANNER_CATEGORY_TARGET_LABELS,
+  CMS_BANNER_CATEGORY_TARGETS,
   CMS_BANNER_STATUSES,
   type AdminCmsBannersData,
   type CmsBanner,
+  type CmsBannerCategoryTarget,
   type CmsBannerPlacement,
   type CmsBannerStatus,
 } from "@/lib/types/cms-banners";
@@ -50,6 +61,7 @@ type BannerEditorState = {
   title: string;
   slug: string;
   placement: CmsBannerPlacement;
+  categoryTargets: CmsBannerCategoryTarget[];
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string;
@@ -88,6 +100,7 @@ function createEditorState(banner: CmsBanner | null): BannerEditorState {
     title: banner?.title ?? "",
     slug: banner?.slug ?? "",
     placement: banner?.placement ?? "home_top",
+    categoryTargets: banner?.categoryTargets ?? [],
     status: banner?.status ?? "draft",
     desktopImageUrl: banner?.desktopImageUrl ?? "",
     mobileImageUrl: banner?.mobileImageUrl ?? "",
@@ -123,6 +136,381 @@ function sortBanners(banners: CmsBanner[]) {
 
     return right.updatedAt.localeCompare(left.updatedAt);
   });
+}
+
+const PLACEMENT_PREVIEW_DETAILS: Record<
+  CmsBannerPlacement,
+  {
+    page: string;
+    slot: string;
+    description: string;
+    highlight: "hero" | "top" | "rail" | "sidebar" | "detail" | "dashboard";
+  }
+> = {
+  home_hero: {
+    page: "Homepage",
+    slot: "Hero takeover",
+    description: "Large banner above the homepage search experience.",
+    highlight: "hero",
+  },
+  home_top: {
+    page: "Homepage",
+    slot: "Top banner",
+    description: "Wide banner directly below the homepage hero.",
+    highlight: "top",
+  },
+  home_featured: {
+    page: "Homepage",
+    slot: "Featured rail follow-up",
+    description: "Compact banner below the recent activities listing rail.",
+    highlight: "rail",
+  },
+  listing_global_top: {
+    page: "Listings",
+    slot: "Global listing banner",
+    description: "Compact banner above listing/search content and vehicle details.",
+    highlight: "top",
+  },
+  search_top: {
+    page: "Search",
+    slot: "Search results banner",
+    description: "Compact banner between the search heading and result controls.",
+    highlight: "top",
+  },
+  search_sidebar: {
+    page: "Search",
+    slot: "Search side columns",
+    description: "Tall side banners flanking desktop search results.",
+    highlight: "sidebar",
+  },
+  vehicle_detail: {
+    page: "Vehicle detail",
+    slot: "Detail side columns",
+    description: "Tall side banners flanking vehicle details on desktop.",
+    highlight: "detail",
+  },
+  dashboard: {
+    page: "Dashboard",
+    slot: "Dashboard sidebar",
+    description: "Sidebar banner stack for signed-in account dashboards.",
+    highlight: "dashboard",
+  },
+  ad_detail_hero: {
+    page: "Ad detail",
+    slot: "Sponsor page hero",
+    description: "Large banner at the top of the CMS-managed ad detail page.",
+    highlight: "hero",
+  },
+  ad_detail_sidebar: {
+    page: "Ad detail",
+    slot: "Sponsor page side columns",
+    description: "Tall side banners beside the CMS-managed ad detail body.",
+    highlight: "sidebar",
+  },
+};
+
+function getCategoryTargetSummary(targets: CmsBannerCategoryTarget[]) {
+  if (targets.length === 0) return "All categories";
+  return targets.map((target) => CMS_BANNER_CATEGORY_TARGET_LABELS[target]).join(", ");
+}
+
+function PlacementMiniMap({
+  highlight,
+}: {
+  highlight: (typeof PLACEMENT_PREVIEW_DETAILS)[CmsBannerPlacement]["highlight"];
+}) {
+  return (
+    <div className="rounded-[12px] border border-[#d9e2ec] bg-[#f8fafc] p-2">
+      <div className="overflow-hidden rounded-[8px] border border-[#d1d5db] bg-white">
+        <div className="h-2.5 bg-[#1f2937]" />
+        <div className="space-y-1.5 p-2">
+          <div
+            className={cn(
+              "h-8 rounded-[6px] border",
+              highlight === "hero"
+                ? "border-primary bg-brand-tint-strong"
+                : "border-[#e5e7eb] bg-[#eef2f7]"
+            )}
+          />
+          <div
+            className={cn(
+              "h-3 rounded-[4px] border",
+              highlight === "top"
+                ? "border-primary bg-brand-tint-strong"
+                : "border-[#e5e7eb] bg-[#f8fafc]"
+            )}
+          />
+          <div className="grid grid-cols-[18px_minmax(0,1fr)_18px] gap-1.5">
+            <div
+              className={cn(
+                "h-16 rounded-[4px] border",
+                highlight === "sidebar" || highlight === "detail"
+                  ? "border-primary bg-brand-tint-strong"
+                  : "border-[#e5e7eb] bg-[#f8fafc]"
+              )}
+            />
+            <div className="space-y-1">
+              <div
+                className={cn(
+                  "h-5 rounded-[4px] border",
+                  highlight === "rail"
+                    ? "border-primary bg-brand-tint-strong"
+                    : "border-[#e5e7eb] bg-[#f8fafc]"
+                )}
+              />
+              <div className="grid grid-cols-3 gap-1">
+                {[0, 1, 2].map((item) => (
+                  <div
+                    key={item}
+                    className={cn(
+                      "h-8 rounded-[4px] border",
+                      highlight === "dashboard" && item === 2
+                        ? "border-primary bg-brand-tint-strong"
+                        : "border-[#e5e7eb] bg-[#f1f5f9]"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+            <div
+              className={cn(
+                "h-16 rounded-[4px] border",
+                highlight === "sidebar" || highlight === "detail" || highlight === "dashboard"
+                  ? "border-primary bg-brand-tint-strong"
+                  : "border-[#e5e7eb] bg-[#f8fafc]"
+              )}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewBannerCreative({
+  editor,
+  mode = "wide",
+}: {
+  editor: BannerEditorState;
+  mode?: "wide" | "tall" | "hero";
+}) {
+  const imageUrl = editor.desktopImageUrl || editor.mobileImageUrl;
+  const title = editor.title.trim() || "Banner title";
+  const summary = editor.summary.trim();
+  const ctaLabel = editor.ctaLabel.trim() || "View offer";
+
+  return (
+    <div
+      className={cn(
+        "relative isolate flex min-h-[128px] overflow-hidden rounded-[14px] border border-primary bg-[#eff6ff]",
+        mode === "tall" ? "h-full min-h-[280px]" : null,
+        mode === "hero" ? "min-h-[220px]" : null
+      )}
+    >
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={editor.altText || title}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#dbeafe] text-[12px] font-semibold text-primary">
+          No creative selected
+        </div>
+      )}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.78),rgba(15,23,42,0.2))]" />
+      <div
+        className={cn(
+          "relative mt-auto flex w-full flex-col items-start gap-2 p-4 text-white",
+          mode === "tall" ? "justify-end" : "sm:max-w-[70%]"
+        )}
+      >
+        <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/75">
+          Preview
+        </p>
+        <p className={cn("font-semibold leading-tight", mode === "hero" ? "text-[22px]" : "text-[16px]")}>
+          {title}
+        </p>
+        {summary ? (
+          <p className="line-clamp-2 text-[12px] leading-5 text-white/85">{summary}</p>
+        ) : null}
+        <span className="mt-1 inline-flex h-8 items-center rounded-full bg-white px-3 text-[12px] font-semibold text-[#111827]">
+          {ctaLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderBlock({
+  className,
+  label,
+}: {
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center rounded-[10px] border border-dashed border-[#d1d5db] bg-[#f8fafc] text-[11px] font-medium text-[#94a3b8]",
+        className
+      )}
+    >
+      {label}
+    </div>
+  );
+}
+
+function PlacementPreviewMockup({ editor }: { editor: BannerEditorState }) {
+  const detail = PLACEMENT_PREVIEW_DETAILS[editor.placement];
+  const highlight = detail.highlight;
+  const isHero = highlight === "hero";
+  const isTop = highlight === "top";
+  const isRail = highlight === "rail";
+  const isSidebar = highlight === "sidebar";
+  const isDetail = highlight === "detail";
+  const isDashboard = highlight === "dashboard";
+
+  return (
+    <div className="overflow-hidden rounded-[18px] border border-[#d9e2ec] bg-[#f8fafc] shadow-[0_18px_48px_-32px_rgba(15,23,42,0.45)]">
+      <div className="flex items-center justify-between border-b border-[#e5e7eb] bg-white px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-20 rounded-[8px] bg-[#111827]" />
+          <div className="hidden h-3 w-28 rounded-full bg-[#e5e7eb] sm:block" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-16 rounded-full bg-[#e5e7eb]" />
+          <div className="h-7 w-20 rounded-full bg-primary" />
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4">
+        {isHero ? (
+          <PreviewBannerCreative editor={editor} mode="hero" />
+        ) : (
+          <PlaceholderBlock className="min-h-[170px]" label={`${detail.page} hero area`} />
+        )}
+
+        {isTop ? (
+          <PreviewBannerCreative editor={editor} />
+        ) : (
+          <PlaceholderBlock className="min-h-[70px]" label="Top content slot" />
+        )}
+
+        <div
+          className={cn(
+            "grid gap-4",
+            isDashboard
+              ? "lg:grid-cols-[minmax(0,1fr)_220px]"
+              : "lg:grid-cols-[160px_minmax(0,1fr)_160px]"
+          )}
+        >
+          {!isDashboard ? (
+            <div className="hidden lg:block">
+              {isSidebar || isDetail ? (
+                <PreviewBannerCreative editor={editor} mode="tall" />
+              ) : (
+                <PlaceholderBlock className="h-full min-h-[320px]" label="Left ad rail" />
+              )}
+            </div>
+          ) : null}
+
+          <div className="space-y-4">
+            {isRail ? (
+              <PreviewBannerCreative editor={editor} />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[0, 1, 2].map((item) => (
+                  <PlaceholderBlock key={item} className="min-h-[116px]" label="Listing card" />
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3 rounded-[14px] border border-[#e5e7eb] bg-white p-4">
+              <div className="h-4 w-2/5 rounded-full bg-[#dbe2ea]" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <PlaceholderBlock className="min-h-[88px]" />
+                <PlaceholderBlock className="min-h-[88px]" />
+              </div>
+              <PlaceholderBlock className="min-h-[74px]" />
+            </div>
+          </div>
+
+          <div className={cn(isDashboard ? "block" : "hidden lg:block")}>
+            {isDashboard ? (
+              <div className="space-y-3">
+                <PlaceholderBlock className="min-h-[88px]" label="Dashboard summary" />
+                <PreviewBannerCreative editor={editor} mode="tall" />
+              </div>
+            ) : isSidebar || isDetail ? (
+              <PreviewBannerCreative editor={editor} mode="tall" />
+            ) : (
+              <PlaceholderBlock className="h-full min-h-[320px]" label="Right ad rail" />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BannerPlacementPreviewDialog({
+  open,
+  onOpenChange,
+  editor,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editor: BannerEditorState;
+}) {
+  const detail = PLACEMENT_PREVIEW_DETAILS[editor.placement];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-[#e5e7eb] bg-white sm:max-w-[960px]">
+        <DialogHeader>
+          <DialogTitle className="text-[18px] text-[#111827]">Preview placement</DialogTitle>
+          <DialogDescription className="text-[13px] leading-5 text-[#64748b]">
+            Unsaved preview for {CMS_BANNER_PLACEMENT_LABELS[editor.placement]} on {detail.page}.
+            Visitors will not see this until the banner is saved, active, and within its schedule.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="space-y-3 rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] p-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                Page area
+              </p>
+              <p className="mt-1 text-[14px] font-semibold text-[#111827]">{detail.slot}</p>
+              <p className="mt-2 text-[12px] leading-5 text-[#64748b]">{detail.description}</p>
+            </div>
+            <div className="border-t border-[#e5e7eb] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                Category scope
+              </p>
+              <p className="mt-1 text-[13px] font-semibold text-[#111827]">
+                {getCategoryTargetSummary(editor.categoryTargets)}
+              </p>
+            </div>
+            <div className="border-t border-[#e5e7eb] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                Publish state
+              </p>
+              <p className="mt-1 text-[13px] font-semibold text-[#111827]">
+                {editor.status.charAt(0).toUpperCase() + editor.status.slice(1)}
+              </p>
+              <p className="mt-2 text-[12px] leading-5 text-[#64748b]">
+                Preview does not publish or save changes.
+              </p>
+            </div>
+          </div>
+
+          <PlacementPreviewMockup editor={editor} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function statusTone(status: CmsBannerStatus, isCurrentlyLive: boolean) {
@@ -202,6 +590,7 @@ export function AdminAdsBannersLive({
   const [feedback, setFeedback] = React.useState<AdminFeedbackState>(null);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
   const selectedBanner = banners.find((banner) => banner.id === selectedId) ?? banners[0] ?? null;
@@ -230,6 +619,18 @@ export function AdminAdsBannersLive({
       }
 
       return [asset, ...current];
+    });
+  }
+
+  function toggleCategoryTarget(target: CmsBannerCategoryTarget) {
+    setEditor((current) => {
+      const exists = current.categoryTargets.includes(target);
+      return {
+        ...current,
+        categoryTargets: exists
+          ? current.categoryTargets.filter((item) => item !== target)
+          : [...current.categoryTargets, target],
+      };
     });
   }
 
@@ -267,6 +668,7 @@ export function AdminAdsBannersLive({
           title: editor.title,
           slug: editor.slug,
           placement: editor.placement,
+          categoryTargets: editor.categoryTargets,
           status: editor.status,
           desktopImageUrl: editor.desktopImageUrl,
           mobileImageUrl: editor.mobileImageUrl,
@@ -405,6 +807,9 @@ export function AdminAdsBannersLive({
                       <p className="mt-1 text-[12px] text-[#6b7280]">
                         {CMS_BANNER_PLACEMENT_LABELS[banner.placement]} • #{banner.sortOrder}
                       </p>
+                      <p className="mt-1 text-[12px] text-[#6b7280]">
+                        {getCategoryTargetSummary(banner.categoryTargets)}
+                      </p>
                     </div>
                     <AdminStatusPill
                       label={getStatusLabel(banner)}
@@ -428,6 +833,15 @@ export function AdminAdsBannersLive({
           action={
             selectedBanner ? (
               <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  className={cn(adminGhostButtonClass, "gap-2")}
+                  onClick={() => setPreviewDialogOpen(true)}
+                  disabled={isPending}
+                >
+                  <Eye className="h-4 w-4" />
+                  Preview placement
+                </button>
                 <button
                   type="button"
                   className={cn(adminGhostButtonClass, "gap-2")}
@@ -469,6 +883,9 @@ export function AdminAdsBannersLive({
                     <p className="text-[15px] font-semibold text-[#111827]">{editor.title}</p>
                     <p className="mt-1 text-[12px] text-[#6b7280]">
                       {CMS_BANNER_PLACEMENT_LABELS[editor.placement]}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#6b7280]">
+                      {getCategoryTargetSummary(editor.categoryTargets)}
                     </p>
                     {selectedBanner.slug ? (
                       <p className="mt-1 text-[12px] text-[#94a3b8]">/ads/{selectedBanner.slug}</p>
@@ -512,25 +929,110 @@ export function AdminAdsBannersLive({
                   />
                 </label>
 
-                <label className="space-y-2">
-                  <span className="text-[13px] font-medium text-[#374151]">Placement</span>
-                  <select
-                    value={editor.placement}
-                    onChange={(event) =>
-                      setEditor((current) => ({
-                        ...current,
-                        placement: event.target.value as CmsBannerPlacement,
-                      }))
-                    }
-                    className={adminSelectClass}
-                  >
-                    {CMS_BANNER_PLACEMENTS.map((placement) => (
-                      <option key={placement} value={placement}>
-                        {CMS_BANNER_PLACEMENT_LABELS[placement]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="space-y-3 md:col-span-2">
+                  <div>
+                    <p className="text-[13px] font-medium text-[#374151]">Placement</p>
+                    <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+                      Choose the page area where this banner will appear.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {CMS_BANNER_PLACEMENTS.map((placement) => {
+                      const detail = PLACEMENT_PREVIEW_DETAILS[placement];
+                      const selected = editor.placement === placement;
+
+                      return (
+                        <button
+                          key={placement}
+                          type="button"
+                          onClick={() =>
+                            setEditor((current) => ({
+                              ...current,
+                              placement,
+                            }))
+                          }
+                          className={cn(
+                            "grid min-h-[150px] grid-cols-1 gap-3 rounded-[14px] border p-3 text-left transition active:translate-y-[1px] sm:grid-cols-[112px_minmax(0,1fr)]",
+                            selected
+                              ? "border-primary bg-brand-soft-surface"
+                              : "border-[#e5e7eb] bg-white hover:border-[#bfdbfe]"
+                          )}
+                          aria-pressed={selected}
+                        >
+                          <PlacementMiniMap highlight={detail.highlight} />
+                          <span className="min-w-0">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="text-[13px] font-semibold text-[#111827]">
+                                {CMS_BANNER_PLACEMENT_LABELS[placement]}
+                              </span>
+                              {selected ? (
+                                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                                  <Check className="h-3.5 w-3.5" />
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                              {detail.page} / {detail.slot}
+                            </span>
+                            <span className="mt-2 block text-[12px] leading-5 text-[#64748b]">
+                              {detail.description}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3 md:col-span-2">
+                  <div>
+                    <p className="text-[13px] font-medium text-[#374151]">Category targeting</p>
+                    <p className="mt-1 text-[12px] leading-5 text-[#6b7280]">
+                      Leave all categories off for a global banner, or choose the listing categories
+                      where this campaign should appear.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditor((current) => ({
+                          ...current,
+                          categoryTargets: [],
+                        }))
+                      }
+                      className={cn(
+                        "inline-flex h-10 items-center justify-center rounded-[10px] border px-3 text-[13px] font-semibold transition active:translate-y-[1px]",
+                        editor.categoryTargets.length === 0
+                          ? "border-primary bg-primary text-white"
+                          : "border-[#d1d5db] bg-white text-[#374151] hover:border-primary hover:text-primary"
+                      )}
+                      aria-pressed={editor.categoryTargets.length === 0}
+                    >
+                      All categories
+                    </button>
+                    {CMS_BANNER_CATEGORY_TARGETS.map((target) => {
+                      const selected = editor.categoryTargets.includes(target);
+                      return (
+                        <button
+                          key={target}
+                          type="button"
+                          onClick={() => toggleCategoryTarget(target)}
+                          className={cn(
+                            "inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border px-3 text-[13px] font-semibold transition active:translate-y-[1px]",
+                            selected
+                              ? "border-primary bg-primary text-white"
+                              : "border-[#d1d5db] bg-white text-[#374151] hover:border-primary hover:text-primary"
+                          )}
+                          aria-pressed={selected}
+                        >
+                          {selected ? <Check className="h-3.5 w-3.5" /> : null}
+                          {CMS_BANNER_CATEGORY_TARGET_LABELS[target]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <label className="space-y-2">
                   <span className="text-[13px] font-medium text-[#374151]">Status</span>
@@ -723,6 +1225,14 @@ export function AdminAdsBannersLive({
         pending={pendingAction === "delete"}
         onConfirm={handleDelete}
       />
+
+      {selectedBanner ? (
+        <BannerPlacementPreviewDialog
+          open={previewDialogOpen}
+          onOpenChange={setPreviewDialogOpen}
+          editor={editor}
+        />
+      ) : null}
     </div>
   );
 }

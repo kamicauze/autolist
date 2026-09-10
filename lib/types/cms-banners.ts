@@ -1,3 +1,5 @@
+import type { ListingCategory } from "@/lib/constants/marketplace";
+
 export const CMS_BANNER_PLACEMENTS = [
   "home_hero",
   "home_top",
@@ -12,9 +14,17 @@ export const CMS_BANNER_PLACEMENTS = [
 ] as const;
 
 export const CMS_BANNER_STATUSES = ["draft", "active", "paused"] as const;
+export const CMS_BANNER_CATEGORY_TARGETS = [
+  "cars_vans",
+  "motorbike",
+  "truck",
+  "plant_construction",
+  "farm_agricultural",
+] as const;
 
 export type CmsBannerPlacement = (typeof CMS_BANNER_PLACEMENTS)[number];
 export type CmsBannerStatus = (typeof CMS_BANNER_STATUSES)[number];
+export type CmsBannerCategoryTarget = (typeof CMS_BANNER_CATEGORY_TARGETS)[number];
 
 export const CMS_BANNER_PLACEMENT_LABELS: Record<CmsBannerPlacement, string> = {
   home_hero: "Home / Hero",
@@ -29,11 +39,55 @@ export const CMS_BANNER_PLACEMENT_LABELS: Record<CmsBannerPlacement, string> = {
   ad_detail_sidebar: "Ad detail / Sidebar",
 };
 
+export const CMS_BANNER_CATEGORY_TARGET_LABELS: Record<CmsBannerCategoryTarget, string> = {
+  cars_vans: "Cars & vans",
+  motorbike: "Motorbikes",
+  truck: "Trucks",
+  plant_construction: "Plant",
+  farm_agricultural: "Farm",
+};
+
+export function getCmsBannerCategoryTargetForListingCategory(
+  category: ListingCategory | null | undefined
+): CmsBannerCategoryTarget | null {
+  if (category === "car" || category === "van") return "cars_vans";
+  if (
+    category === "motorbike" ||
+    category === "truck" ||
+    category === "plant_construction" ||
+    category === "farm_agricultural"
+  ) {
+    return category;
+  }
+
+  return null;
+}
+
+export function normalizeCmsBannerCategoryTargets(
+  value: unknown
+): CmsBannerCategoryTarget[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is CmsBannerCategoryTarget =>
+    CMS_BANNER_CATEGORY_TARGETS.includes(item as CmsBannerCategoryTarget)
+  );
+}
+
+export function cmsBannerMatchesCategoryTarget(
+  bannerTargets: readonly CmsBannerCategoryTarget[] | null | undefined,
+  activeTarget: CmsBannerCategoryTarget | null | undefined
+) {
+  if (!bannerTargets || bannerTargets.length === 0) return true;
+  if (!activeTarget) return false;
+  return bannerTargets.includes(activeTarget);
+}
+
 export type CmsBannerRecord = {
   id: string;
   title: string;
   slug: string | null;
   placement: CmsBannerPlacement;
+  category_targets?: CmsBannerCategoryTarget[] | null;
   status: CmsBannerStatus;
   desktop_image_url: string;
   mobile_image_url: string | null;
@@ -57,6 +111,7 @@ export type CmsBanner = {
   title: string;
   slug: string | null;
   placement: CmsBannerPlacement;
+  categoryTargets: CmsBannerCategoryTarget[];
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string | null;
@@ -93,6 +148,7 @@ export type SaveCmsBannerInput = {
   title: string;
   slug: string;
   placement: CmsBannerPlacement;
+  categoryTargets: CmsBannerCategoryTarget[];
   status: CmsBannerStatus;
   desktopImageUrl: string;
   mobileImageUrl: string;

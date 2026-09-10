@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { CMS_BANNER_SELECT, normalizeCmsBanner } from "@/lib/data/cms-banners";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
+  CMS_BANNER_CATEGORY_TARGETS,
   CMS_BANNER_PLACEMENTS,
   CMS_BANNER_STATUSES,
   type CmsBannerMutationResult,
@@ -19,6 +20,7 @@ const saveCmsBannerSchema = z.object({
   title: z.string().trim().min(2, "Banner title is required.").max(120),
   slug: z.string().trim().max(160),
   placement: z.enum(CMS_BANNER_PLACEMENTS),
+  categoryTargets: z.array(z.enum(CMS_BANNER_CATEGORY_TARGETS)),
   status: z.enum(CMS_BANNER_STATUSES),
   desktopImageUrl: z.string().trim().max(2000),
   mobileImageUrl: z.string().trim().max(2000),
@@ -105,6 +107,7 @@ export async function createCmsBannerDraft(): Promise<CmsBannerMutationResult> {
         title: "Untitled banner",
         slug: `untitled-banner-${crypto.randomUUID().slice(0, 8)}`,
         placement: "home_top",
+        category_targets: [],
         status: "draft",
         desktop_image_url: "",
         mobile_image_url: null,
@@ -126,6 +129,12 @@ export async function createCmsBannerDraft(): Promise<CmsBannerMutationResult> {
         return {
           success: false,
           error: "CMS banner storage is not ready yet. Run the cms_banners migration first.",
+        };
+      }
+      if (isMissingColumnError(error)) {
+        return {
+          success: false,
+          error: "Banner category targeting is not ready yet. Apply the category targeting migration first.",
         };
       }
 
@@ -188,6 +197,7 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
         title: parsed.data.title.trim(),
         slug,
         placement: parsed.data.placement,
+        category_targets: parsed.data.categoryTargets,
         status: parsed.data.status,
         desktop_image_url: desktopImageUrl ?? "",
         mobile_image_url: mobileImageUrl,
@@ -209,6 +219,12 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
         return {
           success: false,
           error: "CMS banner storage is not ready yet. Run the cms_banners migration first.",
+        };
+      }
+      if (isMissingColumnError(error)) {
+        return {
+          success: false,
+          error: "Banner category targeting is not ready yet. Apply the category targeting migration first.",
         };
       }
 

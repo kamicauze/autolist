@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { getActiveCmsBanners } from "@/lib/data/cms-banners";
-import type { CmsBannerPlacement } from "@/lib/types/cms-banners";
+import type { CmsBannerCategoryTarget, CmsBannerPlacement } from "@/lib/types/cms-banners";
 import { cn } from "@/lib/utils";
 import { PublicCmsBannerList } from "./public-cms-banners-client";
 
@@ -8,6 +8,7 @@ type PublicCmsBannerVariant = "full" | "compact" | "sidebar" | "hero" | "gutter"
 
 type PublicCmsBannerPlacementProps = {
   placement: CmsBannerPlacement;
+  categoryTarget?: CmsBannerCategoryTarget | null;
   limit?: number;
   variant?: PublicCmsBannerVariant;
   className?: string;
@@ -15,11 +16,12 @@ type PublicCmsBannerPlacementProps = {
 
 export async function PublicCmsBannerPlacement({
   placement,
+  categoryTarget,
   limit = 1,
   variant = "full",
   className,
 }: PublicCmsBannerPlacementProps) {
-  const banners = await getActiveCmsBanners(placement, limit);
+  const banners = await getActiveCmsBanners(placement, limit, categoryTarget);
 
   if (banners.length === 0) return null;
 
@@ -28,6 +30,7 @@ export async function PublicCmsBannerPlacement({
 
 type PublicCmsAdGridProps = {
   placement: CmsBannerPlacement;
+  categoryTarget?: CmsBannerCategoryTarget | null;
   children: ReactNode;
   limit?: number;
   className?: string;
@@ -54,12 +57,13 @@ function CmsGutterColumn({
 
 export async function PublicCmsAdGrid({
   placement,
+  categoryTarget,
   children,
   limit = 4,
   className,
   contentClassName,
 }: PublicCmsAdGridProps) {
-  const banners = await getActiveCmsBanners(placement, limit);
+  const banners = await getActiveCmsBanners(placement, limit, categoryTarget);
   const leftBanners = banners.filter((_, index) => index % 2 === 0);
   const rightBanners = banners.filter((_, index) => index % 2 === 1);
   const hasGutterBanners = banners.length > 0;

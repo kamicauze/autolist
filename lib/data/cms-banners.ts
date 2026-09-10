@@ -2,19 +2,47 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { isMissingRelationError } from "@/lib/supabase/error-utils";
+import { isMissingColumnError, isMissingRelationError } from "@/lib/supabase/error-utils";
 import type {
   AdminCmsBannersData,
   CmsBanner,
+  CmsBannerCategoryTarget,
   CmsBannerPlacement,
   CmsBannerRecord,
 } from "@/lib/types/cms-banners";
+import {
+  cmsBannerMatchesCategoryTarget,
+  normalizeCmsBannerCategoryTargets,
+} from "@/lib/types/cms-banners";
 
+const CMS_BANNER_BASE_SELECT = [
+  "id",
+  "title",
+  "slug",
+  "placement",
+  "status",
+  "desktop_image_url",
+  "mobile_image_url",
+  "alt_text",
+  "summary",
+  "body",
+  "cta_label",
+  "target_url",
+  "starts_at",
+  "ends_at",
+  "sort_order",
+  "impression_count",
+  "click_count",
+  "created_by",
+  "created_at",
+  "updated_at",
+].join(", ");
 export const CMS_BANNER_SELECT = [
   "id",
   "title",
   "slug",
   "placement",
+  "category_targets",
   "status",
   "desktop_image_url",
   "mobile_image_url",
@@ -78,6 +106,7 @@ export function normalizeCmsBanner(record: CmsBannerRecord): CmsBanner {
     title: record.title,
     slug: record.slug,
     placement: record.placement,
+    categoryTargets: normalizeCmsBannerCategoryTargets(record.category_targets),
     status: record.status,
     desktopImageUrl: record.desktop_image_url,
     mobileImageUrl: record.mobile_image_url,
@@ -114,12 +143,23 @@ function calculateStats(records: CmsBannerRecord[]): AdminCmsBannersData["stats"
 export async function getAdminCmsBannersData(): Promise<AdminCmsBannersData> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("cms_banners")
     .select(CMS_BANNER_SELECT)
     .order("placement", { ascending: true })
     .order("sort_order", { ascending: true })
     .order("updated_at", { ascending: false });
+
+  if (isMissingColumnError(error)) {
+    const legacyResult = await supabase
+      .from("cms_banners")
+      .select(CMS_BANNER_BASE_SELECT)
+      .order("placement", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("updated_at", { ascending: false });
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error) {
     if (isMissingRelationError(error)) {
@@ -140,9 +180,16 @@ export async function getAdminCmsBannersData(): Promise<AdminCmsBannersData> {
 }
 
 export const getActiveCmsBanners = cache(
-  async (placement?: CmsBannerPlacement, limit = 6): Promise<CmsBanner[]> => {
+  async (
+    placement?: CmsBannerPlacement,
+    limit = 6,
+    categoryTarget?: CmsBannerCategoryTarget | null
+  ): Promise<CmsBanner[]> => {
     const supabase = await createClient();
     const now = new Date().toISOString();
+    const requestedLimit = Math.max(0, limit);
+    if (requestedLimit === 0) return [];
+
     let query = supabase
       .from("cms_banners")
       .select(CMS_BANNER_SELECT)
@@ -152,13 +199,34 @@ export const getActiveCmsBanners = cache(
       .or(`ends_at.is.null,ends_at.gte.${now}`)
       .order("sort_order", { ascending: true })
       .order("updated_at", { ascending: false })
-      .limit(limit);
+      .limit(Math.max(requestedLimit, 24));
 
     if (placement) {
       query = query.eq("placement", placement);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
+
+    if (isMissingColumnError(error)) {
+      let legacyQuery = supabase
+        .from("cms_banners")
+        .select(CMS_BANNER_BASE_SELECT)
+        .eq("status", "active")
+        .neq("desktop_image_url", "")
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
+        .or(`ends_at.is.null,ends_at.gte.${now}`)
+        .order("sort_order", { ascending: true })
+        .order("updated_at", { ascending: false })
+        .limit(requestedLimit);
+
+      if (placement) {
+        legacyQuery = legacyQuery.eq("placement", placement);
+      }
+
+      const legacyResult = await legacyQuery;
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
 
     if (error) {
       if (!isMissingRelationError(error)) {
@@ -167,7 +235,10 @@ export const getActiveCmsBanners = cache(
       return [];
     }
 
-    return ((data ?? []) as unknown as CmsBannerRecord[]).map(normalizeCmsBanner);
+    return ((data ?? []) as unknown as CmsBannerRecord[])
+      .map(normalizeCmsBanner)
+      .filter((banner) => cmsBannerMatchesCategoryTarget(banner.categoryTargets, categoryTarget))
+      .slice(0, requestedLimit);
   }
 );
 
@@ -178,7 +249,7 @@ export async function getActiveCmsBannerBySlug(slug: string): Promise<CmsBanner 
   const supabase = await createClient();
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("cms_banners")
     .select(CMS_BANNER_SELECT)
     .eq("slug", normalizedSlug)
@@ -188,6 +259,21 @@ export async function getActiveCmsBannerBySlug(slug: string): Promise<CmsBanner 
     .or(`ends_at.is.null,ends_at.gte.${now}`)
     .limit(1)
     .maybeSingle<CmsBannerRecord>();
+
+  if (isMissingColumnError(error)) {
+    const legacyResult = await supabase
+      .from("cms_banners")
+      .select(CMS_BANNER_BASE_SELECT)
+      .eq("slug", normalizedSlug)
+      .eq("status", "active")
+      .neq("desktop_image_url", "")
+      .or(`starts_at.is.null,starts_at.lte.${now}`)
+      .or(`ends_at.is.null,ends_at.gte.${now}`)
+      .limit(1)
+      .maybeSingle<CmsBannerRecord>();
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error) {
     if (!isMissingRelationError(error)) {
