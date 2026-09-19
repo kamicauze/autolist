@@ -40,12 +40,12 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-gray-100">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-neutral-900">
         <Image
           src={displayImages[selectedIndex]}
           alt={`${title} - Image ${selectedIndex + 1}`}
           fill
-          className="object-cover"
+          className="object-contain"
           sizes="(max-width: 768px) 100vw, 600px"
           priority
         />
