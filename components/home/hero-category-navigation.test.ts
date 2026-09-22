@@ -16,7 +16,7 @@ const headerSource = fs.readFileSync(
   "utf8"
 );
 
-test("homepage category selector uses one consistent labelled icon system", () => {
+test("homepage category selector uses one consistent labelled image system", () => {
   assert.match(heroSource, /<VehicleCategoryIcon/);
   assert.match(heroSource, /CATEGORY_SHORT_LABELS/);
   assert.match(heroSource, /grid-cols-5/);
@@ -28,15 +28,21 @@ test("homepage category selector uses one consistent labelled icon system", () =
   assert.doesNotMatch(heroSource, /icon: Construction/);
 });
 
-test("Plant is represented by a purpose-drawn excavator", () => {
-  const plantCase = iconSource.match(
-    /case "plant_construction":([\s\S]*?)case "farm_agricultural":/
-  )?.[1];
+test("each homepage category has an image asset", () => {
+  const categoryImages = {
+    car: "car",
+    motorbike: "motorbike",
+    van: "van",
+    truck: "truck",
+    plant_construction: "plant",
+    farm_agricultural: "farm",
+  };
 
-  assert.ok(plantCase, "expected a dedicated plant drawing");
-  assert.match(plantCase, /<rect x="4" y="27" width="29" height="6" rx="3"/);
-  assert.match(plantCase, /M30 12l9 4 4 8/);
-  assert.match(plantCase, /m43 24-7 1\.5 2\.5 5\.5H45/);
+  assert.match(iconSource, /<Image/);
+  for (const [category, image] of Object.entries(categoryImages)) {
+    assert.match(iconSource, new RegExp(`${category}: "/category-images/${image}\\.webp"`));
+    assert.ok(fs.existsSync(path.join(process.cwd(), `public/category-images/${image}.webp`)));
+  }
 });
 
 test("desktop navigation typography is slightly larger and heavier", () => {

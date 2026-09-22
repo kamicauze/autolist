@@ -40,6 +40,7 @@ import {
   DRIVE_TYPES,
   SELLER_TYPES,
   LOCATIONS,
+  OLDER_THAN_1990_YEAR_OPTION,
   YEARS,
   SORT_OPTIONS,
 } from "@/lib/constants/filters";
@@ -289,6 +290,10 @@ function FilterSheetPanel({
       setLocalFilters((prev) => {
         const nextValue = value === "any" ? "" : value;
         const next = { ...prev, [side === "min" ? minKey : maxKey]: nextValue };
+        if (key === "Year" && side === "max" && nextValue === OLDER_THAN_1990_YEAR_OPTION.value) {
+          next[minKey] = "";
+          return next;
+        }
         const min = Number(next[minKey]);
         const max = Number(next[maxKey]);
 
@@ -507,7 +512,28 @@ function FilterSheetPanel({
         </SheetDescription>
       </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Sort By */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Sort by</Label>
+            <Select
+              value={localFilters.sortBy}
+              onValueChange={(val) => setLocalFilters((p) => ({ ...p, sortBy: val }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Newest First" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
           {/* Keyword */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -621,28 +647,6 @@ function FilterSheetPanel({
 
           <Separator />
 
-          {/* Sort By */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Sort by</Label>
-            <Select
-              value={localFilters.sortBy}
-              onValueChange={(val) => setLocalFilters((p) => ({ ...p, sortBy: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Newest First" />
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
           {/* ── FILTERS ── */}
           <div className="space-y-1">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Filters</h3>
@@ -704,6 +708,9 @@ function FilterSheetPanel({
                       {year}
                     </SelectItem>
                   ))}
+                  <SelectItem value={OLDER_THAN_1990_YEAR_OPTION.value}>
+                    {OLDER_THAN_1990_YEAR_OPTION.label}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

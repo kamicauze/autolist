@@ -385,13 +385,44 @@ export function CarCard({
             ))}
           </div>
         ) : null}
+        <div className={cn("min-w-0", isCompact ? "py-3" : "py-3.5")}>
+          <span
+            className={cn(
+              "block truncate font-bold text-card-foreground",
+              isCompact ? "text-[17px] leading-[24px]" : "text-[20px] leading-[28px]"
+            )}
+          >
+            {currency}
+            {formattedPrice}
+          </span>
+          {formattedOriginalPrice ? (
+            <span
+              className={cn(
+                "block font-medium text-muted-foreground line-through",
+                isCompact ? "text-[11px] leading-[16px]" : "text-[13px] leading-[19.6px]"
+              )}
+            >
+              {currency}
+              {formattedOriginalPrice}
+            </span>
+          ) : null}
+        </div>
+
         <div
           className={cn(
-            "font-medium text-muted-foreground",
-            isCompact ? "py-3 text-[11px] leading-[17px]" : "py-3.5 text-[12px] leading-[18px]"
+            "mt-auto flex items-center justify-between gap-3 font-medium text-muted-foreground",
+            isCompact ? "pt-3 text-[11px] leading-[16px]" : "pt-3.5 text-[12px] leading-[18px]"
           )}
         >
-          <div className="flex min-w-0 items-start gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {contactKind === "call" ? (
+              <BriefcaseBusiness className="h-3 w-3 shrink-0" />
+            ) : (
+              <UserRound className="h-3 w-3 shrink-0" />
+            )}
+            <span className="min-w-0 truncate">{displaySellerLabel}</span>
+          </div>
+          <div className="flex min-w-0 shrink-0 items-center gap-1 max-w-[55%]">
             <Image
               src={LISTING_OVERVIEW_ASSET_PATHS.location}
               alt=""
@@ -399,48 +430,10 @@ export function CarCard({
               height={24}
               className={cn(
                 "shrink-0 object-contain",
-                isCompact ? "h-5 w-5" : "h-6 w-6"
+                isCompact ? "h-4 w-4" : "h-5 w-5"
               )}
             />
-            <span className="min-w-0 break-words">{location || subtitle || "Kenya"}</span>
-          </div>
-        </div>
-
-        <div className={cn("mt-auto flex items-center justify-between gap-3", isCompact ? "pt-3" : "pt-3.5")}>
-          <div className="min-w-0">
-            <span
-              className={cn(
-                "block truncate font-bold text-card-foreground",
-                isCompact ? "text-[17px] leading-[24px]" : "text-[20px] leading-[28px]"
-              )}
-            >
-              {currency}
-              {formattedPrice}
-            </span>
-            {formattedOriginalPrice ? (
-              <span
-                className={cn(
-                  "block font-medium text-muted-foreground line-through",
-                  isCompact ? "text-[11px] leading-[16px]" : "text-[13px] leading-[19.6px]"
-                )}
-              >
-                {currency}
-                {formattedOriginalPrice}
-              </span>
-            ) : null}
-          </div>
-          <div
-            className={cn(
-              "flex shrink-0 items-center gap-1.5 font-medium text-muted-foreground",
-              isCompact ? "text-[11px] leading-[16px]" : "text-[12px] leading-[18px]"
-            )}
-          >
-            {contactKind === "call" ? (
-              <BriefcaseBusiness className="h-3 w-3 shrink-0" />
-            ) : (
-              <UserRound className="h-3 w-3 shrink-0" />
-            )}
-            <span className="whitespace-nowrap">{displaySellerLabel}</span>
+            <span className="min-w-0 truncate">{location || subtitle || "Kenya"}</span>
           </div>
         </div>
       </div>

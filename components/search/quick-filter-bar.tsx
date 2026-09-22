@@ -149,10 +149,10 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
                 onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}
               >
                 <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="County" />
+                  <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Counties</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
                   {LOCATIONS.filter((l) => l !== "All Locations").map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}

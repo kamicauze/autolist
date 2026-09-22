@@ -17,6 +17,7 @@ import {
   BODY_TYPE_OPTIONS,
   CONDITIONS,
   FUEL_TYPES,
+  OLDER_THAN_1990_YEAR_OPTION,
   TRANSMISSION_OPTIONS,
   YEARS,
 } from "@/lib/constants/filters";
@@ -64,6 +65,10 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
       params.set(targetKey, value);
     } else {
       params.delete(targetKey);
+    }
+
+    if (range === "Year" && side === "max" && value === OLDER_THAN_1990_YEAR_OPTION.value) {
+      params.delete(minKey);
     }
 
     const min = Number(params.get(minKey));
@@ -215,6 +220,9 @@ export function SearchFilters({ makes }: SearchFiltersProps) {
                   {year}
                 </SelectItem>
               ))}
+              <SelectItem value={OLDER_THAN_1990_YEAR_OPTION.value}>
+                {OLDER_THAN_1990_YEAR_OPTION.label}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

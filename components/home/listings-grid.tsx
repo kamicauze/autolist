@@ -44,7 +44,7 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               transmission={getListingTransmissionLabel(listing) || undefined}
               engineSize={getListingEngineDisplacement(listing) || undefined}
               location={getListingDisplayLocation(listing)}
-              sellerLabel={listing.dealer ? "Dealer" : "Seller"}
+              sellerLabel={listing.dealer ? `Dealer: ${listing.dealer.name}` : "Private seller"}
               contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
               contactKind={listing.dealer ? "call" : "message"}
               price={listing.price}

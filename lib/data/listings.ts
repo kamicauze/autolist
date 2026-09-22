@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { locationMatchesFilter } from "@/lib/constants/filters";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
@@ -504,8 +505,10 @@ function listingMatchesVerifiedOnly(listing: Listing, verifiedOnly?: boolean) {
 function listingMatchesRequestedLocation(listing: Listing, requestedLocations: string[]) {
   if (requestedLocations.length === 0) return true;
 
-  const displayLocation = getListingDisplayLocation(listing, { fallback: "" }).toLowerCase();
-  return requestedLocations.some((location) => displayLocation.includes(location.toLowerCase()));
+  const displayLocation = getListingDisplayLocation(listing, { fallback: "" });
+  return requestedLocations.some((location) =>
+    locationMatchesFilter(displayLocation, location)
+  );
 }
 
 function listingMatchesRequestedDriveTypes(listing: Listing, requestedDriveTypes: SearchDriveType[]) {

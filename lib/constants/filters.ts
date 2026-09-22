@@ -101,9 +101,8 @@ export const SELLER_TYPES = [
   { value: "private", label: "Private" },
 ] as const;
 
-// Locations (Kenya cities)
-export const LOCATIONS = [
-  "All Locations",
+// Keep the existing city shortcuts first, then offer every county once.
+const PRIORITY_LOCATIONS = [
   "Nairobi",
   "Mombasa",
   "Kisumu",
@@ -116,11 +115,87 @@ export const LOCATIONS = [
   "Nyeri",
 ] as const;
 
-// Years (last 30 years)
+export const KENYA_COUNTIES = [
+  "Baringo",
+  "Bomet",
+  "Bungoma",
+  "Busia",
+  "Elgeyo Marakwet",
+  "Embu",
+  "Garissa",
+  "Homa Bay",
+  "Isiolo",
+  "Kajiado",
+  "Kakamega",
+  "Kericho",
+  "Kiambu",
+  "Kilifi",
+  "Kirinyaga",
+  "Kisii",
+  "Kisumu",
+  "Kitui",
+  "Kwale",
+  "Laikipia",
+  "Lamu",
+  "Machakos",
+  "Makueni",
+  "Mandera",
+  "Marsabit",
+  "Meru",
+  "Migori",
+  "Mombasa",
+  "Murang'a",
+  "Nairobi",
+  "Nakuru",
+  "Nandi",
+  "Narok",
+  "Nyamira",
+  "Nyandarua",
+  "Nyeri",
+  "Samburu",
+  "Siaya",
+  "Taita Taveta",
+  "Tana River",
+  "Tharaka Nithi",
+  "Trans Nzoia",
+  "Turkana",
+  "Uasin Gishu",
+  "Vihiga",
+  "Wajir",
+  "West Pokot",
+] as const;
+
+export const LOCATIONS = [
+  "All Locations",
+  ...PRIORITY_LOCATIONS,
+  ...KENYA_COUNTIES.filter(
+    (county) => !PRIORITY_LOCATIONS.some((location) => location === county)
+  ),
+] as const;
+
+const COUNTY_CITY_ALIASES: Record<string, readonly string[]> = {
+  "Uasin Gishu": ["Eldoret"],
+  Kiambu: ["Thika"],
+  Kilifi: ["Malindi"],
+  "Trans Nzoia": ["Kitale"],
+  Laikipia: ["Nanyuki"],
+  Nakuru: ["Naivasha"],
+  "Taita Taveta": ["Voi"],
+};
+
+export function locationMatchesFilter(displayLocation: string, selectedLocation: string): boolean {
+  const location = displayLocation.toLowerCase();
+  return [selectedLocation, ...(COUNTY_CITY_ALIASES[selectedLocation] ?? [])].some((term) =>
+    location.includes(term.toLowerCase())
+  );
+}
+
+// Keep older vehicles in one "To" bucket instead of listing every earlier year.
 export const YEARS = Array.from(
-  { length: 30 },
+  { length: new Date().getFullYear() - 1989 },
   (_, i) => new Date().getFullYear() - i
 );
+export const OLDER_THAN_1990_YEAR_OPTION = { label: "<1990", value: "1989" } as const;
 
 // Price Ranges
 export const PRICE_RANGES = [

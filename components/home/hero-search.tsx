@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
-import { LOCATIONS, MILEAGE_RANGES } from "@/lib/constants/filters";
+import { LOCATIONS, MILEAGE_RANGES, OLDER_THAN_1990_YEAR_OPTION } from "@/lib/constants/filters";
 import {
   LANDING_PRICE_OPTIONS,
   LANDING_SEARCH_CATEGORY_CONFIG,
@@ -99,6 +99,7 @@ const HERO_YEAR_FROM_OPTIONS = [
 const HERO_YEAR_TO_OPTIONS = [
   { label: "To", value: "any" },
   ...HERO_YEAR_OPTIONS,
+  OLDER_THAN_1990_YEAR_OPTION,
 ];
 const HERO_PRICE_OPTIONS = LANDING_PRICE_OPTIONS.filter(
   (option) => option.value !== "any",
@@ -132,7 +133,7 @@ const HERO_MILEAGE_VALUES = Array.from(
   ),
 ).sort((left, right) => left - right);
 const formatMileage = (value: number) =>
-  `${new Intl.NumberFormat("en-KE").format(value)} km`;
+  `${new Intl.NumberFormat("en-KE").format(value)}`;
 const HERO_MILEAGE_FROM_OPTIONS = [
   { label: "From (km)", value: "any" },
   ...HERO_MILEAGE_VALUES.map((value) => ({
@@ -141,7 +142,7 @@ const HERO_MILEAGE_FROM_OPTIONS = [
   })),
 ];
 const HERO_MILEAGE_TO_OPTIONS = [
-  { label: "To (km)", value: "any" },
+  { label: "To", value: "any" },
   ...HERO_MILEAGE_VALUES.map((value) => ({
     label: formatMileage(value),
     value: String(value),
@@ -842,7 +843,7 @@ export function HeroSearch({
                       >
                         <span
                           className={cn(
-                            "flex h-8 w-11 items-center justify-center rounded-[10px] border border-white/80 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_3px_8px_rgba(31,41,55,0.08)] transition-[transform,border-color,background-color] duration-300 group-hover:-translate-y-px",
+                            "flex h-9 w-12 items-center justify-center rounded-[10px] border border-white/80 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_3px_8px_rgba(31,41,55,0.08)] transition-[transform,border-color,background-color] duration-300 group-hover:-translate-y-px",
                             isActive &&
                               "border-primary/20 bg-primary/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_10px_rgb(var(--primary-rgb)/0.14)]",
                             hasSponsoredHero && "lg:w-10",
@@ -851,8 +852,8 @@ export function HeroSearch({
                           <VehicleCategoryIcon
                             category={category}
                             className={cn(
-                              "h-6 w-8",
-                              hasSponsoredHero && "lg:h-5 lg:w-7",
+                              "h-8 w-11 object-contain",
+                              hasSponsoredHero && "lg:h-7 lg:w-9",
                             )}
                           />
                         </span>
@@ -912,11 +913,16 @@ export function HeroSearch({
 
                 <div
                   className={cn(
-                    "mt-4 grid gap-4 xl:grid-cols-4",
-                    hasSponsoredHero && "gap-3 sm:grid-cols-2 xl:grid-cols-2",
+                    "mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4",
+                    hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div>
+                  <div
+                    className={cn(
+                      "col-span-2 xl:col-span-1",
+                      hasSponsoredHero && "sm:col-span-1",
+                    )}
+                  >
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Location
                     </label>
@@ -958,7 +964,12 @@ export function HeroSearch({
                     {renderModelField()}
                   </div>
 
-                  <div>
+                  <div
+                    className={cn(
+                      "col-span-2 xl:col-span-1",
+                      hasSponsoredHero && "sm:col-span-1",
+                    )}
+                  >
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Choose Year
                     </label>
@@ -975,15 +986,21 @@ export function HeroSearch({
                         ),
                       HERO_YEAR_FROM_OPTIONS,
                       yearTo,
-                      (nextValue) =>
-                        setBoundedRange(
-                          "to",
-                          nextValue,
-                          yearFrom,
-                          yearTo,
-                          setYearFrom,
-                          setYearTo,
-                        ),
+                      (nextValue) => {
+                        if (nextValue === OLDER_THAN_1990_YEAR_OPTION.value) {
+                          setYearFrom("any");
+                          setYearTo(nextValue);
+                        } else {
+                          setBoundedRange(
+                            "to",
+                            nextValue,
+                            yearFrom,
+                            yearTo,
+                            setYearFrom,
+                            setYearTo,
+                          );
+                        }
+                      },
                       HERO_YEAR_TO_OPTIONS,
                       "Year from",
                       "Year to",
