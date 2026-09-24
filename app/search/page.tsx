@@ -20,7 +20,7 @@ import {
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
-import { parseFiniteSearchNumber } from "@/lib/search/search-filter-params";
+import { parseSearchListingFilters } from "@/lib/search/search-listing-filters";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -36,62 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ? LANDING_SEARCH_CATEGORY_CONFIG[categoryParam]
       : null;
   const normalizedCategory = categoryConfig ? categoryParam : undefined;
-  const isTruckSearch = normalizedCategory === "truck";
-
-  // Parse array filters (comma-separated)
-  const parseArrayParam = (value: string | string[] | undefined): string[] | undefined => {
-    if (!value) return undefined;
-    if (Array.isArray(value)) return value;
-    return value.split(",").filter(Boolean);
-  };
-  const parseScalarParam = (
-    value: string | string[] | undefined
-  ): string | undefined => (Array.isArray(value) ? value[0] : value);
-
-  // Extract filters from params
-  const filters: SearchListingFilters = {
-    q: params.q as string,
-    category: normalizedCategory,
-    make: params.make as string,
-    model: params.model as string,
-    origin: params.origin as string,
-    equipmentType: parseArrayParam(params.equipmentType),
-    useCase: params.useCase as string,
-    intent: parseArrayParam(params.intent),
-    minPrice: params.minPrice ? Number(params.minPrice) : undefined,
-    maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
-    minYear: params.minYear ? Number(params.minYear) : undefined,
-    maxYear: params.maxYear ? Number(params.maxYear) : undefined,
-    bodyType: parseArrayParam(params.bodyType),
-    transmission: parseArrayParam(params.transmission),
-    fuelType: parseArrayParam(params.fuelType),
-    condition: params.condition as SearchListingFilters["condition"],
-    location: params.location as string,
-    color: params.color as string,
-    seats: params.seats ? Number(params.seats) : undefined,
-    doors: params.doors ? Number(params.doors) : undefined,
-    driveType: params.driveType as string,
-    sellerType: params.sellerType as SearchListingFilters["sellerType"],
-    verifiedOnly: params.verifiedOnly === "true",
-    featured: params.featured === "true",
-    minMileage: params.minMileage ? Number(params.minMileage) : undefined,
-    maxMileage: params.maxMileage ? Number(params.maxMileage) : undefined,
-    engineCc: params.engineCc as string,
-    taxonomyCategory: params.taxCategory as string,
-    taxonomySubcategory: params.taxSubcategory as string,
-    minHours: params.hoursMin ? Number(params.hoursMin) : undefined,
-    maxHours: params.hoursMax ? Number(params.hoursMax) : undefined,
-    axleConfig: isTruckSearch ? parseScalarParam(params.axleConfig) : undefined,
-    cabType: isTruckSearch ? parseScalarParam(params.cabType) : undefined,
-    minGvmKg: isTruckSearch ? parseFiniteSearchNumber(params.gvmMin) : undefined,
-    maxGvmKg: isTruckSearch ? parseFiniteSearchNumber(params.gvmMax) : undefined,
-    minEnginePowerBhp: isTruckSearch
-      ? parseFiniteSearchNumber(params.enginePowerMin)
-      : undefined,
-    maxEnginePowerBhp: isTruckSearch
-      ? parseFiniteSearchNumber(params.enginePowerMax)
-      : undefined,
-  };
+  const filters: SearchListingFilters = parseSearchListingFilters(params);
 
   // Parse sort option
   const sortBy = params.sortBy as string;
