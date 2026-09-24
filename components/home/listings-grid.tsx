@@ -2,17 +2,7 @@ import Link from "next/link";
 import { CarCard } from "@/components/ui/car-card";
 import { Button } from "@/components/ui/button";
 import type { Listing } from "@/lib/types/listing";
-import { getImageUrl } from "@/lib/utils/listings";
-import {
-  getListingBodyTypeLabel,
-  getListingDisplayLocation,
-  getListingDisplayTitle,
-  getListingEngineDisplacement,
-  getListingFuelTypeLabel,
-  getListingMileageLabel,
-  getListingSubtitle,
-  getListingTransmissionLabel,
-} from "@/lib/utils/vehicle-display";
+import { getListingCardProps } from "@/lib/utils/listing-card-props";
 
 export function ListingsGrid({ listings }: { listings: Listing[] }) {
   if (listings.length === 0) {
@@ -21,50 +11,11 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
 
   return (
     <div className="flex snap-x gap-4 overflow-x-auto pb-3 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:pb-0 lg:grid-cols-4">
-      {listings.map((listing) => {
-        const sortedImages = (listing.images || [])
-          .sort((a, b) => a.image_order - b.image_order)
-          .map((img) => getImageUrl(img.r2_key, "card"));
-
-        const sellerName =
-          listing.dealer?.name ||
-          listing.seller?.full_name ||
-          "Private Seller";
-
-        return (
-          <div key={listing.id} className="w-[82vw] max-w-full shrink-0 snap-start sm:w-auto">
-            <CarCard
-              id={listing.id}
-              title={getListingDisplayTitle(listing)}
-              subtitle={getListingSubtitle(listing)}
-              bodyType={getListingBodyTypeLabel(listing)}
-              year={listing.year}
-              mileage={getListingMileageLabel(listing) || undefined}
-              fuelType={getListingFuelTypeLabel(listing) || undefined}
-              transmission={getListingTransmissionLabel(listing) || undefined}
-              engineSize={getListingEngineDisplacement(listing) || undefined}
-              location={getListingDisplayLocation(listing)}
-              sellerLabel={listing.dealer ? `Dealer: ${listing.dealer.name}` : "Private seller"}
-              contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
-              contactKind={listing.dealer ? "call" : "message"}
-              price={listing.price}
-              currency={listing.currency}
-              images={
-                sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]
-              }
-              isFeatured={listing.is_featured}
-              seller={{
-                name: sellerName,
-                avatarUrl:
-                  listing.dealer?.logo_url ||
-                  listing.seller?.avatar_url ||
-                  undefined,
-              }}
-              href={`/vehicle/${listing.id}`}
-            />
-          </div>
-        );
-      })}
+      {listings.map((listing) => (
+        <div key={listing.id} className="w-[82vw] max-w-full shrink-0 snap-start sm:w-auto">
+          <CarCard {...getListingCardProps(listing)} />
+        </div>
+      ))}
     </div>
   );
 }

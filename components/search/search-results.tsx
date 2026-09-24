@@ -5,17 +5,7 @@ import { SearchX } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { Pagination } from "@/components/ui/pagination";
-import { getImageUrl } from "@/lib/utils/listings";
-import {
-  getListingBodyTypeLabel,
-  getListingDisplayLocation,
-  getListingDisplayTitle,
-  getListingEngineDisplacement,
-  getListingFuelTypeLabel,
-  getListingMileageLabel,
-  getListingSubtitle,
-  getListingTransmissionLabel,
-} from "@/lib/utils/vehicle-display";
+import { getListingCardProps } from "@/lib/utils/listing-card-props";
 import { cn } from "@/lib/utils";
 
 interface SearchResultsProps {
@@ -56,45 +46,9 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
           compact ? "2xl:grid-cols-4" : "lg:grid-cols-4"
         )}
       >
-        {listings.map((listing) => {
-          const sortedImages = (listing.images || [])
-            .sort((a, b) => a.image_order - b.image_order)
-            .map((img) => getImageUrl(img.r2_key, "card"));
-
-          const sellerName =
-            listing.dealer?.name ||
-            listing.seller?.full_name ||
-            "Private Seller";
-
-          return (
-            <CarCard
-              key={listing.id}
-              id={listing.id}
-              title={getListingDisplayTitle(listing)}
-              subtitle={getListingSubtitle(listing)}
-              bodyType={getListingBodyTypeLabel(listing)}
-              year={listing.year}
-              mileage={getListingMileageLabel(listing)}
-              fuelType={getListingFuelTypeLabel(listing)}
-              transmission={getListingTransmissionLabel(listing)}
-              engineSize={getListingEngineDisplacement(listing) || undefined}
-              location={getListingDisplayLocation(listing)}
-              sellerLabel={listing.dealer ? `Dealer: ${listing.dealer.name}` : "Private seller"}
-              contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
-              contactKind={listing.dealer ? "call" : "message"}
-              price={listing.price}
-              currency={listing.currency}
-              images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}
-              isFeatured={listing.is_featured}
-              seller={{
-                name: sellerName,
-                avatarUrl: listing.dealer?.logo_url || listing.seller?.avatar_url || undefined,
-              }}
-              href={`/vehicle/${listing.id}`}
-              density="compact"
-            />
-          );
-        })}
+        {listings.map((listing) => (
+          <CarCard key={listing.id} {...getListingCardProps(listing)} density="compact" />
+        ))}
       </div>
 
       {/* Pagination */}

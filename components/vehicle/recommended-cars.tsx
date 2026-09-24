@@ -9,16 +9,8 @@ import { setListingWishlistState } from "@/lib/actions/favorites";
 import type { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
 import { getImageUrl } from "@/lib/utils/listings";
-import {
-  getListingBodyTypeLabel,
-  getListingDisplayLocation,
-  getListingDisplayTitle,
-  getListingEngineDisplacement,
-  getListingFuelTypeLabel,
-  getListingMileageLabel,
-  getListingSubtitle,
-  getListingTransmissionLabel,
-} from "@/lib/utils/vehicle-display";
+import { getListingCardProps } from "@/lib/utils/listing-card-props";
+import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
 import { useCompare } from "@/lib/hooks/use-compare";
 
@@ -248,46 +240,13 @@ export function RecommendedCars({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {displayListings.map((listing) => {
-            const sortedImages = (listing.images || [])
-              .slice()
-              .sort((left, right) => left.image_order - right.image_order)
-              .map((image) => getImageUrl(image.r2_key, "card"));
-
-            const sellerName =
-              listing.dealer?.name ||
-              listing.seller?.full_name ||
-              "Private Seller";
-
-            return (
-              <CarCard
-                key={listing.id}
-                id={listing.id}
-                title={getListingDisplayTitle(listing)}
-                subtitle={getListingSubtitle(listing)}
-                bodyType={getListingBodyTypeLabel(listing)}
-                year={listing.year}
-                mileage={getListingMileageLabel(listing) || undefined}
-                fuelType={getListingFuelTypeLabel(listing) || undefined}
-                transmission={getListingTransmissionLabel(listing) || undefined}
-                engineSize={getListingEngineDisplacement(listing) || undefined}
-                location={getListingDisplayLocation(listing)}
-                sellerLabel={listing.dealer ? `Dealer: ${listing.dealer.name}` : "Private seller"}
-                contactLabel={listing.dealer ? "Call Dealer" : "Send Message"}
-                contactKind={listing.dealer ? "call" : "message"}
-                price={listing.price}
-                currency={listing.currency}
-                images={sortedImages.length > 0 ? sortedImages : ["/placeholder-car.jpg"]}
-                isFeatured={listing.is_featured}
-                seller={{
-                  name: sellerName,
-                  avatarUrl: listing.dealer?.logo_url || listing.seller?.avatar_url || undefined,
-                }}
-                initialIsFavorited={Boolean(likedIds[listing.id])}
-                href={`/vehicle/${listing.id}`}
-              />
-            );
-          })}
+          {displayListings.map((listing) => (
+            <CarCard
+              key={listing.id}
+              {...getListingCardProps(listing)}
+              initialIsFavorited={Boolean(likedIds[listing.id])}
+            />
+          ))}
         </div>
       )}
     </div>
