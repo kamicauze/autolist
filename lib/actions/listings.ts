@@ -4,10 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
-import {
-    processStoredListingImageAssets,
-    uploadListingImageAssets,
-} from "@/lib/server/listing-image-pipeline";
+import { processStoredListingImageAssets } from "@/lib/server/listing-image-pipeline";
 import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notifications";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
 import {
@@ -30,10 +27,6 @@ import {
     promoteListingMediaUpload,
     readListingMediaUpload,
 } from "@/lib/server/listing-media-upload";
-import { r2 } from "@/lib/r2";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { nanoid } from "nanoid";
-
 import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
 import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
 import { getActiveSubscriptionPriorityBySellerId } from "@/lib/data/listings";
@@ -95,21 +88,6 @@ type UploadedListingDocument = {
     size: number;
 };
 
-const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
-const MAX_VIDEO_UPLOAD_SIZE_BYTES = 200 * 1024 * 1024;
-const IMAGE_ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const DOCUMENT_ACCEPTED_TYPES = new Set([
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-]);
-const VIDEO_ACCEPTED_TYPES = new Set([
-    "video/mp4",
-    "video/webm",
-    "video/quicktime",
-    "video/x-m4v",
-]);
 const STRING_METADATA_FIELDS = [
     "category",
     "country",
@@ -343,41 +321,6 @@ function parsePerceptualHashes(value: string | null | undefined) {
         .split(",")
         .map((part) => part.trim())
         .filter(Boolean);
-}
-
-function extensionForFile(file: File) {
-    if (file.name.includes(".")) {
-        return file.name.slice(file.name.lastIndexOf("."));
-    }
-    const subtype = file.type.split("/")[1];
-    return subtype ? `.${subtype}` : "";
-}
-
-function sanitizeFileName(fileName: string) {
-    return fileName.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
-}
-
-async function uploadListingFile(
-    listingId: string,
-    file: File,
-) {
-    if (!IMAGE_ACCEPTED_TYPES.has(file.type)) {
-        throw new Error(`"${file.name}" must be a JPG, PNG, or WebP image.`);
-    }
-
-    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-        throw new Error(`"${file.name}" exceeds the 10MB upload limit.`);
-    }
-
-    const extension = extensionForFile(file);
-    const baseName = extension ? file.name.slice(0, -extension.length) : file.name;
-    const bytes = Buffer.from(await file.arrayBuffer());
-    return uploadListingImageAssets({
-        listingId,
-        fileName: `${baseName}${extension}`,
-        bytes,
-        contentType: file.type || "application/octet-stream",
-    });
 }
 
 function applySupplementalListingMetadata(
@@ -877,10 +820,6 @@ export async function setListingFeatured(id: string, isFeatured: boolean) {
     return { success: true };
 }
 
-export async function setOwnerListingFeatured(id: string, isFeatured: boolean) {
-    return setListingFeatured(id, isFeatured);
-}
-
 export async function updateAdminListingStatus(
     id: string,
     status: ListingStatus,
@@ -1051,48 +990,6 @@ export async function duplicateOwnerListing(id: string) {
 }
 
 // ─── Image Upload ────────────────────────────────────────────────────────────
-
-/**
- * Save an image record after uploading to R2.
- * RLS ensures only the listing owner can insert images.
- */
-export async function saveListingImage(
-    listingId: string,
-    r2Key: string,
-    altText: string | null,
-    imageOrder: number,
-    imageHash: string | null,
-    perceptualHash: string | null,
-) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
-
-    const access = await getEditableListingAccess(supabase, user.id, listingId);
-    if ("error" in access) {
-        return { error: access.error };
-    }
-
-    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
-    const { error } = await writeSupabase
-        .from('listing_images')
-        .insert({
-            listing_id: listingId,
-            r2_key: r2Key,
-            alt_text: altText,
-            image_order: imageOrder,
-            image_hash: imageHash,
-            perceptual_hash: perceptualHash,
-            is_watermarked: true,
-        });
-
-    if (error) {
-        console.error("Save Image Error:", error);
-        return { error: error.message };
-    }
-
-    return { success: true };
-}
 
 type PreparedListingImage = {
     key: string;
@@ -1422,132 +1319,6 @@ export async function finalizeListingVideoUpload(
     return { success: true, videoUrl };
 }
 
-export async function uploadListingImages(formData: FormData) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
-
-    const listingId = formData.get("listingId");
-    if (typeof listingId !== "string" || !listingId.trim()) {
-        return { error: "Listing id is required." };
-    }
-
-    const access = await getEditableListingAccess(supabase, user.id, listingId);
-    if ("error" in access) {
-        return { error: access.error };
-    }
-    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
-    const listing = access.listing;
-
-    const coverImage = formData.get("coverImage");
-    const galleryImages = formData
-        .getAll("galleryImages")
-        .filter((value): value is File => value instanceof File && value.size > 0);
-
-    const coverFile = coverImage instanceof File && coverImage.size > 0 ? coverImage : null;
-
-    if (coverFile && galleryImages.length < 2) {
-        return { error: "At least two gallery images are required." };
-    }
-
-    if (!coverFile && galleryImages.length < 3) {
-        return { error: "At least three listing photos are required." };
-    }
-
-    const filesToUpload = coverFile ? [coverFile, ...galleryImages] : galleryImages;
-    const preparedUploads: Array<{
-        key: string;
-        hash: string;
-        perceptualHash: string;
-        altText: string | null;
-        imageOrder: number;
-    }> = [];
-    let uploadedCount = 0;
-
-    for (const [index, file] of filesToUpload.entries()) {
-        try {
-            const { key, hash, perceptualHash } = await uploadListingFile(listingId, file);
-            const duplicateCheck = await writeSupabase
-                .from('listing_images')
-                .select('id, image_hash, perceptual_hash, listings!inner(seller_id, id)')
-                .eq('listings.seller_id', listing.seller_id)
-                .neq('listing_id', listingId);
-
-            if (duplicateCheck.error) {
-                return { error: duplicateCheck.error.message };
-            }
-
-            const duplicateRows = (duplicateCheck.data ?? []) as Array<{
-                id: string;
-                image_hash: string | null;
-                perceptual_hash: string | null;
-            }>;
-            const nextHashes = parsePerceptualHashes(perceptualHash);
-            const hasPerceptualDuplicate = duplicateRows.some((row) =>
-                parsePerceptualHashes(row.perceptual_hash).some((existingHash) =>
-                    nextHashes.some((candidateHash) => hammingDistance(existingHash, candidateHash) <= 8)
-                )
-            );
-
-            if (duplicateRows.some((row) => row.image_hash === hash) || hasPerceptualDuplicate) {
-                return { error: `Duplicate image detected for "${file.name}".` };
-            }
-
-            const altText = formData.get("altTextBase");
-            preparedUploads.push({
-                key,
-                hash,
-                perceptualHash,
-                altText:
-                    typeof altText === "string" && altText.trim()
-                        ? `${altText} - Photo ${index + 1}`
-                        : null,
-                imageOrder: index,
-            });
-        } catch (error) {
-            return {
-                error: error instanceof Error ? error.message : `Unable to upload "${file.name}".`,
-            };
-        }
-    }
-
-    const { error: deleteError } = await writeSupabase
-        .from("listing_images")
-        .delete()
-        .eq("listing_id", listingId);
-
-    if (deleteError) {
-        return { error: deleteError.message };
-    }
-
-    for (const upload of preparedUploads) {
-        const imageResult = await saveListingImage(
-            listingId,
-            upload.key,
-            upload.altText,
-            upload.imageOrder,
-            upload.hash,
-            upload.perceptualHash,
-        );
-
-        if (imageResult.error) {
-            return imageResult;
-        }
-
-        uploadedCount += 1;
-    }
-
-    if (access.canAdminister) {
-        await emitListingUpdatedNotification({
-            actorId: user.id,
-            listing,
-            summary: "An admin updated the listing photos on your behalf.",
-        });
-    }
-
-    return { success: true, uploadedCount };
-}
-
 export async function reorderListingImages(formData: FormData) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -1633,207 +1404,6 @@ export async function reorderListingImages(formData: FormData) {
     }
 
     return { success: true };
-}
-
-export async function uploadListingVideo(formData: FormData) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
-
-    const listingId = formData.get("listingId");
-    const videoFile = formData.get("videoFile");
-    if (typeof listingId !== "string" || !listingId.trim()) {
-        return { error: "Listing id is required." };
-    }
-
-    if (!(videoFile instanceof File) || videoFile.size === 0) {
-        return { error: "A video file is required." };
-    }
-
-    const access = await getEditableListingAccess(supabase, user.id, listingId);
-    if ("error" in access) {
-        return { error: access.error };
-    }
-    const listing = access.listing;
-    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
-
-    if (!VIDEO_ACCEPTED_TYPES.has(videoFile.type)) {
-        return { error: "Video must be an MP4, WEBM, or MOV file." };
-    }
-
-    if (videoFile.size > MAX_VIDEO_UPLOAD_SIZE_BYTES) {
-        return { error: "Video exceeds the 200MB upload limit." };
-    }
-
-    if (!process.env.R2_BUCKET_NAME) {
-        return { error: "R2 bucket configuration is missing." };
-    }
-
-    const extension = extensionForFile(videoFile) || ".mp4";
-    const baseName = extension ? videoFile.name.slice(0, -extension.length) : videoFile.name;
-    const key = `listings/${listingId}/video/${Date.now()}-${nanoid(10)}-${sanitizeFileName(`${baseName}${extension}`)}`;
-    const publicUrl = getStorageObjectUrl(key);
-
-    if (!publicUrl.startsWith("http")) {
-        return { error: "Public asset URL configuration is missing." };
-    }
-
-    try {
-        await r2.send(
-            new PutObjectCommand({
-                Bucket: process.env.R2_BUCKET_NAME,
-                Key: key,
-                Body: Buffer.from(await videoFile.arrayBuffer()),
-                ContentType: videoFile.type || "application/octet-stream",
-            })
-        );
-    } catch (error) {
-        console.error("Listing video upload error:", error);
-        return { error: "Unable to upload the video file." };
-    }
-
-    const nextMetadata = {
-        ...((listing.metadata && typeof listing.metadata === "object") ? listing.metadata : {}),
-        videoUrl: publicUrl,
-    } as Record<string, unknown>;
-
-    const { error: updateError } = await writeSupabase
-        .from("listings")
-        .update({
-            metadata: nextMetadata,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", listingId)
-
-    if (updateError) {
-        return { error: updateError.message };
-    }
-
-    revalidateListingPaths(listingId);
-    if (access.canAdminister) {
-        await emitListingUpdatedNotification({
-            actorId: user.id,
-            listing,
-            summary: "An admin updated the listing video on your behalf.",
-        });
-    }
-    return { success: true, videoUrl: publicUrl };
-}
-
-export async function uploadListingDocuments(formData: FormData) {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return { error: "Unauthorized" };
-
-    const listingId = formData.get("listingId");
-    if (typeof listingId !== "string" || !listingId.trim()) {
-        return { error: "Listing id is required." };
-    }
-
-    const documentFiles = formData
-        .getAll("documentFiles")
-        .filter((value): value is File => value instanceof File && value.size > 0);
-
-    if (documentFiles.length === 0) {
-        return { error: "At least one document file is required." };
-    }
-
-    const access = await getEditableListingAccess(supabase, user.id, listingId);
-    if ("error" in access) {
-        return { error: access.error };
-    }
-    const listing = access.listing;
-    const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
-
-    if (!process.env.R2_BUCKET_NAME) {
-        return { error: "R2 bucket configuration is missing." };
-    }
-
-    const uploadedDocuments: UploadedListingDocument[] = [];
-
-    for (const documentFile of documentFiles) {
-        if (!DOCUMENT_ACCEPTED_TYPES.has(documentFile.type)) {
-            return { error: `"${documentFile.name}" must be a PDF, JPG, PNG, or WebP file.` };
-        }
-
-        if (documentFile.size > MAX_UPLOAD_SIZE_BYTES) {
-            return { error: `"${documentFile.name}" exceeds the 10MB upload limit.` };
-        }
-
-        const extension = extensionForFile(documentFile);
-        const baseName = extension
-            ? documentFile.name.slice(0, -extension.length)
-            : documentFile.name;
-        const key = `listings/${listingId}/documents/${Date.now()}-${nanoid(10)}-${sanitizeFileName(`${baseName}${extension}`)}`;
-        const publicUrl = getStorageObjectUrl(key);
-
-        if (!publicUrl.startsWith("http")) {
-            return { error: "Public asset URL configuration is missing." };
-        }
-
-        try {
-            await r2.send(
-                new PutObjectCommand({
-                    Bucket: process.env.R2_BUCKET_NAME,
-                    Key: key,
-                    Body: Buffer.from(await documentFile.arrayBuffer()),
-                    ContentType: documentFile.type || "application/octet-stream",
-                })
-            );
-        } catch (error) {
-            console.error("Listing document upload error:", error);
-            return { error: `Unable to upload "${documentFile.name}".` };
-        }
-
-        uploadedDocuments.push({
-            name: documentFile.name,
-            url: publicUrl,
-            key,
-            contentType: documentFile.type || "application/octet-stream",
-            size: documentFile.size,
-        });
-    }
-
-    const existingMetadata = (
-        listing.metadata && typeof listing.metadata === "object" ? listing.metadata : {}
-    ) as Record<string, unknown>;
-    const existingDocuments = Array.isArray(existingMetadata.documents)
-        ? existingMetadata.documents.filter((document) => document && typeof document === "object")
-        : [];
-    const documents = [...existingDocuments, ...uploadedDocuments];
-    const nextMetadata = {
-        ...existingMetadata,
-        documents,
-        documentNames: documents
-            .map((document) =>
-                typeof (document as Record<string, unknown>).name === "string"
-                    ? String((document as Record<string, unknown>).name).trim()
-                    : ""
-            )
-            .filter(Boolean),
-    };
-
-    const { error: updateError } = await writeSupabase
-        .from("listings")
-        .update({
-            metadata: nextMetadata,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", listingId)
-
-    if (updateError) {
-        return { error: updateError.message };
-    }
-
-    revalidateListingPaths(listingId);
-    if (access.canAdminister) {
-        await emitListingUpdatedNotification({
-            actorId: user.id,
-            listing,
-            summary: "An admin updated the listing documents on your behalf.",
-        });
-    }
-    return { success: true, documents: uploadedDocuments };
 }
 
 // ─── Status Transitions ──────────────────────────────────────────────────────
