@@ -838,6 +838,130 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
   );
 }
 
+function parseDerivedListingFilters(filters?: SearchListingFilters) {
+  const bodyTypes = parseRequestedBodyTypes(filters?.bodyType);
+  const engineCcRange = parseEngineCcRange(filters?.engineCc);
+  const equipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
+  const useCase = filters?.useCase?.trim() || undefined;
+  const intents = parseRequestedIntents(filters?.intent);
+  const locations = parseRequestedValues(filters?.location);
+  const driveTypes = parseRequestedDriveTypes(filters?.driveType);
+  const taxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
+  const taxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
+  const hasHoursRange = filters?.minHours != null || filters?.maxHours != null;
+  const truckFilters = getRequestedTruckSearchFilters(filters);
+  const hasTruckFilters = hasTruckSearchFilters(truckFilters);
+  const isRequired =
+    Boolean(useCase) ||
+    bodyTypes.length > 0 ||
+    equipmentTypes.length > 0 ||
+    intents.length > 0 ||
+    driveTypes.length > 0 ||
+    Boolean(engineCcRange) ||
+    Boolean(taxonomyCategory) ||
+    Boolean(taxonomySubcategory) ||
+    hasHoursRange ||
+    hasTruckFilters ||
+    Boolean(filters?.location) ||
+    Boolean(filters?.category) ||
+    Boolean(filters?.verifiedOnly) ||
+    Boolean(filters?.featured);
+
+  return {
+    bodyTypes,
+    engineCcRange,
+    equipmentTypes,
+    useCase,
+    intents,
+    locations,
+    driveTypes,
+    taxonomyCategory,
+    taxonomySubcategory,
+    hasHoursRange,
+    truckFilters,
+    hasTruckFilters,
+    isRequired,
+  };
+}
+
+/**
+ * Filters that can't be expressed as a Supabase query (metadata, inferred
+ * category/body type, semantic ranking). searchListings and
+ * countMatchingListings both go through here so results and counts agree.
+ */
+export function filterAndRankListings(
+  listings: Listing[],
+  filters?: SearchListingFilters
+): Listing[] {
+  const derived = parseDerivedListingFilters(filters);
+
+  let processedListings = listings;
+  if (filters?.category) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesRequestedCategory(listing, filters.category)
+    );
+  }
+  if (derived.equipmentTypes.length > 0) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesRequestedEquipmentTypes(listing, derived.equipmentTypes, filters?.category)
+    );
+  }
+  if (derived.bodyTypes.length > 0) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesRequestedBodyTypes(listing, derived.bodyTypes)
+    );
+  }
+  if (filters?.verifiedOnly) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
+    );
+  }
+  if (filters?.featured) {
+    processedListings = processedListings.filter((listing) => listing.is_featured);
+  }
+  if (filters?.location) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesRequestedLocation(listing, derived.locations)
+    );
+  }
+  if (derived.driveTypes.length > 0) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesRequestedDriveTypes(listing, derived.driveTypes)
+    );
+  }
+  if (derived.engineCcRange) {
+    const engineCcRange = derived.engineCcRange;
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesEngineCcRange(listing, engineCcRange)
+    );
+  }
+  if (derived.taxonomyCategory || derived.taxonomySubcategory) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesTaxonomy(listing, derived.taxonomyCategory, derived.taxonomySubcategory)
+    );
+  }
+  if (derived.hasHoursRange) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
+    );
+  }
+  if (derived.hasTruckFilters) {
+    processedListings = processedListings.filter((listing) =>
+      listingMatchesTruckSearchFilters(listing, derived.truckFilters)
+    );
+  }
+
+  return rankListingsForSemanticSearch(processedListings, derived.useCase, derived.intents);
+}
+
+async function fetchDerivedFilteredListings(
+  filters: SearchListingFilters | undefined,
+  sort: ListingSort
+): Promise<Listing[]> {
+  const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
+  return baseListings ? filterAndRankListings(baseListings, filters) : [];
+}
+
 export async function searchListings({
   filters,
   sort = { field: "created_at", direction: "desc" },
@@ -849,104 +973,12 @@ export async function searchListings({
   page?: number;
   limit?: number;
 }): Promise<{ listings: Listing[]; total: number }> {
-  const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
-  const requestedEngineCcRange = parseEngineCcRange(filters?.engineCc);
-  const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
-  const requestedUseCase = filters?.useCase?.trim() || undefined;
-  const requestedIntents = parseRequestedIntents(filters?.intent);
-  const requestedLocations = parseRequestedValues(filters?.location);
-  const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
-  const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
-  const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
-  const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
-  const requestedTruckFilters = getRequestedTruckSearchFilters(filters);
-  const requestedTruckMetadataFilters = hasTruckSearchFilters(requestedTruckFilters);
-  const requiresDerivedFiltering =
-    requestedUseCase ||
-    requestedBodyTypes.length > 0 ||
-    requestedEquipmentTypes.length > 0 ||
-    requestedIntents.length > 0 ||
-    requestedDriveTypes.length > 0 ||
-    Boolean(requestedEngineCcRange) ||
-    Boolean(requestedTaxonomyCategory) ||
-    Boolean(requestedTaxonomySubcategory) ||
-    requestedHoursRange ||
-    requestedTruckMetadataFilters ||
-    Boolean(filters?.location) ||
-    Boolean(filters?.category) ||
-    Boolean(filters?.verifiedOnly) ||
-    Boolean(filters?.featured);
-
-  if (requiresDerivedFiltering) {
-    const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
-    if (!baseListings) {
-      return { listings: [], total: 0 };
-    }
-
-    let processedListings = baseListings;
-    if (filters?.category) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedCategory(listing, filters.category)
-      );
-    }
-    if (requestedEquipmentTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedEquipmentTypes(listing, requestedEquipmentTypes, filters?.category)
-      );
-    }
-    if (requestedBodyTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
-      );
-    }
-    if (filters?.verifiedOnly) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
-      );
-    }
-    if (filters?.featured) {
-      processedListings = processedListings.filter((listing) => listing.is_featured);
-    }
-    if (filters?.location) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedLocation(listing, requestedLocations)
-      );
-    }
-    if (requestedDriveTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
-      );
-    }
-    if (requestedEngineCcRange) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesEngineCcRange(listing, requestedEngineCcRange)
-      );
-    }
-    if (requestedTaxonomyCategory || requestedTaxonomySubcategory) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesTaxonomy(listing, requestedTaxonomyCategory, requestedTaxonomySubcategory)
-      );
-    }
-    if (requestedHoursRange) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
-      );
-    }
-    if (requestedTruckMetadataFilters) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesTruckSearchFilters(listing, requestedTruckFilters)
-      );
-    }
-    const ranked = rankListingsForSemanticSearch(
-      processedListings,
-      requestedUseCase,
-      requestedIntents
-    );
+  if (parseDerivedListingFilters(filters).isRequired) {
+    const ranked = await fetchDerivedFilteredListings(filters, sort);
     const from = (page - 1) * limit;
-    const to = from + limit - 1;
 
     return {
-      listings: ranked.slice(from, to + 1),
+      listings: ranked.slice(from, from + limit),
       total: ranked.length,
     };
   }
@@ -983,103 +1015,12 @@ export async function searchListings({
 export async function countMatchingListings(
   filters?: SearchListingFilters
 ): Promise<number> {
-  const requestedBodyTypes = parseRequestedBodyTypes(filters?.bodyType);
-  const requestedEngineCcRange = parseEngineCcRange(filters?.engineCc);
-  const requestedEquipmentTypes = parseRequestedEquipmentTypes(filters?.equipmentType);
-  const requestedUseCase = filters?.useCase?.trim() || undefined;
-  const requestedIntents = parseRequestedIntents(filters?.intent);
-  const requestedLocations = parseRequestedValues(filters?.location);
-  const requestedDriveTypes = parseRequestedDriveTypes(filters?.driveType);
-  const requestedTaxonomyCategory = filters?.taxonomyCategory?.trim() || undefined;
-  const requestedTaxonomySubcategory = filters?.taxonomySubcategory?.trim() || undefined;
-  const requestedHoursRange = filters?.minHours != null || filters?.maxHours != null;
-  const requestedTruckFilters = getRequestedTruckSearchFilters(filters);
-  const requestedTruckMetadataFilters = hasTruckSearchFilters(requestedTruckFilters);
-  const requiresDerivedFiltering =
-    requestedUseCase ||
-    requestedBodyTypes.length > 0 ||
-    requestedEquipmentTypes.length > 0 ||
-    requestedIntents.length > 0 ||
-    requestedDriveTypes.length > 0 ||
-    Boolean(requestedEngineCcRange) ||
-    Boolean(requestedTaxonomyCategory) ||
-    Boolean(requestedTaxonomySubcategory) ||
-    requestedHoursRange ||
-    requestedTruckMetadataFilters ||
-    Boolean(filters?.location) ||
-    Boolean(filters?.category) ||
-    Boolean(filters?.verifiedOnly) ||
-    Boolean(filters?.featured);
-
-  if (requiresDerivedFiltering) {
-    const baseListings = await fetchListingsForDerivedFiltering({
-      filters,
-      sort: { field: "created_at", direction: "desc" },
+  if (parseDerivedListingFilters(filters).isRequired) {
+    const ranked = await fetchDerivedFilteredListings(filters, {
+      field: "created_at",
+      direction: "desc",
     });
-    if (!baseListings) {
-      return 0;
-    }
-
-    let processedListings = baseListings;
-    if (filters?.category) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedCategory(listing, filters.category)
-      );
-    }
-    if (requestedEquipmentTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedEquipmentTypes(listing, requestedEquipmentTypes, filters?.category)
-      );
-    }
-    if (requestedBodyTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedBodyTypes(listing, requestedBodyTypes)
-      );
-    }
-    if (filters?.verifiedOnly) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesVerifiedOnly(listing, filters.verifiedOnly)
-      );
-    }
-    if (filters?.featured) {
-      processedListings = processedListings.filter((listing) => listing.is_featured);
-    }
-    if (filters?.location) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedLocation(listing, requestedLocations)
-      );
-    }
-    if (requestedDriveTypes.length > 0) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesRequestedDriveTypes(listing, requestedDriveTypes)
-      );
-    }
-    if (requestedEngineCcRange) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesEngineCcRange(listing, requestedEngineCcRange)
-      );
-    }
-    if (requestedTaxonomyCategory || requestedTaxonomySubcategory) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesTaxonomy(listing, requestedTaxonomyCategory, requestedTaxonomySubcategory)
-      );
-    }
-    if (requestedHoursRange) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesHoursRange(listing, filters?.minHours, filters?.maxHours)
-      );
-    }
-    if (requestedTruckMetadataFilters) {
-      processedListings = processedListings.filter((listing) =>
-        listingMatchesTruckSearchFilters(listing, requestedTruckFilters)
-      );
-    }
-
-    return rankListingsForSemanticSearch(
-      processedListings,
-      requestedUseCase,
-      requestedIntents
-    ).length;
+    return ranked.length;
   }
 
   const supabase = await createClient();
