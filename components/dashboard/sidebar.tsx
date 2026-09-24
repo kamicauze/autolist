@@ -12,6 +12,8 @@ import {
   ListOrdered,
   LogOut,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   ShieldCheck,
   Star,
   User,
@@ -78,6 +80,8 @@ interface SidebarProps {
   salesAgentPermissions?: SalesAgentPermission[] | null;
   open: boolean;
   onClose: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 export function Sidebar({
@@ -87,6 +91,8 @@ export function Sidebar({
   salesAgentPermissions,
   open,
   onClose,
+  collapsed = false,
+  onToggleCollapsed,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -132,7 +138,8 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-sidebar-bg transition-transform duration-300 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-sidebar-bg transition-[width,transform] duration-300 lg:translate-x-0",
+          collapsed ? "lg:w-[84px]" : null,
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -143,13 +150,39 @@ export function Sidebar({
           <X className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2 px-7 pb-6 pt-7">
-          <AutolistLogo
-            className="h-9 w-auto [--brand-logo-accent:#FFFFFF] [--brand-logo-mark:#FFFFFF] [--brand-logo-text:#FFFFFF]"
-          />
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2 px-7 pb-6 pt-7",
+            collapsed ? "lg:flex-col lg:justify-center lg:gap-3 lg:px-3" : null
+          )}
+        >
+          <div className={cn(collapsed ? "lg:w-[34px] lg:overflow-hidden" : null)}>
+            <AutolistLogo
+              className="h-9 w-auto max-w-none [--brand-logo-accent:#FFFFFF] [--brand-logo-mark:#FFFFFF] [--brand-logo-text:#FFFFFF]"
+            />
+          </div>
+          <button
+            type="button"
+            aria-label={collapsed ? "Expand dashboard sidebar" : "Collapse dashboard sidebar"}
+            aria-expanded={!collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="hidden rounded-[10px] border border-white/10 p-2 text-white/70 transition hover:bg-white/6 hover:text-white active:translate-y-[1px] lg:inline-flex"
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
         </div>
 
-        <div className="mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-2 flex flex-row items-center gap-4">
+        <div
+          className={cn(
+            "mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-2 flex flex-row items-center gap-4",
+            collapsed ? "lg:mx-3 lg:justify-center lg:border-transparent lg:bg-transparent lg:px-0" : null
+          )}
+        >
           <Avatar
             src={avatarUrl}
             alt={displayName}
@@ -157,14 +190,19 @@ export function Sidebar({
             fallback={getInitials(displayName)}
             className="bg-white/10 text-white"
           />
-          <div className="mt-3 min-w-0">
+          <div className={cn("mt-3 min-w-0", collapsed ? "lg:sr-only" : null)}>
             <p className="truncate text-[15px] font-semibold text-white">{displayName}</p>
             <p className="mt-1 truncate text-[12px] text-white/55">{user.email}</p>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-5 py-7">
-          <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+        <nav className={cn("flex-1 overflow-y-auto px-5 py-7", collapsed ? "lg:px-3" : null)}>
+          <p
+            className={cn(
+              "px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35",
+              collapsed ? "lg:sr-only" : null
+            )}
+          >
             {menuLabel}
           </p>
           <div className="mt-4 space-y-1.5">
@@ -175,21 +213,29 @@ export function Sidebar({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
+                  title={collapsed ? item.name : undefined}
+                  aria-label={collapsed ? item.name : undefined}
                   className={cn(
                     sellerSidebarLinkClass,
+                    collapsed ? "lg:h-11 lg:justify-center lg:px-0 lg:py-0" : null,
                     active
                       ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  {item.name}
+                  <span className={cn(collapsed ? "lg:sr-only" : null)}>{item.name}</span>
                 </Link>
               );
             })}
           </div>
 
-          <p className="mt-8 px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+          <p
+            className={cn(
+              "mt-8 px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35",
+              collapsed ? "lg:sr-only" : null
+            )}
+          >
             Account
           </p>
           <div className="mt-4 space-y-1.5">
@@ -200,28 +246,36 @@ export function Sidebar({
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
+                  title={collapsed ? item.name : undefined}
+                  aria-label={collapsed ? item.name : undefined}
                   className={cn(
                     sellerSidebarLinkClass,
+                    collapsed ? "lg:h-11 lg:justify-center lg:px-0 lg:py-0" : null,
                     active
                       ? "bg-primary text-primary-foreground shadow-[0_10px_20px_rgb(var(--primary-rgb)/0.3)]"
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  {item.name}
+                  <span className={cn(collapsed ? "lg:sr-only" : null)}>{item.name}</span>
                 </Link>
               );
             })}
           </div>
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-5">
+        <div className={cn("border-t border-white/10 px-5 py-5", collapsed ? "lg:px-3" : null)}>
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white"
+            title={collapsed ? "Logout" : undefined}
+            aria-label={collapsed ? "Logout" : undefined}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-[14px] font-medium text-white/65 transition hover:bg-white/6 hover:text-white",
+              collapsed ? "lg:h-11 lg:justify-center lg:px-0 lg:py-0" : null
+            )}
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" />
-            Logout
+            <span className={cn(collapsed ? "lg:sr-only" : null)}>Logout</span>
           </button>
         </div>
       </aside>
