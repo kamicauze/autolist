@@ -55,7 +55,7 @@ export type DetailFieldKey =
   | "seats" | "doors" | "axleConfiguration" | "equipmentType" | "operatingHours"
   | "operatingWeight" | "operationalStatus" | "powerOutput" | "usageType"
   | "registrationStatus" | "taxonomyCategory" | "subcategory" | "cabType"
-  | "gvmKg" | "enginePowerBhp";
+  | "gvmKg" | "enginePowerBhp" | "batteryCapacityKwh" | "rangeKm";
 
 export type DetailField = {
   key: DetailFieldKey;
@@ -104,6 +104,7 @@ export type ListingDraft = {
   whatsappNumber: string;
   allowPhoneCalls: boolean;
   hidePhoneNumber: boolean;
+  assignedAgentId: string;
 };
 
 export const DEFAULT_DRAFT: ListingDraft = {
@@ -125,7 +126,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
     seats: "", doors: "", axleConfiguration: "", equipmentType: "", operatingHours: "",
     operatingWeight: "", operationalStatus: "", powerOutput: "", usageType: "",
     registrationStatus: "", taxonomyCategory: "", subcategory: "", cabType: "",
-    gvmKg: "", enginePowerBhp: "",
+    gvmKg: "", enginePowerBhp: "", batteryCapacityKwh: "", rangeKm: "",
   },
   selectedFeatureIds: [],
   coverImageName: null,
@@ -143,6 +144,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
   whatsappNumber: "",
   allowPhoneCalls: true,
   hidePhoneNumber: false,
+  assignedAgentId: "",
 };
 
 export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> = {
@@ -154,9 +156,9 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
     { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered" }, { value: "not_registered", label: "Not registered" }] },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
-    { key: "engineCapacity", label: "Engine (Optional)", type: "text", required: false, placeholder: "2000cc, 2.0L, V6, hybrid, or electric" },
+    { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "2000" },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
-    { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "fwd", label: "FWD" }, { value: "rwd", label: "RWD" }, { value: "awd", label: "AWD" }, { value: "4wd", label: "4WD" }] },
+    { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "2wd", label: "2WD" }, { value: "4wd", label: "4WD" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
     { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "saloon", label: "Saloon" }, { value: "hatchback", label: "Hatchback" }, { value: "coupe", label: "Coupe" }, { value: "wagon", label: "Station Wagon" }, { value: "convertible", label: "Convertible" }, { value: "pickup", label: "Pick Up" }, { value: "suv", label: "SUV" }] },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Pearl White" },
@@ -190,6 +192,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2020" },
     { key: "bodyType", label: "Body Type", type: "select", required: false, options: TRUCK_BODY_TYPES.map((value) => ({ value, label: value })) },
     { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: TRUCK_FUEL_TYPES.map((value) => ({ value: value.toLowerCase(), label: value })) },
+    { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "7790" },
     { key: "transmission", label: "Gearbox", type: "select", required: true, options: TRUCK_GEARBOX_OPTIONS.map((value) => ({ value: value.toLowerCase().replace(/-/g, "_"), label: value })) },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "180000" },
     { key: "axleConfiguration", label: "Axle Configuration", type: "select", required: true, options: TRUCK_AXLE_CONFIGS.map((value) => ({ value, label: value })) },
@@ -220,6 +223,48 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
   ],
 };
 
+const ELECTRIC_DETAIL_FIELDS: DetailField[] = [
+  { key: "batteryCapacityKwh", label: "Battery Capacity (kWh)", type: "number", required: true, placeholder: "75" },
+  { key: "rangeKm", label: "Range (km)", type: "number", required: true, placeholder: "450" },
+];
+
+export function isElectricDraftDetails(
+  category: ListingCategory | "",
+  details: Record<DetailFieldKey, string>
+) {
+  const fuel = category === "car" ? details.engineType : details.fuelType;
+  return fuel.trim().toLowerCase() === "electric";
+}
+
+// Electric vehicles swap engine size (cc) for battery capacity and range,
+// inserted right after the fuel/engine type field.
+export function applyPowertrainFields(fields: DetailField[], isElectric: boolean) {
+  const baseFields = fields.filter(
+    (field) =>
+      field.key !== "batteryCapacityKwh" &&
+      field.key !== "rangeKm" &&
+      !(isElectric && field.key === "engineCapacity")
+  );
+  if (!isElectric) return baseFields;
+
+  const fuelIndex = baseFields.findIndex((field) => field.key === "engineType" || field.key === "fuelType");
+  if (fuelIndex === -1) return baseFields;
+
+  return [
+    ...baseFields.slice(0, fuelIndex + 1),
+    ...ELECTRIC_DETAIL_FIELDS,
+    ...baseFields.slice(fuelIndex + 1),
+  ];
+}
+
+export function formatDetailSummaryValue(field: DetailField, value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const optionLabel = field.options?.find((option) => option.value === trimmed)?.label;
+  if (optionLabel) return optionLabel;
+  return trimmed.replace(/(^|\s)(\p{Ll})/gu, (_, space: string, letter: string) => space + letter.toUpperCase());
+}
+
 export const MARKET_BENCHMARKS: Record<ListingCategory, [number, number]> = {
   car: [1_500_000, 4_500_000],
   van: [1_800_000, 5_200_000],
@@ -236,7 +281,13 @@ export const MAX_GALLERY_IMAGES = 100;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_VIDEO_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
-const SUBMITTABLE_STEP_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
+export const WIZARD_STEP = {
+  vehicle: 0,
+  features: 1,
+  media: 2,
+  review: 3,
+} as const;
+const SUBMITTABLE_STEP_INDICES = [WIZARD_STEP.vehicle, WIZARD_STEP.features, WIZARD_STEP.media] as const;
 const VIDEO_ACCEPTED_TYPES = new Set([
   "video/mp4",
   "video/webm",
@@ -277,7 +328,10 @@ type SellerAccountDefaults = {
   phoneNumber: string;
   whatsappEnabled: boolean;
   whatsappNumber: string;
+  dealerLocation: { cityTown: string; locationArea: string } | null;
 };
+
+export type AssignableSalesRep = { id: string; name: string };
 
 type SellerAccountProfile = {
   full_name: string | null;
@@ -288,6 +342,9 @@ type SellerAccountProfile = {
 
 type SellerAccountDealer = {
   status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  city?: string | null;
+  location?: string | null;
+  address?: string | null;
   mobile: string | null;
   whatsapp: string | null;
   contact_person: {
@@ -343,7 +400,10 @@ export function buildSellerAccountDefaults({
   const fallbackPhone = profilePhone || normalizedAuthPhone;
   const fallbackWhatsapp = profileWhatsapp || fallbackPhone;
 
-  if (profile?.role !== "dealer") {
+  const isDealerAccount =
+    profile?.role === "dealer" || dealer?.status === "PENDING" || dealer?.status === "APPROVED";
+
+  if (!isDealerAccount) {
     return {
       sellerType: "individual",
       useDealerAutoFill: false,
@@ -351,8 +411,12 @@ export function buildSellerAccountDefaults({
       phoneNumber: fallbackPhone,
       whatsappEnabled: Boolean(fallbackWhatsapp),
       whatsappNumber: fallbackWhatsapp,
+      dealerLocation: null,
     };
   }
+
+  const dealerCity = dealer?.city?.trim() || "";
+  const dealerArea = dealer?.location?.trim() || dealer?.address?.trim() || "";
 
   const dealerPhone =
     normalizePhoneInput(dealer?.contact_person?.mobile ?? "") ||
@@ -371,6 +435,9 @@ export function buildSellerAccountDefaults({
     phoneNumber: dealerPhone,
     whatsappEnabled: Boolean(dealerWhatsapp),
     whatsappNumber: dealerWhatsapp,
+    dealerLocation: dealerCity
+      ? { cityTown: dealerCity, locationArea: dealerArea || dealerCity }
+      : null,
   };
 }
 
@@ -524,6 +591,9 @@ interface WizardContextValue {
   packageAccess: SellerPackageAccessState | null;
   isLoadingPackageAccess: boolean;
   packageAccessError: string | null;
+  salesReps: AssignableSalesRep[];
+  usesDealerLocation: boolean;
+  isDealerSeller: boolean;
 
   // Media file refs
   galleryFiles: File[];
@@ -799,6 +869,7 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
       getListingMetadataBoolean(listing, "allowPhoneCalls") ?? Boolean(phoneNumber),
     hidePhoneNumber:
       getListingMetadataBoolean(listing, "hidePhoneNumber") ?? DEFAULT_DRAFT.hidePhoneNumber,
+    assignedAgentId: listing.assigned_agent_id ?? "",
   };
 }
 
@@ -838,6 +909,7 @@ export function buildDraftAfterCategoryChange(
     whatsappNumber: previousDraft.whatsappNumber,
     allowPhoneCalls: previousDraft.allowPhoneCalls,
     hidePhoneNumber: previousDraft.hidePhoneNumber,
+    assignedAgentId: previousDraft.assignedAgentId,
   };
 }
 
@@ -845,22 +917,22 @@ const SUBMISSION_FIELD_METADATA: Record<
   string,
   { label: string; stepId: (typeof LISTING_WIZARD_STEPS)[number]["id"] }
 > = {
-  make: { label: "Make", stepId: "details" },
-  model: { label: "Model", stepId: "details" },
-  trim: { label: "Trim", stepId: "details" },
-  variant: { label: "Model Variant", stepId: "details" },
-  registrationStatus: { label: "Registration Status", stepId: "details" },
-  year: { label: "Year", stepId: "details" },
-  mileage: { label: "Mileage", stepId: "details" },
-  body_type: { label: "Body Type", stepId: "details" },
-  transmission: { label: "Transmission", stepId: "details" },
-  fuel_type: { label: "Fuel Type", stepId: "details" },
-  color: { label: "Color", stepId: "details" },
-  price: { label: "Price", stepId: "basics" },
-  condition: { label: "Condition", stepId: "basics" },
-  description: { label: "Description", stepId: "description" },
+  make: { label: "Make", stepId: "vehicle" },
+  model: { label: "Model", stepId: "vehicle" },
+  trim: { label: "Trim", stepId: "vehicle" },
+  variant: { label: "Model Variant", stepId: "vehicle" },
+  registrationStatus: { label: "Registration Status", stepId: "vehicle" },
+  year: { label: "Year", stepId: "vehicle" },
+  mileage: { label: "Mileage", stepId: "vehicle" },
+  body_type: { label: "Body Type", stepId: "vehicle" },
+  transmission: { label: "Transmission", stepId: "vehicle" },
+  fuel_type: { label: "Fuel Type", stepId: "vehicle" },
+  color: { label: "Color", stepId: "vehicle" },
+  price: { label: "Price", stepId: "vehicle" },
+  condition: { label: "Condition", stepId: "vehicle" },
+  description: { label: "Description", stepId: "features" },
   features: { label: "Features", stepId: "features" },
-  currency: { label: "Currency", stepId: "basics" },
+  currency: { label: "Currency", stepId: "vehicle" },
 };
 
 const WIZARD_STEP_INDEX_BY_ID = Object.fromEntries(
@@ -927,9 +999,11 @@ export function useWizard() {
 export function WizardProvider({
   children,
   initialListing,
+  salesReps = [],
 }: {
   children: React.ReactNode;
   initialListing?: Listing | null;
+  salesReps?: AssignableSalesRep[];
 }) {
   const initialDraft = React.useMemo(
     () => (initialListing ? buildDraftFromListing(initialListing) : DEFAULT_DRAFT),
@@ -1023,7 +1097,6 @@ export function WizardProvider({
         .eq("id", user.id)
         .single<SellerAccountProfile>();
 
-      const profileRole = profile?.role ?? null;
       const authName =
         typeof user.user_metadata?.full_name === "string"
           ? user.user_metadata.full_name.trim()
@@ -1032,14 +1105,14 @@ export function WizardProvider({
         typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : "";
       let dealer: SellerAccountDealer | null = null;
 
-      if (profileRole === "dealer") {
-        const { data } = await supabase
-          .from("dealers")
-          .select("status, mobile, whatsapp, contact_person")
-          .eq("profile_id", user.id)
-          .maybeSingle<SellerAccountDealer>();
-        dealer = data;
-      }
+      // Dealer owners are identified by their dealers row (as in createListing),
+      // not only by profiles.role.
+      const { data: dealerRow } = await supabase
+        .from("dealers")
+        .select("status, city, location, address, mobile, whatsapp, contact_person")
+        .eq("profile_id", user.id)
+        .maybeSingle<SellerAccountDealer>();
+      dealer = dealerRow;
 
       const defaults = buildSellerAccountDefaults({
         profile,
@@ -1073,11 +1146,13 @@ export function WizardProvider({
       setDraft((prev) => {
         if (isEditing) return prev;
 
+        const applyAccountContact = prev.useDealerAutoFill || defaults.sellerType === "dealer";
         return {
           ...prev,
           sellerType: defaults.sellerType,
-          ...(prev.useDealerAutoFill
+          ...(applyAccountContact
             ? {
+                useDealerAutoFill: true,
                 contactName: defaults.contactName || prev.contactName,
                 phoneNumber: defaults.phoneNumber || prev.phoneNumber,
                 whatsappEnabled: defaults.whatsappEnabled,
@@ -1096,10 +1171,11 @@ export function WizardProvider({
   }, [isEditing]);
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
+  const isElectricDraft = isElectricDraftDetails(draft.category, draft.details);
   const selectedCategoryFields = React.useMemo(
     () => {
       if (!draft.category) return [];
-      const fields = DETAIL_FIELDS_BY_CATEGORY[draft.category];
+      const fields = applyPowertrainFields(DETAIL_FIELDS_BY_CATEGORY[draft.category], isElectricDraft);
       if (draft.category === "plant_construction" || draft.category === "farm_agricultural") {
         const taxonomyOptions = getTaxonomyForCategory(draft.category).map((node) => ({
           value: node.category,
@@ -1124,7 +1200,7 @@ export function WizardProvider({
         return isComplexVariantMake(draft.details.make);
       });
     },
-    [draft.category, draft.details.make, draft.details.taxonomyCategory]
+    [draft.category, draft.details.make, draft.details.taxonomyCategory, isElectricDraft]
   );
   const selectedFeatureGroups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const selectedFeatureGroupDefinition = draft.category ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category] : null;
@@ -1616,52 +1692,53 @@ export function WizardProvider({
     return null;
   }, [draft.contactName, draft.phoneNumber, draft.whatsappEnabled, draft.whatsappNumber]);
 
-  const canContinue = React.useMemo(() => {
-    if (activeStep === 0) return Boolean(draft.category);
-    if (activeStep === 1) {
-      if (!draft.category) return false;
-      return selectedCategoryFields.filter((f) => f.required).every((f) => draft.details[f.key].trim().length > 0);
-    }
-    if (activeStep === 2) return Boolean(draft.title.trim() && draft.title.trim().length <= MAX_TITLE_LENGTH && draft.condition && draft.priceKes && Number(draft.priceKes) > 0 && draft.country.trim() && draft.cityTown.trim() && draft.locationArea.trim());
-    if (activeStep === 3) return draft.selectedFeatureIds.length > 0;
-    if (activeStep === 4) return Boolean(draft.description.trim() && draft.description.trim().length <= MAX_DESCRIPTION_LENGTH);
-    if (activeStep === 5) return !mediaValidationError;
-    if (activeStep === 6) return !sellerValidationError;
+  const isDealerSeller = sellerAccountDefaults?.sellerType === "dealer";
+  const dealerLocation = isDealerSeller ? sellerAccountDefaults?.dealerLocation ?? null : null;
+  // Dealers list from their registered premises, so the location inputs are
+  // skipped and the dealer profile location is submitted instead.
+  const usesDealerLocation = Boolean(dealerLocation);
+  const submissionLocation = dealerLocation
+    ? { country: "Kenya", cityTown: dealerLocation.cityTown, locationArea: dealerLocation.locationArea }
+    : { country: draft.country, cityTown: draft.cityTown, locationArea: draft.locationArea };
+
+  const isVehicleStepComplete = Boolean(
+    draft.category &&
+    selectedCategoryFields
+      .filter((field) => field.required)
+      .every((field) => draft.details[field.key].trim().length > 0) &&
+    draft.title.trim() &&
+    draft.title.trim().length <= MAX_TITLE_LENGTH &&
+    draft.condition &&
+    draft.priceKes &&
+    Number(draft.priceKes) > 0 &&
+    submissionLocation.country.trim() &&
+    submissionLocation.cityTown.trim() &&
+    submissionLocation.locationArea.trim()
+  );
+  const isFeaturesStepComplete = Boolean(
+    draft.selectedFeatureIds.length > 0 &&
+    draft.description.trim() &&
+    draft.description.trim().length <= MAX_DESCRIPTION_LENGTH
+  );
+  const isMediaStepComplete = !mediaValidationError;
+
+  const canContinue = (() => {
+    if (activeStep === WIZARD_STEP.vehicle) return isVehicleStepComplete;
+    if (activeStep === WIZARD_STEP.features) return isFeaturesStepComplete;
+    if (activeStep === WIZARD_STEP.media) return isMediaStepComplete;
+    if (activeStep === WIZARD_STEP.review) return !sellerValidationError;
     return true;
-  }, [activeStep, draft, mediaValidationError, sellerValidationError, selectedCategoryFields]);
+  })();
 
   const stepCompletion = React.useMemo(() => {
     const completion = Array.from({ length: LISTING_WIZARD_STEPS.length }, () => false);
-
-    completion[0] = Boolean(draft.category);
-    completion[1] = Boolean(
-      draft.category &&
-      selectedCategoryFields
-        .filter((field) => field.required)
-        .every((field) => draft.details[field.key].trim().length > 0)
-    );
-    completion[2] = Boolean(
-      draft.title.trim() &&
-      draft.title.trim().length <= MAX_TITLE_LENGTH &&
-      draft.condition &&
-      draft.priceKes &&
-      Number(draft.priceKes) > 0 &&
-      draft.country.trim() &&
-      draft.cityTown.trim() &&
-      draft.locationArea.trim()
-    );
-    completion[3] = draft.selectedFeatureIds.length > 0;
-    completion[4] = Boolean(
-      draft.description.trim() &&
-      draft.description.trim().length <= MAX_DESCRIPTION_LENGTH
-    );
-    completion[5] = !mediaValidationError;
-    completion[6] = !sellerValidationError;
-    completion[7] = true;
-    completion[8] = SUBMITTABLE_STEP_INDICES.every((index) => completion[index]);
-
+    completion[WIZARD_STEP.vehicle] = isVehicleStepComplete;
+    completion[WIZARD_STEP.features] = isFeaturesStepComplete;
+    completion[WIZARD_STEP.media] = isMediaStepComplete;
+    completion[WIZARD_STEP.review] =
+      !sellerValidationError && SUBMITTABLE_STEP_INDICES.every((index) => completion[index]);
     return completion;
-  }, [draft, mediaValidationError, selectedCategoryFields, sellerValidationError]);
+  }, [isFeaturesStepComplete, isMediaStepComplete, isVehicleStepComplete, sellerValidationError]);
 
   const firstIncompleteRequiredStep = React.useMemo(
     () => SUBMITTABLE_STEP_INDICES.find((index) => !stepCompletion[index]) ?? null,
@@ -1698,9 +1775,11 @@ export function WizardProvider({
       }
 
       const shouldSubmitVariant = draft.category !== "car" || isComplexVariantMake(draft.details.make);
+      const isElectric = isElectricDraftDetails(draft.category, draft.details);
       const submissionDetails = {
         ...draft.details,
         variant: shouldSubmitVariant ? draft.details.variant : "",
+        ...(isElectric ? { engineCapacity: "" } : { batteryCapacityKwh: "", rangeKm: "" }),
       };
       const listingData = {
         make: getSubmissionMake(draft),
@@ -1727,7 +1806,7 @@ export function WizardProvider({
         subcategory: draft.details.subcategory || undefined,
         hours_used: draft.details.operatingHours ? Number(draft.details.operatingHours) : undefined,
         engineCapacity:
-          draft.category === "motorbike" && draft.details.engineCapacity && Number.isFinite(Number(draft.details.engineCapacity))
+          draft.category === "motorbike" && !isElectric && draft.details.engineCapacity && Number.isFinite(Number(draft.details.engineCapacity))
             ? Number(draft.details.engineCapacity)
             : undefined,
         enginePowerBhp: draft.details.enginePowerBhp ? Number(draft.details.enginePowerBhp) : undefined,
@@ -1735,9 +1814,9 @@ export function WizardProvider({
         gvmKg: draft.details.gvmKg ? Number(draft.details.gvmKg) : undefined,
         cabType: draft.details.cabType || undefined,
         category: draft.category || undefined,
-        country: draft.country,
-        cityTown: draft.cityTown,
-        locationArea: draft.locationArea,
+        country: submissionLocation.country,
+        cityTown: submissionLocation.cityTown,
+        locationArea: submissionLocation.locationArea,
         availability: draft.availability,
         negotiable: draft.negotiable,
         tradeInAccepted: draft.tradeInAccepted,
@@ -1815,6 +1894,20 @@ export function WizardProvider({
           return;
         }
 
+        const initialAgentId = initialListing?.assigned_agent_id ?? "";
+        if (salesReps.length > 0 && draft.assignedAgentId !== initialAgentId) {
+          setSubmissionStatus("Assigning sales rep...");
+          const { assignListingToSalesRep } = await import("@/lib/actions/sales-agents");
+          const assignResult = await assignListingToSalesRep(listingId, draft.assignedAgentId || null);
+          if ("error" in assignResult) {
+            const message = `Listing saved, but the sales rep could not be assigned: ${assignResult.error}`;
+            setSubmitError(message);
+            setSubmitIssues([{ message, stepIndex: WIZARD_STEP.review }]);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         const hasReplacementMedia = galleryFiles.length > 0;
         const initialExistingImageKeyOrder = getExistingImageKeyOrder(initialDraft);
         const existingImageKeyOrder = getExistingImageKeyOrder(draft);
@@ -1888,7 +1981,7 @@ export function WizardProvider({
           if ("error" in prepareResult) {
             setSubmitError(prepareResult.error || "Unable to prepare listing media.");
             setSubmitIssues(
-              prepareResult.error ? [{ message: prepareResult.error, stepIndex: 5 }] : []
+              prepareResult.error ? [{ message: prepareResult.error, stepIndex: WIZARD_STEP.media }] : []
             );
             setIsSubmitting(false);
             return;
@@ -1919,7 +2012,7 @@ export function WizardProvider({
               ? error.message
               : "Unable to upload listing media. Please try again.";
             setSubmitError(message);
-            setSubmitIssues([{ message, stepIndex: 5 }]);
+            setSubmitIssues([{ message, stepIndex: WIZARD_STEP.media }]);
             setIsSubmitting(false);
             return;
           }
@@ -1943,7 +2036,7 @@ export function WizardProvider({
             if ("error" in imageResult) {
               setSubmitError(imageResult.error || "Unable to process listing images.");
               setSubmitIssues(
-                imageResult.error ? [{ message: imageResult.error, stepIndex: 5 }] : []
+                imageResult.error ? [{ message: imageResult.error, stepIndex: WIZARD_STEP.media }] : []
               );
               setIsSubmitting(false);
               return;
@@ -1961,7 +2054,7 @@ export function WizardProvider({
             if ("error" in documentResult) {
               setSubmitError(documentResult.error || "Unable to process listing documents.");
               setSubmitIssues(
-                documentResult.error ? [{ message: documentResult.error, stepIndex: 5 }] : []
+                documentResult.error ? [{ message: documentResult.error, stepIndex: WIZARD_STEP.media }] : []
               );
               setIsSubmitting(false);
               return;
@@ -1974,7 +2067,7 @@ export function WizardProvider({
             if ("error" in videoResult) {
               setSubmitError(videoResult.error || "Unable to process the listing video.");
               setSubmitIssues(
-                videoResult.error ? [{ message: videoResult.error, stepIndex: 5 }] : []
+                videoResult.error ? [{ message: videoResult.error, stepIndex: WIZARD_STEP.media }] : []
               );
               setIsSubmitting(false);
               return;
@@ -1993,7 +2086,7 @@ export function WizardProvider({
             setSubmitError(reorderResult.error || "Unable to update the listing cover.");
             setSubmitIssues(
               reorderResult.error
-                ? [{ message: reorderResult.error, stepIndex: 5 }]
+                ? [{ message: reorderResult.error, stepIndex: WIZARD_STEP.media }]
                 : []
             );
             setIsSubmitting(false);
@@ -2011,7 +2104,7 @@ export function WizardProvider({
             setSubmitError(submitResult.error || "Unable to submit listing for review.");
             setSubmitIssues(
               submitResult.error
-                ? [{ message: submitResult.error, stepIndex: 8 }]
+                ? [{ message: submitResult.error, stepIndex: WIZARD_STEP.review }]
                 : []
             );
             setIsSubmitting(false);
@@ -2046,6 +2139,7 @@ export function WizardProvider({
 
   const value: WizardContextValue = {
     isEditing, editingListingId,
+    salesReps, usesDealerLocation, isDealerSeller,
     draft, activeStep, showValidationErrors, isSubmitting, submissionStatus, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
     galleryFiles, documentFiles, videoFile,

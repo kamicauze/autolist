@@ -4,10 +4,11 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
 import type { Listing } from "@/lib/types/listing";
-import { WizardProvider, useWizard } from "./wizard-context";
+import { WIZARD_STEP, WizardProvider, useWizard, type AssignableSalesRep } from "./wizard-context";
 import { StepBasicInfo } from "./step-basic-info";
 import { StepCategory } from "./step-category";
 import { StepDescription } from "./step-description";
@@ -15,20 +16,32 @@ import { StepFeatures } from "./step-features";
 import { StepMedia } from "./step-media";
 import { StepPriceIntelligence } from "./step-price-intelligence";
 import { StepReview } from "./step-review";
-import { StepSeller } from "./step-seller";
 import { StepVehicleDetails } from "./step-vehicle-details";
 
-const STEP_COMPONENTS = [
-  StepCategory,
-  StepVehicleDetails,
-  StepBasicInfo,
-  StepFeatures,
-  StepDescription,
-  StepMedia,
-  StepSeller,
-  StepPriceIntelligence,
-  StepReview,
-];
+function StepVehicleAndPrice({ googleMapsApiKey }: { googleMapsApiKey: string }) {
+  const { draft } = useWizard();
+  return (
+    <div className="space-y-6">
+      <StepCategory />
+      {draft.category ? (
+        <>
+          <StepVehicleDetails />
+          <StepPriceIntelligence />
+          <StepBasicInfo googleMapsApiKey={googleMapsApiKey} />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function StepFeaturesAndDescription() {
+  return (
+    <div className="space-y-6">
+      <StepFeatures />
+      <StepDescription />
+    </div>
+  );
+}
 
 type ListingWizardMode = "seller" | "admin";
 
@@ -80,9 +93,9 @@ function WizardContent({
   }, [submitError]);
 
   const footerMeta =
-      activeStep === 3
+      activeStep === WIZARD_STEP.features
       ? `${draft.selectedFeatureIds.length} features selected`
-      : activeStep === 5
+      : activeStep === WIZARD_STEP.media
         ? `${(draft.coverImageName ? 1 : 0) + draft.galleryImageNames.length + draft.documentNames.length + (videoFile || draft.videoUrl ? 1 : 0)} media files added`
         : `Step ${activeStep + 1} of ${LISTING_WIZARD_STEPS.length}`;
 
@@ -99,7 +112,7 @@ function WizardContent({
           buttonHref: "/dashboard/membership",
           buttonDisabled: true,
           wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
-          iconClass: "bg-brand-tint text-primary",
+          iconTone: "primary" as const,
           buttonClass: "bg-primary text-white",
         }
       : packageAccessError
@@ -110,7 +123,7 @@ function WizardContent({
             buttonHref: "/dashboard/membership",
             buttonDisabled: false,
             wrapperClass: "border border-[#ffe2b8] bg-[#fff7ed]",
-            iconClass: "bg-[#ffedd5] text-[#ea580c]",
+            iconTone: "warning" as const,
             buttonClass: "bg-[#ea580c] text-white hover:bg-[#c2410c]",
           }
         : !packageAccess?.hasActivePlan
@@ -122,7 +135,7 @@ function WizardContent({
               buttonHref: "/dashboard/membership",
               buttonDisabled: false,
               wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
-              iconClass: "bg-brand-tint text-primary",
+              iconTone: "primary" as const,
               buttonClass: "bg-primary text-white hover:bg-brand-hover",
             }
           : !packageAccess.canCreateListing
@@ -136,7 +149,7 @@ function WizardContent({
                 buttonHref: "/dashboard/membership",
                 buttonDisabled: false,
                 wrapperClass: "border border-[#ffe2b8] bg-[#fff7ed]",
-                iconClass: "bg-[#ffedd5] text-[#ea580c]",
+                iconTone: "warning" as const,
                 buttonClass: "bg-[#ea580c] text-white hover:bg-[#c2410c]",
               }
             : {
@@ -149,7 +162,7 @@ function WizardContent({
                 buttonHref: "/dashboard/membership",
                 buttonDisabled: false,
                 wrapperClass: "border border-brand-muted-border bg-brand-soft-surface",
-                iconClass: "bg-brand-tint text-primary",
+                iconTone: "primary" as const,
                 buttonClass: "bg-primary text-white hover:bg-brand-hover",
               };
 
@@ -157,9 +170,12 @@ function WizardContent({
     return (
       <section className="space-y-6">
         <div className="rounded-[28px] border border-brand-muted-border bg-white p-8 text-center shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-tint text-primary">
-            <CheckCircle2 className="h-7 w-7" />
-          </div>
+          <Illustration3D
+            asset="success-check"
+            fallbackIcon={CheckCircle2}
+            size="xl"
+            className="mx-auto flex h-16 w-16"
+          />
           <h2 className="mt-5 font-heading text-[34px] font-semibold text-[#202224]">
             {isEditing ? "Listing updated" : autoApproved ? "Your listing is live" : "Listing submitted"}
           </h2>
@@ -192,17 +208,18 @@ function WizardContent({
     );
   }
 
-  const ActiveStep = STEP_COMPONENTS[activeStep];
-
   return (
     <div className="space-y-4">
       {packageBanner ? (
         <div className={`rounded-[14px] p-4 ${packageBanner.wrapperClass}`}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${packageBanner.iconClass}`}>
-                <PackageOpen className="h-5 w-5" />
-              </div>
+              <Illustration3D
+                asset="package-open"
+                fallbackIcon={PackageOpen}
+                size="md"
+                tone={packageBanner.iconTone}
+              />
               <div>
                 <h2 className="font-heading text-[20px] font-semibold text-[#202224]">
                   {packageBanner.title}
@@ -320,11 +337,15 @@ function WizardContent({
           </div>
         ) : null}
 
-        {activeStep === 2 ? (
-          <StepBasicInfo googleMapsApiKey={googleMapsApiKey} />
-        ) : ActiveStep ? (
-          <ActiveStep />
-        ) : null}
+        {activeStep === WIZARD_STEP.vehicle ? (
+          <StepVehicleAndPrice googleMapsApiKey={googleMapsApiKey} />
+        ) : activeStep === WIZARD_STEP.features ? (
+          <StepFeaturesAndDescription />
+        ) : activeStep === WIZARD_STEP.media ? (
+          <StepMedia />
+        ) : (
+          <StepReview />
+        )}
       </WizardShell>
     </div>
   );
@@ -334,13 +355,15 @@ export function ListingWizardV2({
   initialListing,
   googleMapsApiKey = "",
   mode = "seller",
+  salesReps = [],
 }: {
   initialListing?: Listing | null;
   googleMapsApiKey?: string;
   mode?: ListingWizardMode;
+  salesReps?: AssignableSalesRep[];
 }) {
   return (
-    <WizardProvider initialListing={initialListing}>
+    <WizardProvider initialListing={initialListing} salesReps={salesReps}>
       <WizardContent googleMapsApiKey={googleMapsApiKey} mode={mode} />
     </WizardProvider>
   );

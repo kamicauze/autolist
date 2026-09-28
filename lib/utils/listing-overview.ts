@@ -59,7 +59,7 @@ function driveTypeLabel(listing: Listing) {
     "";
   const normalized = value.trim().toLowerCase();
 
-  if (["fwd", "rwd", "awd", "4wd"].includes(normalized)) {
+  if (["fwd", "rwd", "awd", "4wd", "2wd"].includes(normalized)) {
     return normalized.toUpperCase();
   }
 

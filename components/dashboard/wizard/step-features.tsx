@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LISTING_FEATURE_GROUPS_BY_CATEGORY, LISTING_FEATURES_BY_CATEGORY } from "@/lib/constants/marketplace";
 import { useWizard } from "./wizard-context";
 import { sellerGhostButtonClass, sellerInputClass } from "../seller-dashboard-ui";
@@ -15,7 +17,10 @@ export function StepFeatures() {
     toggleFeature,
     clearFeatureSelection,
     setFeatureSelection,
+    expandedFeatureGroups,
+    toggleFeatureGroupExpansion,
   } = useWizard();
+  const isSearching = featureQuery.trim().length > 0;
 
   const groups = draft.category ? LISTING_FEATURES_BY_CATEGORY[draft.category] : null;
   const groupDef = draft.category ? LISTING_FEATURE_GROUPS_BY_CATEGORY[draft.category] : null;
@@ -114,15 +119,29 @@ export function StepFeatures() {
             key={group.key}
             className="rounded-[14px] border border-[#ededed] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
           >
-            <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#efefef] pb-3">
-              <div>
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-3",
+                (isSearching || expandedFeatureGroups[group.key]) && "mb-3 border-b border-[#efefef] pb-3"
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => toggleFeatureGroupExpansion(group.key)}
+                aria-expanded={isSearching || Boolean(expandedFeatureGroups[group.key])}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-[#8a8a8a] transition",
+                    !(isSearching || expandedFeatureGroups[group.key]) && "-rotate-90"
+                  )}
+                  aria-hidden
+                />
                 <h3 className="font-heading text-[18px] font-semibold text-[#202224]">
                   {group.label}
                 </h3>
-                <p className="mt-1 text-[13px] text-[#7d7d7d]">
-                  Select all applicable items from this group.
-                </p>
-              </div>
+              </button>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -144,6 +163,7 @@ export function StepFeatures() {
               </div>
             </div>
 
+            {isSearching || expandedFeatureGroups[group.key] ? (
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {group.features.map((feature) => {
                 const selected = selectedFeatureIdSet.has(feature.id);
@@ -169,6 +189,7 @@ export function StepFeatures() {
                 );
               })}
             </div>
+            ) : null}
           </section>
         ))}
       </div>

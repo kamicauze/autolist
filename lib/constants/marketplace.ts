@@ -43,49 +43,24 @@ export const ONBOARDING_STEPS = [
 
 export const LISTING_WIZARD_STEPS = [
   {
-    id: "category",
-    title: "Category Selection",
-    description: "Choose one category before entering details.",
-  },
-  {
-    id: "details",
-    title: "Vehicle / Equipment Details",
-    description: "Dynamic fields based on selected category.",
-  },
-  {
-    id: "basics",
-    title: "Listing Basics",
-    description: "Core listing information shared across all categories.",
+    id: "vehicle",
+    title: "Vehicle & Price",
+    description: "Category, vehicle details, price and market range.",
   },
   {
     id: "features",
-    title: "Features & Specifications",
-    description: "Select predefined feature IDs only.",
-  },
-  {
-    id: "description",
-    title: "Description",
-    description: "Write or generate buyer-facing listing copy.",
+    title: "Features & Description",
+    description: "Equipment included and buyer-facing listing copy.",
   },
   {
     id: "media",
-    title: "Media Uploads",
-    description: "Photo selection, gallery management, documents, and optional video.",
-  },
-  {
-    id: "seller",
-    title: "Seller Information",
-    description: "Set contact and visibility preferences.",
-  },
-  {
-    id: "intelligence",
-    title: "Price Intelligence",
-    description: "Market indicator display only for MVP.",
+    title: "Photos & Media",
+    description: "Photos, cover selection, documents and optional video.",
   },
   {
     id: "review",
     title: "Review & Submit",
-    description: "Preview and submit for admin moderation.",
+    description: "Confirm contact or sales rep, preview and submit for moderation.",
   },
 ] as const;
 

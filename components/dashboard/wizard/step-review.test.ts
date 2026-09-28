@@ -20,14 +20,9 @@ test("review section edit controls target the originating wizard steps", () => {
       ])
     ),
     {
-      category: "category",
-      details: "details",
-      basics: "basics",
+      vehicle: "vehicle",
       features: "features",
-      description: "description",
       media: "media",
-      seller: "seller",
-      priceIntelligence: "intelligence",
     }
   );
 });

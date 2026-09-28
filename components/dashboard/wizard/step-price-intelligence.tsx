@@ -9,7 +9,7 @@ const initialInsight: PricePositioningResult = {
   status: "insufficient_data",
   label: "Incomplete pricing data",
   tone: "neutral",
-  note: "Add make, model, year and price to estimate market position.",
+  note: "Add make, model, year and mileage to see the market range for similar listings.",
   confidence: "low",
   confidenceLabel: "Low confidence",
   basedOn: "missing listing details",
@@ -41,7 +41,7 @@ export function StepPriceIntelligence() {
       fuelType: draft.details.engineType || draft.details.fuelType || null,
     };
 
-    if (!payload.make || !payload.model || !payload.year || !payload.price) {
+    if (!payload.make || !payload.model || !payload.year) {
       setInsight(initialInsight);
       return;
     }
@@ -109,7 +109,7 @@ export function StepPriceIntelligence() {
       <div>
         <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Price Intelligence</h2>
         <p className="mt-1 text-[13px] leading-5 text-[#767676]">
-          Review how the entered seller price compares with the current benchmark range for this category.
+          Market range for similar listings by make, model, year and mileage. Use it to set your price below.
         </p>
       </div>
 

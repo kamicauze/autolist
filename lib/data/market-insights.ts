@@ -85,9 +85,7 @@ export async function getPricePositioning(
     !input.make.trim() ||
     !input.model.trim() ||
     !hasValidYear ||
-    isGenericEquipmentReference(input) ||
-    !Number.isFinite(input.price) ||
-    input.price <= 0
+    isGenericEquipmentReference(input)
   ) {
     return {
       status: "insufficient_data",
@@ -95,7 +93,7 @@ export async function getPricePositioning(
       tone: "neutral",
       note: isGenericEquipmentReference(input)
         ? "Add the actual make and model to compare against truly similar machinery."
-        : "Add make, model, year and a valid price to estimate market position.",
+        : "Add make, model and year to see the market range for similar listings.",
       confidence: "low",
       confidenceLabel: "Low confidence",
       basedOn: "missing listing details",

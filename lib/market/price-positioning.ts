@@ -207,6 +207,44 @@ export function computePricePositioning(
     };
   }
 
+  const confidence: PricePositioningResult["confidence"] =
+    filteredCandidates.length >= 8 && exactMatches >= 4
+      ? "high"
+      : filteredCandidates.length >= 5
+        ? "medium"
+        : "low";
+
+  const comparables: PricePositioningComparable[] = filteredCandidates.slice(0, 3).map((candidate) => ({
+    id: candidate.id,
+    title: `${candidate.year} ${candidate.make} ${candidate.model}`,
+    price: candidate.price,
+    mileage: candidate.mileage,
+    year: candidate.year,
+    location: getListingDisplayLocation(candidate, { fallback: "" }) || null,
+  }));
+
+  // Comparables only depend on make, model, year and mileage, so the market
+  // range can be shown before the seller has entered a price.
+  if (!Number.isFinite(input.price) || input.price <= 0) {
+    return {
+      status: "market_range",
+      label: "Market Range",
+      tone: "neutral",
+      note: `Similar active listings range from KES ${Math.round(marketMin).toLocaleString("en-KE")} to KES ${Math.round(marketMax).toLocaleString("en-KE")}. Enter a price to see how it compares.`,
+      confidence,
+      confidenceLabel: confidenceLabel(confidence),
+      basedOn: buildBasedOnLabel(true),
+      sampleSize: filteredCandidates.length,
+      marketAverage,
+      marketMedian,
+      marketMin,
+      marketMax,
+      differenceFromMedian: null,
+      percentageFromMedian: null,
+      comparables,
+    };
+  }
+
   const differenceFromMedian = Math.round(input.price - marketMedian);
   const percentageFromMedian = Number(
     (((input.price - marketMedian) / Math.max(marketMedian, 1)) * 100).toFixed(1)
@@ -226,28 +264,12 @@ export function computePricePositioning(
     tone = "amber";
   }
 
-  const confidence: PricePositioningResult["confidence"] =
-    filteredCandidates.length >= 8 && exactMatches >= 4
-      ? "high"
-      : filteredCandidates.length >= 5
-        ? "medium"
-        : "low";
-
   const note =
     status === "below_market"
       ? `Priced ${Math.abs(percentageFromMedian)}% below the market median across ${filteredCandidates.length} similar active listings.`
       : status === "above_market"
         ? `Priced ${Math.abs(percentageFromMedian)}% above the market median across ${filteredCandidates.length} similar active listings.`
         : `Priced close to the market median across ${filteredCandidates.length} similar active listings.`;
-
-  const comparables: PricePositioningComparable[] = filteredCandidates.slice(0, 3).map((candidate) => ({
-    id: candidate.id,
-    title: `${candidate.year} ${candidate.make} ${candidate.model}`,
-    price: candidate.price,
-    mileage: candidate.mileage,
-    year: candidate.year,
-    location: getListingDisplayLocation(candidate, { fallback: "" }) || null,
-  }));
 
   return {
     status,

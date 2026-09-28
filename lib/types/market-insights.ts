@@ -2,6 +2,7 @@ export type PricePositioningStatus =
   | "below_market"
   | "fair_price"
   | "above_market"
+  | "market_range"
   | "insufficient_data";
 
 export type PricePositioningComparable = {

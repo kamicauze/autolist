@@ -1,15 +1,25 @@
 "use client";
 
 import { useDeferredValue } from "react";
-import { LISTING_CATEGORY_OPTIONS, LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
+import { MapPin } from "lucide-react";
+import { LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { formatKES, formatPriceInput, MAX_TITLE_LENGTH, unformatPrice, useWizard } from "./wizard-context";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
+
+const COUNTRY_OPTIONS = ["Kenya", "Uganda", "Tanzania", "Rwanda"].map((country) => ({
+  value: country,
+  label: country,
+}));
+const CITY_OPTIONS = KENYA_CITIES.map((city) => ({ value: city, label: city }));
+const CONDITION_OPTIONS = LISTING_CONDITION_OPTIONS.map((item) => ({ value: item.value, label: item.label }));
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery } from "@/lib/google-maps";
 
 export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: string }) {
-  const { draft, updateField, showValidationErrors } = useWizard();
+  const { draft, updateField, showValidationErrors, usesDealerLocation } = useWizard();
   const locationPreview = buildGoogleMapsQuery([
     draft.locationArea,
     draft.cityTown,
@@ -46,31 +56,19 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           </div>
 
           <div>
-            <label className={sellerLabelClass}>Category</label>
-            <div className="flex h-12 items-center rounded-[14px] border border-[#ededed] bg-[#faf9f7] px-4 text-[14px] font-medium text-[#202224]">
-              {draft.category === "car"
-                ? "Cars & Vans"
-                : LISTING_CATEGORY_OPTIONS.find((item) => item.value === draft.category)?.label || "Not selected"}
-            </div>
-          </div>
-
-          <div>
             <label className={sellerLabelClass}>Condition</label>
-            <select
+            <SearchableSelect
               value={draft.condition}
-              onChange={(event) => updateField("condition", event.target.value as typeof draft.condition)}
+              onChange={(value) => updateField("condition", value as typeof draft.condition)}
+              options={CONDITION_OPTIONS}
+              placeholder="Select condition"
+              searchPlaceholder="Search condition"
+              aria-label="Condition"
               className={cn(
                 sellerSelectClass,
                 showValidationErrors && !draft.condition && "border-[#f04438]"
               )}
-            >
-              <option value="">Select condition</option>
-              {LISTING_CONDITION_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
@@ -132,37 +130,37 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
         </div>
       </section>
 
+      {usesDealerLocation ? null : (
       <section className="space-y-4 rounded-[14px] border border-[#ededed] bg-white p-4">
+        <div className="flex items-center gap-2 text-[14px] font-semibold text-[#202224]">
+          <Icon3D icon={MapPin} variant="glyph" />
+          Vehicle location
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={sellerLabelClass}>Country</label>
-            <select
+            <SearchableSelect
               value={draft.country}
-              onChange={(event) => updateField("country", event.target.value)}
+              onChange={(value) => updateField("country", value)}
+              options={COUNTRY_OPTIONS}
+              placeholder="Select country"
+              searchPlaceholder="Search country"
+              aria-label="Country"
               className={cn(sellerSelectClass, showValidationErrors && !draft.country && "border-[#f04438]")}
-            >
-              {["Kenya", "Uganda", "Tanzania", "Rwanda"].map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
             <label className={sellerLabelClass}>City / Town</label>
-            <select
+            <SearchableSelect
               value={draft.cityTown}
-              onChange={(event) => updateField("cityTown", event.target.value)}
+              onChange={(value) => updateField("cityTown", value)}
+              options={CITY_OPTIONS}
+              placeholder="Select city"
+              searchPlaceholder="Search city or town"
+              aria-label="City / Town"
               className={cn(sellerSelectClass, showValidationErrors && !draft.cityTown && "border-[#f04438]")}
-            >
-              <option value="">Select city</option>
-              {KENYA_CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="md:col-span-2">
@@ -207,7 +205,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           </div>
         </div>
       </section>
-
+      )}
     </div>
   );
 }
