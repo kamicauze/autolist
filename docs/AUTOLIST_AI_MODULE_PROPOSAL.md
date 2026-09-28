@@ -540,6 +540,8 @@ Hot Deal Alert: 15 vehicles priced 20%+ below market
 ### Total Monthly Cost by Phase
 
 | Phase | Users | Infrastructure | AI Costs | Total |
+
+
 |-------|-------|----------------|----------|-------|
 | **MVP (Tier 1)** | < 1K | KES 2,000 - 5,000 | KES 0 | **KES 2,000 - 5,000** |
 | **Post-Launch (Tier 2)** | 1K - 10K | KES 8,000 - 15,000 | KES 5,000 - 15,000 | **KES 13,000 - 30,000** |
