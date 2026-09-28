@@ -71,6 +71,18 @@ export interface Listing {
     about_text?: string;
     social_links?: Record<string, unknown> | null;
   };
+  /** Public contact for the assigned sales rep; attached on the vehicle page. */
+  sales_rep?: ListingSalesRepContact | null;
+}
+
+export interface ListingSalesRepContact {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  /** Null when the rep hides their number. */
+  phone: string | null;
+  /** Null when the rep has WhatsApp disabled. */
+  whatsapp: string | null;
 }
 
 export interface ListingFilters {

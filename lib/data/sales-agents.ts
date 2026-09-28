@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
+import type { Listing, ListingSalesRepContact } from "@/lib/types/listing";
 import type { DealerSalesAgentOwner, SalesAgent } from "@/lib/types/sales-agents";
 
 type AgentProfileRelation = { deactivated_at: string | null };
@@ -88,5 +90,58 @@ export async function getMySalesAgents(): Promise<{
         account_deactivated: Boolean(profile?.deactivated_at),
       };
     }),
+  };
+}
+
+type PublicSalesRepRow = {
+  id: string;
+  name: string;
+  phone: string | null;
+  whatsapp_enabled: boolean;
+  hide_phone_number: boolean;
+  agent:
+    | { avatar_url: string | null; deactivated_at: string | null }
+    | Array<{ avatar_url: string | null; deactivated_at: string | null }>
+    | null;
+};
+
+/**
+ * Public contact for a listing's assigned sales rep. dealer_sales_agents is
+ * only readable by the dealer owner under RLS, so this uses the service role
+ * with a fixed public projection and only returns active reps of the
+ * listing's own dealership.
+ */
+export async function getListingSalesRepContact(
+  listing: Pick<Listing, "assigned_agent_id" | "dealer_id">
+): Promise<ListingSalesRepContact | null> {
+  if (!listing.assigned_agent_id || !listing.dealer_id) return null;
+
+  const supabase = createOptionalAdminClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("dealer_sales_agents")
+    .select("id, name, phone, whatsapp_enabled, hide_phone_number, agent:profiles!agent_profile_id(avatar_url, deactivated_at)")
+    .eq("id", listing.assigned_agent_id)
+    .eq("dealer_id", listing.dealer_id)
+    .eq("status", "active")
+    .maybeSingle<PublicSalesRepRow>();
+
+  if (error) {
+    console.error("Get listing sales rep error:", error);
+    return null;
+  }
+  if (!data) return null;
+
+  const profile = Array.isArray(data.agent) ? data.agent[0] : data.agent;
+  if (profile?.deactivated_at) return null;
+
+  const phone = data.phone?.trim() || null;
+  return {
+    id: data.id,
+    name: data.name,
+    avatar_url: profile?.avatar_url ?? null,
+    phone: data.hide_phone_number ? null : phone,
+    whatsapp: data.whatsapp_enabled ? phone : null,
   };
 }

@@ -13,6 +13,7 @@ import {
 import type { Listing } from "@/lib/types/listing";
 import type { DealerProfile } from "@/lib/types/dealer";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { RecommendedCars } from "@/components/vehicle/recommended-cars";
 import { ReviewsSection } from "@/components/vehicle/reviews-section";
 import { ReplyForm } from "@/components/vehicle/reply-form";
@@ -134,7 +135,7 @@ function DealerSidebar({
           <div>
             <h3 className="text-base font-semibold text-gray-900">{dealer.name}</h3>
             <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-              <BadgeCheck className="h-3.5 w-3.5" />
+              <Icon3D icon={BadgeCheck} size="xs" tone="success" variant="glyph" />
               Verified dealer
             </span>
           </div>
@@ -193,7 +194,7 @@ function DealerSidebar({
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h3 className="text-base font-semibold text-gray-900">Map to {dealer.name}</h3>
         <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
-          <MapPin className="h-4 w-4 text-gray-400" />
+          <Icon3D icon={MapPin} tone="neutral" variant="glyph" />
           <span>{locationLabel}</span>
         </div>
         <div className="mt-3 h-80 overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-green-100 via-brand-tint to-gray-100">
@@ -255,7 +256,7 @@ export function DealerPageClient({
             </div>
           </section>
 
-          <section>
+          <section id="about" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
               {dealer.about_text ||

@@ -7,12 +7,15 @@ import {
   CalendarDays,
   Clock3,
   Phone,
-  ShieldCheck,
   Star,
+  UserRound,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { IconWhatsapp } from "@/components/ui/icons";
+import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
+import type { ListingSalesRepContact } from "@/lib/types/listing";
 import { AppointmentRequestDialog } from "./appointment-request-dialog";
 
 interface SellerCardProps {
@@ -35,6 +38,7 @@ interface SellerCardProps {
     full_name: string | null;
     avatar_url: string | null;
   };
+  salesRep?: ListingSalesRepContact | null;
 }
 
 type DealerHoursRow = {
@@ -141,12 +145,23 @@ export function getDealerHoursPresentation(
   };
 }
 
-export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCardProps) {
+export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }: SellerCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
   const dealerHours = getDealerHoursPresentation(dealer?.social_links);
+  const rep = dealer ? salesRep ?? null : null;
+  // The assigned sales rep is the primary contact; each channel falls back to
+  // the dealership when the rep has hidden their number or disabled WhatsApp.
+  const callNumber = rep?.phone || dealer?.mobile || null;
+  const whatsappNumber = normalizeWhatsAppPhone(
+    rep?.whatsapp || dealer?.whatsapp || dealer?.mobile
+  );
+  const whatsappUrl = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist.`)}`
+    : null;
+  const contactLabel = rep ? `Call ${rep.name.split(" ")[0]}` : "Call Seller";
 
   return (
     <>
@@ -164,7 +179,7 @@ export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCa
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-gray-900">
               {dealer?.id ? (
-                <Link href={`/dealers/${dealer.id}`} className="hover:text-primary">
+                <Link href={`/dealers/${dealer.id}#about`} className="hover:text-primary">
                   {name}
                 </Link>
               ) : (
@@ -183,20 +198,37 @@ export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCa
         <div className="mt-3 flex flex-wrap gap-2">
           {isDealer && (
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-primary">
-              <BadgeCheck className="h-3.5 w-3.5" />
+              <Icon3D icon={BadgeCheck} size="xs" variant="glyph" />
               Verified dealer
             </span>
           )}
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Vehicle transaction handled by Autolist
-          </span>
         </div>
 
-        <p className="mt-4 text-xs leading-relaxed text-gray-600">
-          {dealer?.about_text ||
-            "Trusted local dealer with verified listings and transparent pricing. Contact us for full inspection and purchase support."}
-        </p>
+        {rep ? (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-brand-muted-border bg-brand-soft-surface p-3">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white">
+              {rep.avatar_url ? (
+                <Image src={rep.avatar_url} alt={rep.name} fill className="object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-primary">
+                  <UserRound className="h-5 w-5" aria-hidden />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+                Your sales contact
+              </p>
+              <p className="truncate text-sm font-semibold text-gray-900">{rep.name}</p>
+              <p className="truncate text-xs text-gray-500">Sales rep at {dealer?.name}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-xs leading-relaxed text-gray-600">
+            {dealer?.about_text ||
+              "Trusted local dealer with verified listings and transparent pricing. Contact us for full inspection and purchase support."}
+          </p>
+        )}
 
         <div className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
           <div className="flex items-center justify-between">
@@ -212,7 +244,7 @@ export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCa
         {isDealer ? (
           <div className="mt-4 rounded-lg border border-gray-100 bg-white p-3">
             <div className="flex items-center gap-2">
-              <Clock3 className="h-4 w-4 text-gray-400" />
+              <Icon3D icon={Clock3} tone="neutral" variant="glyph" />
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
                 Opening hours
               </p>
@@ -239,20 +271,44 @@ export function SellerCard({ listingId, listingTitle, dealer, seller }: SellerCa
 
         <div className="mt-4 border-t border-gray-100 pt-4">
           <p className="text-xs text-gray-500">Seller preferred contact</p>
-          <p className="mt-1 text-lg font-bold text-gray-900">Call Seller</p>
+          <p className="mt-1 text-lg font-bold text-gray-900">{contactLabel}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button variant="default" size="sm" className="gap-2">
-              <Phone className="h-4 w-4" />
-              Call
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
-            >
-              <IconWhatsapp className="h-4 w-4" />
-              WhatsApp
-            </Button>
+            {callNumber ? (
+              <Button asChild variant="default" size="sm" className="gap-2">
+                <a href={`tel:${callNumber.replace(/\s+/g, "")}`}>
+                  <Phone className="h-4 w-4" />
+                  Call
+                </a>
+              </Button>
+            ) : (
+              <Button variant="default" size="sm" className="gap-2" disabled>
+                <Phone className="h-4 w-4" />
+                Call
+              </Button>
+            )}
+            {whatsappUrl ? (
+              <Button
+                asChild
+                variant="secondary"
+                size="sm"
+                className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
+              >
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <IconWhatsapp className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
+                disabled
+              >
+                <IconWhatsapp className="h-4 w-4" />
+                WhatsApp
+              </Button>
+            )}
           </div>
           <Button
             type="button"

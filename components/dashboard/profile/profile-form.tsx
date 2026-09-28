@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { deactivateMyAccount } from "@/lib/actions/account";
 import { updateMyProfile } from "@/lib/actions/profile";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
@@ -40,6 +41,8 @@ interface ProfileFormProps {
   profile?: SellerProfileRecord | null;
   verification?: DealerVerificationRecord | null;
   googleMapsApiKey?: string | null;
+  /** Set when the viewer is an active sales rep; hides dealer/seller-only sections. */
+  salesRepDealerName?: string | null;
 }
 
 type SellerProfileFormState = {
@@ -130,7 +133,9 @@ function verificationSummary(
   if (!verification) {
     if (role === "seller") {
       return {
-        icon: <ShieldCheck className="h-5 w-5 text-primary" />,
+        icon: ShieldCheck,
+        asset: "shield-check" as const,
+        tone: "primary" as const,
         title: "Individual seller account",
         description:
           "Dealer verification is not required for individual sellers. Keep your profile details current so buyers can contact you confidently.",
@@ -138,7 +143,9 @@ function verificationSummary(
     }
 
     return {
-      icon: <ShieldCheck className="h-5 w-5 text-[#f79009]" />,
+      icon: ShieldCheck,
+      asset: "shield-check" as const,
+      tone: "warning" as const,
       title: "Verification not started",
       description:
         "Submit dealer documents to unlock trusted seller status and keep your buyer-facing profile aligned with your business verification.",
@@ -147,7 +154,9 @@ function verificationSummary(
 
   if (verification.status === "APPROVED") {
     return {
-      icon: <CheckCircle2 className="h-5 w-5 text-[#2f9e63]" />,
+      icon: CheckCircle2,
+      asset: "success-check" as const,
+      tone: "success" as const,
       title: "Verification approved",
       description:
         "Your seller account is verified. Buyers will see the trust signals tied to your approved dealer profile.",
@@ -156,7 +165,9 @@ function verificationSummary(
 
   if (verification.status === "REJECTED") {
     return {
-      icon: <ShieldAlert className="h-5 w-5 text-[#f04438]" />,
+      icon: ShieldAlert,
+      asset: "shield-alert" as const,
+      tone: "danger" as const,
       title: "Verification needs updates",
       description:
         verification.rejection_reason ||
@@ -166,7 +177,9 @@ function verificationSummary(
   }
 
   return {
-    icon: <Clock3 className="h-5 w-5 text-primary" />,
+    icon: Clock3,
+    asset: "clock-pending" as const,
+    tone: "primary" as const,
     title: "Verification under review",
     description:
       "Your documents are with the Autolist review team. Use the verification page to track progress and open the submitted files.",
@@ -201,7 +214,9 @@ export function ProfileForm({
   profile = null,
   verification = null,
   googleMapsApiKey = null,
+  salesRepDealerName = null,
 }: ProfileFormProps) {
+  const isSalesRep = Boolean(salesRepDealerName);
   const router = useRouter();
   const approvedDealer =
     user.id &&
@@ -215,7 +230,9 @@ export function ProfileForm({
     profile?.role === "dealer"
       ? verification?.logo_url || profile?.avatar_url || undefined
       : profile?.avatar_url || undefined;
-  const accountType = accountTypeLabel(profile?.role ?? null, verification);
+  const accountType = isSalesRep
+    ? `Sales rep · ${salesRepDealerName}`
+    : accountTypeLabel(profile?.role ?? null, verification);
   const initialForm: SellerProfileFormState = {
     fullName: approvedDealer?.name || profile?.full_name || user.email?.split("@")[0] || "",
     email: user.email || "",
@@ -362,9 +379,11 @@ export function ProfileForm({
       <SellerPageHeader
         title="Profile"
         description={
-          isApprovedDealerOwner
-            ? "Update the dealership details buyers see on your public dealer page."
-            : "Update your public seller profile, contact details, location, and social links."
+          isSalesRep
+            ? `Your personal details as a sales rep for ${salesRepDealerName}.`
+            : isApprovedDealerOwner
+              ? "Update the dealership details buyers see on your public dealer page."
+              : "Update your public seller profile, contact details, location, and social links."
         }
         action={
           approvedDealer ? (
@@ -404,17 +423,21 @@ export function ProfileForm({
                     </p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full bg-brand-tint px-4 py-2 text-[13px] font-medium text-primary">
-                        <ShieldCheck className="h-4 w-4" />
+                        <Icon3D icon={ShieldCheck} variant="glyph" />
                         {accountType}
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#6f6f6f]">
-                        <MapPin className="h-4 w-4" />
-                        {locationLabel}
-                      </span>
-                      <SellerStatusPill
-                        label={verificationLabel(verification)}
-                        tone={verificationStatusTone}
-                      />
+                      {isSalesRep ? null : (
+                        <>
+                          <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#6f6f6f]">
+                            <Icon3D icon={MapPin} tone="neutral" variant="glyph" />
+                            {locationLabel}
+                          </span>
+                          <SellerStatusPill
+                            label={verificationLabel(verification)}
+                            tone={verificationStatusTone}
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -498,6 +521,8 @@ export function ProfileForm({
                 </div>
               </div>
 
+              {isSalesRep ? null : (
+              <>
               <div>
                 <label htmlFor="profile-bio" className={sellerLabelClass}>
                   {isApprovedDealerOwner ? "About Dealership" : "About Seller"}
@@ -605,7 +630,11 @@ export function ProfileForm({
                     fallback={
                       <div className="flex h-full items-center justify-center p-6 text-center">
                         <div>
-                          <MapPin className="mx-auto h-8 w-8 text-primary" />
+                          <Illustration3D
+                            asset="map-pin"
+                            fallbackIcon={MapPin}
+                            className="mx-auto flex"
+                          />
                           <p className="mt-3 text-[14px] font-semibold text-[#202224]">
                             {mapQuery || "Location not set"}
                           </p>
@@ -620,15 +649,23 @@ export function ProfileForm({
                   />
                 </div>
               </div>
+              </>
+              )}
             </div>
 
             <div className="space-y-6">
+              {isSalesRep ? null : (
+              <>
               <div className="rounded-[24px] border border-[#ededed] bg-white p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
-                      {verificationState.icon}
-                    </div>
+                    <Illustration3D
+                      asset={verificationState.asset}
+                      fallbackIcon={verificationState.icon}
+                      size="md"
+                      tone={verificationState.tone}
+                      className="h-11 w-11"
+                    />
                     <div>
                       <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                         Verification Status
@@ -676,9 +713,7 @@ export function ProfileForm({
                           key={document.id}
                           className="flex items-center gap-3 rounded-[16px] border border-[#ededed] bg-[#faf9f7] px-3 py-3"
                         >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary">
-                            <FileText className="h-4 w-4" />
-                          </div>
+                          <Icon3D icon={FileText} className="h-9 w-9" />
                           <div className="min-w-0">
                             <p className="truncate text-[13px] font-semibold text-[#202224]">
                               {document.display_name}
@@ -711,9 +746,12 @@ export function ProfileForm({
 
               <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
-                    <Link2 className="h-5 w-5" />
-                  </div>
+                  <Illustration3D
+                    asset="link-chain"
+                    fallbackIcon={Link2}
+                    size="md"
+                    className="h-11 w-11"
+                  />
                   <div>
                     <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                       Social Links
@@ -815,12 +853,18 @@ export function ProfileForm({
                   ) : null}
                 </div>
               </div>
+              </>
+              )}
 
               <div className="rounded-[24px] border border-[#ededed] bg-white p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff3e4] text-[#f79009]">
-                    <LockKeyhole className="h-5 w-5" />
-                  </div>
+                  <Illustration3D
+                    asset="security-lock"
+                    fallbackIcon={LockKeyhole}
+                    size="md"
+                    tone="warning"
+                    className="h-11 w-11"
+                  />
                   <div>
                     <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                       Account Security
@@ -837,7 +881,9 @@ export function ProfileForm({
                   </p>
                   <div className="mt-3 space-y-3 text-[13px] text-[#777]">
                     <p>Use the change password page for real Supabase password updates.</p>
-                    <p>Use the verification page to manage seller onboarding requirements.</p>
+                    {isSalesRep ? null : (
+                      <p>Use the verification page to manage seller onboarding requirements.</p>
+                    )}
                   </div>
                 </div>
 
@@ -848,12 +894,14 @@ export function ProfileForm({
                   >
                     Open Change Password
                   </Link>
-                  <Link
-                    href="/dashboard/verification"
-                    className="inline-flex h-11 items-center justify-center rounded-[12px] border border-brand-muted-border bg-white px-5 text-[13px] font-semibold text-primary"
-                  >
-                    Open Verification
-                  </Link>
+                  {isSalesRep ? null : (
+                    <Link
+                      href="/dashboard/verification"
+                      className="inline-flex h-11 items-center justify-center rounded-[12px] border border-brand-muted-border bg-white px-5 text-[13px] font-semibold text-primary"
+                    >
+                      Open Verification
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -899,9 +947,13 @@ function DeactivateAccountSection() {
   return (
     <SellerSurface className="mt-6 border-[#fecaca] p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fef2f2] text-[#dc2626]">
-          <ShieldAlert className="h-5 w-5" />
-        </div>
+        <Illustration3D
+          asset="shield-alert"
+          fallbackIcon={ShieldAlert}
+          size="md"
+          tone="danger"
+          className="h-11 w-11"
+        />
         <div className="min-w-0 flex-1">
           <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Deactivate account</h2>
           <p className="mt-1 text-[13px] leading-6 text-[#7b7b7b]">

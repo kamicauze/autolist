@@ -38,3 +38,24 @@ export function normalizePhoneForVerification(value: string) {
 
   return trimmed.startsWith("+") ? `+${digits}` : trimmed;
 }
+
+// Digits-only international number for wa.me links; local 07.../01... and
+// 9-digit numbers are assumed to be Kenyan.
+export function normalizeWhatsAppPhone(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  const phone = digits.startsWith("00") ? digits.slice(2) : digits;
+
+  if (!phone) {
+    return null;
+  }
+
+  if (phone.startsWith("0") && phone.length >= 10) {
+    return `254${phone.slice(1)}`;
+  }
+
+  if (/^[17]\d{8}$/.test(phone)) {
+    return `254${phone}`;
+  }
+
+  return phone;
+}

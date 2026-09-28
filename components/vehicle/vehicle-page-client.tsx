@@ -21,6 +21,7 @@ import { Listing } from "@/lib/types/listing";
 import type { PricePositioningResult } from "@/lib/types/market-insights";
 import type { VehicleListingReviewsData } from "@/lib/types/listing-review";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ImageGallery } from "./image-gallery";
 import { SellerCard } from "./seller-card";
+import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
 import { CarOverview } from "./car-overview";
 import { FeaturesList } from "./features-list";
 import { RecommendedCars } from "./recommended-cars";
@@ -124,25 +126,6 @@ const PRESET_STATES: Record<PageStatePreset, Record<SectionKey, boolean>> = {
   },
 };
 
-function normalizeWhatsAppPhone(value?: string | null) {
-  const digits = value?.replace(/\D/g, "") ?? "";
-  const phone = digits.startsWith("00") ? digits.slice(2) : digits;
-
-  if (!phone) {
-    return null;
-  }
-
-  if (phone.startsWith("0") && phone.length >= 10) {
-    return `254${phone.slice(1)}`;
-  }
-
-  if (/^[17]\d{8}$/.test(phone)) {
-    return `254${phone}`;
-  }
-
-  return phone;
-}
-
 function getConfiguredBaseUrl() {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -204,7 +187,7 @@ function MapBlock({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm text-gray-600">
-        <MapPin className="h-4 w-4 text-gray-400" />
+        <Icon3D icon={MapPin} tone="neutral" variant="glyph" />
         <span>{locationLabel}</span>
       </div>
       <div className="relative h-[260px] overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-sky-100 to-gray-100">
@@ -428,7 +411,7 @@ export function VehiclePageClient({
   const listingDocuments = getListingDocuments(listing.metadata);
   const hasSupportingMedia = Boolean(videoUrl) || listingDocuments.length > 0;
   const quickContactPhone = normalizeWhatsAppPhone(
-    listing.dealer?.whatsapp || listing.dealer?.mobile
+    listing.sales_rep?.whatsapp || listing.dealer?.whatsapp || listing.dealer?.mobile
   );
   const currentOrigin = useSyncExternalStore(
     subscribeToOrigin,
@@ -629,7 +612,7 @@ export function VehiclePageClient({
             {hasSupportingMedia ? (
               <div id="listing-video" className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
                 <div className="mb-4 flex items-center gap-2">
-                  <Video className="h-4 w-4 text-primary" />
+                  <Icon3D icon={Video} variant="glyph" />
                   <h2 className="text-base font-semibold text-gray-900">Video & Documents</h2>
                 </div>
                 {videoUrl ? (
@@ -674,7 +657,7 @@ export function VehiclePageClient({
                             className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary"
                           >
                             <span className="flex min-w-0 items-center gap-2">
-                              <FileText className="h-4 w-4 shrink-0" />
+                              <Icon3D icon={FileText} tone="neutral" variant="glyph" />
                               <span className="truncate">{document.name}</span>
                             </span>
                             <ExternalLink className="h-4 w-4 shrink-0" />
@@ -684,7 +667,7 @@ export function VehiclePageClient({
                             key={document.name}
                             className="flex min-w-0 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700"
                           >
-                            <FileText className="h-4 w-4 shrink-0" />
+                            <Icon3D icon={FileText} tone="neutral" variant="glyph" />
                             <span className="truncate">{document.name}</span>
                           </div>
                         )
@@ -744,19 +727,19 @@ export function VehiclePageClient({
                   </p>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                      <Icon3D icon={ShieldCheck} tone="success" variant="glyph" />
                       Meet the seller in a public place
                     </li>
                     <li className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                      <Icon3D icon={ShieldCheck} tone="success" variant="glyph" />
                       Confirm ownership and service history
                     </li>
                     <li className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                      <Icon3D icon={ShieldCheck} tone="success" variant="glyph" />
                       Arrange an independent inspection
                     </li>
                     <li className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                      <Icon3D icon={ShieldCheck} tone="success" variant="glyph" />
                       Avoid cash-only settlement
                     </li>
                   </ul>
@@ -821,6 +804,7 @@ export function VehiclePageClient({
                 listingTitle={title}
                 dealer={listing.dealer}
                 seller={listing.seller}
+                salesRep={listing.sales_rep ?? null}
               />
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">

@@ -12,13 +12,14 @@ import { getCurrentUserFavoriteListingIds } from "@/lib/data/favorites";
 import { getListingById, getSimilarListings } from "@/lib/data/listings";
 import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { getListingReviewsData } from "@/lib/data/reviews";
+import { getListingSalesRepContact } from "@/lib/data/sales-agents";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { VehiclePageClient } from "@/components/vehicle/vehicle-page-client";
 import { RecordRecentlyViewed } from "@/components/vehicle/record-recently-viewed";
-import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 
 interface VehiclePageProps {
   params: Promise<{ id: string }>;
@@ -37,11 +38,13 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [similarListings, pricePositioning, listingReviewsData] = await Promise.all([
+  const [similarListings, pricePositioning, listingReviewsData, salesRep] = await Promise.all([
     getSimilarListings(listing, 4),
     getListingPricePositioning(listing),
     getListingReviewsData(listing.id),
+    getListingSalesRepContact(listing),
   ]);
+  listing.sales_rep = salesRep;
 
   const favoriteListingIds = user
     ? await getCurrentUserFavoriteListingIds([
@@ -59,7 +62,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     : { data: null, error: null };
 
   const googleMapsApiKey = getGoogleMapsApiKey();
-  const title = getListingDisplayTitle(listing);
+  const title = [String(listing.year), listing.make, listing.model].filter(Boolean).join(" ");
   const location = getListingDisplayLocation(listing);
   const bannerCategoryTarget = getCmsBannerCategoryTargetForListingCategory(
     getListingMetadataString(listing, "category") as ListingCategory | null
