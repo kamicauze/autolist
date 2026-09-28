@@ -12,7 +12,7 @@ import { KENYA_CITIES } from "./marketplace";
 assert.equal(YEARS[0], new Date().getFullYear());
 assert.equal(YEARS.at(-1), 1990);
 assert.equal(YEARS.includes(1989), false);
-assert.deepEqual(OLDER_THAN_1990_YEAR_OPTION, { label: "<1990", value: "1989" });
+assert.deepEqual(OLDER_THAN_1990_YEAR_OPTION, { label: "Older than 1990", value: "1989" });
 assert.deepEqual(LANDING_YEAR_OPTIONS.at(-1), { label: "1990", value: "1990" });
 
 assert.equal(KENYA_COUNTIES.length, 47);

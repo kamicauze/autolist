@@ -2,6 +2,7 @@
 
 import { ChevronRight, CircleAlert, CircleCheckBig } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type { PricePositioningResult } from "@/lib/types/market-insights";
 
@@ -92,7 +93,7 @@ export function PriceAdviserSummary({
     <div className="mt-5 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <CircleCheckBig className="mt-0.5 h-5 w-5 text-primary" />
+          <Icon3D icon={CircleCheckBig} size="sm" />
           <div>
             <p className="text-sm font-semibold text-gray-900">{pricePositioning.label}</p>
             <p className="text-sm text-gray-600">{pricePositioning.note}</p>
@@ -177,7 +178,7 @@ export function PriceAdviserPanel({
 
           <div className="rounded-xl border border-brand-muted-border bg-brand-tint p-4">
             <div className="flex items-center gap-2">
-              <CircleAlert className="h-5 w-5 text-primary" />
+              <Icon3D icon={CircleAlert} size="md" variant="glyph" />
               <h4 className="text-base font-semibold text-gray-900">Price Insight</h4>
             </div>
             <p className="mt-2 text-sm text-gray-600">

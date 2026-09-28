@@ -355,17 +355,17 @@ export function AdminCmsMediaLibrary({
         <AdminStatCard
           label="Media assets"
           value={assets.length.toLocaleString("en-KE")}
-          icon={<ImageIcon className="h-5 w-5" />}
+          icon={ImageIcon}
         />
         <AdminStatCard
           label="Asset types"
           value={assetTypes.toLocaleString("en-KE")}
-          icon={<Library className="h-5 w-5" />}
+          icon={Library}
         />
         <AdminStatCard
           label="Optimized size"
           value={formatBytes(totalSize)}
-          icon={<Upload className="h-5 w-5" />}
+          icon={Upload}
         />
       </div>
 

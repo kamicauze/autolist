@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Clock3, Heart, ListOrdered, Star } from "lucide-react";
 import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
+import { DashboardStatCards, type DashboardStat } from "@/components/dashboard/dashboard-stat-cards";
 import { ListingsTable } from "@/components/dashboard/listings-table";
 import { RecentReviews } from "@/components/dashboard/recent-reviews";
 import { VerificationBanner } from "@/components/dashboard/verification-banner";
@@ -12,7 +12,6 @@ import { getSellerDashboardReviewsData } from "@/lib/data/reviews";
 import {
   SellerPageHeader,
   SellerSurface,
-  SellerStatCard,
 } from "@/components/dashboard/seller-dashboard-ui";
 
 export default async function DashboardPage() {
@@ -49,25 +48,26 @@ export default async function DashboardPage() {
         ? `${packageAccess.remainingListings}/${packageAccess.listingLimit} remaining`
         : "0/0 remaining";
 
-  const dashboardStats = [
+  const dashboardStats: DashboardStat[] = [
     {
       label: "Your listing",
       value: quotaValue,
-      icon: <ListOrdered className="h-5 w-5 text-primary" />,
-      accentClass: "bg-brand-tint",
+      icon: "listings",
+      asset: "listings-stack" as const,
       note: packageAccess?.currentPlan ? packageAccess.currentPlan.name : "No active package",
     },
     {
       label: "Pending",
       value: String(listingItems.filter((listing) => listing.status === "pending").length),
-      icon: <Clock3 className="h-5 w-5 text-[#f79009]" />,
-      accentClass: "bg-[#fff3e4]",
+      icon: "pending",
+      asset: "clock-pending" as const,
+      tone: "warning" as const,
     },
     {
       label: "Favorites",
       value: String(favoritesResult.count ?? 0).padStart(2, "0"),
-      icon: <Heart className="h-5 w-5 text-primary" />,
-      accentClass: "bg-brand-tint",
+      icon: "favorites",
+      asset: "favorites-heart" as const,
     },
     {
       label: "Reviews",
@@ -78,8 +78,8 @@ export default async function DashboardPage() {
               maximumFractionDigits: 1,
             })
           : "0",
-      icon: <Star className="h-5 w-5 text-primary" />,
-      accentClass: "bg-brand-tint",
+      icon: "reviews",
+      asset: "rating-star" as const,
       note:
         reviewsData.summary.totalReviews === 1
           ? "1 review"
@@ -102,11 +102,7 @@ export default async function DashboardPage() {
         className="px-0 py-0"
       />
 
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {dashboardStats.map((item) => (
-          <SellerStatCard key={item.label} {...item} />
-        ))}
-      </div>
+      <DashboardStatCards stats={dashboardStats} />
 
       <ListingsTable listings={recentListings} />
 

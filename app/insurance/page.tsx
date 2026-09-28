@@ -16,30 +16,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { BadgeCheck, FileCheck2, Shield, Wallet } from "lucide-react";
 
 const benefits = [
   {
     icon: Shield,
+    asset: "shield-check",
     title: "Comprehensive Cover",
     description: "Protect your car from accidents, theft, and major losses.",
   },
   {
     icon: Wallet,
+    asset: "wallet",
     title: "Affordable Rates",
     description: "Compare quotes from trusted insurers in minutes.",
   },
   {
     icon: BadgeCheck,
+    asset: "verified-badge",
     title: "Trusted Providers",
     description: "We partner with vetted and reliable insurance companies.",
   },
   {
     icon: FileCheck2,
+    asset: "document-check",
     title: "Simple Claims",
     description: "Get guided support for documentation and claims process.",
   },
-];
+] as const;
 
 const premiumFactors = [
   "Car make and model",
@@ -241,9 +246,12 @@ export default function InsurancePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {benefits.map((benefit) => (
               <div key={benefit.title} className="rounded-xl border border-gray-200 bg-white p-4 text-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <benefit.icon className="h-5 w-5 text-primary" />
-                </div>
+                <Illustration3D
+                  asset={benefit.asset}
+                  fallbackIcon={benefit.icon}
+                  size="md"
+                  className="mx-auto flex"
+                />
                 <h3 className="mt-3 text-sm font-semibold text-gray-900">{benefit.title}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-gray-600">{benefit.description}</p>
               </div>

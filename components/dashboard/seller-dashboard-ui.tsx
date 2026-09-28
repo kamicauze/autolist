@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import { ArrowRight, Bell, CalendarDays, Heart, MessageCircle, Search, Star } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
+import { Icon3D, Illustration3D, type Icon3DTone } from "@/components/ui/icon-3d";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 
 export const sellerSurfaceClass =
   "rounded-[24px] border border-[#ededed] bg-white shadow-[0_14px_44px_rgba(15,23,42,0.05)]";
@@ -96,15 +99,17 @@ export function SellerSurface({
 
 export function SellerStatCard({
   icon,
+  asset,
+  tone = "primary",
   label,
   value,
-  accentClass,
   note,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
+  asset?: Icon3DAssetKey;
+  tone?: Icon3DTone;
   label: string;
   value: string;
-  accentClass: string;
   note?: string;
 }) {
   return (
@@ -117,14 +122,23 @@ export function SellerStatCard({
           </p>
           {note ? <p className="text-[12px] text-[#8d8d8d]">{note}</p> : null}
         </div>
-        <div
-          className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-[16px] border border-white/70 shadow-sm",
-            accentClass
-          )}
-        >
-          {icon}
-        </div>
+        {asset ? (
+          <Illustration3D
+            asset={asset}
+            fallbackIcon={icon}
+            size="md"
+            tone={tone}
+            className="h-11 w-11 rounded-[16px]"
+          />
+        ) : (
+          <Icon3D
+            icon={icon}
+            size="md"
+            tone={tone}
+            variant="solid"
+            className="h-11 w-11 rounded-[16px]"
+          />
+        )}
       </div>
     </div>
   );

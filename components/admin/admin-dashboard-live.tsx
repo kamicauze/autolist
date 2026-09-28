@@ -5,16 +5,18 @@ import {
   FileWarning,
   MessageSquareText,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import {
   AdminDataTable,
   AdminPageHeader,
   AdminSectionCard,
-  AdminStatCard,
   AdminStatusPill,
   adminGhostButtonClass,
 } from "@/components/admin/admin-ui";
-import type { AdminDashboardData } from "@/lib/data/admin";
+import { AdminStatCard } from "@/components/admin/admin-stat-card";
+import type { AdminDashboardData, AdminDashboardMetric } from "@/lib/data/admin";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 
 function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat("en-KE", {
@@ -62,11 +64,11 @@ function roleTone(role: string) {
 }
 
 export function AdminDashboardLive({ data }: { data: AdminDashboardData }) {
-  const statCards = [
-    { ...data.metrics.totalListings, icon: <CircleDollarSign className="h-5 w-5" /> },
-    { ...data.metrics.pendingListings, icon: <FileWarning className="h-5 w-5" /> },
-    { ...data.metrics.totalUsers, icon: <Users className="h-5 w-5" /> },
-    { ...data.metrics.supportQueue, icon: <MessageSquareText className="h-5 w-5" /> },
+  const statCards: Array<AdminDashboardMetric & { icon: LucideIcon; asset?: Icon3DAssetKey }> = [
+    { ...data.metrics.totalListings, icon: CircleDollarSign, asset: "listings-stack" },
+    { ...data.metrics.pendingListings, icon: FileWarning },
+    { ...data.metrics.totalUsers, icon: Users, asset: "community-users" },
+    { ...data.metrics.supportQueue, icon: MessageSquareText, asset: "chat-bubbles" },
   ];
 
   return (
@@ -87,6 +89,7 @@ export function AdminDashboardLive({ data }: { data: AdminDashboardData }) {
             label={card.label}
             value={card.value.toLocaleString("en-KE")}
             icon={card.icon}
+            asset={card.asset}
             note={card.note}
           />
         ))}

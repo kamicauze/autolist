@@ -34,6 +34,7 @@ import {
   paginateDashboardItems,
 } from "@/lib/utils/dashboard-listing-pagination";
 import { getImageUrl } from "@/lib/utils/listings";
+import { Icon3D } from "@/components/ui/icon-3d";
 
 function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat("en-KE", {
@@ -180,22 +181,25 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
         <AdminStatCard
           label="All listings"
           value={data.total.toLocaleString("en-KE")}
-          icon={<CarFront className="h-5 w-5" />}
+          icon={CarFront}
+          asset="car-front"
         />
         <AdminStatCard
           label="Active"
           value={data.stats.active.toLocaleString("en-KE")}
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={CheckCircle2}
+          asset="success-check"
         />
         <AdminStatCard
           label="Pending review"
           value={data.stats.pending.toLocaleString("en-KE")}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
         />
         <AdminStatCard
           label="Rejected"
           value={data.stats.rejected.toLocaleString("en-KE")}
-          icon={<XCircle className="h-5 w-5" />}
+          icon={XCircle}
         />
       </div>
 
@@ -343,7 +347,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.8fr)_minmax(240px,0.8fr)]">
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <CarFront className="h-4 w-4 text-primary" />
+                              <Icon3D icon={CarFront} variant="glyph" size="sm" />
                               Listing detail
                             </p>
                             <div className="mt-3 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
@@ -371,7 +375,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                                 <span>Body: <strong className="font-semibold capitalize text-[#111827]">{formatSpec(listing.bodyType)}</strong></span>
                                 <span>Condition: <strong className="font-semibold capitalize text-[#111827]">{formatSpec(listing.condition)}</strong></span>
                                 <span className="flex items-center gap-1.5">
-                                  <Gauge className="h-3.5 w-3.5 text-[#6b7280]" />
+                                  <Icon3D icon={Gauge} variant="glyph" size="xs" tone="neutral" />
                                   <strong className="font-semibold text-[#111827]">{formatMileage(listing.mileage)}</strong>
                                 </span>
                                 <span>Transmission: <strong className="font-semibold capitalize text-[#111827]">{formatSpec(listing.transmission)}</strong></span>
@@ -388,17 +392,17 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <UserRound className="h-4 w-4 text-primary" />
+                              <Icon3D icon={UserRound} variant="glyph" size="sm" />
                               Seller
                             </p>
                             <div className="mt-3 space-y-2 text-[13px] text-[#374151]">
                               <p>{listing.sellerName}</p>
                               <p className="flex items-center gap-1.5 text-[#6b7280]">
-                                <Mail className="h-3.5 w-3.5" />
+                                <Icon3D icon={Mail} variant="glyph" size="xs" tone="neutral" />
                                 {listing.sellerEmail || "No email"}
                               </p>
                               <p className="flex items-center gap-1.5">
-                                <Tag className="h-3.5 w-3.5 text-[#6b7280]" />
+                                <Icon3D icon={Tag} variant="glyph" size="xs" tone="neutral" />
                                 {listing.dealerName ? `Dealer: ${listing.dealerName}` : listing.sellerType}
                               </p>
                             </div>
@@ -406,18 +410,18 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
 
                           <div>
                             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              <Hash className="h-4 w-4 text-primary" />
+                              <Icon3D icon={Hash} variant="glyph" size="sm" />
                               Admin metadata
                             </p>
                             <div className="mt-3 space-y-2 text-[13px] text-[#374151]">
                               <p className="break-all">ID: <span className="font-mono text-[12px] text-[#111827]">{listing.id}</span></p>
                               <p>Visibility: <strong className="font-semibold text-[#111827]">{listing.isFeatured ? "Featured" : "Standard"}</strong></p>
                               <p className="flex items-center gap-1.5">
-                                <CalendarDays className="h-3.5 w-3.5 text-[#6b7280]" />
+                                <Icon3D icon={CalendarDays} variant="glyph" size="xs" tone="neutral" />
                                 Created {formatDate(listing.createdAt)}
                               </p>
                               <p className="flex items-center gap-1.5">
-                                <Clock3 className="h-3.5 w-3.5 text-[#6b7280]" />
+                                <Icon3D icon={Clock3} variant="glyph" size="xs" tone="neutral" />
                                 Updated {formatDate(listing.updatedAt)}
                               </p>
                             </div>

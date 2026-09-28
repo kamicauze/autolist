@@ -40,6 +40,7 @@ export async function getSalesAgentViewerContext(): Promise<SalesAgentViewerCont
     .eq("status", "active")
     .eq("invite_status", "accepted")
     .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle<{
       id: string;
       dealer_id: string;

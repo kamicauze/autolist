@@ -20,7 +20,7 @@ function buildListing(overrides: Partial<Listing> = {}): Listing {
 test("dealer listings show the dealership name and a call action", () => {
   const props = getListingCardProps(
     buildListing({
-      dealer: { id: "dealer-1", name: "Westlands Motors", logo_url: "/logo.png" },
+      dealer: { id: "dealer-1", name: "Westlands Motors", logo_url: "/logo.png", city: " Nairobi " },
     } as Partial<Listing>),
   );
 
@@ -28,6 +28,12 @@ test("dealer listings show the dealership name and a call action", () => {
   assert.equal(props.contactKind, "call");
   assert.equal(props.seller.name, "Westlands Motors");
   assert.equal(props.seller.avatarUrl, "/logo.png");
+  assert.deepEqual(props.dealer, {
+    name: "Westlands Motors",
+    href: "/dealers/dealer-1",
+    city: "Nairobi",
+    logoUrl: "/logo.png",
+  });
   assert.equal(props.href, "/vehicle/listing-1");
 });
 
@@ -36,6 +42,7 @@ test("private listings show a private seller label and a message action", () => 
 
   assert.equal(props.sellerLabel, "Private seller");
   assert.equal(props.contactKind, "message");
+  assert.equal(props.dealer, undefined);
   assert.deepEqual(props.images, ["/placeholder-car.jpg"]);
 });
 

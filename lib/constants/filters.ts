@@ -190,12 +190,12 @@ export function locationMatchesFilter(displayLocation: string, selectedLocation:
   );
 }
 
-// Keep older vehicles in one "To" bucket instead of listing every earlier year.
+// Keep older vehicles in one "From" bucket instead of listing every earlier year.
 export const YEARS = Array.from(
   { length: new Date().getFullYear() - 1989 },
   (_, i) => new Date().getFullYear() - i
 );
-export const OLDER_THAN_1990_YEAR_OPTION = { label: "<1990", value: "1989" } as const;
+export const OLDER_THAN_1990_YEAR_OPTION = { label: "Older than 1990", value: "1989" } as const;
 
 // Price Ranges
 export const PRICE_RANGES = [
@@ -207,16 +207,31 @@ export const PRICE_RANGES = [
   { label: "Over Ksh 10M", min: 10000000, max: undefined },
 ] as const;
 
-// Mileage Ranges
-export const MILEAGE_RANGES = [
-  { label: "Any Km", value: undefined },
-  { label: "Under 10,000 km", max: 10000 },
-  { label: "Under 30,000 km", max: 30000 },
-  { label: "Under 50,000 km", max: 50000 },
-  { label: "Under 100,000 km", max: 100000 },
-  { label: "Under 150,000 km", max: 150000 },
-  { label: "Over 150,000 km", min: 150000 },
-] as const;
+// Preset steps for the price/mileage range inputs (users can also type any value).
+const formatPriceStep = (value: number) =>
+  value >= 1_000_000 ? `Ksh ${value / 1_000_000}M` : `Ksh ${value / 1_000}K`;
+
+export const PRICE_FILTER_OPTIONS = [
+  { label: "Any", value: "" },
+  ...[
+    100_000, 300_000, 500_000, 700_000, 1_000_000, 1_500_000, 2_000_000,
+    2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000,
+    6_000_000, 7_000_000, 8_000_000, 9_000_000, 10_000_000, 12_000_000,
+    14_000_000, 16_000_000, 18_000_000, 20_000_000, 25_000_000, 30_000_000,
+    35_000_000, 40_000_000, 45_000_000, 50_000_000,
+  ].map((value) => ({ label: formatPriceStep(value), value: String(value) })),
+];
+
+export const MILEAGE_FILTER_OPTIONS = [
+  { label: "Any", value: "" },
+  ...[
+    0, 500, 1_000, 5_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000,
+    70_000, 80_000, 90_000, 100_000, 120_000, 150_000, 200_000,
+  ].map((value) => ({
+    label: `${new Intl.NumberFormat("en-KE").format(value)} km`,
+    value: String(value),
+  })),
+];
 
 // Sort Options
 export const SORT_OPTIONS = [

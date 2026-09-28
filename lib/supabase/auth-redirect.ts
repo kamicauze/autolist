@@ -30,6 +30,11 @@ export function getAuthCallbackUrl(nextPath?: string | null) {
   return callbackUrl.toString();
 }
 
+// The PKCE code-verifier cookie only exists on the origin that requested the reset.
 export function getPasswordResetUrl() {
-  return new URL("/reset-password", getBrowserBaseUrl()).toString();
+  const baseUrl =
+    typeof window !== "undefined"
+      ? normalizeBaseUrl(window.location.origin)
+      : getBrowserBaseUrl();
+  return new URL("/reset-password", baseUrl).toString();
 }

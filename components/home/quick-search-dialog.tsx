@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { Search, Sparkles, Loader2 } from "lucide-react";
 import type { SmartSearchResult } from "@/lib/types/smart-search";
 import type { Listing } from "@/lib/types/listing";
@@ -101,7 +102,7 @@ export function QuickSearchDialog({ open, onOpenChange }: QuickSearchDialogProps
         <DialogHeader className="px-5 pt-5 pb-3">
           <DialogTitle className="flex flex-col gap-1 text-lg">
             <span className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Icon3D icon={Sparkles} variant="glyph" size="md" />
               Quick Search
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">

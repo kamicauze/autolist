@@ -6,6 +6,7 @@ import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Illustration3D } from "@/components/ui/icon-3d";
 
 export default function AccountDeactivatedPage() {
   React.useEffect(() => {
@@ -19,9 +20,13 @@ export default function AccountDeactivatedPage() {
       <Header />
       <main className="flex flex-1 items-center justify-center px-4 py-16">
         <section className="w-full max-w-[520px] rounded-[24px] border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#fef2f2] text-[#dc2626]">
-            <ShieldAlert className="h-7 w-7" />
-          </div>
+          <Illustration3D
+            asset="shield-alert"
+            fallbackIcon={ShieldAlert}
+            size="lg"
+            tone="danger"
+            className="mx-auto flex"
+          />
           <h1 className="mt-5 font-heading text-[26px] font-semibold text-[#111827]">
             This account is deactivated
           </h1>

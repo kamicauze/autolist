@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { SELLER_PACKAGE_PLANS } from "@/lib/data/membership";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +45,7 @@ export function PricingCards() {
                   key={feature}
                   className="flex items-center gap-2 text-sm text-muted-foreground"
                 >
-                  <Check className="h-4 w-4 shrink-0 text-green-500" />
+                  <Icon3D icon={Check} variant="glyph" tone="success" />
                   {feature}
                 </li>
               ))}

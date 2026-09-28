@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { Listing } from "@/lib/types/listing";
@@ -232,9 +233,12 @@ function FeatureTagsComparison({ listings }: { listings: Listing[] }) {
                               key={`${listing?.id}-${category.key}-${feature}`}
                               className="flex items-start gap-2 text-sm leading-5 text-gray-700"
                             >
-                              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
-                                <Check className="h-2.5 w-2.5" aria-hidden="true" />
-                              </span>
+                              <Icon3D
+                                icon={Check}
+                                size="xs"
+                                tone="success"
+                                className="h-5 w-5 [&>svg]:h-3 [&>svg]:w-3"
+                              />
                               <span>{feature}</span>
                             </li>
                           ))}
@@ -331,7 +335,7 @@ function AiComparisonCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            <Sparkles className="h-4 w-4" />
+            <Icon3D icon={Sparkles} variant="glyph" />
             Online vehicle research
           </div>
           <h2 className="mt-2 text-lg font-semibold text-gray-900">
@@ -773,9 +777,12 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
                   href="/search"
                   className="flex h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-center transition-colors hover:border-primary hover:bg-brand-tint"
                 >
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500">
-                    <Plus className="h-5 w-5" />
-                  </div>
+                  <Illustration3D
+                    asset="add-to-compare"
+                    fallbackIcon={Plus}
+                    size="lg"
+                    className="mb-3 h-12 w-12"
+                  />
                   <p className="text-sm font-medium text-gray-700">Add vehicle to compare</p>
                   <p className="mt-1 text-xs text-gray-500">Slot {index + 1} of {COMPARE_MAX_ITEMS}</p>
                 </Link>
@@ -815,9 +822,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
                     <Button asChild size="sm" variant="outline" className="flex-1">
                       <Link href={`/vehicle/${listing.id}`}>View vehicle</Link>
                     </Button>
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-700">
-                      <Check className="h-4 w-4" />
-                    </div>
+                    <Icon3D icon={Check} size="sm" tone="success" className="h-9 w-9" />
                   </div>
                 </div>
               </div>

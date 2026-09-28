@@ -100,6 +100,28 @@ export async function acceptSalesAgentInvite(token: string): Promise<AcceptInvit
     };
   }
 
+  // A rep can represent only one dealership at a time.
+  const { data: existingMembership, error: membershipError } = await adminSupabase
+    .from("dealer_sales_agents")
+    .select("id, dealer:dealers!dealer_id(name)")
+    .eq("agent_profile_id", user.id)
+    .eq("status", "active")
+    .eq("invite_status", "accepted")
+    .neq("id", invite.id)
+    .limit(1)
+    .maybeSingle<{ id: string; dealer: { name: string } | { name: string }[] | null }>();
+
+  if (membershipError) {
+    return { error: membershipError.message };
+  }
+
+  if (existingMembership) {
+    const currentDealer = firstRelation(existingMembership.dealer)?.name ?? "another dealership";
+    return {
+      error: `You're already an active sales rep for ${currentDealer}. Ask them to remove you before accepting this invite.`,
+    };
+  }
+
   const profilePayload = {
     id: user.id,
     email: user.email || profile?.email || invite.email,

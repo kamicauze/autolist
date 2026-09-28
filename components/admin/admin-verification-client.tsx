@@ -19,6 +19,7 @@ import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import type { SellerVerificationRecord } from "@/lib/types/seller-verification";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { cn } from "@/lib/utils";
 import { AdminDealersClient } from "./admin-dealers-client";
 import {
@@ -103,7 +104,12 @@ function SellerReviewQueue({
       <AdminFeedbackBanner feedback={feedback} />
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+          <Illustration3D
+            asset="success-check"
+            fallbackIcon={CheckCircle2}
+            tone="success"
+            className="mx-auto flex h-12 w-12"
+          />
           <h3 className="mt-4 text-lg font-semibold text-slate-900">
             No pending seller reviews
           </h3>
@@ -138,7 +144,7 @@ function SellerReviewQueue({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start gap-3">
-                        <Phone className="mt-0.5 h-5 w-5 text-emerald-600" />
+                        <Icon3D icon={Phone} variant="glyph" size="md" tone="success" className="mt-0.5" />
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                             Phone ownership
@@ -154,7 +160,7 @@ function SellerReviewQueue({
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start gap-3">
-                        <UserRoundCheck className="mt-0.5 h-5 w-5 text-emerald-600" />
+                        <Icon3D icon={UserRoundCheck} variant="glyph" size="md" tone="success" className="mt-0.5" />
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                             Account
@@ -180,7 +186,7 @@ function SellerReviewQueue({
                           className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3"
                         >
                           <div className="flex min-w-0 items-center gap-3">
-                            <FileText className="h-5 w-5 shrink-0 text-slate-400" />
+                            <Icon3D icon={FileText} variant="glyph" size="md" tone="neutral" />
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium text-slate-900">
                                 {document.display_name}
@@ -281,9 +287,9 @@ export function AdminVerificationClient({
         action={
           <Badge variant={total > 0 ? "warning" : "success"} className="gap-1">
             {total > 0 ? (
-              <Clock className="h-3 w-3" />
+              <Icon3D icon={Clock} variant="glyph" size="xs" tone="warning" />
             ) : (
-              <ShieldCheck className="h-3 w-3" />
+              <Icon3D icon={ShieldCheck} variant="glyph" size="xs" tone="success" />
             )}
             {total} Pending
           </Badge>

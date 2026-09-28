@@ -12,6 +12,7 @@ import { updateInsuranceRequestAdminState } from "@/lib/actions/insurance";
 import type { AdminInsuranceRequestItem, AdminInsuranceRequestsData } from "@/lib/data/insurance";
 import type { InsuranceCoverType, InsuranceRequestStatus } from "@/lib/types/insurance";
 import { cn } from "@/lib/utils";
+import { Icon3D } from "@/components/ui/icon-3d";
 import {
   AdminPageHeader,
   AdminSectionCard,
@@ -158,22 +159,25 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
         <AdminStatCard
           label="Open requests"
           value={stats.openRequests.toLocaleString("en-KE")}
-          icon={<ReceiptText className="h-5 w-5" />}
+          icon={ReceiptText}
         />
         <AdminStatCard
           label="Quoted today"
           value={stats.quotedToday.toLocaleString("en-KE")}
-          icon={<CircleDollarSign className="h-5 w-5" />}
+          icon={CircleDollarSign}
+          asset="money-value"
         />
         <AdminStatCard
           label="Blocked cases"
           value={stats.blockedCases.toLocaleString("en-KE")}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
         />
         <AdminStatCard
           label="Policies bound"
           value={stats.policiesBound.toLocaleString("en-KE")}
-          icon={<ShieldCheck className="h-5 w-5" />}
+          icon={ShieldCheck}
+          asset="shield-check"
         />
       </div>
 
@@ -293,7 +297,7 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
                     )}
                     {selectedRequest.requesterAccountEmail ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f4f6] px-3 py-1 text-[12px] text-[#475467]">
-                        <UserRound className="h-3.5 w-3.5" />
+                        <Icon3D icon={UserRound} variant="glyph" size="xs" tone="neutral" />
                         {selectedRequest.requesterAccountEmail}
                       </span>
                     ) : null}

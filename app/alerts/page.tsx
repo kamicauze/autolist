@@ -4,26 +4,30 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { ListingAlertsManager } from "@/components/alerts/listing-alerts-manager";
 import { getListingAlertsPageData } from "@/lib/data/listing-alerts";
 
 const alertSteps = [
   {
     icon: BellRing,
+    asset: "bell-alert",
     title: "Save your search",
     description: "Choose a category and the details that matter to you.",
   },
   {
     icon: Mail,
+    asset: "email-envelope",
     title: "Get a real match",
     description: "See it in Notifications and optionally receive an email.",
   },
   {
     icon: ListChecks,
+    asset: "checklist",
     title: "Stay in control",
     description: "Edit, pause, resume, or delete saved alerts from this page.",
   },
-];
+] as const;
 
 export default async function AlertsPage() {
   const data = await getListingAlertsPageData();
@@ -45,7 +49,12 @@ export default async function AlertsPage() {
             />
           ) : (
             <div className="mx-auto w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-7 text-center shadow-xl sm:p-9">
-              <BellRing className="mx-auto h-10 w-10 text-primary" />
+              <Illustration3D
+                asset="bell-alert"
+                fallbackIcon={BellRing}
+                size="md"
+                className="mx-auto flex"
+              />
               <h2 className="mt-4 text-xl font-semibold text-gray-950">
                 Sign in to save listing alerts
               </h2>
@@ -70,9 +79,12 @@ export default async function AlertsPage() {
                 key={step.title}
                 className="rounded-xl border border-gray-200 bg-white p-5 text-center"
               >
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <step.icon className="h-5 w-5 text-primary" />
-                </div>
+                <Illustration3D
+                  asset={step.asset}
+                  fallbackIcon={step.icon}
+                  size="md"
+                  className="mx-auto flex"
+                />
                 <h3 className="mt-3 text-sm font-semibold text-gray-900">{step.title}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-gray-600">{step.description}</p>
               </div>

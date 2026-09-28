@@ -3,9 +3,9 @@ import {
   AdminDataTable,
   AdminPageHeader,
   AdminSectionCard,
-  AdminStatCard,
   AdminStatusPill,
 } from "@/components/admin/admin-ui";
+import { AdminStatCard } from "@/components/admin/admin-stat-card";
 import type { AdminPaymentsData } from "@/lib/data/admin";
 
 function formatCurrency(amount: number, currency: string) {
@@ -56,24 +56,27 @@ export function AdminPaymentsLive({ data }: { data: AdminPaymentsData }) {
         <AdminStatCard
           label="Gross volume"
           value={formatCurrency(data.stats.grossVolume, data.stats.primaryCurrency)}
-          icon={<CircleDollarSign className="h-5 w-5" />}
+          icon={CircleDollarSign}
+          asset="money-value"
           note={`${data.stats.successfulPayments} cleared`}
         />
         <AdminStatCard
           label="Pending volume"
           value={formatCurrency(data.stats.pendingVolume, data.stats.primaryCurrency)}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
           note={`${data.stats.pendingCount} pending`}
         />
         <AdminStatCard
           label="Refunds"
           value={data.stats.refundCount.toLocaleString("en-KE")}
-          icon={<RotateCcw className="h-5 w-5" />}
+          icon={RotateCcw}
         />
         <AdminStatCard
           label="Successful payments"
           value={data.stats.successfulPayments.toLocaleString("en-KE")}
-          icon={<Wallet className="h-5 w-5" />}
+          icon={Wallet}
+          asset="wallet"
         />
       </div>
 

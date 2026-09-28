@@ -14,6 +14,7 @@ import { approveDealer, rejectDealer } from "@/lib/actions/dealers";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   AdminFeedbackBanner,
   AdminPageHeader,
@@ -96,7 +97,12 @@ export function AdminDealersClient({
         {!embedded ? <AdminPageHeader title="Verification (KYC)" /> : null}
         <AdminFeedbackBanner feedback={feedback} />
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+          <Illustration3D
+            asset="success-check"
+            fallbackIcon={CheckCircle2}
+            tone="success"
+            className="mx-auto flex h-12 w-12"
+          />
           <h3 className="mt-4 text-lg font-semibold text-slate-900">
             No pending dealer reviews
           </h3>
@@ -115,7 +121,7 @@ export function AdminDealersClient({
           title="Verification (KYC)"
           action={
             <Badge variant="warning" className="gap-1">
-              <Clock className="h-3 w-3" />
+              <Icon3D icon={Clock} variant="glyph" size="xs" tone="warning" />
               {dealerRows.length} Pending
             </Badge>
           }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Listing } from "@/lib/types/listing";
 import { CarCard } from "@/components/ui/car-card";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { Pagination } from "@/components/ui/pagination";
 import { getListingCardProps } from "@/lib/utils/listing-card-props";
 import { cn } from "@/lib/utils";
@@ -19,8 +20,8 @@ export function SearchResults({ listings, totalPages, compact = false }: SearchR
   if (listings.length === 0) {
     return (
       <div className="py-24 text-center">
-        <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-          <SearchX className="w-8 h-8 text-gray-400" />
+        <div className="mb-6 flex justify-center">
+          <Illustration3D asset="no-results" fallbackIcon={SearchX} size="xl" className="h-16 w-16" />
         </div>
         <h3 className="text-xl font-semibold text-gray-900">No vehicles found</h3>
         <p className="mt-2 text-gray-500 max-w-md mx-auto">

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { Clock3, ShieldAlert, UserCheck } from "lucide-react";
+import { Clock3, MessageSquareText, ShieldAlert, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AdminPageHeader,
@@ -10,7 +10,6 @@ import {
   AdminStatCard,
   AdminStatusPill,
   adminGhostButtonClass,
-  adminMetricIcons,
   adminPrimaryButtonClass,
   adminSelectClass,
   adminTextareaClass,
@@ -212,10 +211,10 @@ export function AdminTicketQueue({
       <AdminPageHeader title={title} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminStatCard label="Open Threads" value={String(initialData?.stats.open || 0)} icon={adminMetricIcons.inquiries} />
-        <AdminStatCard label="Escalated" value={String(initialData?.stats.escalated || 0)} icon={<ShieldAlert className="h-5 w-5" />} />
-        <AdminStatCard label="Waiting On Seller" value={String(initialData?.stats.waitingOnSeller || 0)} icon={<Clock3 className="h-5 w-5" />} />
-        <AdminStatCard label="Resolved Today" value={String(initialData?.stats.resolvedToday || 0)} icon={<UserCheck className="h-5 w-5" />} />
+        <AdminStatCard label="Open Threads" value={String(initialData?.stats.open || 0)} icon={MessageSquareText} asset="chat-bubbles" />
+        <AdminStatCard label="Escalated" value={String(initialData?.stats.escalated || 0)} icon={ShieldAlert} asset="shield-alert" />
+        <AdminStatCard label="Waiting On Seller" value={String(initialData?.stats.waitingOnSeller || 0)} icon={Clock3} asset="clock-pending" />
+        <AdminStatCard label="Resolved Today" value={String(initialData?.stats.resolvedToday || 0)} icon={UserCheck} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">

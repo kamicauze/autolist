@@ -11,6 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { NumericComboInput } from "@/components/ui/numeric-combo-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,6 +29,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { ChevronDown, Search, X } from "lucide-react";
 import {
   BODY_TYPE_OPTIONS,
@@ -40,7 +42,9 @@ import {
   DRIVE_TYPES,
   SELLER_TYPES,
   LOCATIONS,
+  MILEAGE_FILTER_OPTIONS,
   OLDER_THAN_1990_YEAR_OPTION,
+  PRICE_FILTER_OPTIONS,
   YEARS,
   SORT_OPTIONS,
 } from "@/lib/constants/filters";
@@ -63,6 +67,9 @@ import {
   clearHiddenSearchFilterParams,
   serializeSearchFilterParams,
 } from "@/lib/search/search-filter-params";
+
+const COMBO_INPUT_CLASS =
+  "flex h-12 w-full rounded-lg border border-input bg-background px-4 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
 interface FilterSheetProps {
   makes: string[];
@@ -281,23 +288,32 @@ function FilterSheetPanel({
   const filterLabel = (id: SearchFilterId, fallback: string) =>
     getSearchFilterLabel(category, id, fallback);
   const searchExamples = getCategorySearchExamples(category);
+  const isOlderThan1990 =
+    !localFilters.minYear && localFilters.maxYear === OLDER_THAN_1990_YEAR_OPTION.value;
 
   const setBoundedRangeFilter = useCallback(
-    (key: "Year" | "Price", side: "min" | "max", value: string) => {
-      const minKey = key === "Year" ? "minYear" : "minPrice";
-      const maxKey = key === "Year" ? "maxYear" : "maxPrice";
+    (key: "Year" | "Price" | "Mileage", side: "min" | "max", value: string) => {
+      const minKey = `min${key}` as "minYear" | "minPrice" | "minMileage";
+      const maxKey = `max${key}` as "maxYear" | "maxPrice" | "maxMileage";
 
       setLocalFilters((prev) => {
         const nextValue = value === "any" ? "" : value;
+        // "Older than 1990" lives in the Min select but is stored as maxYear=1989.
+        if (key === "Year" && side === "min" && nextValue === OLDER_THAN_1990_YEAR_OPTION.value) {
+          return { ...prev, minYear: "", maxYear: nextValue };
+        }
         const next = { ...prev, [side === "min" ? minKey : maxKey]: nextValue };
-        if (key === "Year" && side === "max" && nextValue === OLDER_THAN_1990_YEAR_OPTION.value) {
-          next[minKey] = "";
-          return next;
+        if (
+          key === "Year" &&
+          !prev.minYear &&
+          prev.maxYear === OLDER_THAN_1990_YEAR_OPTION.value
+        ) {
+          next[side === "min" ? maxKey : minKey] = "";
         }
         const min = Number(next[minKey]);
         const max = Number(next[maxKey]);
 
-        if (Number.isFinite(min) && Number.isFinite(max) && min > max) {
+        if (next[minKey] && next[maxKey] && min > max) {
           if (side === "min") {
             next[maxKey] = nextValue;
           } else {
@@ -537,7 +553,7 @@ function FilterSheetPanel({
           {/* Keyword */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-500" />
+              <Icon3D icon={Search} tone="neutral" variant="glyph" />
               <Label htmlFor="filter-keyword" className="text-sm font-medium">
                 Keyword search
               </Label>
@@ -679,7 +695,9 @@ function FilterSheetPanel({
             <Label className="text-sm font-medium">Year</Label>
             <div className="grid grid-cols-2 gap-3">
               <Select
-                value={localFilters.minYear || "any"}
+                value={
+                  isOlderThan1990 ? OLDER_THAN_1990_YEAR_OPTION.value : localFilters.minYear || "any"
+                }
                 onValueChange={(val) => setBoundedRangeFilter("Year", "min", val)}
               >
                 <SelectTrigger>
@@ -692,10 +710,13 @@ function FilterSheetPanel({
                       {year}
                     </SelectItem>
                   ))}
+                  <SelectItem value={OLDER_THAN_1990_YEAR_OPTION.value}>
+                    {OLDER_THAN_1990_YEAR_OPTION.label}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Select
-                value={localFilters.maxYear || "any"}
+                value={isOlderThan1990 ? "any" : localFilters.maxYear || "any"}
                 onValueChange={(val) => setBoundedRangeFilter("Year", "max", val)}
               >
                 <SelectTrigger>
@@ -708,9 +729,6 @@ function FilterSheetPanel({
                       {year}
                     </SelectItem>
                   ))}
-                  <SelectItem value={OLDER_THAN_1990_YEAR_OPTION.value}>
-                    {OLDER_THAN_1990_YEAR_OPTION.label}
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -720,82 +738,46 @@ function FilterSheetPanel({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Price</Label>
             <div className="grid grid-cols-2 gap-3">
-              <Select
-                value={localFilters.minPrice || "any"}
-                onValueChange={(val) => setBoundedRangeFilter("Price", "min", val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Min Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Min</SelectItem>
-                  <SelectItem value="100000">Ksh 100K</SelectItem>
-                  <SelectItem value="500000">Ksh 500K</SelectItem>
-                  <SelectItem value="1000000">Ksh 1M</SelectItem>
-                  <SelectItem value="2000000">Ksh 2M</SelectItem>
-                  <SelectItem value="5000000">Ksh 5M</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={localFilters.maxPrice || "any"}
-                onValueChange={(val) => setBoundedRangeFilter("Price", "max", val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Max Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Max</SelectItem>
-                  <SelectItem value="500000">Ksh 500K</SelectItem>
-                  <SelectItem value="1000000">Ksh 1M</SelectItem>
-                  <SelectItem value="2000000">Ksh 2M</SelectItem>
-                  <SelectItem value="5000000">Ksh 5M</SelectItem>
-                  <SelectItem value="10000000">Ksh 10M</SelectItem>
-                  <SelectItem value="20000000">Ksh 20M+</SelectItem>
-                </SelectContent>
-              </Select>
+              <NumericComboInput
+                aria-label="Min price"
+                placeholder="Min"
+                value={localFilters.minPrice}
+                onChange={(val) => setBoundedRangeFilter("Price", "min", val || "any")}
+                options={PRICE_FILTER_OPTIONS}
+                className={COMBO_INPUT_CLASS}
+              />
+              <NumericComboInput
+                aria-label="Max price"
+                placeholder="Max"
+                value={localFilters.maxPrice}
+                onChange={(val) => setBoundedRangeFilter("Price", "max", val || "any")}
+                options={PRICE_FILTER_OPTIONS}
+                className={COMBO_INPUT_CLASS}
+              />
             </div>
           </div>
 
           {/* 4. Mileage */}
           {showFilter("mileage") ? (
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Mileage</Label>
+            <Label className="text-sm font-medium">Mileage (km)</Label>
             <div className="grid grid-cols-2 gap-3">
-              <Select
-                value={localFilters.minMileage || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, minMileage: val === "any" ? "" : val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Any Km" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Km</SelectItem>
-                  <SelectItem value="10000">10,000 km</SelectItem>
-                  <SelectItem value="30000">30,000 km</SelectItem>
-                  <SelectItem value="50000">50,000 km</SelectItem>
-                  <SelectItem value="100000">100,000 km</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={localFilters.maxMileage || "any"}
-                onValueChange={(val) =>
-                  setLocalFilters((p) => ({ ...p, maxMileage: val === "any" ? "" : val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Any Km" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Km</SelectItem>
-                  <SelectItem value="30000">30,000 km</SelectItem>
-                  <SelectItem value="50000">50,000 km</SelectItem>
-                  <SelectItem value="100000">100,000 km</SelectItem>
-                  <SelectItem value="150000">150,000 km</SelectItem>
-                  <SelectItem value="200000">200,000 km</SelectItem>
-                </SelectContent>
-              </Select>
+              <NumericComboInput
+                aria-label="Min mileage in kilometres"
+                placeholder="Min"
+                value={localFilters.minMileage}
+                onChange={(val) => setBoundedRangeFilter("Mileage", "min", val)}
+                options={MILEAGE_FILTER_OPTIONS}
+                className={COMBO_INPUT_CLASS}
+              />
+              <NumericComboInput
+                aria-label="Max mileage in kilometres"
+                placeholder="Max"
+                value={localFilters.maxMileage}
+                onChange={(val) => setBoundedRangeFilter("Mileage", "max", val)}
+                options={MILEAGE_FILTER_OPTIONS}
+                className={COMBO_INPUT_CLASS}
+              />
             </div>
           </div>
           ) : null}
@@ -1047,18 +1029,24 @@ function FilterSheetPanel({
           {showFilter("bodyType") ? (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Body Type</Label>
-            <div className="flex flex-wrap gap-2">
-              {bodyTypeOptions.map((type) => (
-                <FilterChip
-                  key={type.value}
-                  selected={localFilters.bodyTypes.includes(type.value)}
-                  onClick={() => toggleArrayFilter("bodyTypes", type.value)}
-                  size="sm"
-                >
-                  {type.label}
-                </FilterChip>
-              ))}
-            </div>
+            <Select
+              value={localFilters.bodyTypes[0] ?? "any"}
+              onValueChange={(val) =>
+                setLocalFilters((p) => ({ ...p, bodyTypes: val === "any" ? [] : [val] }))
+              }
+            >
+              <SelectTrigger aria-label="Body type">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                {bodyTypeOptions.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           ) : null}
 
@@ -1066,18 +1054,24 @@ function FilterSheetPanel({
           {showFilter("transmission") ? (
           <div className="space-y-3">
             <Label className="text-sm font-medium">Transmission</Label>
-            <div className="flex flex-wrap gap-2">
-              {TRANSMISSIONS.map((t) => (
-                <FilterChip
-                  key={t}
-                  selected={localFilters.transmissions.includes(t)}
-                  onClick={() => toggleArrayFilter("transmissions", t)}
-                  size="sm"
-                >
-                  {t}
-                </FilterChip>
-              ))}
-            </div>
+            <Select
+              value={localFilters.transmissions[0] ?? "any"}
+              onValueChange={(val) =>
+                setLocalFilters((p) => ({ ...p, transmissions: val === "any" ? [] : [val] }))
+              }
+            >
+              <SelectTrigger aria-label="Transmission">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                {TRANSMISSIONS.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           ) : null}
 

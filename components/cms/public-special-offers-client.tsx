@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Tag } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import type { CmsSpecialOffer } from "@/lib/types/cms-special-offers";
 import { cn } from "@/lib/utils";
 import { trackCmsOfferRedemption } from "./cms-tracking";
@@ -23,7 +24,7 @@ function SpecialOfferCard({ offer }: { offer: CmsSpecialOffer }) {
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
         <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-[#111827] shadow-sm backdrop-blur">
-          <Tag className="h-3.5 w-3.5 text-primary" />
+          <Icon3D icon={Tag} variant="glyph" size="xs" />
           {offer.audience}
         </div>
       </div>

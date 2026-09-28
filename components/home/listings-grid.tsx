@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Inbox } from "lucide-react";
 import { CarCard } from "@/components/ui/car-card";
 import { Button } from "@/components/ui/button";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import type { Listing } from "@/lib/types/listing";
 import { getListingCardProps } from "@/lib/utils/listing-card-props";
 
@@ -23,21 +25,13 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
 export function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="rounded-full bg-muted p-6 mb-4">
-        <svg
-          className="h-12 w-12 text-muted-foreground"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-          />
-        </svg>
-      </div>
+      <Illustration3D
+        asset="empty-listings"
+        fallbackIcon={Inbox}
+        size="xl"
+        tone="neutral"
+        className="mb-4 h-24 w-24 [&>svg]:h-12 [&>svg]:w-12"
+      />
       <p className="text-muted-foreground">{message}</p>
       <Link href="/search" className="mt-4">
         <Button>Browse Vehicles</Button>

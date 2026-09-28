@@ -27,6 +27,7 @@ import type {
   SellerVerificationView,
 } from "@/lib/types/seller-verification";
 import { cn } from "@/lib/utils";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { SellerStatusPill, SellerSurface } from "../seller-dashboard-ui";
 
 const DOCUMENTS: Array<{
@@ -231,7 +232,7 @@ export function SellerVerificationPanel({
     return (
       <SellerSurface className="p-6">
         <div className="flex items-start gap-4 rounded-[20px] border border-[#ffe4bf] bg-[#fff8eb] p-5">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#b54708]" />
+          <Icon3D icon={AlertCircle} tone="warning" />
           <div>
             <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
               Verification setup pending
@@ -252,9 +253,7 @@ export function SellerVerificationPanel({
       <SellerSurface className="p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-tint text-primary">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
+            <Illustration3D asset="shield-check" fallbackIcon={ShieldCheck} className="h-12 w-12" />
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
@@ -290,9 +289,12 @@ export function SellerVerificationPanel({
       <div className="grid gap-6 xl:grid-cols-2">
         <SellerSurface className="p-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-tint text-primary">
-              <FileCheck2 className="h-5 w-5" />
-            </div>
+            <Illustration3D
+              asset="document-check"
+              fallbackIcon={FileCheck2}
+              size="md"
+              className="h-11 w-11"
+            />
             <div>
               <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                 Identity document
@@ -317,7 +319,7 @@ export function SellerVerificationPanel({
                   className="rounded-[18px] border border-[#ededed] bg-[#faf9f7] p-4"
                 >
                   <div className="flex items-start gap-3">
-                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <Icon3D icon={FileText} size="md" variant="glyph" className="mt-0.5" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-[14px] font-semibold text-[#202224]">
@@ -385,9 +387,12 @@ export function SellerVerificationPanel({
 
         <SellerSurface className="p-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-tint text-primary">
-              <Phone className="h-5 w-5" />
-            </div>
+            <Illustration3D
+              asset="phone-contact"
+              fallbackIcon={Phone}
+              size="md"
+              className="h-11 w-11"
+            />
             <div>
               <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                 Phone ownership
@@ -402,7 +407,7 @@ export function SellerVerificationPanel({
 
           {phoneVerified ? (
             <div className="mt-5 flex items-start gap-3 rounded-[18px] border border-[#ccebd7] bg-[#eefaf2] p-4 text-[#1f7a4d]">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+              <Icon3D icon={CheckCircle2} tone="success" />
               <div>
                 <p className="text-[14px] font-semibold">Phone verified</p>
                 <p className="mt-1 text-[13px]">{record?.phone}</p>

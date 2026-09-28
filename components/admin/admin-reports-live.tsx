@@ -120,22 +120,24 @@ export function AdminReportsLive({ data }: { data: AdminReportsData }) {
         <AdminStatCard
           label="Open reports"
           value={data.stats.open.toLocaleString("en-KE")}
-          icon={<ShieldAlert className="h-5 w-5" />}
+          icon={ShieldAlert}
+          asset="shield-alert"
         />
         <AdminStatCard
           label="High priority"
           value={data.stats.highPriority.toLocaleString("en-KE")}
-          icon={<Workflow className="h-5 w-5" />}
+          icon={Workflow}
         />
         <AdminStatCard
           label="Resolved today"
           value={data.stats.resolvedToday.toLocaleString("en-KE")}
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={CheckCircle2}
+          asset="success-check"
         />
         <AdminStatCard
           label="Unassigned"
           value={data.stats.unassigned.toLocaleString("en-KE")}
-          icon={<UserRoundX className="h-5 w-5" />}
+          icon={UserRoundX}
         />
       </div>
 

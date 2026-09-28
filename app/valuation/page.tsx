@@ -7,6 +7,7 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import {
   Zap,
   DollarSign,
@@ -23,26 +24,30 @@ import {
 const benefits = [
   {
     icon: Zap,
+    asset: "instant-bolt",
     title: "Instant Valuation",
     description: "Get an accurate estimate of your car's worth in seconds.",
   },
   {
     icon: DollarSign,
+    asset: "money-value",
     title: "100% Free",
     description: "No hidden fees. Our valuation tool is completely free to use.",
   },
   {
     icon: BarChart3,
+    asset: "market-chart",
     title: "Market-Based Pricing",
     description: "Valuations based on real market data and recent sales.",
   },
   {
     icon: Users,
+    asset: "community-users",
     title: "Trusted by Millions",
     description:
       "Over 1 million car owners have used our valuation service.",
   },
-];
+] as const;
 
 const steps = [
   {
@@ -172,9 +177,12 @@ export default function ValuationPage() {
                 key={benefit.title}
                 className="rounded-xl border border-border bg-white p-5 text-center shadow-sm"
               >
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-tint">
-                  <benefit.icon className="h-6 w-6 text-primary" />
-                </div>
+                <Illustration3D
+                  asset={benefit.asset}
+                  fallbackIcon={benefit.icon}
+                  size="lg"
+                  className="mx-auto flex"
+                />
                 <h3 className="mt-4 font-semibold text-foreground">
                   {benefit.title}
                 </h3>

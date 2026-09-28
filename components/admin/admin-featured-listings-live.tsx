@@ -33,6 +33,7 @@ import {
   getListingSubtitle,
 } from "@/lib/utils/vehicle-display";
 import { cn } from "@/lib/utils";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   AdminPageHeader,
   AdminSectionCard,
@@ -517,22 +518,24 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
         <AdminStatCard
           label="Pinned listings"
           value={stats.total.toLocaleString("en-KE")}
-          icon={<Pin className="h-5 w-5" />}
+          icon={Pin}
         />
         <AdminStatCard
           label="Live now"
           value={stats.live.toLocaleString("en-KE")}
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={CheckCircle2}
+          asset="success-check"
         />
         <AdminStatCard
           label="Scheduled"
           value={stats.scheduled.toLocaleString("en-KE")}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
         />
         <AdminStatCard
           label="Paused or expired"
           value={(stats.paused + stats.expired).toLocaleString("en-KE")}
-          icon={<PauseCircle className="h-5 w-5" />}
+          icon={PauseCircle}
         />
       </div>
 
@@ -606,7 +609,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
 
           <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] p-4">
             <div className="mb-4 flex items-center gap-2">
-              <CarFront className="h-4 w-4 text-primary" />
+              <Icon3D icon={CarFront} variant="glyph" size="sm" />
               <h3 className="text-[14px] font-semibold text-[#111827]">Selected listing</h3>
             </div>
 
@@ -702,7 +705,7 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
         description="Active listings enter the rotation in ascending sort order when they are inside their date window."
         action={
           <div className="flex items-center gap-2 text-[12px] font-medium text-[#6b7280]">
-            <ListOrdered className="h-4 w-4 text-primary" />
+            <Icon3D icon={ListOrdered} variant="glyph" size="sm" />
             {sortedPins.length.toLocaleString("en-KE")} pinned
           </div>
         }
@@ -722,7 +725,13 @@ export function AdminFeaturedListingsLive({ data }: { data: AdminFeaturedListing
           </div>
         ) : (
           <div className="rounded-[14px] border border-dashed border-[#d1d5db] bg-[#f8fafc] px-4 py-10 text-center">
-            <CalendarClock className="mx-auto h-10 w-10 text-[#9ca3af]" />
+            <Illustration3D
+              asset="calendar"
+              fallbackIcon={CalendarClock}
+              size="md"
+              tone="neutral"
+              className="mx-auto flex"
+            />
             <p className="mt-3 text-[14px] font-semibold text-[#111827]">No pinned listings</p>
             <p className="mt-1 text-[13px] text-[#6b7280]">
               Search for an active listing and pin it to fill this rail.

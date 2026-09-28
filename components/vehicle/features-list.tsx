@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { groupListingFeatures } from "@/lib/utils/listing-features";
 
 interface FeaturesListProps {
@@ -52,9 +53,7 @@ const CATEGORIZED_FEATURES: Record<string, string[]> = {
 function FeatureItem({ feature }: { feature: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100">
-        <Check className="h-3 w-3 text-green-600" />
-      </div>
+      <Icon3D icon={Check} size="xs" tone="success" />
       <span className="text-sm text-gray-700">{feature}</span>
     </div>
   );

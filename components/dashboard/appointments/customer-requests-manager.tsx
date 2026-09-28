@@ -34,6 +34,7 @@ import type {
 } from "@/lib/types/appointments";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   SellerPageHeader,
   SellerStatCard,
@@ -133,7 +134,7 @@ function RequestCard({
         <RequestStatus status={request.status} />
       </div>
       <div className="mt-4 flex items-center gap-2 text-[13px] text-[#555b63]">
-        <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
+        <Icon3D icon={CalendarDays} variant="glyph" />
         <span>{formatDateTimeRange(request)}</span>
       </div>
       {request.message ? (
@@ -166,7 +167,12 @@ function RequestDetail({
     return (
       <SellerSurface className="flex min-h-[360px] items-center justify-center p-8 text-center">
         <div>
-          <CalendarDays className="mx-auto h-8 w-8 text-[#a1a1aa]" />
+          <Illustration3D
+            asset="calendar"
+            fallbackIcon={CalendarDays}
+            tone="neutral"
+            className="mx-auto flex"
+          />
           <p className="mt-4 text-[15px] font-semibold text-[#303238]">Select a request</p>
           <p className="mt-2 max-w-xs text-[13px] leading-5 text-[#7b7f85]">
             Choose an item from the queue or calendar to review the customer and appointment details.
@@ -222,7 +228,7 @@ function RequestDetail({
         </div>
         <div className="mt-5 rounded-[18px] border border-primary/15 bg-brand-tint p-4">
           <div className="flex items-start gap-3">
-            <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <Icon3D icon={Clock3} />
             <div>
               <p className="text-[14px] font-semibold text-[#202224]">
                 {formatDate(request.startAt, request.timezone)}
@@ -243,18 +249,18 @@ function RequestDetail({
           </h3>
           <div className="mt-3 space-y-3 text-[13px] text-[#62666d]">
             <div className="flex items-center gap-3">
-              <UserRound className="h-4 w-4 shrink-0 text-[#969aa0]" />
+              <Icon3D icon={UserRound} tone="neutral" variant="glyph" />
               <span>{request.contactName}</span>
             </div>
             {request.contactEmail ? (
               <a className="flex items-center gap-3 hover:text-primary" href={`mailto:${request.contactEmail}`}>
-                <Mail className="h-4 w-4 shrink-0 text-[#969aa0]" />
+                <Icon3D icon={Mail} tone="neutral" variant="glyph" />
                 <span className="break-all">{request.contactEmail}</span>
               </a>
             ) : null}
             {request.contactPhone ? (
               <a className="flex items-center gap-3 hover:text-primary" href={`tel:${request.contactPhone}`}>
-                <Phone className="h-4 w-4 shrink-0 text-[#969aa0]" />
+                <Icon3D icon={Phone} tone="neutral" variant="glyph" />
                 <span>{request.contactPhone}</span>
               </a>
             ) : null}
@@ -263,7 +269,7 @@ function RequestDetail({
 
         <section aria-labelledby="buyer-message-heading">
           <h3 id="buyer-message-heading" className="flex items-center gap-2 text-[13px] font-semibold text-[#303238]">
-            <MessageSquareText className="h-4 w-4 text-[#969aa0]" />
+            <Icon3D icon={MessageSquareText} tone="neutral" variant="glyph" />
             Customer message
           </h3>
           <p className="mt-3 rounded-[16px] bg-[#f7f7f7] p-4 text-[13px] leading-6 text-[#62666d]">
@@ -309,13 +315,13 @@ function RequestDetail({
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-[14px] bg-[#f7f7f7] px-4 py-3 text-[13px] text-[#686c72]">
-            <CheckCircle2 className="h-4 w-4" />
+            <Icon3D icon={CheckCircle2} size="xs" tone="neutral" />
             This request is closed and has no further actions.
           </div>
         )}
 
         <Link href={`/vehicle/${request.listingId}`} className="inline-flex items-center gap-2 text-[13px] font-semibold text-primary hover:underline">
-          <MapPin className="h-4 w-4" />
+          <Icon3D icon={MapPin} variant="glyph" />
           View listing
         </Link>
       </div>
@@ -515,10 +521,10 @@ export function CustomerRequestsManager({
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SellerStatCard icon={<CalendarDays className="h-5 w-5 text-primary" />} label="Total requests" value={String(requests.length)} accentClass="bg-brand-tint" />
-        <SellerStatCard icon={<Clock3 className="h-5 w-5 text-[#d17b0f]" />} label="Pending response" value={String(pendingCount)} accentClass="bg-[#fff3e4]" />
-        <SellerStatCard icon={<CheckCircle2 className="h-5 w-5 text-[#287a4a]" />} label="Confirmed" value={String(confirmedCount)} accentClass="bg-[#eaf7ef]" />
-        <SellerStatCard icon={<MessageSquareText className="h-5 w-5 text-primary" />} label="Reschedule requests" value={String(rescheduleCount)} accentClass="bg-brand-tint" />
+        <SellerStatCard icon={CalendarDays} asset="calendar" label="Total requests" value={String(requests.length)} />
+        <SellerStatCard icon={Clock3} asset="clock-pending" tone="warning" label="Pending response" value={String(pendingCount)} />
+        <SellerStatCard icon={CheckCircle2} asset="success-check" tone="success" label="Confirmed" value={String(confirmedCount)} />
+        <SellerStatCard icon={MessageSquareText} asset="chat-bubbles" label="Reschedule requests" value={String(rescheduleCount)} />
       </div>
 
       <SellerSurface className="p-4 lg:p-5">
@@ -592,7 +598,12 @@ export function CustomerRequestsManager({
                 </div>
               ) : (
                 <div className="px-6 py-14 text-center">
-                  <CalendarDays className="mx-auto h-8 w-8 text-[#a5a8ad]" />
+                  <Illustration3D
+                    asset="calendar"
+                    fallbackIcon={CalendarDays}
+                    tone="neutral"
+                    className="mx-auto flex"
+                  />
                   <p className="mt-4 text-[15px] font-semibold text-[#303238]">No matching requests</p>
                   <p className="mt-2 text-[13px] text-[#7b7f85]">Adjust the status filter or search terms.</p>
                 </div>

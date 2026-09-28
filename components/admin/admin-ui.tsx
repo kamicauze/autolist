@@ -21,7 +21,9 @@ import {
   Tag,
   UserCog,
   Users,
+  type LucideIcon,
 } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +37,7 @@ import { cn } from "@/lib/utils";
 type AdminNavItem = {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   badge?: number;
 };
 
@@ -127,34 +129,9 @@ export function AdminPageHeader({
   );
 }
 
-export function AdminStatCard({
-  label,
-  value,
-  icon,
-  note,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  note?: string;
-}) {
-  return (
-    <div className="rounded-[16px] bg-[#fff7ed] px-5 py-4">
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary shadow-[0_8px_20px_rgb(var(--primary-rgb)/0.08)]">
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-[14px] font-medium text-[#1f2937]">{label}</p>
-          <div className="mt-1 flex items-center gap-3">
-            <p className="font-heading text-[18px] font-semibold text-[#111827]">{value}</p>
-            {note ? <span className="text-[13px] font-medium text-[#22c55e]">{note}</span> : null}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Lives in its own non-client module so server components can pass Lucide
+// icon components (functions can't cross into this "use client" file).
+export { AdminStatCard } from "./admin-stat-card";
 
 export function AdminSectionCard({
   title,
@@ -446,7 +423,7 @@ export function AdminNavLink({
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   active?: boolean;
   badge?: number;
   onClick?: () => void;
@@ -465,7 +442,17 @@ export function AdminNavLink({
         active ? "bg-primary text-white" : "text-white/90 hover:bg-white/6"
       )}
     >
-      <Icon className={cn("h-4 w-4 shrink-0", collapsed ? "lg:h-5 lg:w-5" : null)} />
+      <Icon3D
+        icon={Icon}
+        size="xs"
+        variant={active ? "soft" : "solid"}
+        className={cn(
+          "-my-0.5",
+          collapsed
+            ? "lg:my-0 lg:h-8 lg:w-8 lg:rounded-lg lg:[&>svg]:h-4 lg:[&>svg]:w-4"
+            : null
+        )}
+      />
       <span className={cn("min-w-0 flex-1 truncate", collapsed ? "lg:sr-only" : null)}>
         {label}
       </span>

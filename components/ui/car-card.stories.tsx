@@ -72,8 +72,15 @@ export const WithDiscount: Story = {
       "https://images.unsplash.com/photo-1616422285623-13ff0162193c?w=600&h=450&fit=crop",
     ],
     isFeatured: true,
+    sellerLabel: "Dealer: Auto Palace Kenya",
+    contactKind: "call",
     seller: {
       name: "Auto Palace Kenya",
+    },
+    dealer: {
+      name: "Auto Palace Kenya",
+      href: "/dealers/auto-palace-kenya",
+      city: "Nairobi",
     },
   },
 };

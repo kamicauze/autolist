@@ -5,19 +5,6 @@ import {
   PLANT_CONSTRUCTION_EQUIPMENT_TYPES,
 } from "@/lib/constants/non-car-reference-data";
 
-export const LANDING_PRICE_OPTIONS = [
-  { label: "Any", value: "any" },
-  { label: "500,000", value: "500000" },
-  { label: "1,000,000", value: "1000000" },
-  { label: "2,000,000", value: "2000000" },
-  { label: "3,000,000", value: "3000000" },
-  { label: "5,000,000", value: "5000000" },
-  { label: "7,000,000", value: "7000000" },
-  { label: "10,000,000", value: "10000000" },
-  { label: "15,000,000", value: "15000000" },
-  { label: "20,000,000", value: "20000000" },
-] as const;
-
 export const LANDING_YEAR_OPTIONS = [
   { label: "Any", value: "any" },
   ...YEARS.map((year) => ({ label: String(year), value: String(year) })),
@@ -230,6 +217,7 @@ export const LANDING_SEARCH_CATEGORY_ORDER: ListingCategory[] = [
   "car",
   "motorbike",
   "truck",
-  "plant_construction",
   "farm_agricultural",
+  "plant_construction",
+  
 ];

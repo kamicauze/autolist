@@ -13,7 +13,9 @@ import {
   Star,
   Store,
   Tag,
+  type LucideIcon,
 } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import {
   AdminDataTable,
   AdminPageHeader,
@@ -111,18 +113,17 @@ function userInitials(name: string | null | undefined, email: string | null | un
     .join("");
 }
 
-function ActivityIcon({ source }: { source: string }) {
-  const className = "h-4 w-4";
-  if (source === "listing") return <CarFront className={className} />;
-  if (source.includes("enquiry")) return <Mail className={className} />;
-  if (source === "conversation" || source === "message") return <MessageSquareText className={className} />;
-  if (source === "support_ticket") return <FileText className={className} />;
-  if (source === "payment") return <CreditCard className={className} />;
-  if (source === "favorite") return <Heart className={className} />;
-  if (source === "review") return <Star className={className} />;
-  if (source === "offer") return <Tag className={className} />;
-  if (source === "dealer") return <Store className={className} />;
-  return <Clock3 className={className} />;
+function getActivityIcon(source: string): LucideIcon {
+  if (source === "listing") return CarFront;
+  if (source.includes("enquiry")) return Mail;
+  if (source === "conversation" || source === "message") return MessageSquareText;
+  if (source === "support_ticket") return FileText;
+  if (source === "payment") return CreditCard;
+  if (source === "favorite") return Heart;
+  if (source === "review") return Star;
+  if (source === "offer") return Tag;
+  if (source === "dealer") return Store;
+  return Clock3;
 }
 
 function EmptyRow({ colSpan, label }: { colSpan: number; label: string }) {
@@ -156,16 +157,15 @@ function CaseFact({
   );
 }
 
-function ModuleIcon({ moduleKey }: { moduleKey: AdminUserActivityModule["key"] }) {
-  const className = "h-4 w-4";
-  if (moduleKey === "timeline") return <Clock3 className={className} />;
-  if (moduleKey === "listings") return <CarFront className={className} />;
-  if (moduleKey === "dealer") return <Store className={className} />;
-  if (moduleKey === "enquiries") return <Mail className={className} />;
-  if (moduleKey === "messages") return <MessageSquareText className={className} />;
-  if (moduleKey === "commerce") return <ReceiptText className={className} />;
-  if (moduleKey === "engagement") return <Heart className={className} />;
-  return <BadgeCheck className={className} />;
+function getModuleIcon(moduleKey: AdminUserActivityModule["key"]): LucideIcon {
+  if (moduleKey === "timeline") return Clock3;
+  if (moduleKey === "listings") return CarFront;
+  if (moduleKey === "dealer") return Store;
+  if (moduleKey === "enquiries") return Mail;
+  if (moduleKey === "messages") return MessageSquareText;
+  if (moduleKey === "commerce") return ReceiptText;
+  if (moduleKey === "engagement") return Heart;
+  return BadgeCheck;
 }
 
 function ModuleLauncher({ modules }: { modules: AdminUserActivityModule[] }) {
@@ -201,9 +201,12 @@ function ModuleLauncher({ modules }: { modules: AdminUserActivityModule[] }) {
             className="group min-h-[82px] bg-[#fbfdff] px-3 py-3 transition duration-150 hover:bg-white active:translate-y-[1px] md:px-4"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[#64748b] transition group-hover:text-primary">
-                <ModuleIcon moduleKey={module.key} />
-              </span>
+              <Icon3D
+                icon={getModuleIcon(module.key)}
+                size="xs"
+                tone="neutral"
+                className="group-hover:[--icon3d-rgb:var(--primary-rgb)]"
+              />
               <span className="font-mono text-[17px] font-semibold text-[#0f172a]">
                 {module.count.toLocaleString("en-KE")}
               </span>
@@ -221,9 +224,7 @@ function ModuleLauncher({ modules }: { modules: AdminUserActivityModule[] }) {
 function TimelineEventRow({ item }: { item: AdminUserActivityItem }) {
   return (
     <div className="grid grid-cols-[28px_minmax(0,1fr)_68px] gap-3 px-4 py-3 transition hover:bg-[#f8fafc] md:px-5">
-      <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-brand-tint text-primary">
-        <ActivityIcon source={item.source} />
-      </div>
+      <Icon3D icon={getActivityIcon(item.source)} size="sm" className="h-7 w-7" />
       <div className="min-w-0">
         {item.href ? (
           <Link
@@ -407,11 +408,11 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
               </div>
               <div className="grid gap-2 text-[12px] text-[#64748b] md:min-w-[220px]">
                 <span className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
+                  <Icon3D icon={CalendarDays} variant="glyph" size="sm" tone="neutral" />
                   Joined {formatDate(profile.created_at)}
                 </span>
                 <span className="flex items-center gap-2">
-                  <Clock3 className="h-4 w-4" />
+                  <Icon3D icon={Clock3} variant="glyph" size="sm" tone="neutral" />
                   Last activity {formatDate(latestAt)}
                 </span>
               </div>
@@ -427,7 +428,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
         <div className="grid border-t border-[#dbe3ef] xl:grid-cols-2 xl:divide-x xl:divide-[#e5e7eb]">
           <section className="px-6 py-5 md:px-8">
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              <Mail className="h-4 w-4" />
+              <Icon3D icon={Mail} variant="glyph" size="sm" tone="neutral" />
               Account details
             </div>
             <dl className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2">
@@ -444,7 +445,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
 
           <section className="border-t border-[#e5e7eb] bg-[#fbfdff] px-6 py-5 md:px-8 xl:border-t-0">
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              <Store className="h-4 w-4" />
+              <Icon3D icon={Store} variant="glyph" size="sm" tone="neutral" />
               Dealer details
             </div>
             {dealer ? (

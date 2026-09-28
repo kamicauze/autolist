@@ -12,8 +12,10 @@ import {
   Phone,
   ShieldCheck,
   Store,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +24,7 @@ import {
   USER_ROLE_OPTIONS,
   type UserRole,
 } from "@/lib/constants/marketplace";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -38,7 +41,8 @@ type OnboardingData = {
 };
 
 type RolePresentation = {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
+  asset: Icon3DAssetKey;
   title: string;
   summary: string;
   savedOutcome: string;
@@ -60,6 +64,7 @@ const DEFAULT_DATA: OnboardingData = {
 const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
   buyer: {
     icon: Car,
+    asset: "role-buyer",
     title: "Buyer",
     summary: "Save favorites, compare vehicles, and contact sellers with a recognizable profile.",
     savedOutcome: "Buyer profile saved.",
@@ -68,6 +73,7 @@ const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
   },
   seller: {
     icon: BriefcaseBusiness,
+    asset: "role-private-seller",
     title: "Private seller",
     summary: "Create listings, receive buyer inquiries, and keep contact details ready for leads.",
     savedOutcome: "Private seller profile saved.",
@@ -76,6 +82,7 @@ const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
   },
   dealer: {
     icon: Store,
+    asset: "role-dealer",
     title: "Dealer",
     summary: "Set the account role now, then complete dealer verification with documents.",
     savedOutcome: "Dealer role and contact profile saved.",
@@ -188,7 +195,6 @@ export function OnboardingFlow({
 
   const isLastStep = activeStep === ONBOARDING_STEPS.length - 1;
   const presentation = ROLE_PRESENTATION[formData.role];
-  const RoleIcon = presentation.icon;
   const isSellerLike = formData.role === "seller" || formData.role === "dealer";
   const destination = getDestination(formData.role, dashboardHref, createListingHref);
 
@@ -308,9 +314,12 @@ export function OnboardingFlow({
       >
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="p-6 sm:p-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-brand-tint text-primary">
-              <CheckCircle2 className="h-7 w-7" />
-            </div>
+            <Illustration3D
+              asset="success-check"
+              fallbackIcon={CheckCircle2}
+              size="lg"
+              className="h-14 w-14 align-top"
+            />
             <p className="mt-5 text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Onboarding complete
             </p>
@@ -469,7 +478,6 @@ export function OnboardingFlow({
                 {USER_ROLE_OPTIONS.map((option) => {
                   const selected = formData.role === option.value;
                   const rolePresentation = ROLE_PRESENTATION[option.value];
-                  const OptionIcon = rolePresentation.icon;
 
                   return (
                     <button
@@ -485,14 +493,12 @@ export function OnboardingFlow({
                       data-testid={`onboarding-role-${option.value}`}
                       aria-pressed={selected}
                     >
-                      <span
-                        className={cn(
-                          "flex h-11 w-11 items-center justify-center rounded-[14px]",
-                          selected ? "bg-primary text-white" : "bg-[#f1f5f9] text-[#64748b]"
-                        )}
-                      >
-                        <OptionIcon className="h-5 w-5" />
-                      </span>
+                      <Illustration3D
+                        asset={rolePresentation.asset}
+                        fallbackIcon={rolePresentation.icon}
+                        size="md"
+                        className="h-11 w-11"
+                      />
                       <span>
                         <span className="block text-[15px] font-semibold">{option.label}</span>
                         <span className="mt-1 block text-[13px] leading-5">{rolePresentation.summary}</span>
@@ -509,9 +515,12 @@ export function OnboardingFlow({
             </section>
 
             <aside className="rounded-[18px] border border-[#eef2f7] bg-white p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-brand-tint text-primary">
-                <RoleIcon className="h-5 w-5" />
-              </div>
+              <Illustration3D
+                asset={presentation.asset}
+                fallbackIcon={presentation.icon}
+                size="lg"
+                className="h-12 w-12 align-top"
+              />
               <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">
                 Current selection
               </p>
@@ -529,9 +538,7 @@ export function OnboardingFlow({
           <div className="space-y-5" data-testid="onboarding-step-contact">
             <div className="rounded-[18px] border border-[#eef2f7] bg-[#fbfcfe] p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-primary">
-                  <Phone className="h-5 w-5" />
-                </span>
+                <Illustration3D asset="phone-contact" fallbackIcon={Phone} size="md" />
                 <div>
                   <p className="font-heading text-[24px] font-semibold text-[#202224]">
                     Contact and location
@@ -652,13 +659,21 @@ export function OnboardingFlow({
             </section>
 
             <aside className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-white text-primary">
-                {formData.role === "dealer" ? (
-                  <ShieldCheck className="h-5 w-5" />
-                ) : (
-                  <BadgeCheck className="h-5 w-5" />
-                )}
-              </div>
+              {formData.role === "dealer" ? (
+                <Illustration3D
+                  asset="shield-check"
+                  fallbackIcon={ShieldCheck}
+                  size="lg"
+                  className="h-12 w-12 align-top"
+                />
+              ) : (
+                <Illustration3D
+                  asset="verified-badge"
+                  fallbackIcon={BadgeCheck}
+                  size="lg"
+                  className="h-12 w-12 align-top"
+                />
+              )}
               <p className="mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-primary">
                 What happens next
               </p>

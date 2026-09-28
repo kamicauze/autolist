@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import type { CommsAgentResult } from "@/lib/types/comms-agent";
 import type { MessagingCenterData, ThreadListItem, ThreadMessageItem } from "@/lib/types/messaging";
 import { SellerPageHeader, SellerSurface, getInitials } from "../seller-dashboard-ui";
@@ -531,7 +532,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
           <div className="bg-[#fcfdff] p-5">
             <div className="rounded-[22px] border border-[#e4e9f2] bg-white p-5">
               <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                <Sparkles className="h-4 w-4" />
+                <Icon3D icon={Sparkles} variant="glyph" />
                 Buyer Comms Agent
               </p>
               <h3 className="mt-2 text-[21px] font-semibold text-[#202224]">

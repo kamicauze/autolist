@@ -27,7 +27,10 @@ import {
   Settings2,
   Trash2,
   X,
+  type LucideIcon,
 } from "lucide-react";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import {
   deleteListing,
   duplicateOwnerListing,
@@ -299,9 +302,7 @@ function PrivateSellerListingGuide() {
   return (
     <section className="rounded-[18px] border border-[#d6e4fa] bg-[#f5f9ff] p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-primary shadow-sm">
-          <Info className="h-4 w-4" />
-        </div>
+        <Icon3D icon={Info} size="md" />
         <div className="min-w-0 flex-1">
           <h2 className="text-[15px] font-semibold text-[#202224]">
             Two ways to submit your vehicle
@@ -750,9 +751,11 @@ function BidsPlaceholder({
                   <div className="flex flex-col gap-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[10px] bg-[#155dfc] text-white">
-                          <CarFront className="h-6 w-6" />
-                        </div>
+                        <Illustration3D
+                          asset="car-front"
+                          fallbackIcon={CarFront}
+                          className="h-[50px] w-[50px] rounded-[10px]"
+                        />
                         <div>
                           <h3 className="font-sans text-[22px] font-bold leading-[33px] text-[#101828]">
                             {offer.listingTitle || "Vehicle request"}
@@ -771,19 +774,25 @@ function BidsPlaceholder({
                             : "border-[#ffc9c9] bg-[#fef2f2] text-[#c10007]",
                         )}
                       >
-                        <BadgeCheck className="h-4 w-4" />
+                        <Icon3D
+                          icon={BadgeCheck}
+                          tone={isAvailable ? "success" : "danger"}
+                          variant="glyph"
+                        />
                         {statusLabel}
                       </span>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                       <BidMetric
-                        icon={<CalendarDays className="h-4 w-4" />}
+                        icon={CalendarDays}
+                        asset="calendar"
                         label="Year"
                         value={offer.year ? String(offer.year) : "Not provided"}
                       />
                       <BidMetric
-                        icon={<Gauge className="h-4 w-4" />}
+                        icon={Gauge}
+                        asset="gauge"
                         label="Mileage"
                         value={
                           offer.mileage !== null && offer.mileage !== undefined
@@ -792,13 +801,15 @@ function BidsPlaceholder({
                         }
                       />
                       <BidMetric
-                        icon={<Settings2 className="h-4 w-4" />}
+                        icon={Settings2}
+                        asset="listing-inspect"
                         label="Condition"
                         value={offer.condition || "Not provided"}
                       />
                       <BidMetric
                         highlight
-                        icon={<DollarSign className="h-4 w-4" />}
+                        icon={DollarSign}
+                        asset="money-value"
                         label="Asking Price"
                         value={
                           offer.amount
@@ -981,11 +992,13 @@ function BidsPlaceholder({
 
 function BidMetric({
   icon,
+  asset,
   label,
   value,
   highlight = false,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
+  asset?: Icon3DAssetKey;
   label: string;
   value: string;
   highlight?: boolean;
@@ -1005,7 +1018,21 @@ function BidMetric({
           highlight ? "text-[#1447e6]" : "text-[#4a5565]",
         )}
       >
-        {icon}
+        {asset ? (
+          <Illustration3D
+            asset={asset}
+            fallbackIcon={icon}
+            size="xs"
+            tone={highlight ? "primary" : "neutral"}
+          />
+        ) : (
+          <Icon3D
+            icon={icon}
+            size="xs"
+            tone={highlight ? "primary" : "neutral"}
+            variant="solid"
+          />
+        )}
         <span className="font-medium">{label}</span>
       </div>
       <p

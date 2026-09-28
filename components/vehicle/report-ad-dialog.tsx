@@ -9,6 +9,7 @@ import {
   type AdReportTargetType,
 } from "@/lib/types/ad-report";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   Dialog,
   DialogContent,
@@ -160,7 +161,7 @@ export function ReportAdDialog({
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl grid-rows-none flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b border-gray-100 px-6 py-5">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <Icon3D icon={AlertTriangle} size="md" tone="warning" variant="glyph" />
             Report this Ad
           </DialogTitle>
           <DialogDescription>
@@ -179,9 +180,13 @@ export function ReportAdDialog({
           {submittedReportId ? (
             <div className="rounded-[18px] border border-green-200 bg-white px-5 py-6">
               <div className="flex items-start gap-4">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-green-50 text-green-700">
-                  <CheckCircle2 className="h-5 w-5" />
-                </span>
+                <Illustration3D
+                  asset="success-check"
+                  fallbackIcon={CheckCircle2}
+                  size="md"
+                  tone="success"
+                  className="h-11 w-11"
+                />
                 <div>
                   <h3 className="font-heading text-[20px] font-semibold text-gray-950">
                     Report submitted

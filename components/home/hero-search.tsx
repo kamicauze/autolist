@@ -5,9 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
-import { LOCATIONS, MILEAGE_RANGES, OLDER_THAN_1990_YEAR_OPTION } from "@/lib/constants/filters";
 import {
-  LANDING_PRICE_OPTIONS,
+  LOCATIONS,
+  MILEAGE_FILTER_OPTIONS,
+  OLDER_THAN_1990_YEAR_OPTION,
+  PRICE_FILTER_OPTIONS,
+} from "@/lib/constants/filters";
+import { NumericComboInput } from "@/components/ui/numeric-combo-input";
+import {
   LANDING_SEARCH_CATEGORY_CONFIG,
   LANDING_SEARCH_CATEGORY_ORDER,
   LANDING_YEAR_OPTIONS,
@@ -95,57 +100,17 @@ const HERO_YEAR_OPTIONS = LANDING_YEAR_OPTIONS.filter(
 const HERO_YEAR_FROM_OPTIONS = [
   { label: "From", value: "any" },
   ...HERO_YEAR_OPTIONS,
+  OLDER_THAN_1990_YEAR_OPTION,
 ];
 const HERO_YEAR_TO_OPTIONS = [
   { label: "To", value: "any" },
   ...HERO_YEAR_OPTIONS,
-  OLDER_THAN_1990_YEAR_OPTION,
-];
-const HERO_PRICE_OPTIONS = LANDING_PRICE_OPTIONS.filter(
-  (option) => option.value !== "any",
-);
-const HERO_PRICE_FROM_OPTIONS = [
-  { label: "From", value: "any" },
-  ...HERO_PRICE_OPTIONS,
-];
-const HERO_PRICE_TO_OPTIONS = [
-  { label: "To", value: "any" },
-  ...HERO_PRICE_OPTIONS,
 ];
 const HERO_HOURS_OPTIONS = [
   { label: "Any Hours", value: "any" },
   ...HOURS_USED_STEPS.filter((step) => step > 0).map((step) => ({
     label: `Under ${new Intl.NumberFormat("en-KE").format(step)} hrs`,
     value: String(step),
-  })),
-];
-
-const HERO_MILEAGE_VALUES = Array.from(
-  new Set(
-    MILEAGE_RANGES.flatMap((range) => {
-      const values: number[] = [];
-      if ("min" in range && typeof range.min === "number")
-        values.push(range.min);
-      if ("max" in range && typeof range.max === "number")
-        values.push(range.max);
-      return values;
-    }),
-  ),
-).sort((left, right) => left - right);
-const formatMileage = (value: number) =>
-  `${new Intl.NumberFormat("en-KE").format(value)}`;
-const HERO_MILEAGE_FROM_OPTIONS = [
-  { label: "From (km)", value: "any" },
-  ...HERO_MILEAGE_VALUES.map((value) => ({
-    label: formatMileage(value),
-    value: String(value),
-  })),
-];
-const HERO_MILEAGE_TO_OPTIONS = [
-  { label: "To", value: "any" },
-  ...HERO_MILEAGE_VALUES.map((value) => ({
-    label: formatMileage(value),
-    value: String(value),
   })),
 ];
 
@@ -210,6 +175,9 @@ export function HeroSearch({
   const [model, setModel] = React.useState("");
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
+  // "Older than 1990" lives in the From select but is stored as maxYear=1989.
+  const isOlderThan1990 =
+    yearFrom === "any" && yearTo === OLDER_THAN_1990_YEAR_OPTION.value;
   const [mileageFrom, setMileageFrom] = React.useState("any");
   const [mileageTo, setMileageTo] = React.useState("any");
   const [maxHours, setMaxHours] = React.useState("any");
@@ -638,6 +606,41 @@ export function HeroSearch({
     </div>
   );
 
+  const renderComboRangeField = (
+    fromValue: string,
+    onFromChange: (nextValue: string) => void,
+    toValue: string,
+    onToChange: (nextValue: string) => void,
+    options: ReadonlyArray<{ label: string; value: string }>,
+    fromPlaceholder: string,
+    toPlaceholder: string,
+    fromAriaLabel: string,
+    toAriaLabel: string,
+  ) => (
+    <div className="grid grid-cols-2 gap-2">
+      <NumericComboInput
+        aria-label={fromAriaLabel}
+        placeholder={fromPlaceholder}
+        value={fromValue === "any" ? "" : fromValue}
+        onChange={(nextValue) => onFromChange(nextValue || "any")}
+        options={options}
+        className={PANEL_INPUT_CLASS}
+        portal
+        chevron={<span className="text-[#8b93a7]">▾</span>}
+      />
+      <NumericComboInput
+        aria-label={toAriaLabel}
+        placeholder={toPlaceholder}
+        value={toValue === "any" ? "" : toValue}
+        onChange={(nextValue) => onToChange(nextValue || "any")}
+        options={options}
+        className={PANEL_INPUT_CLASS}
+        portal
+        chevron={<span className="text-[#8b93a7]">▾</span>}
+      />
+    </div>
+  );
+
   return (
     <section className="relative">
       <div
@@ -974,33 +977,33 @@ export function HeroSearch({
                       Choose Year
                     </label>
                     {renderRangeField(
-                      yearFrom,
-                      (nextValue) =>
-                        setBoundedRange(
-                          "from",
-                          nextValue,
-                          yearFrom,
-                          yearTo,
-                          setYearFrom,
-                          setYearTo,
-                        ),
-                      HERO_YEAR_FROM_OPTIONS,
-                      yearTo,
+                      isOlderThan1990 ? OLDER_THAN_1990_YEAR_OPTION.value : yearFrom,
                       (nextValue) => {
                         if (nextValue === OLDER_THAN_1990_YEAR_OPTION.value) {
                           setYearFrom("any");
                           setYearTo(nextValue);
                         } else {
                           setBoundedRange(
-                            "to",
+                            "from",
                             nextValue,
                             yearFrom,
-                            yearTo,
+                            isOlderThan1990 ? "any" : yearTo,
                             setYearFrom,
                             setYearTo,
                           );
                         }
                       },
+                      HERO_YEAR_FROM_OPTIONS,
+                      isOlderThan1990 ? "any" : yearTo,
+                      (nextValue) =>
+                        setBoundedRange(
+                          "to",
+                          nextValue,
+                          isOlderThan1990 ? "any" : yearFrom,
+                          yearTo,
+                          setYearFrom,
+                          setYearTo,
+                        ),
                       HERO_YEAR_TO_OPTIONS,
                       "Year from",
                       "Year to",
@@ -1030,7 +1033,7 @@ export function HeroSearch({
                           HERO_HOURS_OPTIONS,
                           SlidersHorizontal,
                         )
-                      : renderRangeField(
+                      : renderComboRangeField(
                           mileageFrom,
                           (nextValue) =>
                             setBoundedRange(
@@ -1041,7 +1044,6 @@ export function HeroSearch({
                               setMileageFrom,
                               setMileageTo,
                             ),
-                          HERO_MILEAGE_FROM_OPTIONS,
                           mileageTo,
                           (nextValue) =>
                             setBoundedRange(
@@ -1052,7 +1054,9 @@ export function HeroSearch({
                               setMileageFrom,
                               setMileageTo,
                             ),
-                          HERO_MILEAGE_TO_OPTIONS,
+                          MILEAGE_FILTER_OPTIONS,
+                          "From",
+                          "To",
                           "Mileage from in kilometres",
                           "Mileage to in kilometres",
                         )}
@@ -1062,7 +1066,7 @@ export function HeroSearch({
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Price Range
                     </label>
-                    {renderRangeField(
+                    {renderComboRangeField(
                       priceFrom,
                       (nextValue) =>
                         setBoundedRange(
@@ -1073,7 +1077,6 @@ export function HeroSearch({
                           setPriceFrom,
                           setPriceTo,
                         ),
-                      HERO_PRICE_FROM_OPTIONS,
                       priceTo,
                       (nextValue) =>
                         setBoundedRange(
@@ -1084,7 +1087,9 @@ export function HeroSearch({
                           setPriceFrom,
                           setPriceTo,
                         ),
-                      HERO_PRICE_TO_OPTIONS,
+                      PRICE_FILTER_OPTIONS,
+                      "From",
+                      "To",
                       "Price from",
                       "Price to",
                     )}

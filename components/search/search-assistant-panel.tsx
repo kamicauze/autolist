@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import type { Listing } from "@/lib/types/listing";
 import type {
   SmartSearchParams,
@@ -502,7 +503,7 @@ export function SearchAssistantPanel({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-              <MessageSquareText className="h-4 w-4" />
+              <Icon3D icon={MessageSquareText} variant="glyph" />
               Search Assistant
             </p>
             <p className="mt-1 text-[13px] text-[#667085]">
@@ -550,9 +551,12 @@ export function SearchAssistantPanel({
               )}
             >
               {message.role === "assistant" ? (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-primary">
-                  <Bot className="h-4 w-4" />
-                </div>
+                <Illustration3D
+                  asset="ai-assistant"
+                  fallbackIcon={Bot}
+                  size="sm"
+                  className="h-9 w-9 rounded-full"
+                />
               ) : null}
               <div
                 className={cn(
@@ -604,18 +608,19 @@ export function SearchAssistantPanel({
                 ) : null}
               </div>
               {message.role === "user" ? (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-tint-strong text-brand-hover">
-                  <User2 className="h-4 w-4" />
-                </div>
+                <Icon3D icon={User2} size="sm" className="h-9 w-9 rounded-full" />
               ) : null}
             </div>
           ))}
 
           {isLoading ? (
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f0ff] text-primary">
-                <Bot className="h-4 w-4" />
-              </div>
+              <Illustration3D
+                asset="ai-assistant"
+                fallbackIcon={Bot}
+                size="sm"
+                className="h-9 w-9 rounded-full"
+              />
               <div className="flex items-center gap-2 rounded-[22px] rounded-bl-[10px] border border-[#dde5f0] bg-white px-4 py-3 text-[14px] text-[#5f6773] shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Searching current inventory...
@@ -627,7 +632,7 @@ export function SearchAssistantPanel({
             <div className="rounded-[18px] border border-[#dde5f0] bg-white p-3 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.4)]">
               <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#617086]">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Icon3D icon={Sparkles} variant="glyph" />
                   Filters
                 </p>
                 {lastResult.preview.total > 0 ? (

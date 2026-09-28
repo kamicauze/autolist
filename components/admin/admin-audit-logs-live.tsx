@@ -3,9 +3,9 @@ import {
   AdminDataTable,
   AdminPageHeader,
   AdminSectionCard,
-  AdminStatCard,
   AdminStatusPill,
 } from "@/components/admin/admin-ui";
+import { AdminStatCard } from "@/components/admin/admin-stat-card";
 import type { AdminAuditLogsData } from "@/lib/data/admin";
 
 function formatDate(value: string) {
@@ -76,22 +76,24 @@ export function AdminAuditLogsLive({ data }: { data: AdminAuditLogsData }) {
         <AdminStatCard
           label="Total events"
           value={data.stats.total.toLocaleString("en-KE")}
-          icon={<ScrollText className="h-5 w-5" />}
+          icon={ScrollText}
         />
         <AdminStatCard
           label="Last 24 hours"
           value={data.stats.last24Hours.toLocaleString("en-KE")}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
         />
         <AdminStatCard
           label="Dealer events"
           value={data.stats.dealerEvents.toLocaleString("en-KE")}
-          icon={<ShieldCheck className="h-5 w-5" />}
+          icon={ShieldCheck}
+          asset="shield-check"
         />
         <AdminStatCard
           label="Listing events"
           value={data.stats.listingEvents.toLocaleString("en-KE")}
-          icon={<FileText className="h-5 w-5" />}
+          icon={FileText}
         />
       </div>
 

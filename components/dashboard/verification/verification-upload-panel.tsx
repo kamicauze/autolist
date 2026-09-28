@@ -18,6 +18,7 @@ import type {
   DealerVerificationRecord,
 } from "@/lib/types/dealer";
 import { cn } from "@/lib/utils";
+import { Icon3D } from "@/components/ui/icon-3d";
 import {
   sellerGhostButtonClass,
   sellerPrimaryButtonClass,
@@ -152,13 +153,11 @@ export function VerificationUploadPanel({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-primary">
-                    {currentDocument || selectedName ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <FileText className="h-4 w-4" />
-                    )}
-                  </div>
+                  <Icon3D
+                    icon={currentDocument || selectedName ? CheckCircle2 : FileText}
+                    size="md"
+                    className="h-11 w-11"
+                  />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-[15px] font-semibold text-[#202224]">{card.title}</h3>
@@ -199,7 +198,7 @@ export function VerificationUploadPanel({
                   (!canUpload || isApproved) && "cursor-not-allowed opacity-60"
                 )}
               >
-                <UploadCloud className="h-5 w-5 text-primary" />
+                <Icon3D icon={UploadCloud} size="md" variant="glyph" />
                 <span className="mt-2 text-[13px] font-semibold text-[#202224]">
                   {selectedName || "Choose replacement file"}
                 </span>

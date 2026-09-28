@@ -1,0 +1,337 @@
+{
+  "version": 1,
+  "styleAnchor": "/assets/vehicle-specs/engine-size.png",
+  "output": {
+    "width": 256,
+    "height": 256,
+    "format": "webp",
+    "alpha": true
+  },
+  "promptTemplate": "Use case: stylized-concept\nAsset type: transparent UI illustration icon\nInput images: the supplied image is the approved style anchor; match its materials, lighting, palette, camera and padding exactly, but do not copy its subject\nPrimary request: create one original icon of {subject}\nStyle/medium: polished friendly semi-realistic 3D toy/resin UI illustration with rounded glossy surfaces\nComposition/framing: centered three-quarter front view; the whole subject fits inside the central 72% of a square canvas with generous, even padding on all four sides; nothing touches or approaches the canvas edges\nLighting/mood: soft upper-left studio light and a subtle, dark, semi-transparent grounding shadow directly under the subject that fades into transparency (never a light or grey halo)\nColor palette: royal blue #2563EB, charcoal/navy, restrained silver, and one small red accent #E63946\nConstraints: genuine transparent alpha, one self-contained subject, no realistic skin tones (any hands or people are stylised in glossy blue, charcoal or silver resin), no card, tile, text, letters, digits, logo, watermark, scenery, or extra props",
+  "assets": [
+    {
+      "key": "calendar",
+      "file": "/assets/icons-3d/calendar.webp",
+      "status": "ready",
+      "source": "/assets/vehicle-specs/year.png"
+    },
+    {
+      "key": "gauge",
+      "file": "/assets/icons-3d/gauge.webp",
+      "status": "ready",
+      "source": "/assets/vehicle-specs/mileage.png"
+    },
+    {
+      "key": "map-pin",
+      "file": "/assets/icons-3d/map-pin.webp",
+      "status": "ready",
+      "source": "/assets/vehicle-specs/location.png"
+    },
+    {
+      "key": "search-vehicle",
+      "file": "/assets/icons-3d/search-vehicle.webp",
+      "status": "ready",
+      "subject": "a magnifying glass hovering over a small car"
+    },
+    {
+      "key": "compare-vehicles",
+      "file": "/assets/icons-3d/compare-vehicles.webp",
+      "status": "ready",
+      "subject": "two small cars side by side with curved swap arrows between them"
+    },
+    {
+      "key": "handshake-deal",
+      "file": "/assets/icons-3d/handshake-deal.webp",
+      "status": "ready",
+      "subject": "two stylised hands in a handshake, one glossy royal blue and one charcoal"
+    },
+    {
+      "key": "car-insurance",
+      "file": "/assets/icons-3d/car-insurance.webp",
+      "status": "ready",
+      "subject": "a small car in front of a shield with a check mark, both fully inside the frame"
+    },
+    {
+      "key": "security-advice",
+      "file": "/assets/icons-3d/security-advice.webp",
+      "status": "ready",
+      "subject": "a small car beside a closed padlock"
+    },
+    {
+      "key": "car-financing",
+      "file": "/assets/icons-3d/car-financing.webp",
+      "status": "ready",
+      "subject": "a credit card leaning on a small stack of coins with a tiny car"
+    },
+    {
+      "key": "car-import",
+      "file": "/assets/icons-3d/car-import.webp",
+      "status": "ready",
+      "subject": "a cargo ship carrying a container in front of a globe"
+    },
+    {
+      "key": "loan-calculator",
+      "file": "/assets/icons-3d/loan-calculator.webp",
+      "status": "ready",
+      "subject": "a pocket calculator with a coin beside it"
+    },
+    {
+      "key": "shield-check",
+      "file": "/assets/icons-3d/shield-check.webp",
+      "status": "ready",
+      "subject": "a rounded shield with a check mark"
+    },
+    {
+      "key": "stopwatch-fast",
+      "file": "/assets/icons-3d/stopwatch-fast.webp",
+      "status": "ready",
+      "subject": "a stopwatch with motion lines"
+    },
+    {
+      "key": "money-value",
+      "file": "/assets/icons-3d/money-value.webp",
+      "status": "ready",
+      "subject": "a stack of banknotes with a coin"
+    },
+    {
+      "key": "instant-bolt",
+      "file": "/assets/icons-3d/instant-bolt.webp",
+      "status": "ready",
+      "subject": "a lightning bolt"
+    },
+    {
+      "key": "market-chart",
+      "file": "/assets/icons-3d/market-chart.webp",
+      "status": "ready",
+      "subject": "a rising bar chart with an upward arrow"
+    },
+    {
+      "key": "community-users",
+      "file": "/assets/icons-3d/community-users.webp",
+      "status": "ready",
+      "subject": "a group of three rounded stylised person figures in blue, charcoal and silver"
+    },
+    {
+      "key": "wallet",
+      "file": "/assets/icons-3d/wallet.webp",
+      "status": "ready",
+      "subject": "a wallet with cards peeking out"
+    },
+    {
+      "key": "verified-badge",
+      "file": "/assets/icons-3d/verified-badge.webp",
+      "status": "ready",
+      "subject": "a rosette seal badge with a check mark"
+    },
+    {
+      "key": "document-check",
+      "file": "/assets/icons-3d/document-check.webp",
+      "status": "ready",
+      "subject": "a document sheet with a check mark"
+    },
+    {
+      "key": "listing-inspect",
+      "file": "/assets/icons-3d/listing-inspect.webp",
+      "status": "ready",
+      "subject": "a magnifying glass with a check mark over a listing card"
+    },
+    {
+      "key": "car-front",
+      "file": "/assets/icons-3d/car-front.webp",
+      "status": "ready",
+      "subject": "a rounded toy-like stylised hatchback car in three-quarter front view, smooth blank grille with no emblem or badge, no face or eyes"
+    },
+    {
+      "key": "car-keys",
+      "file": "/assets/icons-3d/car-keys.webp",
+      "status": "ready",
+      "subject": "a car key fob with a key ring"
+    },
+    {
+      "key": "cash-hand",
+      "file": "/assets/icons-3d/cash-hand.webp",
+      "status": "ready",
+      "subject": "an open stylised glossy blue hand holding a few coins"
+    },
+    {
+      "key": "chat-warning",
+      "file": "/assets/icons-3d/chat-warning.webp",
+      "status": "ready",
+      "subject": "a speech bubble with an exclamation mark"
+    },
+    {
+      "key": "document-lock",
+      "file": "/assets/icons-3d/document-lock.webp",
+      "status": "ready",
+      "subject": "a document sheet with a padlock"
+    },
+    {
+      "key": "phishing-mail",
+      "file": "/assets/icons-3d/phishing-mail.webp",
+      "status": "ready",
+      "subject": "an envelope with a warning triangle"
+    },
+    {
+      "key": "fraud-siren",
+      "file": "/assets/icons-3d/fraud-siren.webp",
+      "status": "ready",
+      "subject": "an emergency siren light"
+    },
+    {
+      "key": "bell-alert",
+      "file": "/assets/icons-3d/bell-alert.webp",
+      "status": "ready",
+      "subject": "a ringing notification bell"
+    },
+    {
+      "key": "email-envelope",
+      "file": "/assets/icons-3d/email-envelope.webp",
+      "status": "ready",
+      "subject": "a closed envelope"
+    },
+    {
+      "key": "checklist",
+      "file": "/assets/icons-3d/checklist.webp",
+      "status": "ready",
+      "subject": "a clipboard with a checklist"
+    },
+    {
+      "key": "shield-alert",
+      "file": "/assets/icons-3d/shield-alert.webp",
+      "status": "ready",
+      "subject": "a rounded shield with an exclamation mark"
+    },
+    {
+      "key": "no-results",
+      "file": "/assets/icons-3d/no-results.webp",
+      "status": "ready",
+      "subject": "a magnifying glass with an X mark"
+    },
+    {
+      "key": "empty-listings",
+      "file": "/assets/icons-3d/empty-listings.webp",
+      "status": "ready",
+      "subject": "an empty parking space with a parking cone"
+    },
+    {
+      "key": "success-check",
+      "file": "/assets/icons-3d/success-check.webp",
+      "status": "ready",
+      "subject": "a big check mark inside a circle"
+    },
+    {
+      "key": "rating-star",
+      "file": "/assets/icons-3d/rating-star.webp",
+      "status": "ready",
+      "subject": "a glossy star"
+    },
+    {
+      "key": "role-buyer",
+      "file": "/assets/icons-3d/role-buyer.webp",
+      "status": "ready",
+      "subject": "a small car with a shopping price tag"
+    },
+    {
+      "key": "role-private-seller",
+      "file": "/assets/icons-3d/role-private-seller.webp",
+      "status": "ready",
+      "subject": "a briefcase with a hanging key tag"
+    },
+    {
+      "key": "role-dealer",
+      "file": "/assets/icons-3d/role-dealer.webp",
+      "status": "ready",
+      "subject": "a car showroom storefront with an awning"
+    },
+    {
+      "key": "phone-contact",
+      "file": "/assets/icons-3d/phone-contact.webp",
+      "status": "ready",
+      "subject": "a smartphone"
+    },
+    {
+      "key": "camera-photos",
+      "file": "/assets/icons-3d/camera-photos.webp",
+      "status": "ready",
+      "subject": "a photo camera"
+    },
+    {
+      "key": "upload-cloud",
+      "file": "/assets/icons-3d/upload-cloud.webp",
+      "status": "ready",
+      "subject": "a cloud with an upward arrow"
+    },
+    {
+      "key": "add-to-compare",
+      "file": "/assets/icons-3d/add-to-compare.webp",
+      "status": "ready",
+      "subject": "a small car beside a rounded royal blue plus-sign badge"
+    },
+    {
+      "key": "ai-assistant",
+      "file": "/assets/icons-3d/ai-assistant.webp",
+      "status": "ready",
+      "subject": "a friendly rounded robot head"
+    },
+    {
+      "key": "listings-stack",
+      "file": "/assets/icons-3d/listings-stack.webp",
+      "status": "ready",
+      "subject": "a stack of listing cards"
+    },
+    {
+      "key": "clock-pending",
+      "file": "/assets/icons-3d/clock-pending.webp",
+      "status": "ready",
+      "subject": "a round wall clock"
+    },
+    {
+      "key": "favorites-heart",
+      "file": "/assets/icons-3d/favorites-heart.webp",
+      "status": "ready",
+      "subject": "a glossy heart"
+    },
+    {
+      "key": "chat-bubbles",
+      "file": "/assets/icons-3d/chat-bubbles.webp",
+      "status": "ready",
+      "subject": "two overlapping speech bubbles"
+    },
+    {
+      "key": "alert-circle",
+      "file": "/assets/icons-3d/alert-circle.webp",
+      "status": "ready",
+      "subject": "a circle with an exclamation mark"
+    },
+    {
+      "key": "link-chain",
+      "file": "/assets/icons-3d/link-chain.webp",
+      "status": "ready",
+      "subject": "two interlocked chain links"
+    },
+    {
+      "key": "security-lock",
+      "file": "/assets/icons-3d/security-lock.webp",
+      "status": "ready",
+      "subject": "a closed padlock"
+    },
+    {
+      "key": "file-review",
+      "file": "/assets/icons-3d/file-review.webp",
+      "status": "ready",
+      "subject": "a document sheet under a magnifying glass"
+    },
+    {
+      "key": "clipboard-decision",
+      "file": "/assets/icons-3d/clipboard-decision.webp",
+      "status": "ready",
+      "subject": "a clipboard with a check mark"
+    },
+    {
+      "key": "package-open",
+      "file": "/assets/icons-3d/package-open.webp",
+      "status": "ready",
+      "subject": "an open cardboard parcel box"
+    }
+  ]
+}

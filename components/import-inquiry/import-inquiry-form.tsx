@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -62,7 +63,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
       {/* How it works info bar */}
       <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
-        <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <Icon3D icon={Info} size="sm" />
         <p className="text-sm leading-relaxed text-gray-600">
           <span className="font-semibold text-gray-900">How it works:</span>{" "}
           Submit your requirements and our import specialists will search global markets to find your

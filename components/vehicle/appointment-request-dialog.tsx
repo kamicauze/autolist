@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   Dialog,
   DialogContent,
@@ -100,9 +101,12 @@ export function AppointmentRequestDialog({
         <div className="border-b border-gray-200 bg-[#071f43] px-5 py-5 text-white sm:px-7">
           <DialogHeader className="text-left">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#071f43]">
-                <CalendarDays className="h-5 w-5" />
-              </span>
+              <Illustration3D
+                asset="calendar"
+                fallbackIcon={CalendarDays}
+                size="md"
+                className="h-11 w-11"
+              />
               <div>
                 <DialogTitle className="text-xl font-bold text-white sm:text-2xl">
                   Book an appointment
@@ -132,7 +136,7 @@ export function AppointmentRequestDialog({
 
             <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-[#071f43]" />
+                <Icon3D icon={CalendarDays} size="md" variant="glyph" />
                 <h3 className="font-semibold text-[#071f43]">1. Choose a date</h3>
               </div>
               <div className="grid grid-cols-2 gap-2 min-[460px]:grid-cols-4 sm:grid-cols-7">
@@ -181,7 +185,7 @@ export function AppointmentRequestDialog({
 
             <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
               <div className="mb-1 flex items-center gap-2">
-                <Clock3 className="h-5 w-5 text-[#071f43]" />
+                <Icon3D icon={Clock3} size="md" variant="glyph" />
                 <h3 className="font-semibold text-[#071f43]">2. Choose a time slot</h3>
               </div>
               <p className="mb-4 text-xs text-gray-500">
@@ -226,7 +230,7 @@ export function AppointmentRequestDialog({
 
             <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-2">
-                <MessageSquareText className="h-5 w-5 text-[#071f43]" />
+                <Icon3D icon={MessageSquareText} size="md" variant="glyph" />
                 <h3 className="font-semibold text-[#071f43]">3. Your details</h3>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -319,7 +323,7 @@ export function AppointmentRequestDialog({
               <h3 className="font-semibold text-[#071f43]">Your appointment summary</h3>
               <dl className="mt-4 space-y-4 text-sm">
                 <div className="flex gap-3">
-                  <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <Icon3D icon={CalendarDays} variant="glyph" className="mt-0.5" />
                   <div className="min-w-0">
                     <dt className="text-gray-500">Date</dt>
                     <dd className="break-words font-semibold text-gray-900">
@@ -328,7 +332,7 @@ export function AppointmentRequestDialog({
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <Icon3D icon={Clock3} variant="glyph" className="mt-0.5" />
                   <div className="min-w-0">
                     <dt className="text-gray-500">Time</dt>
                     <dd className="break-words font-semibold text-gray-900">
@@ -337,7 +341,7 @@ export function AppointmentRequestDialog({
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <Icon3D icon={MapPin} variant="glyph" className="mt-0.5" />
                   <div className="min-w-0">
                     <dt className="text-gray-500">Viewing location</dt>
                     <dd className="break-words font-semibold text-gray-900">
@@ -350,7 +354,7 @@ export function AppointmentRequestDialog({
 
             <div className="rounded-2xl border border-brand-muted-border bg-brand-tint p-4 text-sm text-foreground">
               <div className="flex items-start gap-3">
-                <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <Icon3D icon={Info} size="sm" />
                 <div>
                   <p className="font-semibold">This is a request, not a reservation.</p>
                   <p className="mt-1 leading-relaxed text-muted-foreground">
@@ -362,7 +366,7 @@ export function AppointmentRequestDialog({
 
             <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm">
               <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <Icon3D icon={ShieldCheck} size="sm" />
                 <div>
                   <p className="font-semibold text-[#071f43]">Your information is safe</p>
                   <p className="mt-1 leading-relaxed text-gray-600">

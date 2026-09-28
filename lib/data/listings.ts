@@ -625,7 +625,7 @@ function applyListingFilters<TQuery extends ListingQuery>(
   if (filters?.minMileage) {
     nextQuery = nextQuery.gte("mileage", filters.minMileage);
   }
-  if (filters?.maxMileage) {
+  if (filters?.maxMileage !== undefined) {
     nextQuery = nextQuery.lte("mileage", filters.maxMileage);
   }
   if (filters?.sellerType === "dealer") {

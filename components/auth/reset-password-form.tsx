@@ -13,6 +13,55 @@ export function ResetPasswordForm() {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [linkStatus, setLinkStatus] = React.useState<"checking" | "ready" | "invalid">(
+    "checking",
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const linkError = query.get("error_description") ?? hash.get("error_description");
+
+    // getUser() waits for the client to exchange the ?code= from the email link.
+    void createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data.user && !linkError) {
+          setLinkStatus("ready");
+          return;
+        }
+        setErrorMessage(
+          linkError ??
+            "This reset link is invalid or has expired. Request a new one and open it in the same browser.",
+        );
+        setLinkStatus("invalid");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (linkStatus !== "ready") {
+    return (
+      <div className="space-y-5">
+        {linkStatus === "checking" ? (
+          <p className="text-center text-sm text-[#24272C]">Verifying your reset link...</p>
+        ) : (
+          <>
+            <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {errorMessage}
+            </p>
+            <Button asChild className="h-12 w-full rounded-[14px] text-base">
+              <Link href="/forgot-password">Request a new link</Link>
+            </Button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

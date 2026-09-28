@@ -31,6 +31,7 @@ import type {
 import { getListingAlertCriterionValue } from "@/lib/utils/listing-alerts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -239,7 +240,7 @@ export function ListingAlertsManager({
             </h2>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <BellRing className="h-4 w-4 text-primary" />
+            <Icon3D icon={BellRing} variant="glyph" />
             In-app alerts are always on
           </div>
         </div>
@@ -379,7 +380,7 @@ export function ListingAlertsManager({
             <div className="flex items-start justify-between gap-4 rounded-lg bg-white p-3">
               <div>
                 <Label htmlFor="alert-email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-primary" /> Email notifications
+                  <Icon3D icon={Mail} variant="glyph" /> Email notifications
                 </Label>
                 <p className="mt-1 text-xs text-gray-500">
                   {viewerEmail
@@ -456,7 +457,13 @@ export function ListingAlertsManager({
 
         {alerts.length === 0 ? (
           <div className="mt-5 rounded-xl border border-dashed border-gray-300 px-5 py-9 text-center">
-            <BellRing className="mx-auto h-7 w-7 text-gray-400" />
+            <Illustration3D
+              asset="bell-alert"
+              fallbackIcon={BellRing}
+              size="md"
+              tone="neutral"
+              className="mx-auto flex"
+            />
             <p className="mt-2 text-sm font-medium text-gray-800">
               Your saved alerts will appear here.
             </p>

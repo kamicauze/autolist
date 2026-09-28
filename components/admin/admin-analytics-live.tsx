@@ -2,8 +2,9 @@ import { BarChart3, CircleDollarSign, MessageSquareText, SquarePen, Users } from
 import {
   AdminPageHeader,
   AdminSectionCard,
-  AdminStatCard,
 } from "@/components/admin/admin-ui";
+import { AdminStatCard } from "@/components/admin/admin-stat-card";
+import { Icon3D } from "@/components/ui/icon-3d";
 import type { AdminAnalyticsBreakdownItem, AdminAnalyticsData } from "@/lib/data/admin";
 
 function formatCurrency(amount: number, currency: string) {
@@ -33,7 +34,7 @@ function BreakdownList({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <BarChart3 className="h-4 w-4 text-primary" />
+        <Icon3D icon={BarChart3} variant="glyph" size="sm" />
         <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#475467]">
           {title}
         </p>
@@ -84,25 +85,28 @@ export function AdminAnalyticsLive({ data }: { data: AdminAnalyticsData }) {
         <AdminStatCard
           label={data.metrics.newUsers30Days.label}
           value={data.metrics.newUsers30Days.value.toLocaleString("en-KE")}
-          icon={<Users className="h-5 w-5" />}
+          icon={Users}
+          asset="community-users"
           note={data.metrics.newUsers30Days.note}
         />
         <AdminStatCard
           label={data.metrics.newListings30Days.label}
           value={data.metrics.newListings30Days.value.toLocaleString("en-KE")}
-          icon={<SquarePen className="h-5 w-5" />}
+          icon={SquarePen}
           note={data.metrics.newListings30Days.note}
         />
         <AdminStatCard
           label={data.metrics.paymentVolume30Days.label}
           value={formatCurrency(data.metrics.paymentVolume30Days.value, data.primaryCurrency)}
-          icon={<CircleDollarSign className="h-5 w-5" />}
+          icon={CircleDollarSign}
+          asset="money-value"
           note={data.metrics.paymentVolume30Days.note}
         />
         <AdminStatCard
           label={data.metrics.openTickets.label}
           value={data.metrics.openTickets.value.toLocaleString("en-KE")}
-          icon={<MessageSquareText className="h-5 w-5" />}
+          icon={MessageSquareText}
+          asset="chat-bubbles"
           note={data.metrics.openTickets.note}
         />
       </div>

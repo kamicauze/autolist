@@ -1,8 +1,11 @@
 import { Search, GitCompare, Handshake } from "lucide-react";
 
+import { Illustration3D } from "@/components/ui/icon-3d";
+
 const steps = [
   {
     icon: Search,
+    asset: "search-vehicle",
     number: "01",
     title: "Find your ideal vehicle",
     description:
@@ -10,6 +13,7 @@ const steps = [
   },
   {
     icon: GitCompare,
+    asset: "compare-vehicles",
     number: "02",
     title: "Compare and verify",
     description:
@@ -17,12 +21,13 @@ const steps = [
   },
   {
     icon: Handshake,
+    asset: "handshake-deal",
     number: "03",
     title: "Connect and complete your deal",
     description:
       "Contact sellers directly for private sales or work with verified dealers.",
   },
-];
+] as const;
 
 export function HowItWorks() {
   return (
@@ -40,12 +45,14 @@ export function HowItWorks() {
         {/* Steps */}
         <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
           {steps.map((step) => {
-            const Icon = step.icon;
             return (
               <div key={step.title} className="text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                  <Icon className="h-6 w-6 text-primary" />
-                </div>
+                <Illustration3D
+                  asset={step.asset}
+                  fallbackIcon={step.icon}
+                  size="lg"
+                  className="mx-auto mb-4 flex"
+                />
                 <h3 className="mb-2 text-base font-semibold text-gray-900">
                   {step.title}
                 </h3>

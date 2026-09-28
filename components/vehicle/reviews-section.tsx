@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import type {
   ListingReviewRecord,
   ListingReviewSummary,
@@ -32,9 +33,7 @@ export function ReviewsSection({
 
         <div className="mb-6 flex items-center gap-4 rounded-lg border border-brand-muted-border bg-brand-tint p-4">
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg bg-white p-2">
-              <Star className="h-6 w-6 fill-current text-primary" />
-            </div>
+            <Illustration3D asset="rating-star" fallbackIcon={Star} size="md" />
             <span className="text-4xl font-bold text-primary">
               {reviewCount > 0 ? averageRating.toFixed(1) : "0.0"}
             </span>

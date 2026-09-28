@@ -39,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import {
   SellerPageHeader,
   SellerStatusPill,
@@ -563,7 +564,7 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                   with that email, then accept the invite.
                 </p>
                 <div className="mt-3 flex min-w-0 items-center gap-2 rounded-[12px] border border-brand-muted-border bg-white px-3 py-2 text-[12px] text-primary">
-                  <Link2 className="h-4 w-4 shrink-0" />
+                  <Icon3D icon={Link2} variant="glyph" />
                   <span className="truncate">{inviteNotice.inviteUrl}</span>
                 </div>
               </div>
@@ -595,7 +596,12 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
               {filteredAgents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-14 text-center">
-                    <UsersRound className="mx-auto h-9 w-9 text-[#9ca3af]" />
+                    <Illustration3D
+                      asset="community-users"
+                      fallbackIcon={UsersRound}
+                      tone="neutral"
+                      className="mx-auto flex"
+                    />
                     <p className="mt-3 font-heading text-[22px] font-semibold text-[#202224]">
                       No sales reps match this view
                     </p>
@@ -622,13 +628,18 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
                             <span>{agent.hide_phone_number ? "Phone hidden" : agent.phone}</span>
                             {agent.whatsapp_enabled ? (
                               <span className="inline-flex items-center gap-1 text-[#2f9e63]">
-                                <MessageCircle className="h-3.5 w-3.5" />
+                                <Icon3D
+                                  icon={MessageCircle}
+                                  size="xs"
+                                  tone="success"
+                                  variant="glyph"
+                                />
                                 WhatsApp
                               </span>
                             ) : null}
                             {agent.hide_phone_number ? (
                               <span className="inline-flex items-center gap-1 text-[#8a8a8a]">
-                                <EyeOff className="h-3.5 w-3.5" />
+                                <Icon3D icon={EyeOff} size="xs" tone="neutral" variant="glyph" />
                                 Hidden
                               </span>
                             ) : null}

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { cn } from "@/lib/utils";
 
 const ACCOUNT_BENEFITS = [
@@ -128,9 +129,7 @@ function AccountAccessShell({
                   key={benefit}
                   className="flex items-center gap-3 text-[15px] font-medium text-[#283448] sm:text-[16px]"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/80 shadow-sm">
-                    <Check className="h-4 w-4 text-[#21875a]" />
-                  </span>
+                  <Icon3D icon={Check} size="sm" tone="success" className="h-7 w-7 rounded-full" />
                   <span>{benefit}</span>
                 </div>
               ))}

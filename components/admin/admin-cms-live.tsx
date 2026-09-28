@@ -1283,22 +1283,24 @@ export function AdminCmsLive({
               <AdminStatCard
                 label="Homepage blocks"
                 value={homepageStats.total.toLocaleString("en-KE")}
-                icon={<LayoutTemplate className="h-5 w-5" />}
+                icon={LayoutTemplate}
               />
               <AdminStatCard
                 label="Published blocks"
                 value={homepageStats.published.toLocaleString("en-KE")}
-                icon={<BadgeCheck className="h-5 w-5" />}
+                icon={BadgeCheck}
+                asset="verified-badge"
               />
               <AdminStatCard
                 label="Draft-only blocks"
                 value={homepageStats.drafts.toLocaleString("en-KE")}
-                icon={<Clock3 className="h-5 w-5" />}
+                icon={Clock3}
+                asset="clock-pending"
               />
               <AdminStatCard
                 label="Unpublished changes"
                 value={homepageStats.changes.toLocaleString("en-KE")}
-                icon={<Settings2 className="h-5 w-5" />}
+                icon={Settings2}
               />
             </>
           ) : (
@@ -1306,17 +1308,19 @@ export function AdminCmsLive({
               <AdminStatCard
                 label="Managed pages"
                 value={pageStats.total.toLocaleString("en-KE")}
-                icon={<FileText className="h-5 w-5" />}
+                icon={FileText}
               />
               <AdminStatCard
                 label="Published pages"
                 value={pageStats.published.toLocaleString("en-KE")}
-                icon={<BadgeCheck className="h-5 w-5" />}
+                icon={BadgeCheck}
+                asset="verified-badge"
               />
               <AdminStatCard
                 label="Draft pages"
                 value={pageStats.drafts.toLocaleString("en-KE")}
-                icon={<Clock3 className="h-5 w-5" />}
+                icon={Clock3}
+                asset="clock-pending"
               />
               <AdminStatCard
                 label="Latest publish"
@@ -1325,7 +1329,7 @@ export function AdminCmsLive({
                     ? formatDateTime(pageStats.latestPublishedAt)
                     : "Not yet"
                 }
-                icon={<Globe className="h-5 w-5" />}
+                icon={Globe}
               />
             </>
           )}

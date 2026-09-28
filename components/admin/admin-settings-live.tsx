@@ -217,17 +217,20 @@ export function AdminSettingsLive({
         <AdminStatCard
           label="Support inbox"
           value={savedSettings.supportEmail}
-          icon={<Mail className="h-5 w-5" />}
+          icon={Mail}
+          asset="email-envelope"
         />
         <AdminStatCard
           label="Review SLA"
           value={`${savedSettings.defaultListingReviewSlaHours} hrs`}
-          icon={<Clock3 className="h-5 w-5" />}
+          icon={Clock3}
+          asset="clock-pending"
         />
         <AdminStatCard
           label="AI smart search"
           value={formatSwitchLabel(savedSettings.aiSmartSearchEnabled, "Enabled", "Disabled")}
-          icon={<SearchCheck className="h-5 w-5" />}
+          icon={SearchCheck}
+          asset="listing-inspect"
         />
         <AdminStatCard
           label="Dealer approval"
@@ -236,7 +239,8 @@ export function AdminSettingsLive({
             "Manual review",
             "Auto-approved"
           )}
-          icon={<ShieldCheck className="h-5 w-5" />}
+          icon={ShieldCheck}
+          asset="shield-check"
         />
       </div>
 

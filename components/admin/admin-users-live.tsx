@@ -129,23 +129,26 @@ export function AdminUsersLive({ data }: { data: AdminUsersOverviewData }) {
         <AdminStatCard
           label="Dealers"
           value={categoryCounts.dealer.toLocaleString("en-KE")}
-          icon={<Store className="h-5 w-5" />}
+          icon={Store}
+          asset="role-dealer"
           note={`${data.stats.pendingDealers} applications pending`}
         />
         <AdminStatCard
           label="Private sellers"
           value={categoryCounts.private_seller.toLocaleString("en-KE")}
-          icon={<UserRound className="h-5 w-5" />}
+          icon={UserRound}
         />
         <AdminStatCard
           label="Buyers"
           value={categoryCounts.buyer.toLocaleString("en-KE")}
-          icon={<Users className="h-5 w-5" />}
+          icon={Users}
+          asset="community-users"
         />
         <AdminStatCard
           label="Staff"
           value={categoryCounts.staff.toLocaleString("en-KE")}
-          icon={<ShieldCheck className="h-5 w-5" />}
+          icon={ShieldCheck}
+          asset="shield-check"
         />
       </div>
 

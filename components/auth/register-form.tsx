@@ -17,8 +17,10 @@ import {
   ShieldCheck,
   Store,
   User,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
@@ -32,6 +34,7 @@ import {
   inferMarketplaceRoleFromNextPath,
   sanitizeNextPath,
 } from "@/lib/supabase/auth-routing";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import { USER_ROLE_OPTIONS, type UserRole } from "@/lib/constants/marketplace";
 import {
   FacebookIcon,
@@ -45,23 +48,27 @@ type RegistrationStep = "role" | "details";
 const ROLE_PRESENTATION: Record<
   UserRole,
   {
-    icon: React.ComponentType<{ className?: string }>;
+    icon: LucideIcon;
+    asset: Icon3DAssetKey;
     caption: string;
     nextLabel: string;
   }
 > = {
   buyer: {
     icon: Car,
+    asset: "role-buyer",
     caption: "Best for saving cars, comparing listings, and contacting sellers.",
     nextLabel: "Buyer onboarding",
   },
   seller: {
     icon: BriefcaseBusiness,
+    asset: "role-private-seller",
     caption: "Best for listing a personal vehicle and managing buyer messages.",
     nextLabel: "Private seller onboarding",
   },
   dealer: {
     icon: Store,
+    asset: "role-dealer",
     caption: "Best for inventory teams that need verification and dealer tools.",
     nextLabel: "Dealer profile setup",
   },
@@ -105,7 +112,6 @@ export function RegisterForm() {
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const selectedRoleOption = USER_ROLE_OPTIONS.find((option) => option.value === selectedRole);
   const selectedRolePresentation = ROLE_PRESENTATION[selectedRole];
-  const SelectedRoleIcon = selectedRolePresentation.icon;
   const passwordChecks = [
     { label: "8 characters", valid: password.length >= 8 },
     { label: "Capital letter", valid: /[A-Z]/.test(password) },
@@ -261,7 +267,6 @@ export function RegisterForm() {
           {USER_ROLE_OPTIONS.map((option) => {
             const selected = selectedRole === option.value;
             const rolePresentation = ROLE_PRESENTATION[option.value];
-            const RoleIcon = rolePresentation.icon;
 
             return (
               <button
@@ -277,15 +282,12 @@ export function RegisterForm() {
                 aria-pressed={selected}
               >
                 <span className="flex items-center justify-between gap-3">
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-[13px] transition-colors ${
-                      selected
-                        ? "bg-primary text-white"
-                        : "bg-[#f1f4f8] text-[#657080] group-hover:text-primary"
-                    }`}
-                  >
-                    <RoleIcon className="h-5 w-5" />
-                  </span>
+                  <Illustration3D
+                    asset={rolePresentation.asset}
+                    fallbackIcon={rolePresentation.icon}
+                    size="md"
+                    className="h-11 w-11"
+                  />
                   {selected ? (
                     <CheckCircle2 className="h-5 w-5 text-primary" />
                   ) : (
@@ -307,9 +309,11 @@ export function RegisterForm() {
 
         <div className="grid gap-3 rounded-[16px] border border-[#dfe3e8] bg-[#f8f9fb] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-primary shadow-sm">
-              <SelectedRoleIcon className="h-5 w-5" />
-            </span>
+            <Illustration3D
+              asset={selectedRolePresentation.asset}
+              fallbackIcon={selectedRolePresentation.icon}
+              size="md"
+            />
             <div className="min-w-0">
               <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7b8490]">
                 Selected account
@@ -359,9 +363,11 @@ export function RegisterForm() {
 
       <div className="flex flex-col gap-3 rounded-[16px] border border-primary/20 bg-brand-tint/60 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-primary shadow-sm">
-            <SelectedRoleIcon className="h-5 w-5" />
-          </span>
+          <Illustration3D
+            asset={selectedRolePresentation.asset}
+            fallbackIcon={selectedRolePresentation.icon}
+            size="md"
+          />
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-primary">
               {selectedRoleOption?.label}
@@ -384,9 +390,7 @@ export function RegisterForm() {
 
       <div className="space-y-4 rounded-[18px] border border-[#eef2f7] bg-white p-4">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] bg-[#f8fafc] text-[#64748b]">
-            <ShieldCheck className="h-4 w-4" />
-          </span>
+          <Icon3D icon={ShieldCheck} size="sm" tone="neutral" className="mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-[#24272C]">Login details</p>
             <p className="mt-1 text-xs leading-5 text-[#696665]">
@@ -478,7 +482,12 @@ export function RegisterForm() {
                     item.valid ? "text-primary" : "text-[#8a8a8a]"
                   }`}
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <Icon3D
+                    icon={CheckCircle2}
+                    size="xs"
+                    tone={item.valid ? "primary" : "neutral"}
+                    variant="glyph"
+                  />
                   {item.label}
                 </span>
               ))}

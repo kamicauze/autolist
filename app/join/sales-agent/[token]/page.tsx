@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 
 type SalesAgentJoinPageProps = {
   params: Promise<{ token: string }>;
@@ -64,9 +65,12 @@ export default async function SalesAgentJoinPage({
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <section className="w-full max-w-[720px] rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:p-8">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-brand-tint text-primary">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
+            <Illustration3D
+              asset="shield-check"
+              fallbackIcon={ShieldCheck}
+              size="lg"
+              className="h-12 w-12"
+            />
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-primary">
                 Sales rep invite
@@ -124,7 +128,7 @@ export default async function SalesAgentJoinPage({
                 ) : (
                   <div className="rounded-[16px] border border-brand-muted-border bg-brand-tint px-5 py-4">
                     <div className="flex gap-3">
-                      <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <Icon3D icon={Mail} size="sm" />
                       <div>
                         <p className="text-[14px] font-semibold text-brand-hover">
                           Set up your sales rep account
@@ -225,7 +229,7 @@ export default async function SalesAgentJoinPage({
               ) : !emailMatches ? (
                 <div className="rounded-[16px] border border-[#fed7aa] bg-[#fff7ed] px-5 py-4 text-[14px] leading-6 text-[#9a3412]">
                   <div className="flex gap-3">
-                    <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+                    <Icon3D icon={TriangleAlert} size="sm" tone="warning" />
                     <p>
                       You are signed in as {user.email || "another account"}. This invite must be
                       accepted with {invite.email}.
@@ -242,7 +246,7 @@ export default async function SalesAgentJoinPage({
                   <input type="hidden" name="token" value={token} />
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex gap-3">
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#16a34a]" />
+                      <Icon3D icon={CheckCircle2} size="sm" tone="success" />
                       <p className="text-[14px] leading-6 text-[#166534]">
                         You are signed in with the invited email. Accepting links this account to
                         the dealership as a sales rep.

@@ -10,6 +10,7 @@ import {
   ListChecks,
   WalletCards,
 } from "lucide-react";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { createClient } from "@/lib/supabase/client";
 import { activateSellerPackagePlan } from "@/lib/actions/membership";
 import {
@@ -203,8 +204,8 @@ export function MembershipPage() {
         dashboardData.access.remainingListings === null
           ? "Unlimited"
           : String(dashboardData.access.remainingListings ?? 0),
-      icon: <BadgeCheck className="h-5 w-5 text-primary" />,
-      accentClass: "bg-brand-tint",
+      icon: BadgeCheck,
+      asset: "verified-badge" as const,
       note: dashboardData.access.currentPlan
         ? `${dashboardData.access.currentPlan.name}${isIntroTrialActive ? " intro" : ""} plan`
         : "No active package",
@@ -212,15 +213,17 @@ export function MembershipPage() {
     {
       label: "Used listing",
       value: String(dashboardData.access.usedListings),
-      icon: <ListChecks className="h-5 w-5 text-[#2f9e63]" />,
-      accentClass: "bg-[#eaf7ef]",
+      icon: ListChecks,
+      asset: "checklist" as const,
+      tone: "success" as const,
       note: "Draft, pending, active, and reserved listings",
     },
     {
       label: "Renewal due",
       value: dashboardData.access.renewalDateLabel || "No plan",
-      icon: <CalendarRange className="h-5 w-5 text-[#f79009]" />,
-      accentClass: "bg-[#fff3e4]",
+      icon: CalendarRange,
+      asset: "calendar" as const,
+      tone: "warning" as const,
       note: dashboardData.access.hasActivePlan
         ? "Auto-renew is off"
         : "Activate a seller package",
@@ -228,8 +231,9 @@ export function MembershipPage() {
     {
       label: "Billing cycle",
       value: dashboardData.access.billingCycleLabel,
-      icon: <WalletCards className="h-5 w-5 text-[#f04438]" />,
-      accentClass: "bg-[#fff0ef]",
+      icon: WalletCards,
+      asset: "wallet" as const,
+      tone: "danger" as const,
       note: dashboardData.access.currentPlan
         ? isIntroTrialActive
           ? "First 6 months are free"
@@ -325,15 +329,16 @@ export function MembershipPage() {
           <SellerStatCard
             label="Listing access"
             value="Free during pilot"
-            icon={<BadgeCheck className="h-5 w-5 text-primary" />}
-            accentClass="bg-brand-tint"
+            icon={BadgeCheck}
+            asset="verified-badge"
             note="No dealer membership required"
           />
           <SellerStatCard
             label="Current listings"
             value={String(dashboardData.access.usedListings)}
-            icon={<ListChecks className="h-5 w-5 text-[#2f9e63]" />}
-            accentClass="bg-[#eaf7ef]"
+            icon={ListChecks}
+            asset="checklist"
+            tone="success"
             note="Draft, pending, active, and reserved listings"
           />
         </div>
@@ -527,7 +532,7 @@ export function MembershipPage() {
                       {formatPaymentAmount(item.amount, item.currency)}
                     </p>
                     <p className="mt-1 inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#2f9e63]">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <Icon3D icon={CheckCircle2} size="xs" tone="success" variant="glyph" />
                       {item.status}
                     </p>
                   </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { Check } from "lucide-react";
 
 const sellOptions = [
@@ -65,7 +66,7 @@ export function SellVehicleSection() {
               <ul className="mb-8 flex-1 space-y-3">
                 {option.benefits.map((benefit) => (
                   <li key={benefit} className="flex items-center gap-2.5 text-sm text-gray-700">
-                    <Check className="h-4 w-4 shrink-0 text-primary" />
+                    <Icon3D icon={Check} variant="glyph" />
                     {benefit}
                   </li>
                 ))}

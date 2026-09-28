@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { BellRing, CheckCheck, ChevronRight } from "lucide-react";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import type { NotificationCenterData, NotificationListItem } from "@/lib/types/notifications";
 
 type NotificationInboxProps = {
@@ -113,9 +114,12 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
       <div className="mt-8 rounded-[28px] border border-[#e5e7eb] bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#eaecf0] px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-tint text-primary">
-              <BellRing className="h-5 w-5" />
-            </div>
+            <Illustration3D
+              asset="bell-alert"
+              fallbackIcon={BellRing}
+              size="md"
+              className="h-11 w-11"
+            />
             <div>
               <p className="text-[15px] font-semibold text-[#111827]">Inbox</p>
               <p className="text-[13px] text-[#667085]">{unreadCount} unread</p>

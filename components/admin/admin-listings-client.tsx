@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Clock, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { getImageUrl } from "@/lib/utils/listings";
 import type { DuplicateReviewSuggestion } from "@/lib/types/duplicate-review";
 import type { Listing } from "@/lib/types/listing";
@@ -99,7 +100,12 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
         </p>
         <AdminFeedbackBanner feedback={feedback} />
         <div className="rounded-xl border border-border bg-white p-12 text-center">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-green-400" />
+          <Illustration3D
+            asset="success-check"
+            fallbackIcon={CheckCircle2}
+            tone="success"
+            className="mx-auto flex h-12 w-12"
+          />
           <h3 className="mt-4 text-lg font-medium text-gray-900">All caught up!</h3>
           <p className="mt-1 text-sm text-gray-500">No pending listings to review.</p>
         </div>
@@ -113,7 +119,7 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
         title="Listing Review"
         action={
           <Badge variant="warning" className="gap-1">
-            <Clock className="h-3 w-3" />
+            <Icon3D icon={Clock} variant="glyph" size="xs" tone="warning" />
             {listings.length} Pending
           </Badge>
         }

@@ -8,25 +8,29 @@ import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calculator, ShieldCheck, Clock, ArrowRight } from "lucide-react";
+import { Illustration3D } from "@/components/ui/icon-3d";
+import { Calculator, GitCompare, Clock, ArrowRight } from "lucide-react";
 
 const benefits = [
   {
     icon: Calculator,
+    asset: "loan-calculator",
     title: "Instant Calculation",
     description: "Get reliable monthly payment estimates in seconds.",
   },
   {
-    icon: ShieldCheck,
+    icon: GitCompare,
+    asset: "compare-vehicles",
     title: "Compare options",
     description: "Adjust rate and tenure to compare multiple finance scenarios.",
   },
   {
     icon: Clock,
+    asset: "stopwatch-fast",
     title: "No registration",
     description: "Use the tool freely without creating an account.",
   },
-];
+] as const;
 
 const tips = [
   {
@@ -217,9 +221,7 @@ export default function CalculatorPage() {
           <div className="mt-10 grid gap-6 sm:grid-cols-3 sm:gap-8">
             {benefits.map((benefit) => (
               <div key={benefit.title} className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-tint">
-                  <benefit.icon className="h-6 w-6 text-primary" />
-                </div>
+                <Illustration3D asset={benefit.asset} fallbackIcon={benefit.icon} size="lg" />
                 <h3 className="mt-4 font-semibold text-foreground">{benefit.title}</h3>
                 <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{benefit.description}</p>
               </div>

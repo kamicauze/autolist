@@ -39,6 +39,14 @@ export function getListingCardProps(listing: Listing): CarCardProps {
       name: listing.dealer?.name || listing.seller?.full_name || "Private Seller",
       avatarUrl: listing.dealer?.logo_url || listing.seller?.avatar_url || undefined,
     },
+    dealer: listing.dealer
+      ? {
+          name: listing.dealer.name,
+          href: `/dealers/${listing.dealer.id}`,
+          city: listing.dealer.city?.trim() || undefined,
+          logoUrl: listing.dealer.logo_url || undefined,
+        }
+      : undefined,
     href: `/vehicle/${listing.id}`,
   };
 }

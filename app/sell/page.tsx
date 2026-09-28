@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Shield, Clock, DollarSign, CheckCircle2, Star } from "lucide-react";
 
 const sellingOptions = [
@@ -38,23 +39,26 @@ const sellingOptions = [
 const benefits = [
   {
     icon: Shield,
+    asset: "shield-check",
     title: "Trusted & Secure",
     description:
       "All transactions are protected. Verified buyers and secure payment processing ensure peace of mind.",
   },
   {
     icon: Clock,
+    asset: "stopwatch-fast",
     title: "Sell Faster",
     description:
       "Your listing reaches thousands of active buyers daily. Most cars sell within the first week.",
   },
   {
     icon: DollarSign,
+    asset: "money-value",
     title: "Best Value",
     description:
       "Our market insights help you price competitively. Get the best possible value for your vehicle.",
   },
-];
+] as const;
 
 const testimonials = [
   {
@@ -129,7 +133,12 @@ export default function SellPage() {
                         key={feature}
                         className="flex items-center gap-2.5 text-sm text-foreground"
                       >
-                        <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-green-500" />
+                        <Icon3D
+                          icon={CheckCircle2}
+                          variant="glyph"
+                          tone="success"
+                          className="h-4.5 w-4.5 [&>svg]:h-4.5 [&>svg]:w-4.5"
+                        />
                         {feature}
                       </li>
                     ))}
@@ -166,9 +175,12 @@ export default function SellPage() {
                   key={benefit.title}
                   className="flex flex-col items-center text-center"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-tint">
-                    <benefit.icon className="h-7 w-7 text-primary" />
-                  </div>
+                  <Illustration3D
+                    asset={benefit.asset}
+                    fallbackIcon={benefit.icon}
+                    size="xl"
+                    className="h-16 w-16"
+                  />
                   <h3 className="mt-4 text-lg font-semibold text-foreground">
                     {benefit.title}
                   </h3>

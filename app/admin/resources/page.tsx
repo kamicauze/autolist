@@ -10,6 +10,7 @@ import {
   AdminSectionCard,
   adminGhostButtonClass,
 } from "@/components/admin/admin-ui";
+import { Icon3D } from "@/components/ui/icon-3d";
 
 const DRIVE_FOLDER_URL =
   "https://drive.google.com/drive/folders/1XxsCn6wAfyo5nlZTCryTILiVJqi7m92w";
@@ -71,9 +72,7 @@ export default function AdminResourcesPage() {
             className="h-full"
             bodyClassName="flex h-full flex-col justify-between gap-6"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-tint text-primary">
-              <resource.icon className="h-5 w-5" />
-            </div>
+            <Icon3D icon={resource.icon} size="lg" />
             <a
               href={resource.href}
               target="_blank"

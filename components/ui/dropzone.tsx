@@ -4,6 +4,7 @@ import * as React from "react";
 import { UploadCloud, File, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 
 interface DropzoneProps {
   className?: string;
@@ -153,9 +154,12 @@ export function Dropzone({
           onChange={handleFileInput}
         />
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
-            <UploadCloud className="h-6 w-6 text-gray-500" />
-          </div>
+          <Illustration3D
+            asset="upload-cloud"
+            fallbackIcon={UploadCloud}
+            size="lg"
+            className="h-12 w-12"
+          />
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-700">
               <span className="text-primary hover:underline">Click to upload</span>{" "}
@@ -184,7 +188,7 @@ export function Dropzone({
                     onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
                   />
                 ) : (
-                  <File className="h-5 w-5 text-gray-400" />
+                  <Icon3D icon={File} size="md" tone="neutral" variant="glyph" />
                 )}
               </div>
               <div className="min-w-0 flex-1">

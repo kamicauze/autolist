@@ -204,22 +204,24 @@ export function AdminRolesPermissionsLive({
         <AdminStatCard
           label="Total accounts"
           value={data.stats.total.toLocaleString("en-KE")}
-          icon={<Users className="h-5 w-5" />}
+          icon={Users}
+          asset="community-users"
         />
         <AdminStatCard
           label="Staff accounts"
           value={data.stats.staff.toLocaleString("en-KE")}
-          icon={<UserCog className="h-5 w-5" />}
+          icon={UserCog}
         />
         <AdminStatCard
           label="Admin accounts"
           value={data.stats.admins.toLocaleString("en-KE")}
-          icon={<ShieldCheck className="h-5 w-5" />}
+          icon={ShieldCheck}
+          asset="shield-check"
         />
         <AdminStatCard
           label="Support accounts"
           value={data.stats.supports.toLocaleString("en-KE")}
-          icon={<Headset className="h-5 w-5" />}
+          icon={Headset}
           note={
             data.stats.pendingDealers > 0
               ? `${data.stats.pendingDealers} dealer reviews pending`

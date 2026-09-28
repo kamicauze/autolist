@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useEmblaCarousel from "embla-carousel-react";
 import {
+  BadgeCheck,
   BriefcaseBusiness,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   GitCompare,
@@ -16,6 +18,7 @@ import {
 } from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
 import { LISTING_OVERVIEW_ASSET_PATHS } from "@/lib/constants/listing-overview-assets";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -46,6 +49,12 @@ export interface CarCardProps {
   seller: {
     name: string;
     avatarUrl?: string;
+  };
+  dealer?: {
+    name: string;
+    href: string;
+    city?: string;
+    logoUrl?: string;
   };
   initialIsFavorited?: boolean;
   href?: string;
@@ -79,13 +88,11 @@ function CardFact({
 export function CarCard({
   id,
   title,
-  subtitle,
   bodyType,
   mileage,
   fuelType,
   transmission,
   engineSize,
-  location,
   sellerLabel,
   contactKind = "message",
   price,
@@ -94,6 +101,7 @@ export function CarCard({
   images,
   isFeatured = false,
   seller: _seller,
+  dealer,
   initialIsFavorited,
   href,
   density = "default",
@@ -104,6 +112,8 @@ export function CarCard({
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [isLiked, setIsLiked] = React.useState(Boolean(initialIsFavorited));
   const [isWishlistPending, setIsWishlistPending] = React.useState(false);
+  const [isDealerOpen, setIsDealerOpen] = React.useState(false);
+  const dealerPanelId = React.useId();
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
 
   const formattedPrice = new Intl.NumberFormat("en-KE").format(price);
@@ -256,8 +266,17 @@ export function CarCard({
     [href, id, isLiked, isWishlistPending, router]
   );
 
-  const cardContent = (
-    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+  const onDealerToggle = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDealerOpen((open) => !open);
+    },
+    []
+  );
+
+  const cardBody = (
+    <>
       <div className={cn("relative w-full overflow-hidden bg-muted", isCompact ? "h-60 sm:h-52" : "h-60")}>
         <div className="h-full overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
@@ -359,7 +378,7 @@ export function CarCard({
         )}
       </div>
 
-      <div className={cn("flex flex-1 flex-col divide-y divide-border/70", isCompact ? "p-3.5" : "p-4")}>
+      <div className={cn("flex flex-1 flex-col divide-y divide-border/70", isCompact ? "px-3.5 pt-3.5" : "px-4 pt-4")}>
         <div className={cn("flex items-start", isCompact ? "pb-2.5" : "pb-3")}>
           <h3
             className={cn(
@@ -407,46 +426,107 @@ export function CarCard({
             </span>
           ) : null}
         </div>
+      </div>
+    </>
+  );
 
+  return (
+    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+      {href ? (
+        <Link href={href} scroll className="flex flex-1 flex-col">
+          {cardBody}
+        </Link>
+      ) : (
+        <div className="flex flex-1 flex-col">{cardBody}</div>
+      )}
+
+      <div className={isCompact ? "px-3.5 pb-3.5" : "px-4 pb-4"}>
         <div
           className={cn(
-            "mt-auto flex items-center justify-between gap-3 font-medium text-muted-foreground",
+            "border-t border-border/70 font-medium text-muted-foreground",
             isCompact ? "pt-3 text-[11px] leading-[16px]" : "pt-3.5 text-[12px] leading-[18px]"
           )}
         >
-          <div className="flex min-w-0 items-center gap-1.5">
-            {contactKind === "call" ? (
-              <BriefcaseBusiness className="h-3 w-3 shrink-0" />
-            ) : (
-              <UserRound className="h-3 w-3 shrink-0" />
-            )}
-            <span className="min-w-0 truncate">{displaySellerLabel}</span>
-          </div>
-          <div className="flex min-w-0 shrink-0 items-center gap-1 max-w-[55%]">
-            <Image
-              src={LISTING_OVERVIEW_ASSET_PATHS.location}
-              alt=""
-              width={24}
-              height={24}
-              className={cn(
-                "shrink-0 object-contain",
-                isCompact ? "h-4 w-4" : "h-5 w-5"
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {contactKind === "call" ? (
+                <Icon3D
+                  icon={BriefcaseBusiness}
+                  size="xs"
+                  tone="neutral"
+                  variant="glyph"
+                  className="h-3 w-3 [&>svg]:h-3 [&>svg]:w-3"
+                />
+              ) : (
+                <Icon3D
+                  icon={UserRound}
+                  size="xs"
+                  tone="neutral"
+                  variant="glyph"
+                  className="h-3 w-3 [&>svg]:h-3 [&>svg]:w-3"
+                />
               )}
-            />
-            <span className="min-w-0 truncate">{location || subtitle || "Kenya"}</span>
+              <span className="min-w-0 truncate">{displaySellerLabel}</span>
+            </div>
+            {dealer ? (
+              <button
+                type="button"
+                onClick={onDealerToggle}
+                aria-expanded={isDealerOpen}
+                aria-controls={dealerPanelId}
+                aria-label={isDealerOpen ? "Hide dealer details" : "Show dealer details"}
+                className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted hover:text-card-foreground"
+              >
+                <ChevronDown
+                  className={cn("h-4 w-4 transition-transform duration-200", isDealerOpen && "rotate-180")}
+                />
+              </button>
+            ) : null}
           </div>
+
+          {dealer ? (
+            <div id={dealerPanelId} hidden={!isDealerOpen} className="mt-3 space-y-2.5 rounded-lg bg-muted/60 p-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-card">
+                  {dealer.logoUrl ? (
+                    <Image src={dealer.logoUrl} alt="" fill sizes="32px" className="object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-semibold">
+                      {dealer.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <span className="min-w-0 truncate font-semibold text-card-foreground">{dealer.name}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 text-primary">
+                  <Icon3D icon={BadgeCheck} size="xs" variant="glyph" />
+                  Verified dealer
+                </span>
+                {dealer.city ? (
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <Image
+                      src={LISTING_OVERVIEW_ASSET_PATHS.location}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="h-4 w-4 shrink-0 object-contain"
+                    />
+                    <span className="truncate">{dealer.city}</span>
+                  </span>
+                ) : null}
+              </div>
+              <Link
+                href={dealer.href}
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
+              >
+                View dealer
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
-
-  if (href) {
-    return (
-      <Link href={href} scroll className="block h-full">
-        {cardContent}
-      </Link>
-    );
-  }
-
-  return cardContent;
 }

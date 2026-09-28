@@ -1,21 +1,22 @@
 import Link from "next/link";
 import {
-  CarFront,
   CreditCard,
-  Globe2,
+  ShieldAlert,
   ShieldCheck,
   Ship,
   type LucideIcon,
 } from "lucide-react";
+
+import { Illustration3D } from "@/components/ui/icon-3d";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 
 type Feature = {
   title: string;
   description: string;
   buttonText: string;
   href: string;
-  Illustration: LucideIcon;
-  Accent: LucideIcon;
-  accentPosition: string;
+  asset: Icon3DAssetKey;
+  fallbackIcon: LucideIcon;
 };
 
 const features: Feature[] = [
@@ -25,18 +26,16 @@ const features: Feature[] = [
       "Protect your next vehicle with flexible cover options built for local drivers.",
     buttonText: "Get insured",
     href: "/insurance",
-    Illustration: CarFront,
-    Accent: ShieldCheck,
-    accentPosition: "right-10 top-7 h-16 w-16",
+    asset: "car-insurance",
+    fallbackIcon: ShieldCheck,
   },
   {
     title: "Security advice",
     description: "Advice on how to buy and sell vehicles safely.",
     buttonText: "Read advice",
     href: "/security-advice",
-    Illustration: CarFront,
-    Accent: ShieldCheck,
-    accentPosition: "right-10 top-7 h-16 w-16",
+    asset: "security-advice",
+    fallbackIcon: ShieldAlert,
   },
   {
     title: "Financing",
@@ -44,9 +43,8 @@ const features: Feature[] = [
       "Fill out our credit approval form for your next used vehicle loan.",
     buttonText: "Apply now",
     href: "/calculator",
-    Illustration: CreditCard,
-    Accent: CarFront,
-    accentPosition: "right-10 bottom-8 h-12 w-12",
+    asset: "car-financing",
+    fallbackIcon: CreditCard,
   },
   {
     title: "Car Importation",
@@ -54,9 +52,8 @@ const features: Feature[] = [
       "Let experts help you in importing a car of your choice.",
     buttonText: "Inquire now",
     href: "/import-inquiry",
-    Illustration: Globe2,
-    Accent: Ship,
-    accentPosition: "right-9 top-8 h-11 w-11",
+    asset: "car-import",
+    fallbackIcon: Ship,
   },
 ];
 
@@ -72,33 +69,18 @@ export function DiscoverMore() {
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => {
-            const Illustration = feature.Illustration;
-            const Accent = feature.Accent;
-
             return (
               <div
                 key={feature.title}
                 className="group flex h-full flex-col rounded-lg border border-gray-100 bg-white p-4 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)] transition-transform duration-300 hover:-translate-y-1"
               >
                 <div className="relative mb-5 flex h-40 items-center justify-center overflow-hidden rounded-lg text-primary">
-                  <Illustration
-                    aria-hidden="true"
-                    className="h-20 w-20 stroke-[1.7] transition-transform duration-300 group-hover:scale-105"
+                  <Illustration3D
+                    asset={feature.asset}
+                    fallbackIcon={feature.fallbackIcon}
+                    size="xl"
+                    className="h-24 w-24 transition-transform duration-300 group-hover:scale-105 [&>svg]:h-12 [&>svg]:w-12"
                   />
-                  <Accent
-                    aria-hidden="true"
-                    className={`absolute stroke-[1.7] ${feature.accentPosition}`}
-                  />
-                  {feature.title === "Financing" ? (
-                    <>
-                      <span className="absolute right-16 top-6 flex h-8 w-8 items-center justify-center rounded-full border-2 border-current text-sm font-semibold">
-                        $
-                      </span>
-                      <span className="absolute left-11 bottom-8 flex h-8 w-8 items-center justify-center rounded-full border-2 border-current text-sm font-semibold">
-                        $
-                      </span>
-                    </>
-                  ) : null}
                 </div>
 
                 <div className="flex flex-1 flex-col">

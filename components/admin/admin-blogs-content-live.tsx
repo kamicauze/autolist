@@ -374,22 +374,23 @@ export function AdminBlogsContentLive({
         <AdminStatCard
           label="Total posts"
           value={stats.totalPosts.toLocaleString("en-KE")}
-          icon={<FileText className="h-5 w-5" />}
+          icon={FileText}
         />
         <AdminStatCard
           label="Drafts"
           value={stats.draftPosts.toLocaleString("en-KE")}
-          icon={<SquarePen className="h-5 w-5" />}
+          icon={SquarePen}
         />
         <AdminStatCard
           label="Published"
           value={stats.publishedPosts.toLocaleString("en-KE")}
-          icon={<Globe2 className="h-5 w-5" />}
+          icon={Globe2}
         />
         <AdminStatCard
           label="Published this month"
           value={stats.publishedThisMonth.toLocaleString("en-KE")}
-          icon={<CalendarDays className="h-5 w-5" />}
+          icon={CalendarDays}
+          asset="calendar"
         />
       </div>
 

@@ -6,8 +6,11 @@ import {
   ShieldAlert,
   ShieldCheck,
   UploadCloud,
+  type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
+import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import {
   SellerPageHeader,
@@ -43,28 +46,33 @@ const TIMELINE = [
     description:
       "Add required files and optional supporting documents from your dashboard.",
     icon: UploadCloud,
+    asset: "upload-cloud" as const,
   },
   {
     title: "Autolist review",
     description:
       "The operations team checks business details, contact identity, and document quality.",
     icon: FileSearch,
+    asset: "file-review" as const,
   },
   {
     title: "Verification decision",
     description:
       "Approved accounts unlock trust signals; rejected accounts can resubmit updates.",
     icon: ClipboardCheck,
+    asset: "clipboard-decision" as const,
   },
 ];
 
 function SummaryCard({
   icon,
+  asset,
   title,
   description,
   tone,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
+  asset?: Icon3DAssetKey;
   title: string;
   description: string;
   tone: "green" | "red" | "blue" | "amber";
@@ -75,13 +83,26 @@ function SummaryCard({
     blue: "border-[#d4e4ff] bg-[#f4f8ff]",
     amber: "border-[#ffe4bf] bg-[#fff8eb]",
   };
+  const iconTone = {
+    green: "success",
+    red: "danger",
+    blue: "primary",
+    amber: "warning",
+  } as const;
 
   return (
     <div className={`rounded-[24px] border p-5 ${classes[tone]}`}>
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-[#202224]">
-          {icon}
-        </div>
+        {asset ? (
+          <Illustration3D
+            asset={asset}
+            fallbackIcon={icon}
+            tone={iconTone[tone]}
+            className="h-12 w-12"
+          />
+        ) : (
+          <Icon3D icon={icon} size="lg" tone={iconTone[tone]} variant="solid" />
+        )}
         <div>
           <h2 className="font-heading text-[24px] font-semibold text-[#202224]">
             {title}
@@ -135,21 +156,24 @@ export async function VerificationPage() {
 
       {!dealer ? (
         <SummaryCard
-          icon={<ShieldCheck className="h-5 w-5 text-[#f79009]" />}
+          icon={ShieldCheck}
+          asset="shield-check"
           title="No verification request yet"
           description="Create your first dealer verification request to unlock trusted seller status and premium listing tools. The dashboard shows the documents you will need before submission."
           tone="amber"
         />
       ) : dealer.status === "APPROVED" ? (
         <SummaryCard
-          icon={<CheckCircle2 className="h-5 w-5 text-[#2f9e63]" />}
+          icon={CheckCircle2}
+          asset="success-check"
           title="Verification approved"
           description="Your business profile is verified and public trust signals are now active across your seller dashboard."
           tone="green"
         />
       ) : dealer.status === "REJECTED" ? (
         <SummaryCard
-          icon={<ShieldAlert className="h-5 w-5 text-[#f04438]" />}
+          icon={ShieldAlert}
+          asset="shield-alert"
           title="Verification needs attention"
           description={
             dealer.rejection_reason ||
@@ -159,7 +183,8 @@ export async function VerificationPage() {
         />
       ) : (
         <SummaryCard
-          icon={<Clock3 className="h-5 w-5 text-primary" />}
+          icon={Clock3}
+          asset="clock-pending"
           title="Verification in progress"
           description="Your seller documents are with the review team. We’ll notify you as soon as the verification process is complete."
           tone="blue"
@@ -259,13 +284,14 @@ export async function VerificationPage() {
             </h2>
             <div className="mt-5 space-y-4">
               {TIMELINE.map((item, index) => {
-                const Icon = item.icon;
                 return (
                   <div key={item.title} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-tint text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
+                      <Illustration3D
+                        asset={item.asset}
+                        fallbackIcon={item.icon}
+                        size="md"
+                      />
                       {index < TIMELINE.length - 1 ? (
                         <div className="my-2 h-8 w-px bg-[#e6e6e6]" />
                       ) : null}
@@ -294,7 +320,12 @@ export async function VerificationPage() {
                   key={guideline}
                   className="flex items-start gap-3 text-[13px] leading-5 text-[#6d6d6d]"
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2f9e63]" />
+                  <Icon3D
+                    icon={CheckCircle2}
+                    tone="success"
+                    variant="glyph"
+                    className="mt-0.5"
+                  />
                   <span>{guideline}</span>
                 </div>
               ))}

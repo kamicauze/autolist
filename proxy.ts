@@ -18,7 +18,9 @@ export async function proxy(request: NextRequest) {
 
     const { url, anonKey, configured } = getSupabasePublicEnv();
 
-    if (!configured) {
+    // A PKCE callback (?code=) must not refresh here: a stale session makes getUser()
+    // sign out, which also deletes the code-verifier cookie the exchange needs.
+    if (!configured || request.nextUrl.searchParams.has("code")) {
         return response;
     }
 

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
+import { Icon3D } from "@/components/ui/icon-3d";
 import { createClient } from "@/lib/supabase/client";
 import type { DashboardAccountKind } from "@/lib/data/dashboard-account";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
@@ -223,7 +224,7 @@ export function Sidebar({
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
-                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <Icon3D icon={item.icon} size="xs" variant="solid" />
                   <span className={cn(collapsed ? "lg:sr-only" : null)}>{item.name}</span>
                 </Link>
               );
@@ -256,7 +257,7 @@ export function Sidebar({
                       : "text-white/65 hover:bg-white/6 hover:text-white"
                   )}
                 >
-                  <item.icon className="h-[18px] w-[18px] shrink-0" />
+                  <Icon3D icon={item.icon} size="xs" variant="solid" />
                   <span className={cn(collapsed ? "lg:sr-only" : null)}>{item.name}</span>
                 </Link>
               );

@@ -23,6 +23,7 @@ import type {
   CmsSpecialOfferStatus,
 } from "@/lib/types/cms-special-offers";
 import { cn } from "@/lib/utils";
+import { Icon3D } from "@/components/ui/icon-3d";
 import {
   AdminPageHeader,
   AdminSectionCard,
@@ -296,22 +297,24 @@ export function AdminSpecialOffersLive({
         <AdminStatCard
           label="Total offers"
           value={stats.total.toLocaleString("en-KE")}
-          icon={<Gift className="h-5 w-5" />}
+          icon={Gift}
         />
         <AdminStatCard
           label="Live now"
           value={stats.live.toLocaleString("en-KE")}
-          icon={<Tag className="h-5 w-5" />}
+          icon={Tag}
         />
         <AdminStatCard
           label="Scheduled"
           value={stats.scheduled.toLocaleString("en-KE")}
-          icon={<CalendarDays className="h-5 w-5" />}
+          icon={CalendarDays}
+          asset="calendar"
         />
         <AdminStatCard
           label="Redemptions"
           value={stats.totalRedemptions.toLocaleString("en-KE")}
-          icon={<Users className="h-5 w-5" />}
+          icon={Users}
+          asset="community-users"
           note={stats.paused > 0 ? `${stats.paused} paused` : undefined}
         />
       </div>
@@ -618,7 +621,7 @@ export function AdminSpecialOffersLive({
 
                     <div className="rounded-[14px] border border-[#e5e7eb] bg-[#f8fafc] px-4 py-4">
                       <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.16em] text-[#94a3b8]">
-                        <Clock3 className="h-4 w-4" />
+                        <Icon3D icon={Clock3} variant="glyph" size="sm" tone="neutral" />
                         Run window
                       </div>
                       <p className="mt-3 text-[14px] font-medium leading-6 text-[#111827]">

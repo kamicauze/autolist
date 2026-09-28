@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -116,18 +117,21 @@ const processSteps = [
     title: "Vehicle info",
     description: "Tell us what you are selling.",
     icon: Gauge,
+    asset: "gauge",
   },
   {
     title: "Dealer match",
     description: "We route it to relevant buyers.",
     icon: Handshake,
+    asset: "handshake-deal",
   },
   {
     title: "Dealer delivery",
     description: "Publish the request to approved dealers.",
     icon: BadgeCheck,
+    asset: "verified-badge",
   },
-];
+] as const;
 
 const saleChannelOptions: Array<{
   value: DealerSaleFormState["saleChannel"];
@@ -578,9 +582,13 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
   if (completedListingId) {
     return (
       <div className="mx-auto max-w-2xl rounded-[20px] border border-green-200 bg-white p-6 text-center shadow-sm sm:p-10">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-700">
-          <Check className="h-7 w-7" />
-        </div>
+        <Illustration3D
+          asset="success-check"
+          fallbackIcon={Check}
+          size="lg"
+          tone="success"
+          className="h-14 w-14 align-top"
+        />
         <h1 className="mt-5 text-3xl font-bold text-gray-950">
           Dealer-sale request submitted
         </h1>
@@ -630,9 +638,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                 key={step.title}
                 className="flex gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm">
-                  <step.icon className="h-5 w-5" />
-                </div>
+                <Illustration3D asset={step.asset} fallbackIcon={step.icon} size="md" />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
                     {index + 1}. {step.title}
@@ -647,7 +653,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
 
           <div className="mt-6 rounded-xl border border-brand-muted-border bg-brand-tint p-4">
             <div className="flex items-start gap-3">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <Icon3D icon={ShieldCheck} size="sm" />
               <p className="text-sm leading-relaxed text-gray-700">
                 Only a private-seller account can use this dealer-sale intake.
               </p>
@@ -1013,7 +1019,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                     : "border-gray-300 bg-gray-50 hover:border-primary/50 hover:bg-brand-tint/40",
                 )}
               >
-                <Camera className="h-7 w-7 text-primary" />
+                <Illustration3D asset="camera-photos" fallbackIcon={Camera} size="md" />
                 <span className="mt-3 text-sm font-bold text-gray-950">
                   {photos.length > 0
                     ? `${photos.length} photo${photos.length === 1 ? "" : "s"} selected`
@@ -1112,7 +1118,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
           >
             <div className="flex gap-2">
               {feedback.tone === "success" ? (
-                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                <Icon3D icon={Check} tone="success" variant="glyph" className="mt-0.5" />
               ) : null}
               <span>{feedback.message}</span>
             </div>

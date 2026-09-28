@@ -750,22 +750,23 @@ export function AdminAdsBannersLive({
         <AdminStatCard
           label="Live campaigns"
           value={stats.live.toLocaleString("en-KE")}
-          icon={<FileBadge2 className="h-5 w-5" />}
+          icon={FileBadge2}
         />
         <AdminStatCard
           label="Scheduled"
           value={stats.scheduled.toLocaleString("en-KE")}
-          icon={<Bell className="h-5 w-5" />}
+          icon={Bell}
+          asset="bell-alert"
         />
         <AdminStatCard
           label="Average CTR"
           value={`${stats.averageCtr.toFixed(2)}%`}
-          icon={<Eye className="h-5 w-5" />}
+          icon={Eye}
         />
         <AdminStatCard
           label="Expiring soon"
           value={stats.expiringSoon.toLocaleString("en-KE")}
-          icon={<ImageIcon className="h-5 w-5" />}
+          icon={ImageIcon}
         />
       </div>
 

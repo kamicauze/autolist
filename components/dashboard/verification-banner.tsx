@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "luci
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import { createClient } from "@/lib/supabase/server";
+import { Illustration3D } from "@/components/ui/icon-3d";
 import { SellerSurface } from "./seller-dashboard-ui";
 
 export async function VerificationBanner() {
@@ -24,9 +25,12 @@ export async function VerificationBanner() {
       <SellerSurface className="overflow-hidden border-[#ffd3d0] bg-[#fff1f0]">
         <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffdbd8] text-[#f04438]">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
+            <Illustration3D
+              asset="shield-check"
+              fallbackIcon={ShieldCheck}
+              tone="danger"
+              className="h-12 w-12"
+            />
             <div className="space-y-2">
               <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                 Verify your dealership
@@ -53,9 +57,12 @@ export async function VerificationBanner() {
     return (
       <SellerSurface className="border-[#ccebd7] bg-[#eefaf2]">
         <div className="flex items-start gap-4 p-5 lg:p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d7f4e2] text-[#2f9e63]">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
+          <Illustration3D
+            asset="success-check"
+            fallbackIcon={CheckCircle2}
+            tone="success"
+            className="h-12 w-12"
+          />
           <div className="space-y-2">
             <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
               Your dealer account is verified
@@ -75,9 +82,12 @@ export async function VerificationBanner() {
       <SellerSurface className="border-[#ffd3d0] bg-[#fff4f3]">
         <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffdfdc] text-[#f04438]">
-              <AlertCircle className="h-5 w-5" />
-            </div>
+            <Illustration3D
+              asset="alert-circle"
+              fallbackIcon={AlertCircle}
+              tone="danger"
+              className="h-12 w-12"
+            />
             <div className="space-y-2">
               <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
                 Verification needs updates
@@ -102,9 +112,7 @@ export async function VerificationBanner() {
   return (
     <SellerSurface className="border-[#d4e4ff] bg-[#f4f8ff]">
       <div className="flex items-start gap-4 p-5 lg:p-6">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-tint text-primary">
-          <Clock3 className="h-5 w-5" />
-        </div>
+        <Illustration3D asset="clock-pending" fallbackIcon={Clock3} className="h-12 w-12" />
         <div className="space-y-2">
           <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
             Verification in review
