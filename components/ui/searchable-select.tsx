@@ -25,8 +25,12 @@ type SearchableSelectProps = {
   className?: string;
   /** Overrides the trigger label, e.g. to show a custom value not in the options. */
   displayValue?: React.ReactNode;
+  /** Lets the user commit the typed search text when it is not one of the options. */
+  allowCustomValue?: boolean;
   "aria-label"?: string;
 };
+
+const CUSTOM_OPTION_PREFIX = "__custom__:";
 
 function Swatch({ color }: { color: string }) {
   return (
@@ -48,6 +52,7 @@ export function SearchableSelect({
   disabled = false,
   className,
   displayValue,
+  allowCustomValue = false,
   "aria-label": ariaLabel,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
@@ -60,10 +65,17 @@ export function SearchableSelect({
 
   const selected = options.find((option) => option.value === value);
   const filtered = React.useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return options;
-    return options.filter((option) => option.label.toLowerCase().includes(needle));
-  }, [options, query]);
+    const typed = query.trim();
+    const needle = typed.toLowerCase();
+    const matches = needle
+      ? options.filter((option) => option.label.toLowerCase().includes(needle))
+      : [...options];
+    const hasExactMatch = options.some((option) => option.label.toLowerCase() === needle);
+    if (allowCustomValue && typed && !hasExactMatch) {
+      matches.push({ value: `${CUSTOM_OPTION_PREFIX}${typed}`, label: `Use "${typed}"` });
+    }
+    return matches;
+  }, [allowCustomValue, options, query]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -92,7 +104,11 @@ export function SearchableSelect({
 
   const commit = (option: SearchableSelectOption | undefined) => {
     if (!option) return;
-    onChange(option.value);
+    onChange(
+      option.value.startsWith(CUSTOM_OPTION_PREFIX)
+        ? option.value.slice(CUSTOM_OPTION_PREFIX.length)
+        : option.value
+    );
     setOpen(false);
   };
 
@@ -119,6 +135,8 @@ export function SearchableSelect({
       {selected.icon ?? (selected.swatch ? <Swatch color={selected.swatch} /> : null)}
       <span className="truncate">{selected.label}</span>
     </span>
+  ) : allowCustomValue && value.trim() ? (
+    <span className="truncate">{value}</span>
   ) : (
     <span className="truncate text-[#9a9a9a]">{placeholder}</span>
   ));

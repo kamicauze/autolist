@@ -137,8 +137,9 @@ export function StepVehicleDetails() {
 
   const renderReferenceField = (field: (typeof selectedCategoryFields)[number], hasError: boolean) => {
     if (field.key === "make") {
-      if (!isCarCategory && taxonomyMakes && taxonomyMakes.length > 0) {
-        const isListedMake = taxonomyMakes.includes(draft.details.make);
+      const makeOptions = isCarCategory ? referenceOptions.makes : taxonomyMakes;
+      if (makeOptions && makeOptions.length > 0) {
+        const isListedMake = makeOptions.includes(draft.details.make);
         const showManualInput =
           manualMakeMode || (draft.details.make.trim().length > 0 && !isListedMake);
 
@@ -156,7 +157,7 @@ export function StepVehicleDetails() {
                 }
               }}
               options={[
-                ...taxonomyMakes.map((make) => ({ value: make, label: make })),
+                ...makeOptions.map((make) => ({ value: make, label: make })),
                 { value: "__other__", label: "Other (enter manually)" },
               ]}
               placeholder="Select make"
@@ -179,18 +180,16 @@ export function StepVehicleDetails() {
       if (!isCarCategory && hasStructuredMakeSuggestions) {
         return (
           <>
-            <input
-              list={`detail-make-options-${draft.category}`}
+            <SearchableSelect
               value={draft.details.make}
-              onChange={(event) => updateDetailField("make", event.target.value)}
-              placeholder={field.placeholder}
-              className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+              onChange={(value) => updateDetailField("make", value)}
+              options={referenceOptions.makes.map((make) => ({ value: make, label: make }))}
+              allowCustomValue
+              placeholder="Select make"
+              searchPlaceholder="Search or type a make"
+              aria-label={field.label}
+              className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
             />
-            <datalist id={`detail-make-options-${draft.category}`}>
-              {referenceOptions.makes.map((make) => (
-                <option key={make} value={make} />
-              ))}
-            </datalist>
             {referenceOptions.makeHelperText ? (
               <p className="mt-2 text-[12px] text-[#767676]">
                 {referenceOptions.makeHelperText}
@@ -202,20 +201,16 @@ export function StepVehicleDetails() {
 
       return (
         <>
-          <input
-            list={`detail-make-options-${draft.category || "car"}`}
+          <SearchableSelect
             value={draft.details.make}
-            onChange={(event) => updateDetailField("make", event.target.value)}
-            placeholder={field.placeholder}
-            className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+            onChange={(value) => updateDetailField("make", value)}
+            options={referenceOptions.makes.map((make) => ({ value: make, label: make }))}
+            allowCustomValue
+            placeholder="Select make"
+            searchPlaceholder="Search or type a make"
+            aria-label={field.label}
+            className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
           />
-          <datalist id={`detail-make-options-${draft.category || "car"}`}>
-            {referenceOptions.makes.map((make) => (
-              <option key={make} value={make}>
-                {make}
-              </option>
-            ))}
-          </datalist>
         </>
       );
     }
@@ -241,25 +236,17 @@ export function StepVehicleDetails() {
 
       return (
         <>
-          <input
-            list={`detail-model-options-${draft.category || "car"}`}
+          <SearchableSelect
             value={draft.details.model}
-            onChange={(event) => updateDetailField("model", event.target.value)}
+            onChange={(value) => updateDetailField("model", value)}
+            options={referenceOptions.models.map((model) => ({ value: model, label: model }))}
+            allowCustomValue
             disabled={!draft.details.make}
-            placeholder={draft.details.make ? field.placeholder : "Select make first"}
-            className={cn(
-              sellerInputClass,
-              !draft.details.make && "cursor-not-allowed bg-[#f7f7f7] text-[#9a9a9a]",
-              hasError && "border-[#f04438]"
-            )}
+            placeholder={draft.details.make ? "Select model" : "Select make first"}
+            searchPlaceholder="Search or type a model"
+            aria-label={field.label}
+            className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
           />
-          <datalist id={`detail-model-options-${draft.category || "car"}`}>
-            {referenceOptions.models.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </datalist>
         </>
       );
     }
@@ -336,23 +323,16 @@ export function StepVehicleDetails() {
     if (field.key === "variant") {
       return (
         <>
-          <input
-            list={`detail-variant-options-${draft.category || "car"}`}
+          <SearchableSelect
             value={draft.details.variant}
-            onChange={(event) => updateDetailField("variant", event.target.value)}
-            placeholder={field.placeholder}
-            className={cn(
-              sellerInputClass,
-              hasError && "border-[#f04438]"
-            )}
+            onChange={(value) => updateDetailField("variant", value)}
+            options={referenceOptions.variants.map((variant) => ({ value: variant, label: variant }))}
+            allowCustomValue
+            placeholder="Select variant"
+            searchPlaceholder="Search or type a variant"
+            aria-label={field.label}
+            className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
           />
-          <datalist id={`detail-variant-options-${draft.category || "car"}`}>
-            {referenceOptions.variants.map((variant) => (
-              <option key={variant} value={variant}>
-                {variant}
-              </option>
-            ))}
-          </datalist>
           {referenceOptions.variants.length > 0 ? (
             <p className="mt-2 text-[12px] text-[#767676]">
               Use this for complex model variants such as C200, 320i, Cayenne S, or xDrive30d.
