@@ -28,3 +28,31 @@ test("derived search filters drop non-featured listings for featured searches", 
     ["b", "c"],
   );
 });
+
+function driveListing(id: string, make: string, model: string, driveType: string | null) {
+  return {
+    ...listing(id, false),
+    make,
+    model,
+    drive_type: driveType,
+  } as Listing;
+}
+
+test("derived search filters group drive types under 2WD and 4WD", () => {
+  const listings = [
+    driveListing("two", "Toyota", "Axio", "2wd"),
+    driveListing("front", "Mazda", "Demio", "FWD"),
+    driveListing("four", "Toyota", "Hilux", "4wd"),
+    driveListing("all", "Subaru", "Forester", null),
+    driveListing("unknown", "Nissan", "Note", null),
+  ];
+
+  assert.deepEqual(
+    filterAndRankListings(listings, { driveType: "2WD" }).map((item) => item.id),
+    ["two", "front"],
+  );
+  assert.deepEqual(
+    filterAndRankListings(listings, { driveType: "4WD" }).map((item) => item.id),
+    ["four", "all"],
+  );
+});

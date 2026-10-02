@@ -105,7 +105,7 @@ export type LandingSearchCategoryConfig = {
 export const LANDING_SEARCH_CATEGORY_CONFIG: Record<ListingCategory, LandingSearchCategoryConfig> = {
   car: {
     label: "Cars & Vans",
-    brandLabel: "Brand",
+    brandLabel: "Make",
     modelLabel: "Model",
     resultLabelPlural: "cars and vans",
     searchPageTitle: "Cars & vans for sale",

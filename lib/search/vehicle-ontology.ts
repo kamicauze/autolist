@@ -34,7 +34,7 @@ export const SEARCH_INTENTS = [
 
 export type SearchIntent = (typeof SEARCH_INTENTS)[number];
 
-export const SEARCH_DRIVE_TYPES = ["FWD", "RWD", "AWD", "4WD"] as const;
+export const SEARCH_DRIVE_TYPES = ["FWD", "RWD", "AWD", "4WD", "2WD"] as const;
 
 export type SearchDriveType = (typeof SEARCH_DRIVE_TYPES)[number];
 
@@ -232,6 +232,7 @@ const DRIVE_TYPE_PATTERNS: Record<SearchDriveType, RegExp[]> = {
     /\bfour[-\s]?wheel drive\b/,
     /\bfour by four\b/,
   ],
+  "2WD": [/\b2wd\b/, /\b4x2\b/, /\btwo[-\s]?wheel drive\b/],
 };
 
 const AWD_MODEL_PATTERNS = [

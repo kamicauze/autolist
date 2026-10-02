@@ -37,6 +37,7 @@ import {
   FUEL_TYPES,
   CONDITIONS,
   COLORS,
+  COLOR_SWATCHES,
   SEATS_OPTIONS,
   DOORS_OPTIONS,
   DRIVE_TYPES,
@@ -77,6 +78,8 @@ interface FilterSheetProps {
   onOpenChange: (open: boolean) => void;
   totalCount: number;
   initialFilters?: Partial<FilterSheetState>;
+  /** Scope the sheet to this category instead of reading it from the URL. */
+  category?: string;
 }
 
 type FilterSheetState = {
@@ -257,6 +260,7 @@ interface FilterSheetPanelProps {
   initialLocalFilters: FilterSheetState;
   onOpenChange: (open: boolean) => void;
   searchParamsString: string;
+  categoryOverride?: string;
 }
 
 function FilterSheetPanel({
@@ -265,6 +269,7 @@ function FilterSheetPanel({
   initialLocalFilters,
   onOpenChange,
   searchParamsString,
+  categoryOverride,
 }: FilterSheetPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -272,7 +277,8 @@ function FilterSheetPanel({
   const [keywordInput, setKeywordInput] = useState("");
   const keywordTags = parseKeywordTags(localFilters.q);
 
-  const category = new URLSearchParams(searchParamsString).get("category");
+  const category =
+    categoryOverride ?? new URLSearchParams(searchParamsString).get("category");
   const showFilter = (id: SearchFilterId) => isSearchFilterVisible(category, id);
   const taxonomyNodes = getTaxonomyForCategory(category);
   const taxonomySubcategories = getSubcategoriesForTaxonomyCategory(
@@ -368,6 +374,7 @@ function FilterSheetPanel({
   const applyFilters = () => {
     const params = new URLSearchParams(searchParamsString);
     params.set("page", "1");
+    if (categoryOverride) params.set("category", categoryOverride);
     const keyword = serializeKeywordTags(mergeKeywordTags(keywordTags, keywordInput));
 
     // Keyword
@@ -1089,24 +1096,29 @@ function FilterSheetPanel({
                 {showFilter("color") ? (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-gray-600">Color</Label>
-                  <Select
-                    value={localFilters.color || "any"}
-                    onValueChange={(val) =>
-                      setLocalFilters((p) => ({ ...p, color: val === "any" ? "" : val }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any Color</SelectItem>
-                      {COLORS.map((color) => (
-                        <SelectItem key={color} value={color}>
-                          {color}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex flex-wrap gap-2">
+                    {COLORS.map((color) => (
+                      <FilterChip
+                        key={color}
+                        selected={localFilters.color === color}
+                        onClick={() =>
+                          setLocalFilters((p) => ({
+                            ...p,
+                            color: p.color === color ? "" : color,
+                          }))
+                        }
+                        size="sm"
+                        className="gap-1.5"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/15"
+                          style={{ backgroundColor: COLOR_SWATCHES[color] }}
+                        />
+                        {color}
+                      </FilterChip>
+                    ))}
+                  </div>
                 </div>
                 ) : null}
 
@@ -1249,10 +1261,10 @@ function FilterSheetPanel({
   );
 }
 
-export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilters }: FilterSheetProps) {
+export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilters, category }: FilterSheetProps) {
   const searchParams = useSearchParams();
   const initialLocalFilters = buildFilterSheetState(searchParams, initialFilters);
-  const panelKey = `${searchParams.toString()}::${JSON.stringify(initialFilters || {})}`;
+  const panelKey = `${category ?? ""}::${searchParams.toString()}::${JSON.stringify(initialFilters || {})}`;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1264,6 +1276,7 @@ export function FilterSheet({ makes, open, onOpenChange, totalCount, initialFilt
           initialLocalFilters={initialLocalFilters}
           onOpenChange={onOpenChange}
           searchParamsString={searchParams.toString()}
+          categoryOverride={category}
         />
       ) : null}
     </Sheet>

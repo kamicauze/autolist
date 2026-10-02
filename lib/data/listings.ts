@@ -339,7 +339,7 @@ function parseRequestedDriveTypes(value?: string | string[]) {
   return parseRequestedValues(value)
     .map((item) => normalizeDriveTypeValue(item) ?? item.trim().toUpperCase())
     .filter((item): item is SearchDriveType =>
-      item === "FWD" || item === "RWD" || item === "AWD" || item === "4WD"
+      item === "FWD" || item === "RWD" || item === "AWD" || item === "4WD" || item === "2WD"
     );
 }
 
@@ -511,11 +511,21 @@ function listingMatchesRequestedLocation(listing: Listing, requestedLocations: s
   );
 }
 
+// The search filter only offers 2WD/4WD, so those cover the finer-grained types.
+const DRIVE_TYPE_FILTER_GROUPS: Partial<Record<SearchDriveType, SearchDriveType[]>> = {
+  "2WD": ["2WD", "FWD", "RWD"],
+  "4WD": ["4WD", "AWD"],
+};
+
 function listingMatchesRequestedDriveTypes(listing: Listing, requestedDriveTypes: SearchDriveType[]) {
   if (requestedDriveTypes.length === 0) return true;
 
   const inferredDriveTypes = inferListingDriveTypes(listing);
-  return requestedDriveTypes.some((driveType) => inferredDriveTypes.includes(driveType));
+  return requestedDriveTypes.some((driveType) =>
+    (DRIVE_TYPE_FILTER_GROUPS[driveType] ?? [driveType]).some((match) =>
+      inferredDriveTypes.includes(match)
+    )
+  );
 }
 
 function rankListingsForSemanticSearch(

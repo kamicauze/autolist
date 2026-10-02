@@ -26,6 +26,7 @@ import {
 } from "@/lib/types/cms";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
+import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import { QuickSearchDialog } from "./quick-search-dialog";
 import { VehicleCategoryIcon } from "./vehicle-category-icon";
 import type { CmsBanner } from "@/lib/types/cms-banners";
@@ -378,12 +379,7 @@ export function HeroSearch({
   };
 
   const handleMoreFilters = () => {
-    if (activeCategory === "car") {
-      setIsFilterSheetOpen(true);
-      return;
-    }
-
-    router.push(`/search?${buildSearchParams().toString()}`);
+    setIsFilterSheetOpen(true);
   };
 
   const setBoundedRange = (
@@ -404,7 +400,7 @@ export function HeroSearch({
     setTo(nextRange.to);
   };
 
-  const initialCarFilters = React.useMemo(
+  const initialSheetFilters = React.useMemo(
     () => ({
       make: make !== "any" ? make : "",
       model,
@@ -416,10 +412,12 @@ export function HeroSearch({
       maxYear: yearTo !== "any" ? yearTo : "",
       minMileage: mileageFrom !== "any" ? mileageFrom : "",
       maxMileage: mileageTo !== "any" ? mileageTo : "",
+      hoursMax: maxHours !== "any" ? maxHours : "",
     }),
     [
       location,
       make,
+      maxHours,
       mileageFrom,
       mileageTo,
       model,
@@ -1128,8 +1126,9 @@ export function HeroSearch({
         open={isFilterSheetOpen}
         onOpenChange={setIsFilterSheetOpen}
         totalCount={matchingCount}
-        makes={makes}
-        initialFilters={initialCarFilters}
+        makes={[...(MAKES_BY_CATEGORY[activeCategory] ?? makes)]}
+        initialFilters={initialSheetFilters}
+        category={activeCategory}
       />
 
       <QuickSearchDialog

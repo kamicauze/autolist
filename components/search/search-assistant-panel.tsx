@@ -73,6 +73,7 @@ const DRIVE_TYPE_LABELS: Record<string, string> = {
   RWD: "rear-wheel drive",
   AWD: "all-wheel drive",
   "4WD": "four-wheel drive",
+  "2WD": "two-wheel drive",
 };
 
 // Keys that appear in the "Active filter state" chip strip and can be removed.

@@ -70,6 +70,25 @@ export const COLORS = [
   "Bronze",
 ] as const;
 
+// Same paint swatches as the listing wizard so filter colours match seller choices.
+export const COLOR_SWATCHES: Record<(typeof COLORS)[number], string> = {
+  White: "#f8fafc",
+  Black: "#111827",
+  Silver: "#cbd5e1",
+  Grey: "#6b7280",
+  Blue: "#2563eb",
+  Red: "#dc2626",
+  Green: "#16a34a",
+  Brown: "#92400e",
+  Beige: "#d6c4a8",
+  Orange: "#ea580c",
+  Yellow: "#facc15",
+  Gold: "#d4af37",
+  Maroon: "#7f1d1d",
+  Navy: "#1e3a8a",
+  Bronze: "#b45309",
+};
+
 // Seats
 export const SEATS_OPTIONS = [
   { value: 2, label: "2 Seats" },
@@ -89,10 +108,8 @@ export const DOORS_OPTIONS = [
 
 // Drive Types
 export const DRIVE_TYPES = [
-  { value: "FWD", label: "Front-Wheel Drive" },
-  { value: "RWD", label: "Rear-Wheel Drive" },
-  { value: "AWD", label: "All-Wheel Drive" },
-  { value: "4WD", label: "Four-Wheel Drive" },
+  { value: "2WD", label: "2WD" },
+  { value: "4WD", label: "4WD" },
 ] as const;
 
 // Seller Types
