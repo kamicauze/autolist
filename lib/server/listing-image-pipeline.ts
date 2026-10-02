@@ -112,8 +112,9 @@ async function computeDHashFromSharp(image: sharp.Sharp) {
 async function computePerceptualHashes(bytes: Buffer) {
   const baseImage = sharp(bytes).rotate();
   const metadata = await baseImage.metadata();
-  const width = metadata.width || 0;
-  const height = metadata.height || 0;
+  // Crops run after rotate(), so size them from the EXIF-oriented dimensions.
+  const width = metadata.autoOrient?.width || metadata.width || 0;
+  const height = metadata.autoOrient?.height || metadata.height || 0;
   const minDimension = Math.max(1, Math.min(width, height));
   const insetRatios = [0, 0.06, 0.12];
   const hashes = new Set<string>();
