@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { revalidatePath } from "next/cache";
-import { processStoredListingImageAssets } from "@/lib/server/listing-image-pipeline";
+import {
+    computeListingImageHashes,
+    renderListingImageVariants,
+    storeListingImageVariants,
+} from "@/lib/server/listing-image-pipeline";
+import { createConcurrencyLimit, mapWithConcurrency } from "@/lib/utils/concurrency";
 import { buildListingTitle, emitNotificationEvent } from "@/lib/server/notifications";
 import { buildListingDetailMetadata, getListingMetadataDetails } from "@/lib/utils/listing-details";
 import {
@@ -991,6 +996,9 @@ export async function duplicateOwnerListing(id: string) {
 
 // ─── Image Upload ────────────────────────────────────────────────────────────
 
+// Overlaps R2 round trips across photos; Sharp work still runs one job at a time per request.
+const LISTING_IMAGE_FINALIZE_CONCURRENCY = 3;
+
 type PreparedListingImage = {
     key: string;
     hash: string;
@@ -999,13 +1007,15 @@ type PreparedListingImage = {
     imageOrder: number;
 };
 
-async function getDuplicateListingImageError(
+type SellerImageHashes = {
+    imageHashes: Set<string>;
+    perceptualHashes: string[][];
+};
+
+async function getSellerImageHashes(
     supabase: SupabaseClient,
     listing: EditableListingRecord,
     listingId: string,
-    fileName: string,
-    hash: string,
-    perceptualHash: string,
 ) {
     const duplicateCheck = await supabase
         .from('listing_images')
@@ -1013,21 +1023,33 @@ async function getDuplicateListingImageError(
         .eq('listings.seller_id', listing.seller_id)
         .neq('listing_id', listingId);
 
-    if (duplicateCheck.error) return duplicateCheck.error.message;
+    if (duplicateCheck.error) return { error: duplicateCheck.error.message };
 
     const duplicateRows = (duplicateCheck.data ?? []) as Array<{
         id: string;
         image_hash: string | null;
         perceptual_hash: string | null;
     }>;
+    return {
+        imageHashes: new Set(duplicateRows.flatMap((row) => row.image_hash ? [row.image_hash] : [])),
+        perceptualHashes: duplicateRows.map((row) => parsePerceptualHashes(row.perceptual_hash)),
+    } satisfies SellerImageHashes;
+}
+
+function getDuplicateListingImageError(
+    sellerHashes: SellerImageHashes,
+    fileName: string,
+    hash: string,
+    perceptualHash: string,
+) {
     const nextHashes = parsePerceptualHashes(perceptualHash);
-    const hasPerceptualDuplicate = duplicateRows.some((row) =>
-        parsePerceptualHashes(row.perceptual_hash).some((existingHash) =>
+    const hasPerceptualDuplicate = sellerHashes.perceptualHashes.some((existingHashes) =>
+        existingHashes.some((existingHash) =>
             nextHashes.some((candidateHash) => hammingDistance(existingHash, candidateHash) <= 8)
         )
     );
 
-    return duplicateRows.some((row) => row.image_hash === hash) || hasPerceptualDuplicate
+    return sellerHashes.imageHashes.has(hash) || hasPerceptualDuplicate
         ? `Duplicate image detected for "${fileName}".`
         : null;
 }
@@ -1105,50 +1127,65 @@ export async function finalizeListingImageUploads(
     if (uploads.length < 3) return { error: "At least three listing photos are required." };
 
     const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
-    const preparedUploads: PreparedListingImage[] = [];
-    const { data: existingRows, error: existingRowsError } = await writeSupabase
-        .from("listing_images")
-        .select("r2_key")
-        .eq("listing_id", listingId);
-    if (existingRowsError) return { error: existingRowsError.message };
+    const startedAt = Date.now();
+    const [existingRowsResult, sellerHashes] = await Promise.all([
+        writeSupabase
+            .from("listing_images")
+            .select("r2_key")
+            .eq("listing_id", listingId),
+        getSellerImageHashes(writeSupabase, access.listing, listingId),
+    ]);
+    if (existingRowsResult.error) return { error: existingRowsResult.error.message };
 
     const existingKeys = new Set(
-        (existingRows ?? []).map((row: { r2_key: string }) => row.r2_key)
+        (existingRowsResult.data ?? []).map((row: { r2_key: string }) => row.r2_key)
     );
     const generatedKeys = new Set<string>();
+    const runSharp = createConcurrencyLimit(1);
+    let preparedUploads: PreparedListingImage[] = [];
 
     try {
-        for (const [index, upload] of uploads.entries()) {
-            const bytes = await readListingMediaUpload(listingId, upload);
-            const finalKey = getFinalListingMediaObjectKey(listingId, upload);
-            if (!existingKeys.has(finalKey)) generatedKeys.add(finalKey);
-            const finalizedUpload = await promoteListingMediaUpload(listingId, upload);
-            const processed = await processStoredListingImageAssets({
-                originalKey: finalizedUpload.key,
-                fileName: upload.name,
-                bytes,
-            });
-            const duplicateError = await getDuplicateListingImageError(
-                writeSupabase,
-                access.listing,
-                listingId,
-                upload.name,
-                processed.hash,
-                processed.perceptualHash,
-            );
-            if (duplicateError) throw new Error(duplicateError);
+        if ("error" in sellerHashes) throw new Error(sellerHashes.error);
 
-            preparedUploads.push({
-                key: processed.key,
-                hash: processed.hash,
-                perceptualHash: processed.perceptualHash,
-                altText: altTextBase.trim() ? `${altTextBase.trim()} - Photo ${index + 1}` : null,
-                imageOrder: index,
-            });
-        }
+        preparedUploads = await mapWithConcurrency(
+            uploads,
+            LISTING_IMAGE_FINALIZE_CONCURRENCY,
+            async (upload, index) => {
+                const bytes = await readListingMediaUpload(listingId, upload);
+                const { hash, perceptualHash } = await runSharp(() => computeListingImageHashes(bytes));
+                const duplicateError = getDuplicateListingImageError(
+                    sellerHashes,
+                    upload.name,
+                    hash,
+                    perceptualHash,
+                );
+                if (duplicateError) throw new Error(duplicateError);
+
+                const finalKey = getFinalListingMediaObjectKey(listingId, upload);
+                if (!existingKeys.has(finalKey)) generatedKeys.add(finalKey);
+                const results = await Promise.allSettled([
+                    promoteListingMediaUpload(listingId, upload),
+                    runSharp(() => renderListingImageVariants(finalKey, bytes))
+                        .then(storeListingImageVariants),
+                ]);
+                const failure = results.find((result) => result.status === "rejected");
+                if (failure) throw failure.reason;
+
+                return {
+                    key: finalKey,
+                    hash,
+                    perceptualHash,
+                    altText: altTextBase.trim() ? `${altTextBase.trim()} - Photo ${index + 1}` : null,
+                    imageOrder: index,
+                };
+            },
+        );
 
         const replaceError = await replaceListingImageRows(writeSupabase, listingId, preparedUploads);
         if (replaceError) throw new Error(replaceError);
+        console.info(
+            `Finalized ${preparedUploads.length} listing images for ${listingId} in ${Date.now() - startedAt}ms`
+        );
     } catch (error) {
         console.error("Finalize listing image upload error:", error);
         const cleanupResults = await Promise.allSettled([

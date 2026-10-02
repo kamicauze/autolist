@@ -8,6 +8,8 @@ import { buildListingImageVariantKey } from "@/lib/utils/image-variants";
 
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
+const WEBP_MAX_DIMENSION = 16383;
+
 const IMAGE_VARIANTS = {
   thumb: { width: 360, quality: 68 },
   card: { width: 960, quality: 76 },
@@ -184,9 +186,10 @@ async function uploadBuffer(key: string, bytes: Buffer, contentType: string) {
 }
 
 async function addWatermark(image: sharp.Sharp) {
-  const { data, info } = await image.toBuffer({ resolveWithObject: true });
+  // Raw pixels avoid a lossy re-encode in the input format before compositing.
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
 
-  return sharp(data)
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
     .composite([
       {
         input: Buffer.from(buildListingWatermarkSvgMarkup(info.width, info.height)),
@@ -195,19 +198,54 @@ async function addWatermark(image: sharp.Sharp) {
     ]);
 }
 
-export async function uploadListingImageVariants(originalKey: string, bytes: Buffer) {
+export type RenderedListingImageVariant = { key: string; bytes: Buffer };
+
+// Renders one variant at a time: rendering memory scales with output pixels, and
+// parallel renders gain nothing on a single-vCPU function.
+export async function renderListingImageVariants(originalKey: string, bytes: Buffer) {
+  // Fail before allocating raw pixels for images WebP can never encode.
+  const metadata = await sharp(bytes).metadata();
+  const width = metadata.autoOrient?.width ?? metadata.width;
+  const height = metadata.autoOrient?.height ?? metadata.height;
+  if (width && height) {
+    const tallestVariantHeight = Math.max(
+      ...Object.values(IMAGE_VARIANTS).map((config) =>
+        Math.floor((height * Math.min(config.width, width)) / width)
+      )
+    );
+    if (tallestVariantHeight > WEBP_MAX_DIMENSION) {
+      throw new Error("A photo is too tall to process. Please crop it and try again.");
+    }
+  }
+
+  const rendered: RenderedListingImageVariant[] = [];
   for (const variant of Object.keys(IMAGE_VARIANTS) as Array<keyof typeof IMAGE_VARIANTS>) {
     const config = IMAGE_VARIANTS[variant];
-    const variantKey = buildListingImageVariantKey(originalKey, variant);
     const resized = sharp(bytes)
       .rotate()
       .resize({ width: config.width, withoutEnlargement: true });
-    const variantBytes = await (await addWatermark(resized))
-      .webp({ quality: config.quality })
-      .toBuffer();
-
-    await uploadBuffer(variantKey, variantBytes, "image/webp");
+    rendered.push({
+      key: buildListingImageVariantKey(originalKey, variant),
+      bytes: await (await addWatermark(resized))
+        .webp({ quality: config.quality })
+        .toBuffer(),
+    });
   }
+  return rendered;
+}
+
+export async function storeListingImageVariants(variants: RenderedListingImageVariant[]) {
+  const results = await Promise.allSettled(
+    variants.map((variant) => uploadBuffer(variant.key, variant.bytes, "image/webp"))
+  );
+
+  // Settle every upload before failing so cleanup never races a late write.
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure) throw failure.reason;
+}
+
+export async function uploadListingImageVariants(originalKey: string, bytes: Buffer) {
+  await storeListingImageVariants(await renderListingImageVariants(originalKey, bytes));
 }
 
 export async function uploadListingImageAssets(input: {
@@ -225,13 +263,19 @@ export async function uploadListingImageAssets(input: {
   });
 }
 
+export async function computeListingImageHashes(bytes: Buffer) {
+  return {
+    hash: createHash("sha256").update(bytes).digest("hex"),
+    perceptualHash: await computePerceptualHashes(bytes),
+  };
+}
+
 export async function processStoredListingImageAssets(input: {
   originalKey: string;
   fileName: string;
   bytes: Buffer;
 }) {
-  const hash = createHash("sha256").update(input.bytes).digest("hex");
-  const perceptualHash = await computePerceptualHashes(input.bytes);
+  const { hash, perceptualHash } = await computeListingImageHashes(input.bytes);
   const coverScore = await scoreListingCoverCandidate(input.fileName, input.bytes);
 
   await uploadListingImageVariants(input.originalKey, input.bytes);
