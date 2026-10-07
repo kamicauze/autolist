@@ -190,7 +190,7 @@ export const NON_CAR_REFERENCE_DATA: Partial<
     ],
     modelInputMode: "manual",
     makeHelperText:
-      "Suggested motorcycle brands are loaded from the operations catalog. If the brand is missing, type it manually.",
+      "Suggested motorcycle makes are loaded from the operations catalog. If the make is missing, type it manually.",
     modelHelperText:
       "Motorbike models remain manual for now. Enter the exact model as shown on the bike or logbook.",
   },

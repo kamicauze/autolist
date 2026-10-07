@@ -169,7 +169,7 @@ export function StepVehicleDetails() {
               <input
                 value={draft.details.make}
                 onChange={(event) => updateDetailField("make", event.target.value)}
-                placeholder="Type the make, e.g. a brand not in the list"
+                placeholder="Type the make if it is not in the list"
                 className={cn(sellerInputClass, hasError && "border-[#f04438]")}
               />
             ) : null}

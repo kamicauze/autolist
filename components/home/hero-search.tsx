@@ -1011,7 +1011,8 @@ export function HeroSearch({
 
                 <div
                   className={cn(
-                    "mt-4 grid gap-4 xl:grid-cols-4",
+                    // Buttons size to their content so the range fields get the spare width.
+                    "mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
                     hasSponsoredHero &&
                       "mt-3 gap-3 sm:grid-cols-2 xl:grid-cols-2",
                   )}
@@ -1086,33 +1087,37 @@ export function HeroSearch({
                           setPriceTo,
                         ),
                       PRICE_FILTER_OPTIONS,
-                      "From",
-                      "To",
-                      "Price from",
-                      "Price to",
+                      "Min KES",
+                      "Max KES",
+                      "Minimum price in KES, type or pick",
+                      "Maximum price in KES, type or pick",
                     )}
                   </div>
 
-                  <div className="flex flex-col justify-end">
+                  <div
+                    className={cn(
+                      "flex items-end gap-2",
+                      hasSponsoredHero && "sm:col-span-2",
+                    )}
+                  >
                     <button
                       type="button"
                       onClick={handleMoreFilters}
-                      className="inline-flex h-[42px] items-center justify-center gap-2 rounded-[12px] border-[0.5px] border-[#d7dbe3] bg-[#f7f9fc] px-4 text-[14px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white"
+                      className="inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border-[0.5px] border-[#d7dbe3] bg-[#f7f9fc] px-3 text-[13px] font-semibold text-[#202224] transition hover:border-[#c8cfda] hover:bg-white active:translate-y-px"
                     >
-                      <SlidersHorizontal className="h-4 w-4 text-primary" />
+                      <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
                       More Filters
                     </button>
-                  </div>
-
-                  <div className="flex flex-col justify-end">
                     <button
                       type="submit"
                       disabled={countStatus === "loading"}
                       aria-busy={countStatus === "loading"}
-                      className="flex h-[42px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-primary/90 active:translate-y-px disabled:cursor-wait disabled:opacity-75"
+                      className="flex h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] bg-primary px-4 text-[13px] font-semibold text-white transition hover:bg-primary/90 active:translate-y-px disabled:cursor-wait disabled:opacity-75 xl:min-w-[156px]"
                     >
-                      <Search className="h-4 w-4" />
-                      <span aria-live="polite">{searchButtonLabel}</span>
+                      <Search className="h-3.5 w-3.5 shrink-0" />
+                      <span aria-live="polite" className="truncate">
+                        {searchButtonLabel}
+                      </span>
                     </button>
                   </div>
                 </div>

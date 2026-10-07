@@ -271,9 +271,10 @@ export function ImageGallery({ images, title, videoUrl }: ImageGalleryProps) {
   const displayImages = images.length > 0 ? images : ["/placeholder-car.jpg"];
   const imageCount = displayImages.length;
 
+  // Gallery grid opens the full-screen viewer on top; closing it returns to the grid.
   const handleImageSelect = (index: number) => {
     setSelectedIndex(index);
-    setShowAllImages(false);
+    setShowLightbox(true);
   };
 
   const scrollPrev = () => {

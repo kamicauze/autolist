@@ -15,17 +15,17 @@ export default function BrandsPage() {
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
-              { label: "Brands" },
+              { label: "Makes" },
             ]}
             className="mb-6"
           />
 
           <div className="mb-8 max-w-3xl">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Browse by Brands
+              Browse by Make
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">
-              Pick a brand to view only matching vehicles, then refine the result with price,
+              Pick a make to view only matching vehicles, then refine the result with price,
               year, body type, color, seller type, and advanced filters.
             </p>
           </div>

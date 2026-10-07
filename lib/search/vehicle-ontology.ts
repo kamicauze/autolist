@@ -535,7 +535,7 @@ export function describeIntent(intent?: string | null) {
 
 export function describeOrigin(origin?: string | null) {
   if (!origin) return null;
-  return `${origin} brands`;
+  return `${origin} makes`;
 }
 
 export function describeUseCase(useCase?: string | null) {

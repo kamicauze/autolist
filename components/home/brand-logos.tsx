@@ -59,7 +59,7 @@ export function BrandLogos() {
             href="/brands"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            Browse all brands
+            Browse all makes
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

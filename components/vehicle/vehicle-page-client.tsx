@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  ArrowLeftRight,
   Check,
   ExternalLink,
   FileText,
   Flag,
   GitCompare,
+  Handshake,
   Heart,
   Loader2,
   MapPin,
@@ -50,7 +52,10 @@ import {
   getListingTrim,
   getListingVariant,
 } from "@/lib/utils/vehicle-display";
-import { getListingMetadataString } from "@/lib/utils/listing-details";
+import {
+  getListingMetadataBoolean,
+  getListingMetadataString,
+} from "@/lib/utils/listing-details";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsDirectionsUrl } from "@/lib/google-maps";
 import { useListingEnquiry } from "@/lib/hooks/use-listing-enquiry";
@@ -398,6 +403,8 @@ export function VehiclePageClient({
   }, [initialIsFavorited]);
 
   const formattedPrice = new Intl.NumberFormat("en-KE").format(listing.price);
+  const negotiable = getListingMetadataBoolean(listing, "negotiable");
+  const tradeInAccepted = getListingMetadataBoolean(listing, "tradeInAccepted");
   const inCompare = isInCompare(listing.id);
   const compareLimitReached = !inCompare && ids.length >= maxItems;
   const locationLabel = buildGoogleMapsQuery([location, "Kenya"]) || "Kenya";
@@ -471,7 +478,7 @@ export function VehiclePageClient({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
-                <div className="mt-1 flex items-center gap-3">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <p className="text-xl font-bold text-primary">
                     {listing.currency}
                     {formattedPrice}
@@ -481,6 +488,30 @@ export function VehiclePageClient({
                       Reserved
                     </span>
                   )}
+                  {negotiable !== null || tradeInAccepted !== null ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {negotiable !== null ? (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            negotiable ? "bg-brand-tint text-primary" : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <Handshake className="h-3.5 w-3.5" />
+                          {negotiable ? "Negotiable" : "Fixed price"}
+                        </span>
+                      ) : null}
+                      {tradeInAccepted !== null ? (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            tradeInAccepted ? "bg-brand-tint text-primary" : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <ArrowLeftRight className="h-3.5 w-3.5" />
+                          {tradeInAccepted ? "Trade-in accepted" : "No trade-ins"}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 {getListingTrim(listing) || getListingVariant(listing) ? (
                   <p className="mt-2 text-sm font-medium text-gray-600">

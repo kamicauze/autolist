@@ -166,7 +166,7 @@ function buildFilterSummary(params: SmartSearchParams) {
   const minPrice = params.minPrice ? Number(params.minPrice) : null;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) : null;
 
-  if (params.origin) parts.push(`${params.origin} brands`);
+  if (params.origin) parts.push(`${params.origin} makes`);
   if (params.useCase)
     parts.push(USE_CASE_LABELS[params.useCase] || params.useCase);
   if (params.intent) {

@@ -74,7 +74,7 @@ const factors = [
   {
     icon: Car,
     title: "Make & Model",
-    description: "Brand reputation and model popularity directly affect value.",
+    description: "Make reputation and model popularity directly affect value.",
   },
   {
     icon: Calendar,
