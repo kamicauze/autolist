@@ -20,7 +20,7 @@ import {
 } from "@/lib/data/listings";
 import { getHomepageFeaturedListings } from "@/lib/data/featured-listing-pins";
 import { getDashboardFavoritesData } from "@/lib/data/favorites";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/server";
 import { getAllMakeNames, getPopularMakes, getPopularModels } from "@/lib/data/car-data";
 import { getHomepageCmsContent } from "@/lib/data/cms";
 import { getActiveCmsBanners } from "@/lib/data/cms-banners";
@@ -31,12 +31,11 @@ async function RecentActivitiesData({
 }: {
   content: HomepageCmsContent["featuredListings"];
 }) {
-  const supabase = await createClient();
   const [featuredListings, newestListings, favorites, authResult] = await Promise.all([
     getHomepageFeaturedListings(),
     getNewestListings(content.recentLimit),
     getDashboardFavoritesData(),
-    supabase.auth.getUser(),
+    getAuthUser(),
   ]);
 
   return (

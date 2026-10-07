@@ -2,11 +2,11 @@
 
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { nanoid } from "nanoid";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import sharp from "sharp";
 import { z } from "zod";
 import { requireAdminAction } from "@/lib/admin/guard";
-import { mapCmsBlockRow } from "@/lib/data/cms";
+import { CMS_HOMEPAGE_CACHE_TAG, mapCmsBlockRow } from "@/lib/data/cms";
 import { CMS_MEDIA_ASSET_SELECT, normalizeCmsMediaAsset } from "@/lib/data/cms-media";
 import { r2 } from "@/lib/r2";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
@@ -361,6 +361,7 @@ export async function saveCmsBlock(input: SaveCmsBlockInput): Promise<SaveCmsBlo
     return { success: false, error: "The saved CMS block could not be read." };
   }
 
+  updateTag(CMS_HOMEPAGE_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/admin/cms");
 

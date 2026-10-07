@@ -1,6 +1,9 @@
 import "server-only";
 
+import { createClient as createSupabaseClient, type PostgrestError } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { getSupabasePublicEnv } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import {
@@ -291,24 +294,39 @@ export async function getAdminHomepageCmsData(): Promise<AdminHomepageCmsData> {
   };
 }
 
+export const CMS_HOMEPAGE_CACHE_TAG = "cms-homepage";
+
+// Published blocks are public (RLS), so read them without cookies and share the result
+// across requests. saveCmsBlock expires the tag; the TTL covers the other deployment
+// (prod and staging share one database but not one cache).
+const getPublishedHomepageBlocks = unstable_cache(
+  async () => {
+    const { url, anonKey } = getSupabasePublicEnv();
+    const supabase = createSupabaseClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase
+      .from("cms_blocks")
+      .select("block_key, published_content")
+      .in("block_key", [...CMS_BLOCK_KEYS])
+      .eq("status", "published");
+
+    // Throw so a failed read falls back to defaults without being cached.
+    if (error) throw error;
+    return (data ?? []) as Array<{ block_key: string; published_content: unknown }>;
+  },
+  ["cms-homepage-published-blocks"],
+  { tags: [CMS_HOMEPAGE_CACHE_TAG], revalidate: 300 }
+);
+
 export const getHomepageCmsContent = cache(async (): Promise<HomepageCmsContent> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("cms_blocks")
-    .select("block_key, published_content")
-    .in("block_key", [...CMS_BLOCK_KEYS])
-    .eq("status", "published");
-
-  if (isMissingRelationError(error)) {
-    return {
-      hero: DEFAULT_HOME_HERO_CMS_CONTENT,
-      featuredListings: DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT,
-      sections: DEFAULT_HOME_SECTIONS_CMS_CONTENT,
-    };
-  }
-
-  if (error) {
-    console.error("Failed to load homepage CMS content:", error);
+  let rows: Awaited<ReturnType<typeof getPublishedHomepageBlocks>>;
+  try {
+    rows = await getPublishedHomepageBlocks();
+  } catch (error) {
+    if (!isMissingRelationError(error as PostgrestError)) {
+      console.error("Failed to load homepage CMS content:", error);
+    }
     return {
       hero: DEFAULT_HOME_HERO_CMS_CONTENT,
       featuredListings: DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT,
@@ -317,7 +335,7 @@ export const getHomepageCmsContent = cache(async (): Promise<HomepageCmsContent>
   }
 
   const contentByKey = new Map<string, unknown>(
-    ((data ?? []) as Array<{ block_key: string; published_content: unknown }>).map((row) => [
+    rows.map((row) => [
       row.block_key,
       row.published_content,
     ])

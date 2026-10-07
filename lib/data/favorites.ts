@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { DashboardFavoriteItem } from "@/lib/types/favorites";
 import type { Listing } from "@/lib/types/listing";
 
@@ -59,7 +59,7 @@ export async function getDashboardFavoritesData(): Promise<DashboardFavoriteItem
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await getAuthUser();
 
   if (authError || !user) {
     return [];

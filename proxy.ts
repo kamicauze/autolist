@@ -71,8 +71,9 @@ export const config = {
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
+         * - api/listing-image (public image redirect; no session needed)
          * Feel free to modify this pattern to include more paths.
          */
-        "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:css|js|gif|webp|svg|png|jpg|jpeg|ico)$).*)",
+        "/((?!_next/static|_next/image|favicon.ico|api/listing-image|.*\\.(?:css|js|gif|webp|svg|png|jpg|jpeg|ico)$).*)",
     ],
 };

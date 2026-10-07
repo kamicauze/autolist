@@ -1,6 +1,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { getSupabasePublicEnv } from "@/lib/supabase/config";
 
 export async function createClient() {
@@ -36,3 +37,9 @@ export async function createClient() {
         }
     );
 }
+
+// One Supabase Auth round trip per request, however many server components ask.
+export const getAuthUser = cache(async () => {
+    const supabase = await createClient();
+    return supabase.auth.getUser();
+});

@@ -1,5 +1,5 @@
 
-import type { ListingImageVariant } from "@/lib/utils/image-variants";
+import { buildListingImageVariantKey, type ListingImageVariant } from "@/lib/utils/image-variants";
 
 export const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
 
@@ -16,13 +16,8 @@ export function getImageUrl(
   if (!r2Key) return "/placeholder-car.jpg";
   if (r2Key.startsWith("http")) return r2Key;
 
-  if (variant !== "original") {
-    const params = new URLSearchParams({
-      key: r2Key,
-      variant,
-    });
-    return `/api/listing-image?${params.toString()}`;
-  }
-
-  return getStorageObjectUrl(r2Key) || "/placeholder-car.jpg";
+  // Finalized listing images always have every variant (rows are only written after the
+  // variant uploads succeed), so link straight to R2 instead of via /api/listing-image.
+  const key = variant === "original" ? r2Key : buildListingImageVariantKey(r2Key, variant);
+  return getStorageObjectUrl(key) || "/placeholder-car.jpg";
 }
