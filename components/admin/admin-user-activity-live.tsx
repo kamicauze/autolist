@@ -498,7 +498,7 @@ export function AdminUserActivityLive({ data }: { data: AdminUserActivityData })
                   data.listings.map((listing) => (
                     <tr key={listing.id} className="border-b border-[#f1f5f9] last:border-b-0">
                       <td className="px-6 py-4">
-                        <Link href={`/vehicle/${listing.id}`} className="text-[13px] font-semibold text-[#111827] hover:text-primary">
+                        <Link href={`/admin/listings/${listing.id}/preview`} className="text-[13px] font-semibold text-[#111827] hover:text-primary">
                           {compactListingTitle(listing)}
                         </Link>
                         <p className="mt-1 text-[12px] text-[#6b7280]">{firstRelation(listing.dealer)?.name || "Private seller"}</p>

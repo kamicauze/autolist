@@ -120,7 +120,13 @@ export function StepSeller() {
         <p className="mb-4 mt-1 text-[13px] leading-5 text-[#767676]">
           How buyers reach you about this listing. Pre-filled from your account.
         </p>
-        <ContactFields />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-gray-700">{[draft.contactName, draft.phoneNumber].filter(Boolean).join(" · ") || "Add contact details to your account or below."}</p>
+          <button type="button" onClick={() => setEditingContact((current) => !current)} className="text-sm font-semibold text-primary">
+            {editingContact ? "Hide contact details" : "Edit contact details"}
+          </button>
+        </div>
+        {editingContact || sellerValidationError ? <div className="mt-4"><ContactFields /></div> : null}
         {sellerValidationError ? (
           <p className="mt-4 text-[13px] font-medium text-[#d92d20]">{sellerValidationError}</p>
         ) : null}

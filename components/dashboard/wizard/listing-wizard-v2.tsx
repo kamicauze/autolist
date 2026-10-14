@@ -54,6 +54,9 @@ function WizardContent({
 }) {
   const {
     isEditing,
+    savedDraft,
+    draftReady,
+    resumeSavedDraft,
     editingListingId,
     activeStep,
     submitted,
@@ -165,6 +168,27 @@ function WizardContent({
                 iconTone: "primary" as const,
                 buttonClass: "bg-primary text-white hover:bg-brand-hover",
               };
+
+  if (!draftReady) {
+    return <p role="status" className="p-6 text-sm text-gray-600">Loading listing form...</p>;
+  }
+
+  if (savedDraft) {
+    return (
+      <section className="rounded-[20px] border border-gray-200 bg-white p-6 sm:p-8">
+        <h2 className="text-2xl font-semibold text-gray-950">You have an unfinished listing</h2>
+        <p className="mt-3 text-sm leading-6 text-gray-600">
+          {savedDraft.title || "Your saved vehicle details"}. Continue this draft or start a new listing.
+          Photos selected before closing the page may need to be selected again.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button onClick={resumeSavedDraft}>Continue draft</Button>
+          <Button variant="outline" onClick={resetDraft}>Start a new listing</Button>
+        </div>
+        <p className="mt-3 text-xs text-gray-500">Starting a new listing clears this browser form. Any vehicle draft already saved to your account remains in My Listings.</p>
+      </section>
+    );
+  }
 
   if (submitted) {
     return (

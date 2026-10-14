@@ -136,7 +136,7 @@ export function AdminDashboardLive({ data }: { data: AdminDashboardData }) {
                 <td className="px-6 py-4 text-[12px] text-[#6b7280]">{formatDate(listing.createdAt)}</td>
                 <td className="px-6 py-4 text-right">
                   <Link
-                    href={`/vehicle/${listing.id}`}
+                    href={`/admin/listings/${listing.id}/preview`}
                     className="inline-flex items-center gap-1 text-[12px] font-medium text-primary"
                   >
                     Open

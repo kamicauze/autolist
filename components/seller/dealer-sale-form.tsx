@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
@@ -36,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type DealerSaleFormState = {
-  saleChannel: "dealer_only" | "dealer_public";
+  saleChannel: "standard" | "dealer_only" | "dealer_public";
   year: string;
   make: string;
   model: string;
@@ -138,6 +139,11 @@ const saleChannelOptions: Array<{
   title: string;
   description: string;
 }> = [
+  {
+    value: "standard",
+    title: "Public listing only",
+    description: "Create a public listing for review without requesting dealer offers.",
+  },
   {
     value: "dealer_public",
     title: "Dealer offers + public listing",
@@ -277,9 +283,20 @@ function SegmentedField({
   );
 }
 
-export function DealerSaleForm({ makes }: { makes: string[] }) {
-  const [form, setForm] = React.useState<DealerSaleFormState>(initialForm);
+export function DealerSaleForm({ makes, contactDefaults }: {
+  makes: string[];
+  contactDefaults: { fullName: string; phone: string; email: string; city: string };
+}) {
+  const router = useRouter();
+  const [form, setForm] = React.useState<DealerSaleFormState>(() => ({ ...initialForm, ...contactDefaults }));
+  const [editingContact, setEditingContact] = React.useState(false);
   const [photos, setPhotos] = React.useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    const urls = photos.map((photo) => URL.createObjectURL(photo));
+    setPhotoPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [photos]);
   const [currentStep, setCurrentStep] = React.useState<WizardStepId>("route");
   const [feedback, setFeedback] = React.useState<Feedback | null>(null);
   const [isPending, setIsPending] = React.useState(false);
@@ -417,6 +434,10 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
   }
 
   function handleNextStep() {
+    if (currentStep === "route" && form.saleChannel === "standard") {
+      router.push("/dashboard/listings/new");
+      return;
+    }
     setFeedback(null);
     const validationError = validateStep(currentStep);
     if (validationError) {
@@ -473,6 +494,10 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (form.saleChannel === "standard") {
+      router.push("/dashboard/listings/new");
+      return;
+    }
     setFeedback(null);
 
     const invalidStep = getFirstInvalidStep();
@@ -734,7 +759,7 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               <h3 className="text-lg font-bold text-gray-950">Selling route</h3>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               {saleChannelOptions.map((option) => {
                 const isSelected = form.saleChannel === option.value;
 
@@ -1040,17 +1065,16 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
             </FieldShell>
 
             {photos.length > 0 ? (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {photos.slice(0, MIN_PHOTOS).map((photo, index) => (
-                  <div
-                    key={`${photo.name}-${photo.lastModified}`}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
-                  >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-700">
-                      {index + 1}
-                    </span>
-                    <span className="truncate">{photo.name}</span>
-                  </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {photos.map((photo, index) => (
+                  <figure key={`${photo.name}-${photo.lastModified}-${index}`} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    {photoPreviews[index] ? (
+                      // Local file previews are not served by the image optimizer.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoPreviews[index]} alt={`Vehicle photo ${index + 1}: ${photo.name}`} className="aspect-[4/3] w-full object-cover" />
+                    ) : null}
+                    <figcaption className="truncate px-3 py-2 text-xs text-gray-600">{index + 1}. {photo.name}</figcaption>
+                  </figure>
                 ))}
               </div>
             ) : null}
@@ -1069,20 +1093,19 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
               </h3>
             </div>
 
+            <div className="mb-4 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-700">Using your registered contact details: {[form.fullName, form.phone, form.email].filter(Boolean).join(" · ") || "No contact details saved yet."}</p>
+              <button type="button" onClick={() => setEditingContact((current) => !current)} className="mt-2 text-sm font-semibold text-primary">
+                {editingContact ? "Hide contact details" : "Edit contact details"}
+              </button>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
+              {editingContact || !form.fullName.trim() || !form.phone.trim() ? <>
               <FieldShell label="Full name" required>
                 <Input
                   value={form.fullName}
                   onChange={(event) => setField("fullName", event.target.value)}
                   placeholder="Your name"
-                  className="h-11 border-gray-200 text-sm"
-                />
-              </FieldShell>
-              <FieldShell label="City / town" required>
-                <Input
-                  value={form.city}
-                  onChange={(event) => setField("city", event.target.value)}
-                  placeholder="e.g. Nairobi, Mombasa, Kisumu"
                   className="h-11 border-gray-200 text-sm"
                 />
               </FieldShell>
@@ -1100,6 +1123,15 @@ export function DealerSaleForm({ makes }: { makes: string[] }) {
                   value={form.email}
                   onChange={(event) => setField("email", event.target.value)}
                   placeholder="you@example.com"
+                  className="h-11 border-gray-200 text-sm"
+                />
+              </FieldShell>
+              </> : null}
+              <FieldShell label="City / town" required>
+                <Input
+                  value={form.city}
+                  onChange={(event) => setField("city", event.target.value)}
+                  placeholder="e.g. Nairobi, Mombasa, Kisumu"
                   className="h-11 border-gray-200 text-sm"
                 />
               </FieldShell>

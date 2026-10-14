@@ -594,6 +594,9 @@ interface WizardContextValue {
   salesReps: AssignableSalesRep[];
   usesDealerLocation: boolean;
   isDealerSeller: boolean;
+  savedDraft: ListingDraft | null;
+  draftReady: boolean;
+  resumeSavedDraft: () => void;
 
   // Media file refs
   galleryFiles: File[];
@@ -873,9 +876,8 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
   };
 }
 
-function buildFreshDraft(
+export function buildFreshDraft(
   sellerAccountDefaults: SellerAccountDefaults | null,
-  initialDraft: ListingDraft
 ): ListingDraft {
   if (!sellerAccountDefaults) {
     return { ...DEFAULT_DRAFT, details: { ...DEFAULT_DRAFT.details } };
@@ -885,11 +887,11 @@ function buildFreshDraft(
     ...DEFAULT_DRAFT,
     details: { ...DEFAULT_DRAFT.details },
     sellerType: sellerAccountDefaults.sellerType,
-    useDealerAutoFill: false,
-    contactName: initialDraft.contactName,
-    phoneNumber: initialDraft.phoneNumber,
-    whatsappEnabled: initialDraft.whatsappEnabled,
-    whatsappNumber: initialDraft.whatsappNumber,
+    useDealerAutoFill: sellerAccountDefaults.useDealerAutoFill,
+    contactName: sellerAccountDefaults.contactName,
+    phoneNumber: sellerAccountDefaults.phoneNumber,
+    whatsappEnabled: sellerAccountDefaults.whatsappEnabled,
+    whatsappNumber: sellerAccountDefaults.whatsappNumber,
   };
 }
 
@@ -1043,12 +1045,15 @@ export function WizardProvider({
   const [documentFiles, setDocumentFiles] = React.useState<File[]>([]);
   const [videoFile, setVideoFile] = React.useState<File | null>(null);
 
-  // Auto-save draft
+  const [savedDraft, setSavedDraft] = React.useState<ListingDraft | null>(null);
+  const [draftReady, setDraftReady] = React.useState(false);
+
+  // Auto-save only after the seller has chosen whether to resume.
   React.useEffect(() => {
-    if (draft.category) {
+    if (draftReady && !savedDraft && draft.category) {
       localStorage.setItem(storageKey, JSON.stringify(draft));
     }
-  }, [draft, storageKey]);
+  }, [draft, storageKey, draftReady, savedDraft]);
 
   // Restore draft
   React.useEffect(() => {
@@ -1063,14 +1068,17 @@ export function WizardProvider({
             country: parsed.country?.trim() || initialDraft.country,
             details: { ...initialDraft.details, ...(parsed.details || {}) },
           };
-          setDraft({
+          const restored = {
             ...restoredDraft,
             title: buildAutoListingTitle(restoredDraft.details, restoredDraft.category),
-          });
+          };
+          if (isEditing) setDraft(restored);
+          else setSavedDraft(restored);
         }
       } catch { /* ignore */ }
     }
-  }, [initialDraft, storageKey]);
+    setDraftReady(true);
+  }, [initialDraft, storageKey, isEditing]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -1158,7 +1166,12 @@ export function WizardProvider({
                 whatsappEnabled: defaults.whatsappEnabled,
                 whatsappNumber: defaults.whatsappNumber || prev.whatsappNumber,
               }
-            : {}),
+            : {
+                contactName: prev.contactName || defaults.contactName,
+                phoneNumber: prev.phoneNumber || defaults.phoneNumber,
+                whatsappNumber: prev.whatsappNumber || defaults.whatsappNumber,
+                whatsappEnabled: prev.whatsappNumber ? prev.whatsappEnabled : defaults.whatsappEnabled,
+              }),
         };
       });
     };
@@ -1642,8 +1655,20 @@ export function WizardProvider({
     }));
   };
 
+  const resumeSavedDraft = () => {
+    if (!savedDraft) return;
+    setDraft({
+      ...savedDraft,
+      contactName: savedDraft.contactName || sellerAccountDefaults?.contactName || "",
+      phoneNumber: savedDraft.phoneNumber || sellerAccountDefaults?.phoneNumber || "",
+      whatsappNumber: savedDraft.whatsappNumber || sellerAccountDefaults?.whatsappNumber || "",
+    });
+    setSavedDraft(null);
+  };
+
   const resetDraft = () => {
-    const nextDraft = buildFreshDraft(sellerAccountDefaults, initialDraft);
+    const nextDraft = buildFreshDraft(sellerAccountDefaults);
+    setSavedDraft(null);
     localStorage.removeItem(storageKey);
     setDraft(nextDraft);
     setActiveStep(0);
@@ -2139,7 +2164,7 @@ export function WizardProvider({
 
   const value: WizardContextValue = {
     isEditing, editingListingId,
-    salesReps, usesDealerLocation, isDealerSeller,
+    salesReps, usesDealerLocation, isDealerSeller, savedDraft, draftReady, resumeSavedDraft,
     draft, activeStep, showValidationErrors, isSubmitting, submissionStatus, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
     galleryFiles, documentFiles, videoFile,

@@ -4,6 +4,7 @@ import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
 import { TRUCK_CATEGORIES } from "@/lib/constants/vehicle-taxonomy";
 import {
   buildDraftAfterCategoryChange,
+  buildFreshDraft,
   buildSellerAccountDefaults,
   DEFAULT_DRAFT,
   DETAIL_FIELDS_BY_CATEGORY,
@@ -136,4 +137,28 @@ test("dealer account defaults fall back to profile contact details", () => {
   assert.equal(defaults.sellerType, "dealer");
   assert.equal(defaults.phoneNumber, "+254712345678");
   assert.equal(defaults.whatsappNumber, "+254733456789");
+});
+
+
+test("starting a new listing retains registered private-seller contact and clears vehicle details", () => {
+  const defaults = buildSellerAccountDefaults({
+    profile: {
+      full_name: "Amina Mwangi",
+      role: "seller",
+      phone: "+254712345678",
+      whatsapp: null,
+    },
+    dealer: null,
+  });
+  const fresh = buildFreshDraft(defaults);
+
+  assert.equal(fresh.sellerType, "individual");
+  assert.equal(fresh.contactName, "Amina Mwangi");
+  assert.equal(fresh.phoneNumber, "+254712345678");
+  assert.equal(fresh.whatsappNumber, "+254712345678");
+  assert.equal(fresh.category, "");
+  assert.equal(fresh.title, "");
+  assert.deepEqual(fresh.galleryImageNames, []);
+  assert.deepEqual(fresh.details, DEFAULT_DRAFT.details);
+  assert.notEqual(fresh.details, DEFAULT_DRAFT.details);
 });

@@ -12,7 +12,12 @@ import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { createClient } from "@/lib/supabase/server";
 import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 
-export default async function DashboardListingsPage() {
+export default async function DashboardListingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,8 +47,18 @@ export default async function DashboardListingsPage() {
     .filter((agent) => agent.status === "active")
     .map((agent) => ({ id: agent.id, name: agent.name }));
 
+  const initialBidTab = view === "available-bids" && approvedDealer
+    ? "available-bids"
+    : view === "your-bids" && approvedDealer
+      ? "your-bids"
+      : view === "received-offers"
+        ? "received-offers"
+        : undefined;
+
   return (
     <MyListings
+      key={initialBidTab ?? "listings"}
+      initialBidTab={initialBidTab}
       listings={listings || []}
       salesReps={salesReps}
       isSalesAgentView={isSalesAgentView}
@@ -52,15 +67,19 @@ export default async function DashboardListingsPage() {
       availableBids={availableBidListings.map((listing) => ({
         id: listing.id,
         listingId: listing.id,
+        listing,
+        sellerNote: listing.offer_settings.seller_note,
+        minimumOfferAmount: listing.offer_settings.minimum_offer_amount,
+        expiresAt: listing.offer_settings.expires_at,
         listingTitle: getListingDisplayTitle(listing),
         buyerName: listing.seller?.full_name || "Seller",
-        amount: listing.offer_settings.minimum_offer_amount || listing.price,
+        amount: listing.price,
         status: "Open",
         createdAt: listing.offer_settings.updated_at || listing.created_at,
         year: listing.year,
         mileage: listing.mileage,
         condition: listing.condition?.replace(/_/g, " ") || null,
-        description: listing.offer_settings.seller_note || listing.description,
+        description: listing.description,
         contactEmail:
           typeof listing.metadata?.contactEmail === "string"
             ? listing.metadata.contactEmail
@@ -74,6 +93,10 @@ export default async function DashboardListingsPage() {
       yourBids={dealerOffers.map((offer) => ({
         id: offer.id,
         listingId: offer.listing_id,
+        listing: offer.listing,
+        sellerNote: offer.listing?.offer_settings?.seller_note,
+        minimumOfferAmount: offer.listing?.offer_settings?.minimum_offer_amount,
+        expiresAt: offer.listing?.offer_settings?.expires_at,
         listingTitle: offer.listing
           ? getListingDisplayTitle(offer.listing)
           : "Listing offer",
@@ -86,6 +109,10 @@ export default async function DashboardListingsPage() {
       receivedOffers={receivedOffers.map((offer) => ({
         id: offer.id,
         listingId: offer.listing_id,
+        listing: offer.listing,
+        sellerNote: offer.listing?.offer_settings?.seller_note,
+        minimumOfferAmount: offer.listing?.offer_settings?.minimum_offer_amount,
+        expiresAt: offer.listing?.offer_settings?.expires_at,
         listingTitle: offer.listing
           ? getListingDisplayTitle(offer.listing)
           : "Listing offer",

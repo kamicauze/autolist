@@ -46,7 +46,7 @@ export interface ListingOffer {
   last_actor_id: string | null;
   created_at: string;
   updated_at: string;
-  listing?: Listing | null;
+  listing?: (Listing & { offer_settings?: ListingOfferSettings | null }) | null;
   dealer?: Pick<DealerProfile, "id" | "profile_id" | "name" | "business_name" | "logo_url" | "city" | "mobile" | "email" | "whatsapp"> | null;
 }
 

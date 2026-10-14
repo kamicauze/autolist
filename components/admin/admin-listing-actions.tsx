@@ -107,9 +107,9 @@ export function AdminListingActions({ listing }: { listing: AdminDashboardListin
             className="z-[100] w-[220px] rounded-[10px] border border-[#e5e7eb] bg-white p-1 shadow-[0_18px_45px_rgba(15,23,42,0.16)]"
           >
             <DropdownMenu.Item asChild>
-              <Link href={`/vehicle/${listing.id}`} className={itemClass}>
+              <Link href={`/admin/listings/${listing.id}/preview`} className={itemClass}>
                 <ArrowUpRight className="h-4 w-4" />
-                View listing
+                Preview listing
               </Link>
             </DropdownMenu.Item>
 

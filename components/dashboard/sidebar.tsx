@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 import {
   BadgeCheck,
   CalendarDays,
   Heart,
+  Gavel,
   KeyRound,
   LayoutDashboard,
   ListOrdered,
@@ -67,6 +68,7 @@ function buildSalesAgentNav(permissions: SalesAgentPermission[]) {
 }
 
 const dealerOnlyNav = [
+  { name: "Open bids", href: "/dashboard/listings?view=available-bids", icon: Gavel },
   { name: "Sales Agents", href: "/dashboard/sales-agents", icon: UsersRound },
 ];
 
@@ -96,6 +98,7 @@ export function Sidebar({
   onToggleCollapsed,
 }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   const isSalesAgent = Boolean(salesAgentPermissions);
@@ -125,6 +128,10 @@ export function Sidebar({
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href.includes("?view=")) {
+      return pathname === "/dashboard/listings" && searchParams.get("view") === "available-bids";
+    }
+    if (href === "/dashboard/listings" && searchParams.get("view") === "available-bids") return false;
     return pathname.startsWith(href);
   };
 

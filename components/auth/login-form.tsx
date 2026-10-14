@@ -18,6 +18,7 @@ import {
   GoogleIcon,
   SocialAuthButton,
 } from "@/components/auth/social-auth-button";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 type SocialProvider = "google" | "facebook";
 
@@ -36,6 +37,24 @@ export function LoginForm() {
   const safeNextPathForOAuth = requestedNextPath
     ? sanitizeNextPath(requestedNextPath, "")
     : "";
+  React.useEffect(() => {
+    if (searchParams.get("verification") !== "complete") return;
+    // Supabase resend confirms the account before returning implicit tokens.
+    // Continue through password sign-in instead of attempting a PKCE exchange.
+    const returnedParams = new URLSearchParams(window.location.hash.slice(1));
+    if (returnedParams.has("error") || returnedParams.has("error_code")) {
+      const loginUrl = new URL(window.location.href);
+      loginUrl.searchParams.set("verification", "failed");
+      loginUrl.hash = "";
+      window.history.replaceState(null, "", `${loginUrl.pathname}${loginUrl.search}`);
+      router.replace(`${loginUrl.pathname}${loginUrl.search}`);
+      return;
+    }
+    if (window.location.hash) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
+  }, [router, searchParams]);
+
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
@@ -98,6 +117,16 @@ export function LoginForm() {
 
   return (
     <form className="space-y-3" onSubmit={handleLogin}>
+      {searchParams.get("verification") === "complete" && (
+        <p role="status" className="rounded-xl bg-brand-tint p-3 text-sm text-primary">
+          Sign in to continue after verifying your email.
+        </p>
+      )}
+      {searchParams.get("verification") === "failed" && (
+        <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+          This verification link has expired or could not be used. Enter your email and request a new link below.
+        </p>
+      )}
       <div className="grid gap-2">
         <SocialAuthButton
           label="Continue with Google"
@@ -206,6 +235,7 @@ export function LoginForm() {
       >
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
+      <ResendVerification email={email} nextPath={safeNextPathForOAuth} disabled={isLoading || !!socialLoading} />
     </form>
   );
 }

@@ -14,6 +14,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { KENYA_COUNTIES } from "@/lib/constants/filters";
+import { PhoneNumberInput } from "./phone-number-input";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { deactivateMyAccount } from "@/lib/actions/account";
@@ -499,24 +501,22 @@ export function ProfileForm({
                   <label htmlFor="profile-phone" className={sellerLabelClass}>
                     Phone Number
                   </label>
-                  <input
+                  <PhoneNumberInput
                     id="profile-phone"
                     value={form.phone}
-                    onChange={(event) => update("phone", event.target.value)}
+                    onChange={(value) => update("phone", value)}
                     className={sellerInputClass}
-                    placeholder="+254700000111"
                   />
                 </div>
                 <div>
                   <label htmlFor="profile-whatsapp" className={sellerLabelClass}>
                     WhatsApp Number
                   </label>
-                  <input
+                  <PhoneNumberInput
                     id="profile-whatsapp"
                     value={form.whatsapp}
-                    onChange={(event) => update("whatsapp", event.target.value)}
+                    onChange={(value) => update("whatsapp", value)}
                     className={sellerInputClass}
-                    placeholder="+254700000111"
                   />
                 </div>
               </div>
@@ -558,15 +558,20 @@ export function ProfileForm({
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="profile-city" className={sellerLabelClass}>
-                    City
+                    County
                   </label>
-                  <input
+                  <select
                     id="profile-city"
                     value={form.city}
                     onChange={(event) => update("city", event.target.value)}
                     className={sellerInputClass}
-                    placeholder="Nairobi"
-                  />
+                  >
+                    <option value="">Select county</option>
+                    {form.city && !KENYA_COUNTIES.some((county) => county === form.city) && (
+                      <option value={form.city}>{form.city} (current location)</option>
+                    )}
+                    {KENYA_COUNTIES.map((county) => <option key={county} value={county}>{county}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="profile-address" className={sellerLabelClass}>

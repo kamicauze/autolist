@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import {
   CalendarDays,
@@ -306,7 +307,7 @@ export function AdminListingsOverviewLive({ data }: { data: AdminListingsOvervie
                     <td className="px-6 py-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-[14px] font-semibold text-[#111827]">{listing.title}</p>
+                          <Link href={`/admin/listings/${listing.id}/preview`} className="text-[14px] font-semibold text-[#111827] hover:text-primary">{listing.title}</Link>
                           {listing.isFeatured ? (
                             <span className="rounded-full bg-brand-tint-strong px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-brand-hover">
                               Featured

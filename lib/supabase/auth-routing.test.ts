@@ -4,6 +4,7 @@ import {
   isPrivateSellerRole,
   resolveDealerRegistrationPath,
   resolveSelfServiceRoleTransition,
+  sanitizeNextPath,
 } from "./auth-routing";
 
 assert.equal(resolveDealerRegistrationPath(null), null);
@@ -59,3 +60,9 @@ assert.equal(isPrivateSellerRole("support"), false);
 assert.equal(isPrivateSellerRole("admin"), false);
 assert.equal(isPrivateSellerRole("super_admin"), false);
 assert.equal(isPrivateSellerRole(null), false);
+
+assert.equal(sanitizeNextPath("/\\example.net", ""), "");
+assert.equal(sanitizeNextPath("/\n/example.net", ""), "");
+assert.equal(sanitizeNextPath("//example.net", ""), "");
+assert.equal(sanitizeNextPath("https://example.net", ""), "");
+assert.equal(sanitizeNextPath("/sell/dealer?draft=1", ""), "/sell/dealer?draft=1");

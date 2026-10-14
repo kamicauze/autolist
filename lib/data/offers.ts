@@ -17,7 +17,7 @@ const OFFER_LISTING_SELECT = `
 
 const OFFER_SELECT = `
   *,
-  listing:listings(${OFFER_LISTING_SELECT}),
+  listing:listings(${OFFER_LISTING_SELECT}, offer_settings:listing_offer_settings(*)),
   dealer:dealers(id, profile_id, name, business_name, logo_url, city, mobile, email, whatsapp)
 `;
 

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, Home } from "lucide-react";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +63,9 @@ function AccountAccessShell({
         )}
       >
         <div className="bg-white">
+          <Link href="/" className="flex min-h-11 items-center gap-2 px-6 py-3 text-sm font-semibold text-primary hover:underline">
+            <Home className="h-4 w-4" aria-hidden="true" /> Back to home
+          </Link>
           <nav aria-label="Account access" className="grid grid-cols-2 border-b border-[#dfe3e8]">
             <Link
               href={loginHref}

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Clock, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -202,7 +203,10 @@ export function AdminListingsClient({ listings, duplicateSuggestions }: AdminLis
                   )}
                 </div>
 
-                <div className="flex shrink-0 gap-2 self-center">
+                <div className="flex shrink-0 flex-wrap gap-2 self-center">
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/admin/listings/${listing.id}/preview`}>Preview</Link>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

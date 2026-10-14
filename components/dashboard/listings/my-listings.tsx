@@ -29,6 +29,17 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { ImageGallery } from "@/components/vehicle/image-gallery";
+import { CarOverview } from "@/components/vehicle/car-overview";
+import { FeaturesList } from "@/components/vehicle/features-list";
+import {
+  getListingMetadataDetails,
+  getListingMetadataBoolean,
+  getListingMetadataString,
+  formatListingLabel,
+} from "@/lib/utils/listing-details";
+import { getListingSupportingMedia } from "@/lib/utils/listing-supporting-media";
+import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import {
@@ -69,6 +80,10 @@ type ListingPrimaryTab = "listings" | "bids";
 type OfferRow = {
   id: string;
   listingId?: string | null;
+  listing?: Listing | null;
+  sellerNote?: string | null;
+  minimumOfferAmount?: number | null;
+  expiresAt?: string | null;
   listingTitle?: string | null;
   buyerName?: string | null;
   amount?: number | null;
@@ -100,6 +115,7 @@ interface MyListingsProps {
   isSalesAgentView?: boolean;
   isPrivateSeller?: boolean;
   canBid?: boolean;
+  initialBidTab?: Exclude<ListingTab, "all">;
 }
 
 const bidTabs: Array<{ value: Exclude<ListingTab, "all">; label: string }> = [
@@ -825,6 +841,8 @@ function BidsPlaceholder({
                       </p>
                     ) : null}
 
+                    <BidVehicleDetails row={offer} />
+
                     <div className="flex flex-col gap-4 border-t border-[#e5e7eb] pt-5 lg:flex-row lg:items-center lg:justify-between">
                       <div className="space-y-1">
                         <p className="text-[12px] font-medium leading-[18px] text-[#6a7282]">
@@ -906,6 +924,15 @@ function BidsPlaceholder({
             <tr key={offer.id} className="text-[14px] text-[#202224]">
               <td className="px-5 py-4 font-semibold">
                 {offer.listingTitle || "Listing offer"}
+                {offer.listing ? (
+                  <div className="mt-3 min-w-[280px]">
+                    <BidVehicleDetails row={offer} />
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs font-normal text-slate-500">
+                    Vehicle details are no longer available for this offer.
+                  </p>
+                )}
               </td>
               <td className="px-5 py-4 text-[#5f6673]">
                 {offer.buyerName || "Buyer"}
@@ -990,6 +1017,111 @@ function BidsPlaceholder({
   );
 }
 
+function BidVehicleDetails({ row }: { row: OfferRow }) {
+  const listing = row.listing;
+  if (!listing) return null;
+  const images = [...(listing.images ?? [])]
+    .sort((a, b) => a.image_order - b.image_order)
+    .map((image) => getImageUrl(image.r2_key, "hero"));
+  const detailValues = getListingMetadataDetails(listing);
+  for (const field of ["hours_used", "enginePowerBhp", "axleConfig", "gvmKg", "cabType"] as const) {
+    const value = getListingMetadataString(listing, field);
+    if (value) detailValues[field] = value;
+  }
+  const details = Object.entries(detailValues);
+  const { videoUrl, documents } = getListingSupportingMedia(listing);
+  const negotiable = getListingMetadataBoolean(listing, "negotiable");
+  const tradeInAccepted = getListingMetadataBoolean(listing, "tradeInAccepted");
+  const availability = getListingMetadataString(listing, "availability");
+
+  return (
+    <details className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-primary">
+        View photos and full vehicle details{images.length ? ` (${images.length} photos)` : ""}
+      </summary>
+      <div className="mt-4 space-y-5 whitespace-normal">
+        {images.length ? (
+          <ImageGallery images={images} title={getListingDisplayTitle(listing)} />
+        ) : (
+          <p className="text-sm text-slate-500">No vehicle photos provided.</p>
+        )}
+        <CarOverview listing={listing} location={getListingDisplayLocation(listing)} />
+        {negotiable !== null || tradeInAccepted !== null || availability ? (
+          <p className="text-sm text-slate-700">
+            {[
+              negotiable !== null ? (negotiable ? "Negotiable price" : "Fixed price") : null,
+              tradeInAccepted !== null ? (tradeInAccepted ? "Trade-in accepted" : "No trade-ins") : null,
+              availability ? `Availability: ${formatListingLabel(availability)}` : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
+        {videoUrl || documents.length ? (
+          <section className="space-y-2">
+            <h4 className="text-sm font-semibold">Video and documents</h4>
+            {videoUrl ? (
+              <a href={videoUrl} target="_blank" rel="noreferrer" className="block text-sm text-primary underline">
+                Open vehicle video
+              </a>
+            ) : null}
+            {documents.map((document) => document.url ? (
+              <a
+                key={`${document.name}-${document.url}`}
+                href={document.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block break-words text-sm text-primary underline"
+              >
+                {document.name}
+              </a>
+            ) : (
+              <p key={document.name} className="break-words text-sm text-slate-600">
+                {document.name} (file not attached)
+              </p>
+            ))}
+          </section>
+        ) : null}
+        {details.length ? (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {details.map(([key, value]) => (
+              <div key={key} className="min-w-0">
+                <dt className="text-xs text-slate-500">{formatListingLabel(key.replace(/([a-z])([A-Z])/g, "$1 $2"))}</dt>
+                <dd className="break-words text-sm font-medium text-slate-800">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        <section>
+          <h4 className="mb-2 text-sm font-semibold">Features</h4>
+          {listing.features?.length ? (
+            <FeaturesList features={listing.features} />
+          ) : (
+            <p className="text-sm text-slate-500">No features specified by the seller.</p>
+          )}
+        </section>
+        {listing.description ? (
+          <section>
+            <h4 className="mb-2 text-sm font-semibold">Vehicle description</h4>
+            <p className="whitespace-pre-line text-sm font-normal text-slate-700">{listing.description}</p>
+          </section>
+        ) : null}
+        {row.sellerNote ? (
+          <section>
+            <h4 className="mb-2 text-sm font-semibold">Seller disclosures and offer terms</h4>
+            <p className="whitespace-pre-line text-sm font-normal text-slate-700">{row.sellerNote}</p>
+          </section>
+        ) : null}
+        {row.minimumOfferAmount != null || row.expiresAt ? (
+          <p className="text-sm text-slate-700">
+            {row.minimumOfferAmount != null ? `Minimum offer: ${formatDashboardCurrency(row.minimumOfferAmount)}` : ""}
+            {row.minimumOfferAmount != null && row.expiresAt ? " · " : ""}
+            {row.expiresAt ? `Offers close: ${formatDashboardDate(row.expiresAt)}` : ""}
+          </p>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 function BidMetric({
   icon,
   asset,
@@ -1057,15 +1189,16 @@ export function MyListings({
   isSalesAgentView = false,
   isPrivateSeller = false,
   canBid = false,
+  initialBidTab,
 }: MyListingsProps) {
   const router = useRouter();
   const [listingItems, setListingItems] = React.useState(listings);
   const [assignError, setAssignError] = React.useState<string | null>(null);
   const [activeView, setActiveView] =
-    React.useState<ListingPrimaryTab>("listings");
+    React.useState<ListingPrimaryTab>(initialBidTab ? "bids" : "listings");
   const [activeBidTab, setActiveBidTab] = React.useState<
     Exclude<ListingTab, "all">
-  >(canBid && availableBids?.length ? "available-bids" : "received-offers");
+  >(initialBidTab ?? (canBid ? "available-bids" : "received-offers"));
   const [query, setQuery] = React.useState("");
   const [status, setStatus] =
     React.useState<(typeof listingStatusOptions)[number]>("all");

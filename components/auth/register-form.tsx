@@ -41,6 +41,7 @@ import {
   GoogleIcon,
   SocialAuthButton,
 } from "@/components/auth/social-auth-button";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 type SocialProvider = "google" | "facebook";
 type RegistrationStep = "role" | "details";
@@ -606,6 +607,8 @@ export function RegisterForm() {
           <p>{infoMessage}</p>
         </div>
       )}
+
+      <ResendVerification email={email} nextPath={nextPath} disabled={isLoading || !!socialLoading} />
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <Button

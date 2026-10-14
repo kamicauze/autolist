@@ -23,9 +23,9 @@ export default async function DealerSellPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name, phone, city")
     .eq("id", user.id)
-    .maybeSingle<{ role: string | null }>();
+    .maybeSingle<{ role: string | null; full_name: string | null; phone: string | null; city: string | null }>();
 
   if (!isPrivateSellerRole(profile?.role)) {
     const destination = await resolvePostAuthPath(supabase, user.id);
@@ -41,7 +41,12 @@ export default async function DealerSellPage() {
 
       <main className="flex-1 bg-gray-50 py-8 md:py-12">
         <Container size="xl">
-          <DealerSaleForm makes={makeOptions} />
+          <DealerSaleForm makes={makeOptions} contactDefaults={{
+            fullName: profile?.full_name?.trim() || (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : ""),
+            phone: profile?.phone?.trim() || (typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone.trim() : ""),
+            email: user.email || "",
+            city: profile?.city?.trim() || "",
+          }} />
         </Container>
       </main>
 

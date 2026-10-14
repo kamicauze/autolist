@@ -23,7 +23,11 @@ export function sanitizeNextPath(
   fallback = "/dashboard",
 ) {
   if (!nextPath) return fallback;
-  if (!nextPath.startsWith("/") || nextPath.startsWith("//")) return fallback;
+  if (
+    !nextPath.startsWith("/") ||
+    nextPath.startsWith("//") ||
+    /[\\\u0000-\u001f\u007f]/.test(nextPath)
+  ) return fallback;
   return nextPath;
 }
 
