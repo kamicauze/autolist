@@ -1193,7 +1193,10 @@ export function DealerSaleForm({ makes, contactDefaults }: {
             ) : (
               <Button
                 type="button"
-                onClick={handleNextStep}
+                onClick={(event) => {
+                  event.preventDefault();
+                  handleNextStep();
+                }}
                 className="h-12 shrink-0 rounded-lg px-5 font-semibold active:scale-[0.98]"
               >
                 Next
