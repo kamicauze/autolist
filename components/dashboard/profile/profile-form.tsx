@@ -99,6 +99,7 @@ function formatDate(value: string | null | undefined) {
   }
 
   return new Date(value).toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
     year: "numeric",
     month: "short",
     day: "numeric",
