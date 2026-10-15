@@ -13,6 +13,7 @@ import { getListingById, getSimilarListings } from "@/lib/data/listings";
 import { getListingPricePositioning } from "@/lib/data/market-insights";
 import { getListingReviewsData } from "@/lib/data/reviews";
 import { getListingSalesRepContact } from "@/lib/data/sales-agents";
+import { getListingSellerStats } from "@/lib/data/seller-stats";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
 import type { ListingCategory } from "@/lib/constants/marketplace";
@@ -38,13 +39,16 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [similarListings, pricePositioning, listingReviewsData, salesRep] = await Promise.all([
-    getSimilarListings(listing, 4),
-    getListingPricePositioning(listing),
-    getListingReviewsData(listing.id),
-    getListingSalesRepContact(listing),
-  ]);
+  const [similarListings, pricePositioning, listingReviewsData, salesRep, sellerStats] =
+    await Promise.all([
+      getSimilarListings(listing, 4),
+      getListingPricePositioning(listing),
+      getListingReviewsData(listing.id),
+      getListingSalesRepContact(listing),
+      getListingSellerStats(listing),
+    ]);
   listing.sales_rep = salesRep;
+  listing.seller_stats = sellerStats;
 
   const favoriteListingIds = user
     ? await getCurrentUserFavoriteListingIds([
@@ -56,9 +60,9 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
   const viewerProfile = user
     ? await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, role")
         .eq("id", user.id)
-        .maybeSingle<{ id: string; full_name: string | null }>()
+        .maybeSingle<{ id: string; full_name: string | null; role: string | null }>()
     : { data: null, error: null };
 
   const googleMapsApiKey = getGoogleMapsApiKey();
@@ -105,6 +109,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                       id: user.id,
                       email: user.email ?? null,
                       fullName: viewerProfile.data?.full_name ?? null,
+                      role: viewerProfile.data?.role ?? null,
                     }
                   : null
               }

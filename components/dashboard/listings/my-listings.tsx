@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Archive,
@@ -55,6 +56,7 @@ import {
   createListingOffer,
   rejectListingOffer,
   withdrawListingOffer,
+  updateOwnListingOffer,
 } from "@/lib/actions/offers";
 import { LISTING_STATUS_META } from "@/lib/constants/marketplace";
 import { getImageUrl } from "@/lib/utils/listings";
@@ -70,6 +72,7 @@ import {
 } from "@/lib/utils/dashboard-listing-pagination";
 import {
   SellerStatusPill,
+  sellerPrimaryButtonClass,
   formatDashboardCurrency,
   formatDashboardDate,
 } from "../seller-dashboard-ui";
@@ -98,6 +101,7 @@ type OfferRow = {
   claimedBy?: string | null;
   canMakeOffer?: boolean;
   canWithdraw?: boolean;
+  canEditOffer?: boolean;
   canAccept?: boolean;
   canReject?: boolean;
   canCounter?: boolean;
@@ -596,6 +600,37 @@ function BidsPlaceholder({
     null,
   );
 
+  const [duplicateBidMessage, setDuplicateBidMessage] = React.useState<string | null>(null);
+  const duplicateBidDialog = (
+    <Dialog.Root open={Boolean(duplicateBidMessage)} onOpenChange={(open) => { if (!open) setDuplicateBidMessage(null); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-6 shadow-xl">
+          <Dialog.Title className="text-lg font-semibold">Bid already submitted</Dialog.Title>
+          <Dialog.Description className="mt-3 text-sm leading-6 text-[#68717d]">{duplicateBidMessage}</Dialog.Description>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/dashboard/listings?view=your-bids" onClick={() => setDuplicateBidMessage(null)} className={sellerPrimaryButtonClass}>View / Edit Bid</Link>
+            <Dialog.Close className="rounded-xl border px-4 py-3 text-sm font-medium">Close</Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+
+  const handleEditOffer = async (row: OfferRow) => {
+    const amountInput = window.prompt("Update your bid amount", String(row.amount ?? ""));
+    if (!amountInput) return;
+    const amount = Number(amountInput.replace(/,/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) { window.alert("Enter a valid bid amount."); return; }
+    const message = window.prompt("Message for the seller (optional)", "");
+    if (message === null) return;
+    setPendingActionId(row.id);
+    const result = await updateOwnListingOffer({ offerId: row.id, amount, message });
+    setPendingActionId(null);
+    if ("error" in result) { window.alert(result.error); return; }
+    router.refresh();
+  };
+
   const handleMakeOffer = async (row: OfferRow) => {
     if (!row.listingId) return;
 
@@ -622,7 +657,8 @@ function BidsPlaceholder({
     setPendingActionId(null);
 
     if ("error" in result) {
-      window.alert(result.error);
+      if (result.code === "BID_ALREADY_SUBMITTED") setDuplicateBidMessage(result.error);
+      else window.alert(result.error);
       return;
     }
 
@@ -728,6 +764,7 @@ function BidsPlaceholder({
 
     return (
       <div className="space-y-8 px-0 pb-8">
+        {duplicateBidDialog}
         <div className="flex justify-end px-0 pt-1">
           <div className="flex min-h-[47px] flex-wrap items-center gap-5 rounded-[12px] border border-[#e5e7eb] bg-white px-5 shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.1)]">
             <span className="flex items-center gap-2 text-[14px] font-medium text-[#101828]">
@@ -964,6 +1001,10 @@ function BidsPlaceholder({
                     {pendingActionId === offer.id ? "Saving..." : "Make offer"}
                   </button>
                 ) : offer.canWithdraw ? (
+                  <div className="flex justify-end gap-2">
+                  {offer.canEditOffer ? (
+                    <button type="button" onClick={() => handleEditOffer(offer)} disabled={pendingActionId === offer.id} className="inline-flex h-9 items-center justify-center rounded-[6px] border border-primary bg-white px-3 text-[13px] font-semibold text-primary disabled:opacity-60">Edit bid</button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => handleWithdrawOffer(offer)}
@@ -972,6 +1013,7 @@ function BidsPlaceholder({
                   >
                     {pendingActionId === offer.id ? "Saving..." : "Withdraw"}
                   </button>
+                  </div>
                 ) : offer.canAccept || offer.canReject || offer.canCounter ? (
                   <div className="flex justify-end gap-2">
                     {offer.canAccept ? (

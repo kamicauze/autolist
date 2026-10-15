@@ -61,7 +61,7 @@ export function DashboardLayout({
           sidebarCollapsed ? "lg:pl-[84px]" : "lg:pl-[var(--sidebar-width)]"
         )}
       >
-        <TopNav user={user} onMenuClick={() => setSidebarOpen(true)} />
+        <TopNav user={user} onMenuClick={() => setSidebarOpen(true)} isPrivateSeller={accountKind === "seller" && !salesAgentPermissions} />
 
         <main className="min-h-[calc(100vh-88px)] px-4 pb-8 pt-6 md:px-6 lg:px-8 lg:pt-8 xl:px-10">
           {children}

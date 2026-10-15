@@ -105,6 +105,7 @@ export default async function DashboardListingsPage({
         status: offer.status,
         createdAt: offer.created_at,
         canWithdraw: offer.status === "pending" || offer.status === "countered",
+        canEditOffer: Boolean(offer.listing) && (offer.status === "pending" || offer.status === "countered"),
       }))}
       receivedOffers={receivedOffers.map((offer) => ({
         id: offer.id,

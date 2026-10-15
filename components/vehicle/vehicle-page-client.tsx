@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ImageGallery } from "./image-gallery";
 import { SellerCard } from "./seller-card";
+import { getPrivateListingContact } from "@/lib/utils/listing-contact";
 import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
 import { CarOverview } from "./car-overview";
 import { FeaturesList } from "./features-list";
@@ -69,6 +70,7 @@ interface VehiclePageClientProps {
     id: string | null;
     email: string | null;
     fullName: string | null;
+    role?: string | null;
   } | null;
   initialIsFavorited: boolean;
   favoriteListingIds: string[];
@@ -417,8 +419,9 @@ export function VehiclePageClient({
   const youtubeEmbedUrl = videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
   const listingDocuments = getListingDocuments(listing.metadata);
   const hasSupportingMedia = Boolean(videoUrl) || listingDocuments.length > 0;
+  const privateContact = listing.dealer ? undefined : getPrivateListingContact(listing);
   const quickContactPhone = normalizeWhatsAppPhone(
-    listing.sales_rep?.whatsapp || listing.dealer?.whatsapp || listing.dealer?.mobile
+    listing.sales_rep?.whatsapp || listing.dealer?.whatsapp || listing.dealer?.mobile || privateContact?.whatsappNumber
   );
   const currentOrigin = useSyncExternalStore(
     subscribeToOrigin,
@@ -836,6 +839,9 @@ export function VehiclePageClient({
                 dealer={listing.dealer}
                 seller={listing.seller}
                 salesRep={listing.sales_rep ?? null}
+                stats={listing.seller_stats ?? null}
+                listingLocation={location}
+                privateContact={privateContact}
               />
 
               <div className="rounded-xl border border-gray-200 bg-white p-5">

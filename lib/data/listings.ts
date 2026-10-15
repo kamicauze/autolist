@@ -704,7 +704,8 @@ async function fetchListingsForDerivedFiltering({
     let query = supabase
       .from("listings")
       .select(getListingSelect(false))
-      .eq("status", "active");
+      .eq("status", "active")
+      .in("sale_channel", ["standard", "dealer_public"]);
 
     query = applyListingFilters(query, filters, {
       skipBodyType: true,
@@ -751,6 +752,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
       dealer:dealers(id, name, logo_url, city)
     `)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .eq("is_featured", true)
     .order("created_at", { ascending: false })
     .limit(poolLimit);
@@ -783,6 +785,7 @@ export async function getNewestListings(limit = 8): Promise<Listing[]> {
       dealer:dealers(id, name, logo_url, city)
     `)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -807,6 +810,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
     `)
     .eq("id", id)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .single();
 
   if (error) {
@@ -835,6 +839,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
       dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .in("id", sanitizedIds);
 
   if (error) {
@@ -997,7 +1002,8 @@ export async function searchListings({
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact" })
-    .eq("status", "active");
+    .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"]);
 
   query = applyListingFilters(query, filters);
 
@@ -1037,7 +1043,8 @@ export async function countMatchingListings(
   let query = supabase
     .from("listings")
     .select(getListingSelect(Boolean(filters?.location)), { count: "exact", head: true })
-    .eq("status", "active");
+    .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"]);
   query = applyListingFilters(query, filters);
 
   const { count, error } = await query;
@@ -1064,6 +1071,7 @@ export async function getSimilarListings(
       seller:profiles!seller_id(id, full_name, avatar_url)
     `)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .neq("id", listing.id)
     .or(`make.eq.${listing.make},body_type.eq.${listing.body_type}`)
     .order("created_at", { ascending: false })

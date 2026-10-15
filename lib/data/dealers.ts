@@ -66,6 +66,7 @@ export async function getDealerInventory(
     .from("listings")
     .select(LISTING_SELECT)
     .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
     .eq("dealer_id", dealerId)
     .order("created_at", { ascending: false })
     .limit(limit);

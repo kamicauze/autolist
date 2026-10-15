@@ -1,11 +1,11 @@
-const REVIEW_PREFIX = "[[AUTOLIST_REVIEW rating=";
+export const ENQUIRY_REVIEW_PREFIX = "[[AUTOLIST_REVIEW rating=";
 
 export function serializeEnquiryReviewMessage(input: { rating: number; body: string }) {
-  return `${REVIEW_PREFIX}${input.rating}]]\n${input.body.trim()}`;
+  return `${ENQUIRY_REVIEW_PREFIX}${input.rating}]]\n${input.body.trim()}`;
 }
 
 export function parseEnquiryReviewMessage(message: string | null | undefined) {
-  if (!message?.startsWith(REVIEW_PREFIX)) {
+  if (!message?.startsWith(ENQUIRY_REVIEW_PREFIX)) {
     return null;
   }
 

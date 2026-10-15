@@ -32,6 +32,7 @@ export interface DealerProfile {
   whatsapp: string;
   website: string | null;
   logo_url: string | null;
+  showroom_photo_keys?: string[];
   about_text: string | null;
   social_links: DealerSocialLinks | null;
   contact_person: DealerContactPerson | null;

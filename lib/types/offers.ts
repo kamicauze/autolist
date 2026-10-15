@@ -10,6 +10,7 @@ export type OfferStatus =
   | "expired";
 
 export type OfferEventType =
+  | "updated"
   | "created"
   | "countered"
   | "accepted"
@@ -70,7 +71,7 @@ export interface AvailableBidListing extends Listing {
 
 export type OfferActionResult =
   | { success: true; offer: ListingOffer }
-  | { error: string };
+  | { error: string; code?: "BID_ALREADY_SUBMITTED" };
 
 export type OfferSettingsActionResult =
   | { success: true; settings: ListingOfferSettings }

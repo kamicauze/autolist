@@ -1,5 +1,9 @@
+import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { parseEnquiryReviewMessage } from "@/lib/reviews/enquiry-fallback";
+import {
+  ENQUIRY_REVIEW_PREFIX,
+  parseEnquiryReviewMessage,
+} from "@/lib/reviews/enquiry-fallback";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import type {
@@ -151,6 +155,19 @@ const ENQUIRY_REVIEW_SELECT = `
   listing:listings!listing_id(id, make, model, year, seller_id)
 `;
 
+// Same projection as ENQUIRY_REVIEW_SELECT, with an inner join so the query
+// can filter on listing.seller_id.
+const SELLER_ENQUIRY_REVIEW_SELECT = `
+  id,
+  listing_id,
+  user_id,
+  message,
+  created_at,
+  updated_at,
+  reviewer:profiles!user_id(id, full_name, avatar_url),
+  listing:listings!listing_id!inner(id, make, model, year, seller_id)
+`;
+
 async function getFallbackEnquiryReviews(
   listingId?: string
 ): Promise<ListingReviewRecord[]> {
@@ -265,5 +282,54 @@ export async function getListingReviewsData(
     reviews,
     summary: summarizeReviews(reviews),
     viewerReview,
+  };
+}
+
+// Public, seller-level reviews (seller_id is the dealer owner's profile for
+// dealer listings). Uses the service role because the enquiry fallback rows are
+// private under RLS; only the review projection is returned.
+export async function getPublicSellerReviewsData(
+  sellerId: string
+): Promise<SellerReviewDashboardData> {
+  const supabase = createOptionalAdminClient();
+  if (!supabase) {
+    return { reviews: [], summary: { averageRating: 0, totalReviews: 0 } };
+  }
+
+  const [primaryResult, fallbackResult] = await Promise.all([
+    supabase
+      .from("listing_reviews")
+      .select(REVIEW_SELECT)
+      .eq("seller_id", sellerId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("enquiries")
+      .select(SELLER_ENQUIRY_REVIEW_SELECT)
+      .like("message", `${ENQUIRY_REVIEW_PREFIX}%`)
+      .eq("listing.seller_id", sellerId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  let primaryReviews: ListingReviewRecord[] = [];
+  if (primaryResult.error && !isMissingRelationError(primaryResult.error)) {
+    console.error("Error fetching public seller reviews:", primaryResult.error);
+  } else if (!primaryResult.error) {
+    primaryReviews = ((primaryResult.data || []) as ListingReviewRow[]).map(mapReviewRow);
+  }
+
+  let fallbackReviews: ListingReviewRecord[] = [];
+  if (fallbackResult.error) {
+    console.error("Error fetching public seller fallback reviews:", fallbackResult.error);
+  } else {
+    fallbackReviews = ((fallbackResult.data || []) as EnquiryReviewRow[])
+      .map(mapEnquiryReviewRow)
+      .filter((review): review is ListingReviewRecord => Boolean(review));
+  }
+
+  const reviews = mergeReviews(primaryReviews, fallbackReviews);
+
+  return {
+    reviews,
+    summary: summarizeReviews(reviews),
   };
 }

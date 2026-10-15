@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { usePathname } from "next/navigation";
 import { Menu, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,9 +19,10 @@ const topNavLinks = [
 interface TopNavProps {
   user: { email?: string | null; user_metadata?: Record<string, unknown> };
   onMenuClick: () => void;
+  isPrivateSeller?: boolean;
 }
 
-export function TopNav({ user, onMenuClick }: TopNavProps) {
+export function TopNav({ user, onMenuClick, isPrivateSeller = false }: TopNavProps) {
   const pathname = usePathname();
 
   const displayName =
@@ -62,15 +64,39 @@ export function TopNav({ user, onMenuClick }: TopNavProps) {
             <NotificationBell className="text-[#6c6c6c]" />
           </div>
 
-          <Link href="/dashboard/listings/new">
-            <Button
-              size="sm"
-              className="h-12 rounded-full bg-primary px-4 text-[14px] font-semibold text-white hover:bg-brand-hover"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Listing</span>
-            </Button>
-          </Link>
+          {isPrivateSeller ? (
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <Button size="sm" aria-label="Add listing" className="h-12 rounded-full px-4 text-[14px] font-semibold">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Listing</span>
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content align="end" sideOffset={8} className="z-50 w-64 rounded-[14px] border border-[#e2e5e9] bg-white p-2 shadow-lg">
+                  <DropdownMenu.Item asChild>
+                    <Link href="/dashboard/listings/new" className="block rounded-lg px-3 py-3 text-sm outline-none hover:bg-brand-tint focus:bg-brand-tint">
+                      <span className="block font-semibold">Public listing</span>
+                      <span className="mt-1 block text-xs text-[#68717d]">Publish after moderation.</span>
+                    </Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
+                    <Link href="/sell/dealer" className="block rounded-lg px-3 py-3 text-sm outline-none hover:bg-brand-tint focus:bg-brand-tint">
+                      <span className="block font-semibold">Request dealer offers</span>
+                      <span className="mt-1 block text-xs text-[#68717d]">Choose dealer-only or public selling.</span>
+                    </Link>
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          ) : (
+            <Link href="/dashboard/listings/new" aria-label="Add listing">
+              <Button size="sm" className="h-12 rounded-full bg-primary px-4 text-[14px] font-semibold text-white hover:bg-brand-hover">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Listing</span>
+              </Button>
+            </Link>
+          )}
 
           <div className="hidden lg:flex">
             <SellerUserChip name={displayName} email={user.email} avatarUrl={avatarUrl} />

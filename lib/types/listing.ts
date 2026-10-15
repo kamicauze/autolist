@@ -73,6 +73,15 @@ export interface Listing {
   };
   /** Public contact for the assigned sales rep; attached on the vehicle page. */
   sales_rep?: ListingSalesRepContact | null;
+  seller_stats?: PublicSellerStats | null;
+}
+
+export interface PublicSellerStats {
+  averageRating: number;
+  totalReviews: number;
+  /** ISO timestamp the dealer (or private seller profile) joined. */
+  memberSince: string | null;
+  activeListings: number;
 }
 
 export interface ListingSalesRepContact {

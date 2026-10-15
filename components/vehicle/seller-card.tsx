@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Clock3,
   Phone,
+  MapPin,
   Star,
   UserRound,
 } from "lucide-react";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { IconWhatsapp } from "@/components/ui/icons";
 import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
-import type { ListingSalesRepContact } from "@/lib/types/listing";
+import type { ListingSalesRepContact, PublicSellerStats } from "@/lib/types/listing";
 import { AppointmentRequestDialog } from "./appointment-request-dialog";
 
 interface SellerCardProps {
@@ -39,6 +40,9 @@ interface SellerCardProps {
     avatar_url: string | null;
   };
   salesRep?: ListingSalesRepContact | null;
+  stats?: PublicSellerStats | null;
+  listingLocation?: string;
+  privateContact?: { phoneNumber: string | null; whatsappNumber: string | null };
 }
 
 type DealerHoursRow = {
@@ -145,7 +149,16 @@ export function getDealerHoursPresentation(
   };
 }
 
-export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }: SellerCardProps) {
+export function SellerCard({
+  listingId,
+  listingTitle,
+  dealer,
+  seller,
+  salesRep,
+  stats,
+  listingLocation,
+  privateContact,
+}: SellerCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
@@ -154,14 +167,17 @@ export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }
   const rep = dealer ? salesRep ?? null : null;
   // The assigned sales rep is the primary contact; each channel falls back to
   // the dealership when the rep has hidden their number or disabled WhatsApp.
-  const callNumber = rep?.phone || dealer?.mobile || null;
+  const callNumber = isDealer ? rep?.phone || dealer?.mobile || null : privateContact?.phoneNumber || null;
   const whatsappNumber = normalizeWhatsAppPhone(
-    rep?.whatsapp || dealer?.whatsapp || dealer?.mobile
+    isDealer ? rep?.whatsapp || dealer?.whatsapp || dealer?.mobile : privateContact?.whatsappNumber
   );
   const whatsappUrl = whatsappNumber
     ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist.`)}`
     : null;
   const contactLabel = rep ? `Call ${rep.name.split(" ")[0]}` : "Call Seller";
+  const hasReviews = Boolean(stats && stats.totalReviews > 0);
+  const filledStars = hasReviews && stats ? Math.round(stats.averageRating) : 0;
+  const memberSinceYear = stats?.memberSince ? new Date(stats.memberSince).getFullYear() : null;
 
   return (
     <>
@@ -187,10 +203,23 @@ export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }
               )}
             </h3>
             <div className="mt-1 flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Star key={value} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-              ))}
-              <span className="ml-1 text-xs text-gray-500">5.0</span>
+              {hasReviews ? [1, 2, 3, 4, 5].map((value) => (
+                <Star
+                  key={value}
+                  className={
+                    value <= filledStars
+                      ? "h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
+                      : "h-3.5 w-3.5 text-gray-200"
+                  }
+                />
+              )) : null}
+              <span className="text-xs text-gray-500">
+                {hasReviews && stats
+                  ? `${stats.averageRating.toFixed(1)} (${stats.totalReviews} ${
+                      stats.totalReviews === 1 ? "review" : "reviews"
+                    })`
+                  : "No reviews yet"}
+              </span>
             </div>
           </div>
         </div>
@@ -223,23 +252,35 @@ export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }
               <p className="truncate text-xs text-gray-500">Sales rep at {dealer?.name}</p>
             </div>
           </div>
-        ) : (
-          <p className="mt-4 text-xs leading-relaxed text-gray-600">
-            {dealer?.about_text ||
-              "Trusted local dealer with verified listings and transparent pricing. Contact us for full inspection and purchase support."}
-          </p>
-        )}
+        ) : null}
 
-        <div className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-500">Member since</span>
-            <span className="font-semibold text-gray-900">2018</span>
+        {stats ? (
+          <div className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs">
+            {memberSinceYear ? (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Member since</span>
+                <span className="font-semibold text-gray-900">{memberSinceYear}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Active listings</span>
+              <span className="font-semibold text-gray-900">{stats.activeListings}</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-500">Active listings</span>
-            <span className="font-semibold text-gray-900">48</span>
-          </div>
-        </div>
+        ) : null}
+
+        {!isDealer && listingLocation ? (
+          <p className="mt-4 flex items-start gap-2 text-xs text-gray-600">
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+            <span><span className="font-medium text-gray-900">Listing location:</span> {listingLocation}</span>
+          </p>
+        ) : null}
+
+        {dealer ? (
+          <Button asChild variant="outline" className="mt-4 w-full">
+            <Link href={`/dealers/${dealer.id}`}>View Dealer&apos;s Profile</Link>
+          </Button>
+        ) : null}
 
         {isDealer ? (
           <div className="mt-4 rounded-lg border border-gray-100 bg-white p-3">
@@ -310,25 +351,27 @@ export function SellerCard({ listingId, listingTitle, dealer, seller, salesRep }
               </Button>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-3 w-full gap-2"
-            onClick={() => setDialogOpen(true)}
-          >
-            <CalendarDays className="h-4 w-4" />
-            Book an appointment
-          </Button>
+          {isDealer ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full gap-2"
+              onClick={() => setDialogOpen(true)}
+            >
+              <CalendarDays className="h-4 w-4" />
+              Book an appointment
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <AppointmentRequestDialog
+      {isDealer ? <AppointmentRequestDialog
         listingId={listingId}
         listingTitle={listingTitle}
-        viewingLocation={dealer?.address || dealer?.city || "Confirm with the seller"}
+        viewingLocation={dealer?.address || dealer?.city || listingLocation || "Confirm with the seller"}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-      />
+      /> : null}
     </>
   );
 }

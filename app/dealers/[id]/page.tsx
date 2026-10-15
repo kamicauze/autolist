@@ -8,6 +8,7 @@ import {
   getDealerInventory,
 } from "@/lib/data/dealers";
 import { getNewestListings } from "@/lib/data/listings";
+import { getPublicSellerReviewsData } from "@/lib/data/reviews";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 
 interface DealerDetailPageProps {
@@ -27,6 +28,9 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
   if (!dealer) {
     notFound();
   }
+
+  // Dealer listings are owned by the dealer's profile, so reviews key off it.
+  const reviewsData = await getPublicSellerReviewsData(dealer.profile_id);
 
   const recommendedListings = newestListings.filter(
     (listing) => listing.dealer?.id !== dealer.id
@@ -53,6 +57,7 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
             inventory={inventory}
             recommendedListings={recommendedListings}
             googleMapsApiKey={googleMapsApiKey}
+            reviewsData={reviewsData}
           />
         </div>
       </main>

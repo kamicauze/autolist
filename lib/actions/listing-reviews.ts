@@ -24,6 +24,19 @@ export async function upsertListingReview(input: {
     return { error: "AUTH_REQUIRED" };
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle<{ role: string | null }>();
+
+  if (profileError || !profile) {
+    return { error: "Unable to verify review permissions. Please try again." };
+  }
+  if (profile.role === "admin" || profile.role === "super_admin") {
+    return { error: "Administrators cannot post listing reviews." };
+  }
+
   const listingId = input.listingId.trim();
   const body = input.body.trim();
   const rating = Number(input.rating);

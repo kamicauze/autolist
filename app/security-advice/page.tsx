@@ -30,7 +30,7 @@ const buyerChecklist = [
     asset: "listing-inspect",
     title: "Check the listing details",
     description:
-      "Compare the photos, mileage, year, number plate visibility, chassis/VIN details, and price against similar vehicles before you arrange a viewing.",
+      "Compare photos, mileage, year, chassis/VIN details and price against similar vehicles. Inspect the vehicle and its original documents in person before paying a deposit or holding fee.",
   },
   {
     icon: BadgeCheck,
@@ -68,14 +68,21 @@ const sellerChecklist = [
     asset: "car-keys",
     title: "Control test drives",
     description:
-      "Verify the buyer's licence, keep a copy of their contact details, and accompany every test drive. Do not hand over keys before payment clears.",
+      "Check the buyer's driving licence in person, agree a familiar route and accompany every test drive. Remove valuables, keep track of the keys and decline a drive if you feel unsafe.",
   },
   {
     icon: HandCoins,
     asset: "cash-hand",
     title: "Confirm payment first",
     description:
-      "Avoid pressure to release a vehicle on screenshots, cheque promises, or pending transfers. Confirm cleared funds with your bank or payment provider.",
+      "Confirm cleared funds directly with your bank or payment provider. Do not release the vehicle on a payment screenshot, pending transfer or unverified cheque, and never refund an alleged overpayment before funds are verified.",
+  },
+  {
+    icon: FileLock2,
+    asset: "document-lock",
+    title: "Protect your listing photos",
+    description:
+      "Cover number plates and remove personal documents, addresses and valuables from listing photos. Show identity and ownership documents in person rather than sending copies in messages.",
   },
   {
     icon: MessageSquareWarning,
@@ -93,6 +100,7 @@ const warningSigns = [
   "Payment screenshots, overpayment stories, or refund requests before funds clear.",
   "Pressure to click unfamiliar links or continue the deal outside normal contact channels.",
   "Documents where the names, chassis/VIN, number plate, or vehicle details do not match.",
+  "Elaborate import-agent stories, repeated excuses to avoid a viewing, or pressure to use an unfamiliar payment service.",
 ];
 
 const documentChecks = [
@@ -120,6 +128,7 @@ export default function SecurityAdvicePage() {
         <PageHero
           label="Security advice"
           heading="Buy and sell vehicles with more confidence"
+          backgroundImage="/security-vehicle-check.jpg"
         />
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -167,6 +176,30 @@ export default function SecurityAdvicePage() {
                   </p>
                 </article>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8" aria-labelledby="communication-safety">
+          <div className="grid gap-6 rounded-xl border border-gray-200 bg-gray-50 p-6 sm:p-8 md:grid-cols-2">
+            <div>
+              <h2 id="communication-safety" className="text-2xl font-bold text-gray-900">Keep a clear communication record</h2>
+              <p className="mt-4 text-sm leading-7 text-gray-600">
+                Use Autolist enquiries and messages to retain questions, viewing arrangements and agreed terms.
+                Be cautious when someone immediately asks you to move elsewhere, follow an unfamiliar link or
+                share financial information. A verified badge does not replace inspecting the vehicle,
+                checking documents or confirming payment.
+              </p>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Report pressure, harassment or suspicious requests</h2>
+              <p className="mt-4 text-sm leading-7 text-gray-600">
+                Stop contact if someone is aggressive, asks for sensitive documents or demands an advance
+                payment before inspection. Use the listing report control and keep the listing link and
+                message record. Email{" "}
+                <a href="mailto:safety@autolist.co.ke" className="font-semibold text-brand-link underline underline-offset-4">safety@autolist.co.ke</a>
+                {" "}with the details so the team can review the concern.
+              </p>
             </div>
           </div>
         </section>

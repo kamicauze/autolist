@@ -9,9 +9,11 @@ import { getMyListings } from "@/lib/actions/listings";
 import { createClient } from "@/lib/supabase/server";
 import { getSellerPackageAccessForUser } from "@/lib/data/membership";
 import { getSellerDashboardReviewsData } from "@/lib/data/reviews";
+import { getCurrentApprovedDealer } from "@/lib/data/offers";
 import {
   SellerPageHeader,
   SellerSurface,
+  sellerGhostButtonClass,
 } from "@/components/dashboard/seller-dashboard-ui";
 
 export default async function DashboardPage() {
@@ -20,7 +22,7 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [listingsResult, packageAccessResult, favoritesResult, reviewsData] = await Promise.all([
+  const [listingsResult, packageAccessResult, favoritesResult, reviewsData, approvedDealer] = await Promise.all([
     getMyListings(),
     user
       ? getSellerPackageAccessForUser(supabase, user.id)
@@ -32,6 +34,7 @@ export default async function DashboardPage() {
           .eq("user_id", user.id)
       : Promise.resolve({ count: 0 }),
     getSellerDashboardReviewsData(),
+    getCurrentApprovedDealer(),
   ]);
 
   const { data: listings } = listingsResult;
@@ -92,6 +95,11 @@ export default async function DashboardPage() {
       <SellerPageHeader
         title="Dashboard"
         description="Track seller listings, package capacity, buyer engagement, and account verification."
+        action={
+          <Link href={approvedDealer ? "/dashboard/listings?view=available-bids" : "/dashboard/listings?view=received-offers"} className={sellerGhostButtonClass}>
+            {approvedDealer ? "Open bids" : "View dealer offers"}
+          </Link>
+        }
       />
 
       <VerificationBanner />

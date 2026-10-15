@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
+import { DealerShowroomEditor } from "./dealer-showroom-editor";
 import { PhoneNumberInput } from "./phone-number-input";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
@@ -924,6 +925,8 @@ export function ProfileForm({
           </div>
         </form>
       </SellerSurface>
+
+      {approvedDealer ? <DealerShowroomEditor initialKeys={approvedDealer.showroom_photo_keys ?? []} /> : null}
 
       <DeactivateAccountSection />
     </div>

@@ -114,6 +114,23 @@ export function CarCard({
   const [isWishlistPending, setIsWishlistPending] = React.useState(false);
   const [isDealerOpen, setIsDealerOpen] = React.useState(false);
   const dealerPanelId = React.useId();
+  const dealerDetailsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isDealerOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!dealerDetailsRef.current?.contains(event.target as Node)) setIsDealerOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsDealerOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isDealerOpen]);
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
 
   const formattedPrice = new Intl.NumberFormat("en-KE").format(price);
@@ -383,7 +400,7 @@ export function CarCard({
           <h3
             className={cn(
               "line-clamp-2 break-words font-medium text-card-foreground",
-              isCompact ? "text-[14px] leading-[20px]" : "text-[18px] leading-[25.2px]"
+              isCompact ? "min-h-[40px] text-[14px] leading-[20px]" : "min-h-[50.4px] text-[18px] leading-[25.2px]"
             )}
           >
             {title}
@@ -431,7 +448,7 @@ export function CarCard({
   );
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <div className="group flex flex-col self-start overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       {href ? (
         <Link href={href} scroll className="flex flex-1 flex-col">
           {cardBody}
@@ -440,14 +457,14 @@ export function CarCard({
         <div className="flex flex-1 flex-col">{cardBody}</div>
       )}
 
-      <div className={isCompact ? "px-3.5 pb-3.5" : "px-4 pb-4"}>
+      <div ref={dealerDetailsRef} className={cn("relative", isCompact ? "px-3.5 pb-3.5" : "px-4 pb-4")}>
         <div
           className={cn(
             "border-t border-border/70 font-medium text-muted-foreground",
             isCompact ? "pt-3 text-[11px] leading-[16px]" : "pt-3.5 text-[12px] leading-[18px]"
           )}
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-h-6 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-1.5">
               {contactKind === "call" ? (
                 <Icon3D
@@ -485,7 +502,7 @@ export function CarCard({
           </div>
 
           {dealer ? (
-            <div id={dealerPanelId} hidden={!isDealerOpen} className="mt-3 space-y-2.5 rounded-lg bg-muted/60 p-3">
+            <div id={dealerPanelId} hidden={!isDealerOpen} role="region" aria-label="Dealer details" className="absolute bottom-full left-3 right-3 z-40 mb-2 max-h-64 space-y-2.5 overflow-y-auto rounded-lg border border-border bg-card p-3 shadow-lg">
               <div className="flex min-w-0 items-center gap-2">
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-card">
                   {dealer.logoUrl ? (

@@ -9,6 +9,7 @@ import type {
 type ReviewsSectionProps = {
   summary?: ListingReviewSummary | null;
   reviews?: ListingReviewRecord[];
+  emptyMessage?: string;
 };
 
 function formatReviewDate(value: string) {
@@ -22,9 +23,10 @@ function formatReviewDate(value: string) {
 export function ReviewsSection({
   summary = null,
   reviews = [],
+  emptyMessage = "Signed-in buyers can leave the first public review from this listing page after exploring the listing.",
 }: ReviewsSectionProps) {
   const reviewCount = summary?.totalReviews ?? reviews.length;
-  const averageRating = summary?.averageRating ?? 0;
+  const averageRating = summary?.averageRating ?? (reviews.length > 0 ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
 
   return (
     <div className="space-y-6">
@@ -33,13 +35,13 @@ export function ReviewsSection({
 
         <div className="mb-6 flex items-center gap-4 rounded-lg border border-brand-muted-border bg-brand-tint p-4">
           <div className="flex items-center gap-2">
-            <Illustration3D asset="rating-star" fallbackIcon={Star} size="md" />
+            {reviewCount > 0 ? <Illustration3D asset="rating-star" fallbackIcon={Star} size="md" /> : null}
             <span className="text-4xl font-bold text-primary">
-              {reviewCount > 0 ? averageRating.toFixed(1) : "0.0"}
+              {reviewCount > 0 ? averageRating.toFixed(1) : "—"}
             </span>
           </div>
           <div className="text-sm text-gray-500">
-            <p className="font-medium text-gray-900">Outstanding</p>
+            <p className="font-medium text-gray-900">{reviewCount > 0 ? "Customer ratings" : "No reviews yet"}</p>
             <p>
               {reviewCount} {reviewCount === 1 ? "rating and review" : "ratings and reviews"}
             </p>
@@ -49,8 +51,7 @@ export function ReviewsSection({
 
       {reviews.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-200 bg-white p-6 text-sm text-gray-600">
-          Signed-in buyers can leave the first public review from this listing page after
-          exploring the listing.
+          {emptyMessage}
         </div>
       ) : (
         <div className="space-y-5">

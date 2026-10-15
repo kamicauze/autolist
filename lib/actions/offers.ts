@@ -67,12 +67,34 @@ export async function createListingOffer(input: {
   });
 
   if (error) {
+    if (error.code === "23505" && error.message.includes("idx_listing_offers_one_live_per_dealer")) {
+      return { error: "You’ve already submitted a bid for this vehicle. You can update your existing bid instead of submitting a new one.", code: "BID_ALREADY_SUBMITTED" };
+    }
     return { error: getActionError(error) };
   }
 
   const offer = data as ListingOffer;
   revalidateOfferPaths(offer.listing_id);
 
+  return { success: true, offer };
+}
+
+export async function updateOwnListingOffer(input: {
+  offerId: string;
+  amount: number;
+  message?: string | null;
+}): Promise<OfferActionResult> {
+  const offerId = input.offerId.trim();
+  const amount = normalizeAmount(input.amount);
+  if (!offerId) return { error: "Missing offer id." };
+  if (!amount || amount <= 0) return { error: "Enter a bid amount greater than zero." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("update_own_listing_offer", {
+    p_offer_id: offerId, p_amount: amount, p_message: normalizeMessage(input.message),
+  });
+  if (error) return { error: getActionError(error) };
+  const offer = data as ListingOffer;
+  revalidateOfferPaths(offer.listing_id);
   return { success: true, offer };
 }
 

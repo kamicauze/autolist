@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Header } from "@/components/layout/header";
+import { InsuranceFaq } from "@/components/finance/insurance-faq";
 import { Footer } from "@/components/layout/footer";
 import { PageHero } from "@/components/shared/page-hero";
 import { submitInsuranceRequest } from "@/lib/actions/insurance";
@@ -271,6 +272,11 @@ export default function InsurancePage() {
               </span>
             ))}
           </div>
+        </section>
+        <section className="mx-auto max-w-4xl px-4 pb-14 sm:px-6 lg:px-8" aria-labelledby="insurance-faq-heading">
+          <h2 id="insurance-faq-heading" className="text-2xl font-bold text-gray-900">Car insurance in Kenya: frequently asked questions</h2>
+          <p className="mt-3 text-sm leading-6 text-gray-600">Understand cover types, premiums and claims before choosing a policy.</p>
+          <InsuranceFaq />
         </section>
       </main>
 

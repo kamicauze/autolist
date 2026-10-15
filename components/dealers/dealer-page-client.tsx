@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Listing } from "@/lib/types/listing";
 import type { DealerProfile } from "@/lib/types/dealer";
+import type { SellerReviewDashboardData } from "@/lib/types/listing-review";
 import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { RecommendedCars } from "@/components/vehicle/recommended-cars";
@@ -23,6 +24,7 @@ import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
+import { DealerProfileHeader } from "./dealer-profile-header";
 import { getDealerHoursPresentation } from "@/components/vehicle/seller-card";
 
 interface DealerPageClientProps {
@@ -30,6 +32,7 @@ interface DealerPageClientProps {
   inventory: Listing[];
   recommendedListings: Listing[];
   googleMapsApiKey: string;
+  reviewsData: SellerReviewDashboardData;
 }
 
 function getListingImage(listing: Listing): string {
@@ -105,11 +108,13 @@ function DealerSidebar({
   dealer,
   recommendedListings,
   googleMapsApiKey,
+  reviewSummary,
   onReportDealer,
 }: {
   dealer: DealerProfile;
   recommendedListings: Listing[];
   googleMapsApiKey: string;
+  reviewSummary: SellerReviewDashboardData["summary"];
   onReportDealer: () => void;
 }) {
   const locationLabel =
@@ -158,8 +163,16 @@ function DealerSidebar({
         </div>
 
         <div className="mt-5 border-t border-gray-100 pt-4">
-          <p className="text-sm text-gray-600">2,975 Reviews</p>
-          <p className="mt-1 text-sm font-semibold text-gray-900">5/5</p>
+          <p className="text-sm text-gray-600">
+            {reviewSummary.totalReviews === 1
+              ? "1 Review"
+              : `${reviewSummary.totalReviews.toLocaleString("en-KE")} Reviews`}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-gray-900">
+            {reviewSummary.totalReviews > 0
+              ? `${reviewSummary.averageRating.toFixed(1)}/5`
+              : "No ratings yet"}
+          </p>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -236,6 +249,7 @@ export function DealerPageClient({
   inventory,
   recommendedListings,
   googleMapsApiKey,
+  reviewsData,
 }: DealerPageClientProps) {
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
@@ -243,18 +257,7 @@ export function DealerPageClient({
     <>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
         <main className="space-y-8">
-          <section className="relative h-72 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-rose-100 via-rose-50 to-orange-50 sm:h-80">
-            <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-rose-200/60" />
-            <div className="absolute bottom-0 left-8 right-8 top-0 flex items-center">
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Authorized Dealer Profile</p>
-                <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">{dealer.name}</h1>
-                <p className="max-w-xl text-sm text-gray-600">
-                  Explore the latest inventory, reviews, and contact options for {dealer.name}.
-                </p>
-              </div>
-            </div>
-          </section>
+          <DealerProfileHeader name={dealer.name} photoKeys={dealer.showroom_photo_keys} />
 
           <section id="about" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>
@@ -274,7 +277,11 @@ export function DealerPageClient({
           </section>
 
           <section className="space-y-8">
-            <ReviewsSection />
+            <ReviewsSection
+              summary={reviewsData.summary}
+              reviews={reviewsData.reviews}
+              emptyMessage={`No reviews for ${dealer.name} yet. Buyers can review from any of this dealer's vehicle pages.`}
+            />
             <ReplyForm />
           </section>
         </main>
@@ -283,6 +290,7 @@ export function DealerPageClient({
           dealer={dealer}
           recommendedListings={recommendedListings}
           googleMapsApiKey={googleMapsApiKey}
+          reviewSummary={reviewsData.summary}
           onReportDealer={() => setIsReportDialogOpen(true)}
         />
       </div>

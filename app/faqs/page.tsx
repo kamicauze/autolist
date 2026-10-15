@@ -1,55 +1,183 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
-import { Footer } from "@/components/layout/footer";
+import Link from "next/link";
+import { ArrowRight, Clock, Mail, PlusCircle, ShieldAlert } from "lucide-react";
 import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
+import { Button } from "@/components/ui/button";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { SectionNav, type GuideSectionLink } from "@/components/finance/section-nav";
+import { DataTable, FaqItem, GuideSection, Prose } from "@/components/finance/guide-elements";
+import { FaqAnswer } from "@/components/faqs/faq-answer";
 import {
-  buildManagedContentPageMetadata,
-  formatContentPageDate,
-  getPublishedContentPageBySlug,
-} from "@/lib/data/content-pages";
+  FAQ_CATEGORIES,
+  FAQ_LAST_UPDATED,
+  FAQ_QUICK_REFERENCE,
+  SAFETY_EMAIL,
+  SUPPORT_EMAIL,
+  SUPPORT_HOURS,
+  faqAnswerToText,
+} from "@/lib/constants/faqs";
 
-const SLUG = "faqs";
+export const metadata: Metadata = {
+  title: "Frequently Asked Questions | Autolist",
+  description:
+    "Answers about buying, selling, accounts, payments, safety, imports, finance and support on Autolist Kenya.",
+  alternates: { canonical: "/faqs" },
+};
 
-export async function generateMetadata(): Promise<Metadata> {
-  return buildManagedContentPageMetadata(SLUG);
-}
+const sections: GuideSectionLink[] = [
+  ...FAQ_CATEGORIES.map((category) => ({ id: category.id, label: category.label })),
+  { id: "quick-reference", label: "Quick reference" },
+];
 
-export default async function FAQsPage() {
-  const page = await getPublishedContentPageBySlug(SLUG);
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_CATEGORIES.flatMap((category) =>
+    category.items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: faqAnswerToText(item.answer) },
+    }))
+  ),
+};
 
-  if (!page) {
-    notFound();
-  }
-
+export default function FAQsPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="flex-1 bg-[#f8fafc]">
-        <section className="border-b border-[#e5e7eb] bg-white">
-          <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
-              Autolist
-            </p>
-            <h1 className="mt-4 font-heading text-[40px] font-semibold leading-[1.1] text-[#111827]">
-              {page.title}
-            </h1>
-            {page.summary ? (
-              <p className="mt-4 max-w-3xl text-[16px] leading-7 text-[#475467]">{page.summary}</p>
-            ) : null}
-            {page.publishedAt ? (
-              <p className="mt-6 text-[13px] text-[#94a3b8]">
-                Published {formatContentPageDate(page.publishedAt)}
-              </p>
-            ) : null}
-          </div>
-        </section>
+      <main className="flex-1 bg-background">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          }}
+        />
 
-        <section className="py-12 sm:py-16">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] sm:p-10">
-              <RichContentRenderer body={page.body} />
+        <div className="border-b border-border bg-brand-tint">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+            <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "FAQs" }]} />
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Frequently asked questions
+            </h1>
+            <p className="mt-3 max-w-prose text-lg leading-8 text-foreground/80">
+              How Autolist Kenya works for buyers, sellers and dealers: accounts, payments, safety,
+              imports, finance and getting help.
+            </p>
+            <p className="mt-4 text-sm text-muted-foreground">Last updated {FAQ_LAST_UPDATED}</p>
+          </div>
+        </div>
+
+        <SectionNav sections={sections} />
+
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8">
+          <div className="flex min-w-0 flex-col gap-12">
+            {FAQ_CATEGORIES.map((category) => (
+              <GuideSection
+                key={category.id}
+                id={category.id}
+                eyebrow={category.label}
+                title={category.title}
+              >
+                <div className="mt-5 max-w-3xl border-t border-border">
+                  {category.items.map((item) => (
+                    <FaqItem key={item.question} question={item.question}>
+                      <FaqAnswer blocks={item.answer} />
+                    </FaqItem>
+                  ))}
+                </div>
+              </GuideSection>
+            ))}
+
+            <GuideSection id="quick-reference" eyebrow="Quick reference" title="The short version">
+              <Prose>The key points from each part of this page.</Prose>
+              <div className="max-w-3xl">
+                <DataTable
+                  caption="Quick reference summary"
+                  columns={["Topic", "Key takeaway"]}
+                  rows={FAQ_QUICK_REFERENCE.map((row) => [row.topic, row.takeaway])}
+                />
+              </div>
+            </GuideSection>
+          </div>
+
+          <aside aria-label="Contact support">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-32 xl:top-40">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                Still need help?
+              </p>
+              <p className="mt-2 text-sm leading-6 text-foreground/80">
+                Our team answers by email. Include your listing link or account email so we can help
+                faster.
+              </p>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex gap-3">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <dt className="font-semibold text-foreground">Support</dt>
+                    <dd>
+                      <a
+                        href={`mailto:${SUPPORT_EMAIL}`}
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        {SUPPORT_EMAIL}
+                      </a>
+                    </dd>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <dt className="font-semibold text-foreground">Safety reports</dt>
+                    <dd>
+                      <a
+                        href={`mailto:${SAFETY_EMAIL}`}
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        {SAFETY_EMAIL}
+                      </a>
+                    </dd>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <dt className="font-semibold text-foreground">Hours</dt>
+                    <dd className="text-muted-foreground">{SUPPORT_HOURS}</dd>
+                  </div>
+                </div>
+              </dl>
+              <Button asChild size="sm" className="mt-5 w-full">
+                <a href={`mailto:${SUPPORT_EMAIL}`}>
+                  <Mail />
+                  Email support
+                </a>
+              </Button>
+            </div>
+          </aside>
+        </div>
+
+        <section className="bg-brand-tint py-12 md:py-16">
+          <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Ready to get started?</h2>
+            <p className="mx-auto mt-3 max-w-xl text-foreground/80">
+              Browse vehicles from dealers and private sellers across Kenya, or list your own in a few
+              minutes.
+            </p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href="/search">
+                  Browse listings
+                  <ArrowRight />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                <Link href="/sell">
+                  <PlusCircle />
+                  Sell a vehicle
+                </Link>
+              </Button>
             </div>
           </div>
         </section>

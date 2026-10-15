@@ -21,6 +21,7 @@ type ReplyFormProps = {
     id: string | null;
     email: string | null;
     fullName: string | null;
+    role?: string | null;
   } | null;
   existingReview?: ListingReviewRecord | null;
 };
@@ -43,6 +44,7 @@ export function ReplyForm({
     setBody(existingReview?.body ?? "");
   }, [existingReview]);
 
+  const isAdmin = viewer?.role === "admin" || viewer?.role === "super_admin";
   const isOwnListing = Boolean(viewer?.id && sellerId && viewer.id === sellerId);
   const remainingCharacters = MAX_LISTING_REVIEW_LENGTH - body.length;
 
@@ -54,6 +56,11 @@ export function ReplyForm({
 
     if (!viewer?.id) {
       router.push(`/login?next=${encodeURIComponent(`/vehicle/${listingId}`)}`);
+      return;
+    }
+
+    if (isAdmin) {
+      setError("Administrators cannot post listing reviews.");
       return;
     }
 
@@ -125,6 +132,10 @@ export function ReplyForm({
           >
             Sign in to review
           </Link>
+        </div>
+      ) : isAdmin ? (
+        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+          Administrators cannot post listing reviews.
         </div>
       ) : isOwnListing ? (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
