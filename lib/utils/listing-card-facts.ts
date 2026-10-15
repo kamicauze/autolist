@@ -30,7 +30,11 @@ export function buildListingCardFacts({
   }
 
   if (engineSize) {
-    facts.push({ key: "engine-size", value: engineSize });
+    const capacity = engineSize.trim().match(/^(\d[\d,]*(?:\.\d+)?)\s*(?:cc)?$/i);
+    facts.push({
+      key: "engine-size",
+      value: capacity ? `${capacity[1]} cc` : engineSize,
+    });
   } else if (bodyType) {
     facts.push({ key: "body-type", value: bodyType });
   }

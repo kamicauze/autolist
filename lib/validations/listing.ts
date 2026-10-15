@@ -37,16 +37,21 @@ const phoneSchema = z.preprocess(
     .optional()
 );
 
+export const listingPublicationSchema = z.object({
+  price: z.coerce.number().positive("Price must be positive"),
+  condition: z.preprocess(normalizeCondition, z.enum(LISTING_CONDITIONS)),
+});
+
 export const listingSchema = z.object({
   make: z.string().trim().min(2, "Make must be at least 2 characters"),
   model: z.string().trim().min(1, "Model is required"),
   trim: z.string().trim().optional(),
   variant: z.string().trim().optional(),
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
-  price: z.coerce.number().positive("Price must be positive"),
+  price: listingPublicationSchema.shape.price,
   currency: z.literal("KES").default("KES"),
   mileage: z.coerce.number().min(0, "Mileage cannot be negative").optional(),
-  condition: z.preprocess(normalizeCondition, z.enum(LISTING_CONDITIONS)),
+  condition: listingPublicationSchema.shape.condition,
   description: z
     .string()
     .trim()

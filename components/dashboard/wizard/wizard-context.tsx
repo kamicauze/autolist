@@ -13,6 +13,7 @@ import {
   type ListingFeatureGroups,
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
+import { MANUFACTURE_YEAR_OPTIONS, CAR_VAN_ENGINE_CC_OPTIONS, LISTING_DOOR_OPTIONS } from "@/lib/constants/listing-specifications";
 import type { Listing } from "@/lib/types/listing";
 import type { ListingFeatureSuggestionResult } from "@/lib/types/listing-feature-suggestions";
 import {
@@ -153,23 +154,24 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "model", label: "Model", type: "select", required: true, placeholder: "Corolla" },
     { key: "variant", label: "Model Variant", type: "text", required: false, placeholder: "C200, 320i, Cayenne S" },
     { key: "trim", label: "Trim / Variant", type: "text", required: false, placeholder: "AMG Line, M Sport, TX" },
-    { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
+    { key: "year", label: "Year of Manufacture", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "registrationStatus", label: "Registration Status", type: "select", required: true, options: [{ value: "registered", label: "Registered" }, { value: "not_registered", label: "Not registered" }] },
     { key: "engineType", label: "Engine Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "hybrid", label: "Hybrid" }, { value: "electric", label: "Electric" }] },
-    { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "2000" },
+    { key: "engineCapacity", label: "Engine Size (cc)", type: "select", required: true, options: CAR_VAN_ENGINE_CC_OPTIONS },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "2wd", label: "2WD" }, { value: "4wd", label: "4WD" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
     { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "saloon", label: "Saloon" }, { value: "hatchback", label: "Hatchback" }, { value: "coupe", label: "Coupe" }, { value: "wagon", label: "Station Wagon" }, { value: "convertible", label: "Convertible" }, { value: "pickup", label: "Pick Up" }, { value: "suv", label: "SUV" }] },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Pearl White" },
-    { key: "doors", label: "Number of Doors", type: "number", required: true, placeholder: "4" },
+    { key: "doors", label: "Number of Doors", type: "select", required: true, options: LISTING_DOOR_OPTIONS },
     { key: "seats", label: "Number of Seats", type: "number", required: true, placeholder: "5" },
   ],
   van: [
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Toyota" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "Hiace" },
-    { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2021" },
+    { key: "year", label: "Year of Manufacture", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: [{ value: "petrol", label: "Petrol" }, { value: "diesel", label: "Diesel" }, { value: "electric", label: "Electric" }] },
+    { key: "engineCapacity", label: "Engine Size (cc)", type: "select", required: false, options: CAR_VAN_ENGINE_CC_OPTIONS },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "110000" },
     { key: "bodyStyle", label: "Body Style", type: "select", required: true, options: [{ value: "panel_van", label: "Panel Van" }, { value: "pickup", label: "Pickup" }, { value: "minibus", label: "Minibus" }, { value: "passenger_van", label: "Passenger Van" }] },
@@ -177,7 +179,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
   motorbike: [
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Honda" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "CB500X" },
-    { key: "year", label: "Year", type: "number", required: true, placeholder: "2022" },
+    { key: "year", label: "Year", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "bodyType", label: "Body Type", type: "select", required: true, options: BIKE_BODY_TYPES.map((value) => ({ value, label: value })) },
     { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "500" },
     { key: "enginePowerBhp", label: "Engine Power (BHP, Optional)", type: "number", required: false, placeholder: "47" },
@@ -189,7 +191,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "taxonomyCategory", label: "Truck Category", type: "select", required: true, options: TRUCK_CATEGORIES.map((value) => ({ value, label: value })) },
     { key: "make", label: "Make", type: "text", required: true, placeholder: "Isuzu" },
     { key: "model", label: "Model", type: "text", required: true, placeholder: "FRR" },
-    { key: "year", label: "Year of Manufacture", type: "number", required: true, placeholder: "2020" },
+    { key: "year", label: "Year of Manufacture", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "bodyType", label: "Body Type", type: "select", required: false, options: TRUCK_BODY_TYPES.map((value) => ({ value, label: value })) },
     { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: TRUCK_FUEL_TYPES.map((value) => ({ value: value.toLowerCase(), label: value })) },
     { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "7790" },
@@ -206,7 +208,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "subcategory", label: "Subcategory", type: "select", required: true, options: [] },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Caterpillar" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "320D" },
-    { key: "year", label: "Year", type: "number", required: true, placeholder: "2018" },
+    { key: "year", label: "Year", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "6400" },
     { key: "operatingWeight", label: "Operating Weight (Optional)", type: "number", required: false, placeholder: "22000" },
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
@@ -216,7 +218,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "subcategory", label: "Subcategory", type: "select", required: true, options: [] },
     { key: "make", label: "Make (Optional)", type: "text", required: false, placeholder: "Massey Ferguson" },
     { key: "model", label: "Model (Optional)", type: "text", required: false, placeholder: "MF 385" },
-    { key: "year", label: "Year", type: "number", required: true, placeholder: "2019" },
+    { key: "year", label: "Year", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "1200" },
     { key: "powerOutput", label: "Horsepower / Capacity (Optional)", type: "number", required: false, placeholder: "85" },
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },

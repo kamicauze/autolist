@@ -32,3 +32,17 @@ test("listing cards fall back to body type when engine size is unavailable", () 
     ]
   );
 });
+
+test("listing cards show one cc unit for numeric and previously suffixed capacities", () => {
+  for (const [input, expected] of [
+    ["1800", "1800 cc"],
+    ["1500CC", "1500 cc"],
+    [" 1,500 cc ", "1,500 cc"],
+    ["1.5 L", "1.5 L"],
+    ["Electric", "Electric"],
+  ]) {
+    assert.deepEqual(buildListingCardFacts({ engineSize: input }), [
+      { key: "engine-size", value: expected },
+    ]);
+  }
+});

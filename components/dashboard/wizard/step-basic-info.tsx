@@ -56,7 +56,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           </div>
 
           <div>
-            <label className={sellerLabelClass}>Condition</label>
+            <label className={sellerLabelClass}>Condition *</label>
             <SearchableSelect
               value={draft.condition}
               onChange={(value) => updateField("condition", value as typeof draft.condition)}
@@ -72,7 +72,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
           </div>
 
           <div>
-            <label className={sellerLabelClass}>Price (KES)</label>
+            <label className={sellerLabelClass}>Price (KES) *</label>
             <input
               value={formatPriceInput(draft.priceKes)}
               onChange={(event) => updateField("priceKes", unformatPrice(event.target.value))}

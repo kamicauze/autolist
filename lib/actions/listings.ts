@@ -33,7 +33,7 @@ import {
     readListingMediaUpload,
 } from "@/lib/server/listing-media-upload";
 import { LISTING_STATUS_META, type ListingStatus } from "@/lib/constants/marketplace";
-import { listingSchema, type ListingFormData } from "@/lib/validations/listing";
+import { listingSchema, listingPublicationSchema, type ListingFormData } from "@/lib/validations/listing";
 import { getActiveSubscriptionPriorityBySellerId } from "@/lib/data/listings";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -134,6 +134,8 @@ type EditableListingRecord = {
     make: string;
     model: string;
     year: number;
+    price?: number | null;
+    condition?: string | null;
     metadata: Record<string, unknown> | null;
 };
 
@@ -163,7 +165,7 @@ async function getEditableListingAccess(
 ) {
     const { data: listing, error } = await supabase
         .from("listings")
-        .select("id, seller_id, dealer_id, assigned_agent_id, status, make, model, year, metadata")
+        .select("id, seller_id, dealer_id, assigned_agent_id, status, make, model, year, price, condition, metadata")
         .eq("id", listingId)
         .maybeSingle<EditableListingRecord>();
 
@@ -581,6 +583,15 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         return { error: access.error };
     }
     const existingListing = access.listing;
+    // Partial edits remain supported; validate either commercial field when supplied.
+    const publicationFields = listingPublicationSchema.partial().safeParse({
+        ...(input.price !== undefined ? { price: input.price } : {}),
+        ...(input.condition !== undefined ? { condition: input.condition } : {}),
+    });
+    if (!publicationFields.success) {
+        return { error: publicationFields.error.issues[0]?.path[0] === "condition" ? "Select a valid condition." : "Price must be positive." };
+    }
+    input = { ...input, ...publicationFields.data };
     const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 
     const {
@@ -1468,6 +1479,13 @@ export async function submitListingForReview(listingId: string) {
     }
     if (listing.status !== "draft") {
         return { error: "Listing is not in draft status." };
+    }
+    const publicationFields = listingPublicationSchema.safeParse({
+        price: listing.price,
+        condition: listing.condition,
+    });
+    if (!publicationFields.success) {
+        return { error: "Select a condition and enter a positive price before submitting this listing." };
     }
     const writeSupabase = access.canAdminister ? createAdminClient() : supabase;
 

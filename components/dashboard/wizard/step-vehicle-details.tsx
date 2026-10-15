@@ -93,11 +93,13 @@ export function StepVehicleDetails() {
   const hasStructuredMakeSuggestions =
     !isCarCategory && referenceOptions.makes.length > 0;
   const taxonomyMakes = draft.category ? MAKES_BY_CATEGORY[draft.category] : undefined;
+  const [manualEngineMode, setManualEngineMode] = React.useState(false);
   const [manualMakeMode, setManualMakeMode] = React.useState(false);
   const [colorPaletteOpen, setColorPaletteOpen] = React.useState(false);
 
   React.useEffect(() => {
     setManualMakeMode(false);
+    setManualEngineMode(false);
     setColorPaletteOpen(false);
   }, [draft.category]);
 
@@ -136,6 +138,44 @@ export function StepVehicleDetails() {
   }, [draft.category, draft.details.make, draft.details.model, isCarCategory]);
 
   const renderReferenceField = (field: (typeof selectedCategoryFields)[number], hasError: boolean) => {
+    if (field.key === "engineCapacity" && (draft.category === "car" || draft.category === "van")) {
+      const options = field.options ?? [];
+      const value = draft.details.engineCapacity;
+      const isSuggested = options.some((option) => option.value === value);
+      const existingOption = value && !isSuggested ? [{ value, label: `${value} cc` }] : [];
+      return (
+        <div className="space-y-2">
+          <SearchableSelect
+            value={manualEngineMode ? "__other__" : value}
+            onChange={(next) => {
+              if (next === "__other__") {
+                setManualEngineMode(true);
+                if (isSuggested) updateDetailField("engineCapacity", "");
+              } else {
+                setManualEngineMode(false);
+                updateDetailField("engineCapacity", next);
+              }
+            }}
+            options={[...options, ...existingOption, { value: "__other__", label: "Other (enter exact capacity)" }]}
+            placeholder="Select engine size"
+            searchPlaceholder="Search engine size"
+            aria-label={field.label}
+            className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
+          />
+          {manualEngineMode ? (
+            <input
+              type="number"
+              value={value}
+              onChange={(event) => updateDetailField("engineCapacity", event.target.value)}
+              placeholder="Exact engine capacity in cc"
+              aria-label="Exact engine capacity in cc"
+              className={cn(sellerInputClass, hasError && "border-[#f04438]")}
+            />
+          ) : null}
+        </div>
+      );
+    }
+
     if (field.key === "make") {
       const makeOptions = isCarCategory ? referenceOptions.makes : taxonomyMakes;
       if (makeOptions && makeOptions.length > 0) {
@@ -470,7 +510,9 @@ export function StepVehicleDetails() {
                   <SearchableSelect
                     value={draft.details[field.key]}
                     onChange={(value) => updateDetailField(field.key, value)}
-                    options={field.options ?? []}
+                    options={field.key === "doors" && draft.details.doors && !field.options?.some((option) => option.value === draft.details.doors)
+                      ? [...(field.options ?? []), { value: draft.details.doors, label: `${draft.details.doors} (current)` }]
+                      : field.options ?? []}
                     placeholder="Select"
                     searchPlaceholder={`Search ${field.label.toLowerCase()}`}
                     aria-label={field.label}
