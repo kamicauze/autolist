@@ -50,7 +50,7 @@ export async function POST(
       seller_id: string;
       guest_name: string | null;
       guest_email: string | null;
-      listing: Array<{ id: string; make: string | null; model: string | null; year: number | null }> | null;
+      listing: { id: string; make: string | null; model: string | null; year: number | null } | Array<{ id: string; make: string | null; model: string | null; year: number | null }> | null;
     }>();
 
   if (threadError || !thread) {
@@ -91,8 +91,8 @@ export async function POST(
     return NextResponse.json({ error: error?.message || "Unable to send message." }, { status: 400 });
   }
 
-  const sender = Array.isArray(data.sender) ? data.sender[0] : null;
-  const listing = Array.isArray(thread.listing) ? thread.listing[0] : null;
+  const sender = Array.isArray(data.sender) ? data.sender[0] : data.sender;
+  const listing = Array.isArray(thread.listing) ? thread.listing[0] : thread.listing;
   const listingTitle = buildListingTitle(listing || {});
 
   let deliveryWarning: string | null = null;

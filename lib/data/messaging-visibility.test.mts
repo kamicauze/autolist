@@ -9,7 +9,7 @@ const threads = ["private-latest", "public-latest", "hidden-only"].map((id) => (
   source: "listing_enquiry", subject: null, last_message_at: "2026-10-15T16:00:00Z",
   last_message_preview: "Private investigation note", last_message_sender_id: "staff",
   buyer: [{ id: "viewer", full_name: "Buyer" }], seller: [{ id: "viewer", full_name: "Seller" }],
-  listing: [{ id: "vehicle", make: "Toyota", model: "Corolla", year: 2020 }], tickets: [],
+  listing: { id: "vehicle", make: "Toyota", model: "Corolla", year: 2020 }, tickets: [],
 }));
 const messages = [
   { id: "visible-older", thread_id: "private-latest", body: "Public older reply", visibility: "participants", created_at: "2026-10-15T10:00:00Z", sender_id: "viewer" },
@@ -49,6 +49,7 @@ test("all marketplace roles receive only participant messages and participant-de
     messageFilters.length = 0;
     const result = await getMessagingCenterData();
     assert.deepEqual(messageFilters, [["visibility", "participants"]]);
+    assert.equal(result?.threads[0].listingTitle, "2020 Toyota Corolla");
     assert.equal(JSON.stringify(result).includes("Private investigation note"), false);
     assert.deepEqual(result?.threads.map((thread) => thread.id), ["public-latest", "private-latest", "hidden-only"]);
     assert.equal(result?.threads[0].lastMessageAt, "2026-10-15T12:00:00Z");

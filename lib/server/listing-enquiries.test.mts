@@ -13,6 +13,7 @@ let writes: Array<{ table: string; operation: string; values: unknown }>;
 let notifications: Row[];
 let emails: Row[];
 let emailSucceeds: boolean;
+let senderAsObject: boolean;
 
 function client() {
   return {
@@ -30,7 +31,7 @@ function client() {
         maybeSingle: async () => ({ data: table === "profiles" ? { role } : canReadThread ? thread : null, error: null }),
         single: async () => ({ data: table === "listings" ? listing : table === "conversation_threads" ? { id: "new-thread" } : {
           id: "new-message", thread_id: values?.thread_id, sender_id: values?.sender_id, body: values?.body,
-          visibility: values?.visibility, message_type: "text", created_at: "2026-10-15T09:00:00Z", sender: [{ full_name: "Sample seller" }],
+          visibility: values?.visibility, message_type: "text", created_at: "2026-10-15T09:00:00Z", sender: senderAsObject ? { full_name: "Sample seller" } : [{ full_name: "Sample seller" }],
         }, error: null }),
         then(resolve: (result: { error: null }) => unknown) { return Promise.resolve({ error: null }).then(resolve); },
       };
@@ -41,7 +42,7 @@ function client() {
 mock.module("@/lib/supabase/server", { namedExports: { createClient: async () => client() } });
 mock.module("@/lib/supabase/admin", { namedExports: { createAdminClient: () => client() } });
 mock.module("@/lib/server/notifications", { namedExports: {
-  buildListingTitle: () => "2020 Sample Car",
+  buildListingTitle: (listing: Row) => [listing.year, listing.make, listing.model].filter(Boolean).join(" ") || "Vehicle",
   getMessagingHref: (_role: string, id: string) => `/dashboard/messages?thread=${id}`,
   emitNotificationEvent: async (event: Row) => { notifications.push(event); },
 } });
@@ -58,7 +59,7 @@ const enquiryParams = { params: Promise.resolve({ listingId: "sample-listing" })
 const replyParams = { params: Promise.resolve({ threadId: "existing-thread" }) };
 
 beforeEach(() => {
-  user = null; role = "seller"; canReadThread = true; emailSucceeds = true;
+  user = null; role = "seller"; canReadThread = true; emailSucceeds = true; senderAsObject = false;
   listing = { id: "sample-listing", seller_id: "seller", dealer_id: null, status: "active", sale_channel: "standard", make: "Sample", model: "Car", year: 2020 };
   thread = { id: "existing-thread", seller_id: "seller", buyer_id: null, guest_name: "Sample guest", guest_email: "guest@example.test", listing: [{ id: "sample-listing" }] };
   guestThreads = []; writes = []; notifications = []; emails = [];
@@ -127,6 +128,18 @@ test("a failed guest email remains saved and reports delivery failure truthfully
   assert.equal(result.body, "Available tomorrow");
   assert.match(result.deliveryWarning, /Reply saved, but the email could not be sent/);
   assert.equal(writes.length, 1);
+});
+
+test("object-shaped listing and sender joins retain the actual vehicle title and seller name", async () => {
+  user = { id: "seller" }; senderAsObject = true;
+  thread.listing = { id: "sample-listing", year: 2020, make: "Sample", model: "Car" };
+  const response = await reply(request({ body: "Available tomorrow" }), replyParams);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.senderName, "Sample seller");
+  assert.equal(emails[0].subject, "Reply about 2020 Sample Car");
+  assert.match(emails[0].text as string, /Sample seller replied/);
+  assert.match(emails[0].text as string, /https:\/\/staging.example.test\/vehicle\/sample-listing/);
 });
 
 test("phone-only guest replies stay saved without attempting automatic email", async () => {

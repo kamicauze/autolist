@@ -28,6 +28,7 @@ import {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -38,6 +39,7 @@ function formatDate(value: string) {
 
 function formatDay(value: string) {
   return new Date(value).toLocaleDateString("en-KE", {
+    timeZone: "Africa/Nairobi",
     day: "numeric",
     month: "short",
     year: "numeric",

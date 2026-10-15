@@ -116,7 +116,7 @@ async function getViewer(
 }
 
 function threadListingTitle(listing: ThreadRow["listing"]) {
-  const item = Array.isArray(listing) ? listing[0] : null;
+  const item = firstRelation(listing);
   if (!item) return "Vehicle";
   return [item.year, item.make, item.model].filter(Boolean).join(" ");
 }

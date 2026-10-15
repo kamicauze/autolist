@@ -32,6 +32,7 @@ function formatRelativeTimestamp(value: string) {
   if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -43,6 +44,7 @@ function formatClockTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
     hour: "numeric",
     minute: "2-digit",
   }).format(date);

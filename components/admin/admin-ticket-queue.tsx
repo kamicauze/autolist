@@ -103,6 +103,7 @@ function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
     month: "short",
     day: "numeric",
     hour: "numeric",
