@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminSupportTicketHref } from "@/lib/data/support-ticket-filters";
 import type { NotificationChannel, NotificationEventType } from "@/lib/types/notifications";
 
 type DeliveryDraft = {
@@ -39,9 +40,9 @@ export function getMessagingHref(role: string, threadId: string) {
   return role === "buyer" ? `/messages?thread=${threadId}` : `/dashboard/messages?thread=${threadId}`;
 }
 
-export function getTicketHref(role: string, ticketId: string) {
+export function getTicketHref(role: string, ticketId: string, category?: string | null) {
   return role === "admin" || role === "super_admin"
-    ? `/admin/car-inquiries?ticket=${ticketId}`
+    ? getAdminSupportTicketHref(ticketId, category)
     : `/support/tickets?ticket=${ticketId}`;
 }
 

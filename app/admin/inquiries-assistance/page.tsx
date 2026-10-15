@@ -2,7 +2,7 @@ import { AdminTicketQueue } from "@/components/admin/admin-ticket-queue";
 import { getSupportQueueData } from "@/lib/data/messaging";
 
 export default async function AdminInquiriesAssistanceRoute() {
-  const data = await getSupportQueueData();
+  const data = await getSupportQueueData("assistance");
   return (
     <AdminTicketQueue
       initialData={data}

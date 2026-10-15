@@ -23,6 +23,7 @@ export type ThreadListItem = {
   counterpartEmail: string | null;
   counterpartPhone: string | null;
   counterpartWhatsapp: string | null;
+  isGuest: boolean;
   status: string;
   source: string;
   subject: string | null;
@@ -35,7 +36,7 @@ export type ThreadListItem = {
 export type ThreadMessageItem = {
   id: string;
   threadId: string;
-  senderId: string;
+  senderId: string | null;
   senderName: string;
   senderRole: "me" | "them";
   body: string;

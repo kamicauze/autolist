@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { createOptionalAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { filterAdminVisibleSupportTickets } from "@/lib/data/support-ticket-filters";
+import { filterAdminVisibleSupportTickets, getAdminSupportTicketHref } from "@/lib/data/support-ticket-filters";
 import { isMissingRelationError } from "@/lib/supabase/error-utils";
 import type { AdReportPriority, AdReportStatus, AdReportTargetType } from "@/lib/types/ad-report";
 import type { ListingStatus } from "@/lib/types/listing";
@@ -800,7 +800,7 @@ function normalizeReportTicket(ticket: ReportTicketRow): AdminReportTicket {
     reporterLocation: null,
     adminNote: ticket.internal_note,
     listingTitle: buildCompactListingTitle(listing || null),
-    href: `/admin/car-inquiries?ticket=${ticket.id}`,
+    href: getAdminSupportTicketHref(ticket.id, ticket.category),
   };
 }
 
@@ -862,7 +862,7 @@ function normalizeReportEvent(
     note: event.note,
     actorName: actor?.full_name || actor?.email || "System",
     createdAt: event.created_at,
-    href: `/admin/car-inquiries?ticket=${event.ticket_id}`,
+    href: ticket?.href || getAdminSupportTicketHref(event.ticket_id),
   };
 }
 
@@ -1000,7 +1000,9 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
     const [
       pendingListings,
       pendingDealers,
-      openTickets,
+      openImports,
+      openAssistance,
+      openConversations,
       urgentReports,
       urgentAdReportsResult,
       pendingPayments,
@@ -1009,12 +1011,21 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
       readCount(supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "pending")),
       readCount(supabase.from("dealers").select("*", { count: "exact", head: true }).eq("status", "PENDING")),
       readCount(
-        supabase
-          .from("support_tickets")
-          .select("*", { count: "exact", head: true })
+        supabase.from("support_tickets").select("*", { count: "exact", head: true })
           .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
-          .neq("category", "listing_enquiry")
-          .neq("category", "public_listing_enquiry")
+          .eq("category", "import_inquiry").is("thread_id", null)
+      ),
+      readCount(
+        supabase.from("support_tickets").select("*", { count: "exact", head: true })
+          .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+          .in("category", ["buyer_assistance", "seller_assistance", "inquiries_assistance"])
+          .is("thread_id", null)
+      ),
+      readCount(
+        supabase.from("support_tickets").select("*", { count: "exact", head: true })
+          .in("status", ["open", "triaged", "waiting_on_seller", "waiting_on_buyer"])
+          .not("thread_id", "is", null)
+          .neq("category", "listing_enquiry").neq("category", "public_listing_enquiry")
       ),
       readCount(
         supabase
@@ -1075,7 +1086,9 @@ export const getAdminNavBadgeCounts = cache(async (): Promise<AdminNavBadgeCount
       "/admin/reports": urgentReports + urgentAdReports || undefined,
       "/admin/verification": pendingDealers || undefined,
       "/admin/insurance-requests": openInsuranceRequests || undefined,
-      "/admin/car-inquiries": openTickets || undefined,
+      "/admin/car-inquiries": openImports || undefined,
+      "/admin/inquiries-assistance": openAssistance || undefined,
+      "/admin/conversation-tickets": openConversations || undefined,
       "/admin/payments": pendingPayments || undefined,
     };
   } catch (error) {

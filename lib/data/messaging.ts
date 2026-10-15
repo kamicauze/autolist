@@ -30,6 +30,10 @@ type ThreadRow = {
   last_message_at: string;
   last_message_preview: string | null;
   last_message_sender_id: string | null;
+  buyer_id: string | null;
+  guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
   buyer: Array<{ id: string; full_name: string | null; email: string | null; phone: string | null; whatsapp: string | null }> | null;
   seller: Array<{ id: string; full_name: string | null; email: string | null; phone: string | null; whatsapp: string | null }> | null;
   listing: Array<{ id: string; make: string; model: string; year: number | null }> | null;
@@ -39,7 +43,7 @@ type ThreadRow = {
 type MessageRow = {
   id: string;
   thread_id: string;
-  sender_id: string;
+  sender_id: string | null;
   body: string;
   visibility: "participants" | "staff_only";
   message_type: "text" | "system" | "ticket_note";
@@ -144,6 +148,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     };
   }
 
+  const isStaffViewer = isSupportQueueViewerRole(viewer.role);
   const threadClient = adminSupabase ?? supabase;
 
   let threadQuery = threadClient
@@ -160,6 +165,9 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
         last_message_sender_id,
         buyer_id,
         seller_id,
+        guest_name,
+        guest_email,
+        guest_phone,
         buyer:profiles!buyer_id(id, full_name, email, phone, whatsapp),
         seller:profiles!seller_id(id, full_name, email, phone, whatsapp),
         listing:listings(id, make, model, year),
@@ -193,25 +201,46 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     };
   }
 
-  const threads = ((threadRows || []) as unknown as ThreadRow[]).map((thread) => {
+  const threadRowList = (threadRows || []) as unknown as ThreadRow[];
+  const guestNameByThread = new Map(
+    threadRowList
+      .filter((thread) => !thread.buyer_id)
+      .map((thread) => [thread.id, thread.guest_name || "Guest"])
+  );
+
+  const threads = threadRowList.map((thread) => {
     const buyer = firstRelation(thread.buyer);
     const seller = firstRelation(thread.seller);
-    const counterpart = viewer.role === "buyer" ? seller : buyer;
+    const isGuest = !thread.buyer_id;
+    const counterpart =
+      viewer.role === "buyer"
+        ? seller
+        : isGuest
+          ? {
+              full_name: thread.guest_name,
+              email: thread.guest_email,
+              phone: thread.guest_phone,
+              whatsapp: null,
+            }
+          : buyer;
     const tickets = thread.tickets || [];
     return {
       id: thread.id,
       listingId: thread.listing_id,
       listingTitle: threadListingTitle(thread.listing),
-      lastMessageSenderId: thread.last_message_sender_id,
+      lastMessageSenderId: isStaffViewer ? thread.last_message_sender_id : null,
       counterpartName: counterpart?.full_name || counterpart?.email || "Conversation",
       counterpartEmail: counterpart?.email || null,
       counterpartPhone: counterpart?.phone || null,
       counterpartWhatsapp: counterpart?.whatsapp || null,
+      isGuest,
       status: thread.status,
       source: thread.source,
       subject: thread.subject,
-      lastMessageAt: thread.last_message_at,
-      lastMessagePreview: thread.last_message_preview,
+      // Historical thread summaries may contain staff-only notes. Participants'
+      // previews are rebuilt from visible messages after the message query succeeds.
+      lastMessageAt: isStaffViewer ? thread.last_message_at : "",
+      lastMessagePreview: isStaffViewer ? thread.last_message_preview : null,
       ticketCount: tickets.length,
       openTicketCount: tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status)).length,
     } satisfies ThreadListItem;
@@ -228,7 +257,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
   }
 
   const messageClient = adminSupabase ?? supabase;
-  const { data: messageRows, error: messageError } = await messageClient
+  let messageQuery = messageClient
     .from("conversation_messages")
     .select(
       `
@@ -244,6 +273,9 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
     )
     .in("thread_id", threadIds)
     .order("created_at", { ascending: true });
+
+  if (!isStaffViewer) messageQuery = messageQuery.eq("visibility", "participants");
+  const { data: messageRows, error: messageError } = await messageQuery;
 
   if (messageError) {
     return {
@@ -267,13 +299,27 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
       id: message.id,
       threadId: message.thread_id,
       senderId: message.sender_id,
-      senderName: sender?.full_name || sender?.email || "Unknown",
+      senderName:
+        sender?.full_name ||
+        sender?.email ||
+        (message.sender_id ? null : guestNameByThread.get(message.thread_id)) ||
+        "Unknown",
       senderRole: message.sender_id === viewer.id ? "me" : "them",
       body: message.body,
       visibility: message.visibility,
       messageType: message.message_type,
       createdAt: message.created_at,
     });
+  }
+
+  if (!isStaffViewer) {
+    for (const thread of threads) {
+      const latest = messagesByThread[thread.id]?.at(-1);
+      thread.lastMessagePreview = latest?.body.slice(0, 180) || null;
+      thread.lastMessageAt = latest?.createdAt || "";
+      thread.lastMessageSenderId = latest?.senderId || null;
+    }
+    threads.sort((left, right) => right.lastMessageAt.localeCompare(left.lastMessageAt));
   }
 
   return {
@@ -284,7 +330,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
   };
 });
 
-export const getSupportQueueData = cache(async (): Promise<SupportQueueData | null> => {
+export const getSupportQueueData = cache(async (scope: "all" | "imports" | "assistance" | "conversations" = "all"): Promise<SupportQueueData | null> => {
   const supabase = await createClient();
   const adminSupabase = createOptionalAdminClient();
   const viewer = await getViewer(supabase, adminSupabase ?? supabase);
@@ -295,7 +341,7 @@ export const getSupportQueueData = cache(async (): Promise<SupportQueueData | nu
 
   const ticketClient = adminSupabase ?? supabase;
 
-  const { data, error } = await ticketClient
+  let ticketQuery = ticketClient
     .from("support_tickets")
     .select(
       `
@@ -323,6 +369,13 @@ export const getSupportQueueData = cache(async (): Promise<SupportQueueData | nu
       `
     )
     .order("updated_at", { ascending: false });
+
+  if (scope === "imports") ticketQuery = ticketQuery.eq("category", "import_inquiry").is("thread_id", null);
+  if (scope === "conversations") ticketQuery = ticketQuery.not("thread_id", "is", null);
+  if (scope === "assistance") {
+    ticketQuery = ticketQuery.in("category", ["buyer_assistance", "seller_assistance", "inquiries_assistance"]).is("thread_id", null);
+  }
+  const { data, error } = await ticketQuery;
 
   if (error) {
     return {

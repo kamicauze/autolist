@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendProviderEmail } from "@/lib/server/delivery-providers";
+import { getSiteBaseUrl } from "@/lib/server/notification-delivery";
 import { buildListingTitle, emitNotificationEvent, getMessagingHref } from "@/lib/server/notifications";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,14 +38,18 @@ export async function POST(
         id,
         buyer_id,
         seller_id,
+        guest_name,
+        guest_email,
         listing:listings(id, make, model, year)
       `
     )
     .eq("id", threadId)
     .maybeSingle<{
       id: string;
-      buyer_id: string;
+      buyer_id: string | null;
       seller_id: string;
+      guest_name: string | null;
+      guest_email: string | null;
       listing: Array<{ id: string; make: string | null; model: string | null; year: number | null }> | null;
     }>();
 
@@ -88,40 +94,76 @@ export async function POST(
   const sender = Array.isArray(data.sender) ? data.sender[0] : null;
   const listing = Array.isArray(thread.listing) ? thread.listing[0] : null;
   const listingTitle = buildListingTitle(listing || {});
-  const recipientRole = user.id === thread.buyer_id ? "seller" : "buyer";
-  const recipientId = user.id === thread.buyer_id ? thread.seller_id : thread.buyer_id;
-  const notificationTitle =
-    recipientRole === "buyer"
-      ? `Seller replied on ${listingTitle}`
-      : `New buyer message on ${listingTitle}`;
 
-  try {
-    await emitNotificationEvent({
-      eventType: "new_message",
-      actorId: user.id,
-      listingId: listing?.id || null,
-      threadId: thread.id,
-      messageId: data.id,
-      payload: {
-        kind: "conversation_message",
-        listingTitle,
-      },
-      deliveries: [
-        {
-          recipientId,
-          title: notificationTitle,
-          body: data.body.slice(0, 160),
-          href: getMessagingHref(recipientRole, thread.id),
-          metadata: {
+  let deliveryWarning: string | null = null;
+
+  // Guests have no account, so a reply on a guest thread goes to their email.
+  if (!thread.buyer_id) {
+    if (visibility === "participants" && thread.guest_email) {
+      const baseUrl = getSiteBaseUrl();
+      const listingUrl = listing && baseUrl ? new URL(`/vehicle/${listing.id}`, baseUrl).toString() : null;
+      try {
+        const result = await sendProviderEmail({
+          to: thread.guest_email,
+          subject: `Reply about ${listingTitle}`,
+          text: [
+            `Hi ${thread.guest_name || "there"},`,
+            `${sender?.full_name || "The seller"} replied to your enquiry about ${listingTitle}:`,
+            data.body,
+            listingUrl ? `To reply, send another enquiry from the listing: ${listingUrl}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        });
+        if (!result.success) {
+          deliveryWarning = "Reply saved, but the email could not be sent. Contact the enquirer directly.";
+          console.error("Guest reply email delivery failed", {
             threadId: thread.id,
-            listingId: listing?.id || null,
-            listingTitle,
-          },
+            skipped: result.skipped,
+            error: result.error,
+          });
+        }
+      } catch (emailError) {
+        deliveryWarning = "Reply saved, but the email could not be sent. Contact the enquirer directly.";
+        console.error("Guest reply email delivery failed", { threadId: thread.id, error: emailError });
+      }
+    }
+  } else if (visibility === "participants") {
+    const recipientRole = user.id === thread.buyer_id ? "seller" : "buyer";
+    const recipientId = user.id === thread.buyer_id ? thread.seller_id : thread.buyer_id;
+    const notificationTitle =
+      recipientRole === "buyer"
+        ? `Seller replied on ${listingTitle}`
+        : `New buyer message on ${listingTitle}`;
+
+    try {
+      await emitNotificationEvent({
+        eventType: "new_message",
+        actorId: user.id,
+        listingId: listing?.id || null,
+        threadId: thread.id,
+        messageId: data.id,
+        payload: {
+          kind: "conversation_message",
+          listingTitle,
         },
-      ],
-    });
-  } catch (notificationError) {
-    console.error("Failed to emit message notification", notificationError);
+        deliveries: [
+          {
+            recipientId,
+            title: notificationTitle,
+            body: data.body.slice(0, 160),
+            href: getMessagingHref(recipientRole, thread.id),
+            metadata: {
+              threadId: thread.id,
+              listingId: listing?.id || null,
+              listingTitle,
+            },
+          },
+        ],
+      });
+    } catch (notificationError) {
+      console.error("Failed to emit message notification", notificationError);
+    }
   }
 
   return NextResponse.json({
@@ -133,5 +175,6 @@ export async function POST(
     visibility: data.visibility,
     messageType: data.message_type,
     createdAt: data.created_at,
+    deliveryWarning,
   });
 }

@@ -211,7 +211,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
       });
 
       const payload = (await response.json()) as
-        | (ThreadMessageItem & { senderName?: string })
+        | (ThreadMessageItem & { senderName?: string; deliveryWarning?: string | null })
         | { error?: string };
 
       if (!response.ok || !("id" in payload)) {
@@ -248,6 +248,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
         )
       );
       setMessage("");
+      setSendError(payload.deliveryWarning || null);
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Unable to send message.");
     } finally {
@@ -405,7 +406,13 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                           {activeConversation.counterpartName}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[#667085]">
-                          <span>{viewer.role === "buyer" ? "Seller" : "Enquirer"}</span>
+                          <span>
+                            {viewer.role === "buyer"
+                              ? "Seller"
+                              : activeConversation.isGuest
+                                ? "Guest enquirer"
+                                : "Enquirer"}
+                          </span>
                           <span className="h-1 w-1 rounded-full bg-[#cbd5e1]" />
                           <span>{formatStatusLabel(activeConversation.status)}</span>
                         </div>
@@ -494,6 +501,13 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                     <div className="mb-3 rounded-[14px] border border-[#fecaca] bg-[#fef2f2] px-3 py-2 text-[12px] text-[#b42318]">
                       {sendError}
                     </div>
+                  ) : null}
+                  {activeConversation.isGuest ? (
+                    <p className="mb-3 text-[12px] text-[#667085]">
+                      {activeConversation.counterpartEmail
+                        ? `This enquirer isn't signed in. Your reply will be emailed to ${activeConversation.counterpartEmail}.`
+                        : "This enquirer isn't signed in and left only a phone number. Call them, because replies sent here can't reach them."}
+                    </p>
                   ) : null}
                   <div className="flex items-end gap-3 rounded-[20px] border border-[#ededed] bg-white px-4 py-3">
                     <textarea

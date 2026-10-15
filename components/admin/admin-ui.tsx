@@ -66,6 +66,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
       { name: "Insurance Quotes", href: "/admin/insurance-requests", icon: ReceiptText },
       { name: "Import Inquiries", href: "/admin/car-inquiries", icon: MessageSquareText },
       { name: "Customer Support Inquiries", href: "/admin/inquiries-assistance", icon: MessageSquareText },
+      { name: "Conversation Tickets", href: "/admin/conversation-tickets", icon: MessageSquareText },
       { name: "Payments", href: "/admin/payments", icon: CircleDollarSign },
     ],
   },

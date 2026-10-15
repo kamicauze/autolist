@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         recipientId: recipient.id,
         title: `New support ticket: ${listingTitle}`,
         body: payload.customerSummary?.trim() || ticketSubject,
-        href: getTicketHref(recipient.role, ticket.id),
+        href: getTicketHref(recipient.role, ticket.id, payload.category || "buyer_seller_chat"),
         metadata: {
           ticketId: ticket.id,
           threadId: payload.threadId,

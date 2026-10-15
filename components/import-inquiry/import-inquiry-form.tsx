@@ -14,30 +14,26 @@ import {
 import { useCarModels } from "@/hooks/use-car-models";
 import { Info } from "lucide-react";
 import Link from "next/link";
-
-const COLOR_OPTIONS = [
-  { name: "Black", hex: "#000000" },
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Silver", hex: "#C0C0C0" },
-  { name: "Red", hex: "#DC2626" },
-];
-
-const YEARS = Array.from(
-  { length: 30 },
-  (_, i) => new Date().getFullYear() - i
-);
+import { COLORS, COLOR_SWATCHES, YEARS, OLDER_THAN_1990_YEAR_OPTION } from "@/lib/constants/filters";
+import { LISTING_CATEGORY_OPTIONS, type ListingCategory } from "@/lib/constants/marketplace";
+import { getNonCarVehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
+import { submitImportInquiry } from "@/lib/actions/import-inquiry";
+import { formatImportBudget, importInquirySchema } from "@/lib/import-inquiry/validation";
 
 interface ImportInquiryFormProps {
   makes: string[];
 }
 
 export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
+  const [category, setCategory] = React.useState<ListingCategory>("car");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<{ success: boolean; message: string } | null>(null);
   const [make, setMake] = React.useState("");
   const [model, setModel] = React.useState("");
   const [yearFrom, setYearFrom] = React.useState("");
   const [yearTo, setYearTo] = React.useState("");
   const [engineSize, setEngineSize] = React.useState("");
-  const [selectedColor, setSelectedColor] = React.useState("Black");
+  const [selectedColor, setSelectedColor] = React.useState<(typeof COLORS)[number]>("Black");
   const [budgetFrom, setBudgetFrom] = React.useState("");
   const [budgetTo, setBudgetTo] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
@@ -46,21 +42,53 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   const [notes, setNotes] = React.useState("");
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
-    make || null
+    category === "car" ? make || null : null
   );
 
-  React.useEffect(() => {
-    setModel("");
-  }, [make]);
+  const reference = getNonCarVehicleReferenceOptions(category);
+  const availableMakes = category === "car" ? makes : reference.makes;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Submit form to API
-    alert("Import inquiry submitted! We will get back to you shortly.");
+    if (isSubmitting) return;
+    setFeedback(null);
+    const input = { category, make, model, yearFrom, yearTo, engineSize, color: selectedColor, budgetFrom, budgetTo, firstName, email, phone, notes };
+    const parsed = importInquirySchema.safeParse(input);
+    if (!parsed.success) {
+      setFeedback({ success: false, message: parsed.error.issues[0]?.message || "Check your requirements." });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await submitImportInquiry(input);
+      if (!result.success) {
+        setFeedback({ success: false, message: result.error });
+        return;
+      }
+      setCategory("car");
+      setMake("");
+      setModel("");
+      setYearFrom("");
+      setYearTo("");
+      setEngineSize("");
+      setSelectedColor("Black");
+      setBudgetFrom("");
+      setBudgetTo("");
+      setFirstName("");
+      setEmail("");
+      setPhone("");
+      setNotes("");
+      setFeedback({ success: true, message: result.message });
+    } catch {
+      setFeedback({ success: false, message: "Unable to send your inquiry. Please try again." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+      <fieldset disabled={isSubmitting} className="min-w-0">
       {/* How it works info bar */}
       <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
         <Icon3D icon={Info} size="sm" />
@@ -75,30 +103,41 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
       <div className="mb-8">
         <h3 className="mb-5 text-lg font-semibold text-gray-900">Vehicle Details</h3>
 
+        <div className="mb-4 space-y-1.5">
+          <label htmlFor="import-category" className="text-sm font-medium text-gray-700">Vehicle Category <span className="text-red-500">*</span></label>
+          <Select value={category} onValueChange={(value) => { setCategory(value as ListingCategory); setMake(""); setModel(""); }}>
+            <SelectTrigger id="import-category" className="h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>{LISTING_CATEGORY_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-gray-700">
               Make <span className="text-red-500">*</span>
             </label>
-            <Select value={make} onValueChange={setMake}>
+            {category !== "car" && reference.makeInputMode === "manual" ? (
+              <Input aria-label="Make" value={make} onChange={(event) => { setMake(event.target.value); setModel(""); }} className="h-11" placeholder="Enter make" />
+            ) : <Select value={make} onValueChange={(value) => { setMake(value); setModel(""); }}>
               <SelectTrigger className="h-11">
                 <SelectValue placeholder="e.g., Toyota, BMW, Mercedes" />
               </SelectTrigger>
               <SelectContent>
-                {makes.map((m) => (
+                {availableMakes.map((m) => (
                   <SelectItem key={m} value={m}>
                     {m}
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select>}
           </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-gray-700">
               Model <span className="text-red-500">*</span>
             </label>
-            <Select
+            {category !== "car" ? (
+              <Input aria-label="Model" value={model} onChange={(event) => setModel(event.target.value)} disabled={!make} className="h-11" placeholder="Enter model" />
+            ) : <Select
               value={model}
               onValueChange={setModel}
               disabled={!make || modelsLoading}
@@ -115,7 +154,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select>}
           </div>
 
           <div className="space-y-1.5">
@@ -127,6 +166,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 <SelectValue placeholder="2021" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={OLDER_THAN_1990_YEAR_OPTION.value}>{OLDER_THAN_1990_YEAR_OPTION.label}</SelectItem>
                 {YEARS.map((year) => (
                   <SelectItem key={year} value={String(year)}>
                     {year}
@@ -145,8 +185,9 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 <SelectValue placeholder="2026" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem disabled={Boolean(yearFrom && Number(yearFrom) > 1989)} value={OLDER_THAN_1990_YEAR_OPTION.value}>{OLDER_THAN_1990_YEAR_OPTION.label}</SelectItem>
                 {YEARS.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
+                  <SelectItem key={year} value={String(year)} disabled={Boolean(yearFrom && year < Number(yearFrom))}>
                     {year}
                   </SelectItem>
                 ))}
@@ -177,7 +218,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         </p>
 
         <div className="flex flex-wrap gap-3">
-          {COLOR_OPTIONS.map((color) => (
+          {COLORS.map((name) => ({ name, hex: COLOR_SWATCHES[name] })).map((color) => (
             <button
               key={color.name}
               type="button"
@@ -209,7 +250,8 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             </label>
             <Input
               value={budgetFrom}
-              onChange={(e) => setBudgetFrom(e.target.value)}
+              onChange={(e) => setBudgetFrom(formatImportBudget(e.target.value))}
+              inputMode="numeric"
               placeholder="Kes"
               className="h-11"
             />
@@ -221,7 +263,8 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             </label>
             <Input
               value={budgetTo}
-              onChange={(e) => setBudgetTo(e.target.value)}
+              onChange={(e) => setBudgetTo(formatImportBudget(e.target.value))}
+              inputMode="numeric"
               placeholder="Kes"
               className="h-11"
             />
@@ -288,13 +331,22 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         />
       </div>
 
+      {feedback && (
+        <p
+          role={feedback.success ? "status" : "alert"}
+          className={`mb-6 rounded-lg border p-4 text-sm ${feedback.success ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"}`}
+        >
+          {feedback.message}
+        </p>
+      )}
+
       {/* Submit Buttons */}
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         <Button
           type="submit"
           className="w-full rounded-full sm:w-auto sm:px-8"
         >
-          Submit Import Inquiry
+          {isSubmitting ? "Submitting…" : "Submit Import Inquiry"}
         </Button>
         <Button
           type="button"
@@ -318,6 +370,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         </Link>
         . We&apos;ll never share your information without your consent.
       </p>
+      </fieldset>
     </form>
   );
 }

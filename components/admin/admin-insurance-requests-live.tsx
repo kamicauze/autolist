@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   CircleDollarSign,
   Clock3,
@@ -9,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { updateInsuranceRequestAdminState } from "@/lib/actions/insurance";
+import { buildInsuranceQuotesCsv, insuranceCustomerEmailLink } from "@/lib/insurance/quote-export";
 import type { AdminInsuranceRequestItem, AdminInsuranceRequestsData } from "@/lib/data/insurance";
 import type { InsuranceCoverType, InsuranceRequestStatus } from "@/lib/types/insurance";
 import { cn } from "@/lib/utils";
@@ -91,8 +93,12 @@ function calculateInsuranceRequestStats(requests: AdminInsuranceRequestItem[]) {
 }
 
 export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceRequestsData }) {
+  const ticketId = useSearchParams().get("ticket");
   const [requests, setRequests] = React.useState(data.requests);
-  const [selectedId, setSelectedId] = React.useState(data.requests[0]?.id || "");
+  const [selectedId, setSelectedId] = React.useState(
+    () => data.requests.find((request) => request.id === ticketId)?.id || data.requests[0]?.id || ""
+  );
+  const previousTicketId = React.useRef(ticketId);
   const [status, setStatus] = React.useState<InsuranceRequestStatus>("new");
   const [insurerName, setInsurerName] = React.useState("");
   const [quoteAmount, setQuoteAmount] = React.useState("");
@@ -102,6 +108,15 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
 
   const selectedRequest = requests.find((request) => request.id === selectedId) || requests[0] || null;
   const stats = calculateInsuranceRequestStats(requests);
+
+  React.useEffect(() => {
+    if (previousTicketId.current === ticketId) return;
+    previousTicketId.current = ticketId;
+    if (ticketId && requests.some((request) => request.id === ticketId)) {
+      setSelectedId(ticketId);
+      setFeedback(null);
+    }
+  }, [ticketId, requests]);
 
   React.useEffect(() => {
     if (!selectedRequest) return;
@@ -151,9 +166,38 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
     });
   };
 
+  const exportQuotes = (rows: AdminInsuranceRequestItem[], scope: "queue" | "selected") => {
+    const url = URL.createObjectURL(new Blob([buildInsuranceQuotesCsv(rows)], {
+      type: "text/csv;charset=utf-8",
+    }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `insurance-quotes-${scope}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   return (
     <div className="space-y-8">
-      <AdminPageHeader title="Insurance Quotes" />
+      <AdminPageHeader
+        title="Insurance Quotes"
+        action={
+          <button
+            type="button"
+            className={adminPrimaryButtonClass}
+            disabled={requests.length === 0}
+            onClick={() => exportQuotes(requests, "queue")}
+          >
+            Export loaded queue CSV ({requests.length})
+          </button>
+        }
+      />
+      <p className="text-[13px] leading-6 text-[#667085]">
+        Saving changes updates internal records only. Reply to the customer by email to share a quote.
+        CSV exports include customer and quote details from the loaded queue; internal notes are excluded.
+      </p>
 
       <div className="grid gap-4 xl:grid-cols-4">
         <AdminStatCard
@@ -283,9 +327,23 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
                   </p>
                   <div className="mt-3 space-y-1 text-[13px] leading-6 text-[#344054]">
                     <p className="font-semibold text-[#111827]">{selectedRequest.requesterName}</p>
-                    <p>{selectedRequest.requesterEmail}</p>
+                    <p>
+                      <a
+                        className="text-brand-primary underline underline-offset-2"
+                        href={insuranceCustomerEmailLink(selectedRequest.requesterEmail, selectedRequest.reference)}
+                      >
+                        Email customer: {selectedRequest.requesterEmail}
+                      </a>
+                    </p>
                     <p>{selectedRequest.requesterPhone}</p>
                   </div>
+                  <button
+                    type="button"
+                    className="mt-3 text-[13px] font-semibold text-brand-primary underline underline-offset-2"
+                    onClick={() => exportQuotes([selectedRequest], "selected")}
+                  >
+                    Export selected request CSV
+                  </button>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {selectedRequest.requesterAccountRole ? (
                       <AdminStatusPill
@@ -411,6 +469,9 @@ export function AdminInsuranceRequestsLive({ data }: { data: AdminInsuranceReque
                   onChange={(event) => setAdminNotes(event.target.value)}
                   placeholder="Record missing documents, insurer feedback, or next-step notes for the operations team."
                 />
+                <span className="block text-[12px] font-normal text-[#667085]">
+                  Visible to the operations team only; never sent to the customer or included in CSV exports.
+                </span>
               </label>
             </div>
           ) : (

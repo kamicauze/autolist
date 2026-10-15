@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { requireAdminAction } from "@/lib/admin/guard";
 import {
   parseInsuranceSupportTicketMeta,
   supportTicketStatusToInsuranceStatus,
@@ -259,6 +260,9 @@ async function getFallbackInsuranceRequestsData(limit: number) {
 
 export const getAdminInsuranceRequestsData = cache(
   async (limit = 80): Promise<AdminInsuranceRequestsData> => {
+    const context = await requireAdminAction();
+    if ("error" in context) return EMPTY_ADMIN_INSURANCE_REQUESTS_DATA;
+
     try {
       const supabase = await createAdminDataClient();
 

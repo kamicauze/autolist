@@ -134,7 +134,7 @@ export async function submitInquiryAssistanceRequest(
         recipientId: recipient.id,
         title: `New inquiry: ${payload.subject}`,
         body: payload.message,
-        href: getTicketHref(recipient.role, ticket.id),
+        href: getTicketHref(recipient.role, ticket.id, roleCategory(payload.roleType)),
         metadata: {
           ticketId: ticket.id,
           category: roleCategory(payload.roleType),
@@ -145,7 +145,7 @@ export async function submitInquiryAssistanceRequest(
     console.error("Failed to emit inquiry assistance notification", notificationError);
   }
 
-  revalidatePath("/admin/car-inquiries");
+  revalidatePath("/admin/inquiries-assistance");
 
   return {
     success: true,

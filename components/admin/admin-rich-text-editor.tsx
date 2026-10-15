@@ -133,6 +133,7 @@ export function AdminRichTextEditor({
     if (!editorElement || value === lastEmittedValueRef.current) return;
 
     editorElement.innerHTML = normalizeRichTextContent(value);
+    lastEmittedValueRef.current = value;
     setSelectedImage(null);
   }, [value]);
 

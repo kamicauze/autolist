@@ -72,7 +72,7 @@ export async function PATCH(
     .from("support_tickets")
     .update(updates)
     .eq("id", ticketId)
-    .select("id, status, assigned_to, updated_at")
+    .select("id, status, category, assigned_to, updated_at")
     .single();
 
   if (error || !updatedTicket) {
@@ -113,7 +113,7 @@ export async function PATCH(
             recipientId: updatedTicket.assigned_to,
             title: "Support ticket assigned to you",
             body: `Ticket ${ticketId.slice(0, 8)} is now assigned to you.`,
-            href: getTicketHref(assignee?.role || "support", ticketId),
+            href: getTicketHref(assignee?.role || "support", ticketId, updatedTicket.category),
             metadata: {
               ticketId,
             },

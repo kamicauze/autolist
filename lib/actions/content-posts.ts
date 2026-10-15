@@ -231,6 +231,7 @@ async function getContentPostRecord(
 
 function revalidateContentPostPaths(post: Pick<ContentPost, "slug">, previousSlug?: string | null) {
   revalidatePath("/admin/blogs-content");
+  revalidatePath("/");
   revalidatePath("/blog");
 
   if (previousSlug) {

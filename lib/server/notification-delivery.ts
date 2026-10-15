@@ -30,7 +30,7 @@ function firstRelation<T>(value: T | T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
 
-function getSiteBaseUrl() {
+export function getSiteBaseUrl() {
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.VERCEL_PROJECT_PRODUCTION_URL ||

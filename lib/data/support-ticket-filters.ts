@@ -3,6 +3,17 @@ export const LISTING_ENQUIRY_TICKET_CATEGORIES = new Set([
   "public_listing_enquiry",
 ]);
 
+export function getAdminSupportTicketHref(ticketId: string, category?: string | null) {
+  const path = category === "import_inquiry"
+    ? "/admin/car-inquiries"
+    : category === "insurance_request"
+      ? "/admin/insurance-requests"
+      : ["buyer_assistance", "seller_assistance", "inquiries_assistance"].includes(category || "")
+        ? "/admin/inquiries-assistance"
+        : "/admin/conversation-tickets";
+  return `${path}?ticket=${encodeURIComponent(ticketId)}`;
+}
+
 type SupportTicketCategory = {
   category: string | null;
 };

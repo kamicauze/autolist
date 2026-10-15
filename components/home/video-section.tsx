@@ -1,51 +1,38 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getPublishedContentPosts } from "@/lib/data/content-posts";
+import { getContentPostSubcategoryLabel } from "@/lib/content-post-subcategories";
+import type { ContentPostCategory } from "@/lib/types/content-posts";
 
-const REVIEW_ARTICLES = [
-  {
-    id: 1,
-    title: "2019 Mercedes Benz Premium Review",
-    excerpt:
-      "A closer look at comfort, ownership costs, and features that matter for Kenyan buyers.",
-    category: "Expert Review",
-    image: "/sample-car-1.jpg",
-    date: "Jan 25, 2026",
-    href: "/reviews/1",
-  },
-  {
-    id: 2,
-    title: "2024 BMW X5 Full Test Drive",
-    excerpt:
-      "What stands out in performance, cabin space, fuel use, and everyday drivability.",
-    category: "Test Drive",
-    image: "/sample-car-2.jpg",
-    date: "Jan 24, 2026",
-    href: "/reviews/2",
-  },
-  {
-    id: 3,
-    title: "Toyota Land Cruiser 300 Series Review",
-    excerpt:
-      "A practical review of capability, reliability, and value for long-distance driving.",
-    category: "Expert Review",
-    image: "/sample-car-3.jpg",
-    date: "Jan 23, 2026",
-    href: "/reviews/3",
-  },
-  {
-    id: 4,
-    title: "Electric vs Hybrid: Which is Better?",
-    excerpt:
-      "Key differences in running costs, charging, resale value, and ownership fit.",
-    category: "Comparison",
-    image: "/sample-car-4.jpg",
-    date: "Jan 22, 2026",
-    href: "/reviews/4",
-  },
-];
+const CATEGORY_LABELS: Record<ContentPostCategory, string> = {
+  blog: "Blog",
+  review: "Reviews",
+  news: "News",
+  advice: "Advice",
+  faq: "FAQ",
+};
 
-export function VideoSection() {
+function formatDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toLocaleDateString("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export async function VideoSection() {
+  const posts = await getPublishedContentPosts(4, "reviews_blogs");
+
+  if (posts.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-16">
       <div className="mx-auto max-w-[1285px] px-4 sm:px-6 lg:px-8">
@@ -54,7 +41,7 @@ export function VideoSection() {
             Car reviews and blogs
           </h2>
           <Link
-            href="/reviews"
+            href="/blog?section=reviews_blogs"
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
           >
             View all
@@ -64,32 +51,35 @@ export function VideoSection() {
 
         <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
           <div className="flex snap-x snap-mandatory gap-6">
-            {REVIEW_ARTICLES.map((article) => (
+            {posts.map((post) => (
               <Link
-                key={article.id}
-                href={article.href}
-                className="group w-[280px] shrink-0 snap-start overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
+                key={post.id}
+                href={`/blog/${post.slug}`}
+                className="group flex w-[280px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
               >
                 <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+                  {post.coverImageUrl ? (
+                    <img
+                      src={post.coverImageUrl}
+                      alt={post.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" />
+                  )}
                   <div className="absolute left-3 top-3">
                     <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white">
-                      {article.category}
+                      {getContentPostSubcategoryLabel(post.subcategory) ?? CATEGORY_LABELS[post.category] ?? "Blog"}
                     </span>
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="mb-2 text-sm text-gray-500">{article.date}</p>
+                  <p className="mb-2 text-sm text-gray-500">{formatDate(post.publishedAt)}</p>
                   <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-primary">
-                    {article.title}
+                    {post.title}
                   </h3>
                   <p className="line-clamp-2 text-sm text-gray-600">
-                    {article.excerpt}
+                    {post.excerpt}
                   </p>
                 </div>
               </Link>
