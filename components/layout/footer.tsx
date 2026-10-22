@@ -16,7 +16,6 @@ const footerLinks = {
   ],
   Selling: [
     { name: "Sell your vehicle", href: "/sell" },
-    { name: "Vehicle valuation", href: "/valuation" },
     { name: "Private seller", href: "/sell" },
     { name: "Dealer advertising", href: "/dealers" },
     { name: "Trade-In", href: "/trade-in" },

@@ -31,7 +31,6 @@ const buyMenu = [
 
 const toolsMenu = [
   { name: "Financing", href: "/calculator" },
-  { name: "Value your vehicle", href: "/valuation" },
   { name: "Compare listings", href: "/compare" },
   { name: "Vehicle Insurance", href: "/insurance" },
   { name: "Import Inquiry", href: "/import-inquiry" },
