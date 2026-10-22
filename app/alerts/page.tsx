@@ -40,6 +40,9 @@ export default async function AlertsPage() {
         <PageHero
           label="LISTING ALERTS"
           heading="Get notified when the right listing becomes available"
+          backgroundImage="/images/alerts-hero.webp"
+          align="left"
+          description="Be the first to know about new vehicles that match your criteria."
         >
           {data.viewer ? (
             <ListingAlertsManager

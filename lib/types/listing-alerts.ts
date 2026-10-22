@@ -16,7 +16,8 @@ export type ListingAlertInput = {
   location?: string;
   minYear?: number | string | null;
   maxYear?: number | string | null;
-  priceRange: ListingAlertPriceRange;
+  minPrice?: number | string | null;
+  maxPrice?: number | string | null;
   primaryValue?: string;
   secondaryValue?: string;
   emailEnabled: boolean;

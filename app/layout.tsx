@@ -1,20 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Poppins } from "next/font/google";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { resolveThemeId } from "@/lib/theme/themes";
 import "./globals.css";
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: "Autolist",
@@ -31,11 +18,17 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme={initialTheme} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
+        />
         <ThemeScript initialTheme={initialTheme} />
       </head>
       <body
         suppressHydrationWarning
-        className={`${poppins.variable} ${inter.variable} antialiased`}
+        className="antialiased"
       >
         {children}
       </body>

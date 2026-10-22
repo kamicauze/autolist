@@ -25,7 +25,7 @@ export async function submitImportInquiry(input: ImportInquiryInput) {
     `Name: ${value.firstName}`, `Email: ${value.email}`, `Phone: ${value.phone}`,
     `Category: ${category}`, `Make: ${value.make}`, `Model: ${value.model}`,
     `Year from: ${importYearLabel(value.yearFrom)}`, `Year to: ${importYearLabel(value.yearTo)}`,
-    `Engine size: ${value.engineSize || "Not specified"}`, `Colour: ${value.color}`,
+    `Engine size: ${value.engineSize || "Not specified"}`, `Colour: ${value.color || "Not specified"}`,
     `Budget: KES ${value.budgetFrom.toLocaleString("en-KE")} - ${value.budgetTo.toLocaleString("en-KE")}`,
     `Additional notes: ${value.notes || "None"}`,
   ].join("\n");

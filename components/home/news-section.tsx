@@ -62,7 +62,7 @@ export async function NewsSection() {
                     <img
                       src={post.coverImageUrl}
                       alt={post.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full bg-gray-100 object-contain"
                     />
                   ) : (
                     <div className="h-full w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700" />

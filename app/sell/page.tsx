@@ -2,61 +2,69 @@ import Link from "next/link";
 import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { PageHero } from "@/components/shared/page-hero";
 import { Button } from "@/components/ui/button";
-import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
-import { Shield, Clock, DollarSign, CheckCircle2, Star } from "lucide-react";
+import { Illustration3D } from "@/components/ui/icon-3d";
+import {
+  ShieldCheck,
+  Clock,
+  HandCoins,
+  Check,
+  Star,
+  ArrowRight,
+} from "lucide-react";
 
 const sellingOptions = [
   {
-    title: "Private Seller Account",
+    title: "Selling your own car?",
     description:
-      "List your own vehicle on Autolist, control the asking price, and manage enquiries directly as an individual seller.",
-    image: "/sample-car-1.jpg",
+      "List your car as a private seller, set your asking price and speak directly with interested buyers.",
+    image: "/images/sell-private.webp",
+    imageAlt: "A private seller beside their car",
     features: [
-      "Get the best price",
-      "Reach millions of buyers",
-      "Full control over the sale",
+      "Set your own asking price",
+      "Manage your listing and enquiries",
+      "Or request offers from approved dealers",
     ],
-    cta: "List as an individual",
+    cta: "List your car",
     href: "/register?role=seller&next=/dashboard/listings/new",
   },
   {
-    title: "Dealer Account",
+    title: "Selling as a dealership?",
     description:
-      "Register a dealership account for verified inventory publishing, team workflows, and managed dealer enquiries across multiple listings.",
-    image: "/sample-car-2.jpg",
+      "Create a dealer account to showcase your stock, manage your team and connect with buyers across Kenya.",
+    image: "/images/sell-dealer.webp",
+    imageAlt: "A dealership team helping a customer with a vehicle",
     features: [
-      "Fast & convenient",
-      "No advertising needed",
-      "Safe & secure transaction",
+      "Publish and manage your inventory",
+      "Give your sales team access",
+      "Manage buyer enquiries in one place",
     ],
-    cta: "Register dealership",
+    cta: "Register your dealership",
     href: "/register?role=dealer",
   },
 ];
 
 const benefits = [
   {
-    icon: Shield,
+    icon: ShieldCheck,
     asset: "shield-check",
-    title: "Trusted & Secure",
+    title: "Stay in control",
     description:
-      "All transactions are protected. Verified buyers and secure payment processing ensure peace of mind.",
+      "Choose how you sell, set your price and manage enquiries directly.",
   },
   {
     icon: Clock,
     asset: "stopwatch-fast",
-    title: "Sell Faster",
+    title: "Simple to list",
     description:
-      "Your listing reaches thousands of active buyers daily. Most cars sell within the first week.",
+      "Add your vehicle details and photos, then submit your listing for review.",
   },
   {
-    icon: DollarSign,
+    icon: HandCoins,
     asset: "money-value",
-    title: "Best Value",
+    title: "More ways to sell",
     description:
-      "Our market insights help you price competitively. Get the best possible value for your vehicle.",
+      "Reach marketplace buyers or request offers from approved dealers.",
   },
 ] as const;
 
@@ -83,109 +91,66 @@ const testimonials = [
 
 export default function SellPage() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <Header />
-
       <main className="flex-1">
-        {/* Hero Section */}
-        <PageHero
-          label="SELL YOUR CAR"
-          heading="Sell your car your way with Autolist"
-        />
-
-        {/* Selling Options Cards */}
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Choose How to Sell Your Car</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Select the account path that matches your role. Individual sellers and dealer teams follow different workflows after sign-up.
-            </p>
-          </div>
-          <div className="grid gap-6 md:gap-8 md:grid-cols-2">
-            {sellingOptions.map((option) => (
-              <div
-                key={option.title}
-                className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
-              >
-                {/* Card Image */}
-                <div className="relative h-[200px] sm:h-[240px] overflow-hidden">
-                  <Image
-                    src={option.image}
-                    alt={option.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-
-                {/* Card Content */}
-                <div className="p-5 sm:p-6">
-                  <h3 className="text-xl font-bold text-foreground">
-                    {option.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                    {option.description}
-                  </p>
-
-                  {/* Features List */}
-                  <ul className="mt-4 space-y-2.5">
-                    {option.features.map((feature) => (
-                      <li
-                        key={feature}
-                        className="flex items-center gap-2.5 text-sm text-foreground"
-                      >
-                        <Icon3D
-                          icon={CheckCircle2}
-                          variant="glyph"
-                          tone="success"
-                          className="h-4.5 w-4.5 [&>svg]:h-4.5 [&>svg]:w-4.5"
-                        />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA Button */}
-                  <Button
-                    asChild
-                    variant="secondary"
-                    className="mt-5 w-full rounded-[10px] bg-gray-100 text-foreground font-semibold hover:bg-gray-200"
-                  >
-                    <Link href={option.href}>{option.cta}</Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
+        <section className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+          <div className="relative isolate overflow-hidden rounded-2xl bg-gray-900">
+            <Image
+              src="/images/sell-hero.webp"
+              alt="A seller and buyer beside a car"
+              fill
+              priority
+              sizes="(min-width: 1280px) 1216px, 100vw"
+              className="-z-20 object-cover object-[65%_center] md:object-center"
+            />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-gray-950/90 via-gray-950/55 to-gray-950/10" />
+            <div className="flex min-h-[380px] flex-col items-start justify-center px-6 py-10 sm:min-h-[420px] sm:px-10 md:min-h-[454px] md:py-14 lg:px-14">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/90">
+                Sell with Autolist
+              </p>
+              <h1 className="mt-4 max-w-lg text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
+                Sell your car, your way.
+              </h1>
+              <p className="mt-5 max-w-md text-base leading-7 text-white/90">
+                List privately, connect with buyers or get offers from approved
+                dealers. Choose the route that works for you.
+              </p>
+              <Button asChild className="mt-7">
+                <Link href="#selling-options">
+                  Choose how to sell
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
 
-        {/* Why Sell with Autolist */}
-        <section className="bg-gray-50 py-12 md:py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-center text-2xl font-bold text-foreground sm:text-3xl">
-              Why Sell with Autolist?
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
-              Join thousands of sellers who trust Autolist to get the best deals
-              for their vehicles.
-            </p>
-
-            <div className="mt-10 grid gap-6 sm:gap-8 sm:grid-cols-3">
-              {benefits.map((benefit) => (
-                <div
-                  key={benefit.title}
-                  className="flex flex-col items-center text-center"
-                >
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-[1fr_2fr] md:gap-12">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                Why sell with Autolist?
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-gray-600">
+                Practical tools to help you take the next step with your
+                vehicle.
+              </p>
+            </div>
+            <div className="grid gap-7 sm:grid-cols-3">
+              {benefits.map(({ icon, asset, title, description }) => (
+                <div key={title}>
                   <Illustration3D
-                    asset={benefit.asset}
-                    fallbackIcon={benefit.icon}
+                    asset={asset}
+                    fallbackIcon={icon}
                     size="xl"
                     className="h-16 w-16"
                   />
-                  <h3 className="mt-4 text-lg font-semibold text-foreground">
-                    {benefit.title}
+                  <h3 className="mt-4 text-base font-semibold text-gray-900">
+                    {title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                    {benefit.description}
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    {description}
                   </p>
                 </div>
               ))}
@@ -193,27 +158,112 @@ export default function SellPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-bold text-foreground sm:text-3xl">What Our Customers Say</h2>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <section
+          id="selling-options"
+          className="scroll-mt-24 border-y border-gray-200 bg-gray-50 py-12 md:py-16"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              Choose how to sell your car
+            </h2>
+            <p className="mt-3 text-sm text-gray-600">
+              An individual seller account is for your own vehicle. A dealer
+              account is for a vehicle business.
+            </p>
+            <div className="mt-8 grid gap-7 md:grid-cols-2">
+              {sellingOptions.map((option) => (
+                <article
+                  key={option.title}
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                >
+                  <div className="relative h-[220px] sm:h-[260px]">
+                    <Image
+                      src={option.image}
+                      alt={option.imageAlt}
+                      fill
+                      sizes="(min-width: 1280px) 592px, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-6 sm:p-7">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {option.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-6 text-gray-600">
+                      {option.description}
+                    </p>
+                    <ul className="mt-5 space-y-3">
+                      {option.features.map((feature) => (
+                        <li
+                          key={feature}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button asChild className="mt-6">
+                      <Link href={option.href}>{option.cta}</Link>
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="mt-7 flex flex-col items-start justify-between gap-5 rounded-xl border border-primary/20 bg-white p-6 sm:flex-row sm:items-center sm:p-7">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Prefer to sell directly to a dealer?
+                </h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                  Private sellers can submit their car for offers from approved
+                  dealers. Review offers and choose whether to accept.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="shrink-0">
+                <Link href="/sell/dealer">
+                  Get dealer offers
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Customer reviews
+          </h2>
+          <div className="mt-8 grid gap-7 sm:grid-cols-3">
             {testimonials.map((testimonial) => (
-              <article key={testimonial.name} className="rounded-xl border border-border bg-white p-5 shadow-sm">
-                <div className="mb-3 flex items-center gap-1 text-primary">
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
+              <article
+                key={testimonial.name}
+                className="border-t border-gray-200 pt-5"
+              >
+                <div
+                  className="flex gap-1 text-primary"
+                  aria-label="5 out of 5 stars"
+                >
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <Star
+                      key={rating}
+                      aria-hidden="true"
+                      className="h-4 w-4 fill-current"
+                    />
+                  ))}
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{testimonial.quote}</p>
-                <p className="mt-4 text-sm font-semibold text-foreground">{testimonial.name}</p>
-                <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                <blockquote className="mt-4 text-sm leading-7 text-gray-600">
+                  “{testimonial.quote}”
+                </blockquote>
+                <p className="mt-5 text-sm font-semibold text-gray-900">
+                  {testimonial.name}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">{testimonial.role}</p>
               </article>
             ))}
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );

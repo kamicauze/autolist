@@ -190,7 +190,8 @@ export async function getAdminContentPostsData(): Promise<AdminContentPostsData>
 export async function getPublishedContentPosts(
   limit = 24,
   category?: string,
-  subcategory?: string
+  subcategory?: string,
+  offset = 0
 ): Promise<ContentPost[]> {
   const supabase = await createClient();
   const categoryFilterValues = getContentPostCategoryFilterValues(category);
@@ -214,7 +215,10 @@ export async function getPublishedContentPosts(
     query = query.eq("subcategory", normalizedSubcategory);
   }
 
-  const { data, error } = await query.order("published_at", { ascending: false }).limit(limit);
+  const { data, error } = await query
+    .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     if (isMissingRelationError(error)) {
@@ -242,7 +246,8 @@ export async function getPublishedContentPosts(
 
       const preSubcategoryResult = await preSubcategoryQuery
         .order("published_at", { ascending: false })
-        .limit(limit);
+        .order("id", { ascending: false })
+        .range(offset, offset + limit - 1);
       if (!preSubcategoryResult.error) {
         return toContentPostRows(preSubcategoryResult.data).map(normalizeContentPost);
       }
@@ -258,7 +263,10 @@ export async function getPublishedContentPosts(
         return [];
       }
 
-      const legacyResult = await legacyQuery.order("published_at", { ascending: false }).limit(limit);
+      const legacyResult = await legacyQuery
+        .order("published_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + limit - 1);
       if (legacyResult.error) {
         if (normalizeContentPostError(legacyResult.error) === null) {
           return [];

@@ -22,9 +22,11 @@ import { VEHICLE_TYPE_NAVIGATION_ITEMS } from "@/lib/constants/vehicle-type-navi
 import type { ListingCategory } from "@/lib/constants/marketplace";
 
 const buyMenu = [
-  { name: "New Listings", href: "/search?condition=new" },
-  { name: "All Listings", href: "/search" },
-  { name: "Compare Listings", href: "/compare" },
+  { name: "Used cars", href: "/search?category=car&condition=used" },
+  { name: "New cars", href: "/search?category=car&condition=new" },
+  { name: "New listings", href: "/search?sortBy=newest" },
+  { name: "Compare listings", href: "/compare" },
+  { name: "Find a dealer", href: "/dealers" },
 ];
 
 const toolsMenu = [
@@ -36,21 +38,13 @@ const toolsMenu = [
   { name: "Inquiries & Assistance", href: "/inquiries-assistance" },
 ];
 
-const pagesMenu = [
-  { name: "About us", href: "/about" },
-  { name: "Dealers", href: "/dealers" },
-  { name: "FAQs", href: "/faqs" },
-  { name: "How it works", href: "/how-it-works" },
-];
-
 const desktopLinks = [
-  { name: "Home", href: "/" },
   { name: "Buy a vehicle", menu: buyMenu, key: "buy" },
   { name: "Sell a vehicle", href: "/sell" },
   { name: "News & reviews", href: "/blog" },
   { name: "Tools & Services", menu: toolsMenu, key: "tools" },
   { name: "Listing alerts", href: "/alerts" },
-  { name: "Pages", menu: pagesMenu, key: "pages" },
+  { name: "FAQs", href: "/faqs" },
 ] as const;
 
 function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory | null }) {
@@ -231,9 +225,10 @@ export function Header() {
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }
             }}
-            className="flex items-center gap-2"
+            aria-label="Autolist home"
+            className="flex shrink-0 items-center gap-2"
           >
-            <AutolistLogo className="h-8 w-auto xl:h-7" />
+            <AutolistLogo className="h-10 w-auto xl:h-10" />
           </Link>
 
           <nav ref={desktopNavRef} className="hidden items-center gap-0.5 xl:flex">

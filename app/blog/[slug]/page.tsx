@@ -58,7 +58,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <Breadcrumb
             items={[
               { label: "Home", href: "/" },
-              { label: "Blog", href: "/blog" },
+              { label: "News & Reviews", href: "/blog" },
               { label: post.title },
             ]}
             className="mb-4"
@@ -69,7 +69,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <img
                 src={post.coverImageUrl}
                 alt={post.title}
-                className="h-60 w-full object-cover sm:h-80"
+                className="max-h-[640px] w-full bg-gray-100 object-contain"
               />
             ) : (
               <div className="h-60 w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 sm:h-80" />
@@ -93,7 +93,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       key={`${post.id}-gallery-${index}`}
                       src={imageUrl}
                       alt={`${post.title} photo ${index + 1}`}
-                      className="h-48 w-full rounded-[18px] object-cover sm:h-56"
+                      className="h-auto max-h-[560px] w-full rounded-[18px] bg-gray-100 object-contain"
                     />
                   ))}
                 </div>
@@ -104,7 +104,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   href="/blog"
                   className="inline-flex text-sm font-semibold text-primary transition hover:text-primary/80"
                 >
-                  Back to blog
+                  Back to News & Reviews
                 </Link>
               </div>
             </div>

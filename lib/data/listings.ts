@@ -571,7 +571,7 @@ interface ListingQuery {
   is(column: string, value: null): this;
 }
 
-function applyListingFilters<TQuery extends ListingQuery>(
+export function applyListingFilters<TQuery extends ListingQuery>(
   query: TQuery,
   filters?: ListingFilters,
   options?: { skipBodyType?: boolean; skipLocation?: boolean; skipDriveType?: boolean }
@@ -626,7 +626,9 @@ function applyListingFilters<TQuery extends ListingQuery>(
     nextQuery = applyCaseInsensitiveMultiValueFilter(nextQuery, "fuel_type", filters.fuelType);
   }
   if (filters?.condition) {
-    if (filters.condition === "locally_used" || filters.condition === "used") {
+    if (filters.condition === "used") {
+      nextQuery = nextQuery.in("condition", ["locally_used", "foreign_used", "used"]);
+    } else if (filters.condition === "locally_used") {
       nextQuery = nextQuery.in("condition", ["locally_used", "used"]);
     } else {
       nextQuery = nextQuery.eq("condition", filters.condition);

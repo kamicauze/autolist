@@ -13,7 +13,8 @@ function validInput(category: (typeof LISTING_CATEGORY_OPTIONS)[number]["value"]
     location: " Nairobi ",
     minYear: "2020",
     maxYear: "2025",
-    priceRange: "1m-3m" as const,
+    minPrice: "1000000",
+    maxPrice: "3000000",
     primaryValue: primary.options[1]?.value || "any",
     secondaryValue: secondary.options[1]?.value || "any",
     emailEnabled: true,
@@ -55,5 +56,22 @@ test("rejects an inverted year range", () => {
   assert.equal(parsed.success, false);
   if (!parsed.success) {
     assert.deepEqual(parsed.error.issues[0]?.path, ["maxYear"]);
+  }
+});
+
+
+test("normalizes open and exact price bounds and rejects inverted or invalid prices", () => {
+  const input = validInput("car");
+  for (const [minPrice, maxPrice, expected] of [
+    ["", "", [undefined, undefined]],
+    ["100000", "", [100000, undefined]],
+    ["", "500000", [undefined, 500000]],
+    ["1498500", "1498500", [1498500, 1498500]],
+  ] as const) {
+    const parsed = listingAlertInputSchema.parse({ ...input, minPrice, maxPrice });
+    assert.deepEqual([parsed.minPrice, parsed.maxPrice], expected);
+  }
+  for (const [minPrice, maxPrice] of [["500000", "100000"], ["-1", ""], ["1.5", ""], ["invalid", ""]]) {
+    assert.equal(listingAlertInputSchema.safeParse({ ...input, minPrice, maxPrice }).success, false);
   }
 });

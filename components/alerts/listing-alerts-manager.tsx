@@ -18,7 +18,6 @@ import {
 } from "@/lib/actions/listing-alerts";
 import {
   LISTING_ALERT_CATEGORY_CONFIG,
-  LISTING_ALERT_PRICE_OPTIONS,
 } from "@/lib/constants/listing-alerts";
 import {
   LISTING_CATEGORY_OPTIONS,
@@ -33,6 +32,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
+import { NumericComboInput } from "@/components/ui/numeric-combo-input";
+import { PRICE_FILTER_OPTIONS } from "@/lib/constants/filters";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -50,7 +51,8 @@ const EMPTY_ALERT: ListingAlertInput = {
   location: "",
   minYear: "",
   maxYear: "",
-  priceRange: "any",
+  minPrice: "",
+  maxPrice: "",
   primaryValue: "any",
   secondaryValue: "any",
   emailEnabled: true,
@@ -79,7 +81,8 @@ function alertToInput(alert: ListingAlertRecord): ListingAlertInput {
     location: alert.location || "",
     minYear: alert.minYear ?? "",
     maxYear: alert.maxYear ?? "",
-    priceRange: alert.priceRange,
+    minPrice: alert.minPrice ?? "",
+    maxPrice: alert.maxPrice ?? "",
     primaryValue: getListingAlertCriterionValue(alert.criteria, primaryField.key),
     secondaryValue: getListingAlertCriterionValue(alert.criteria, secondaryField.key),
     emailEnabled: alert.emailEnabled,
@@ -95,7 +98,9 @@ function alertSummary(alert: ListingAlertRecord) {
     alert.minYear || alert.maxYear
       ? `${alert.minYear || "Any"}–${alert.maxYear || "Now"}`
       : null,
-    LISTING_ALERT_PRICE_OPTIONS.find(({ value }) => value === alert.priceRange)?.label,
+    alert.minPrice !== null || alert.maxPrice !== null
+      ? `KES ${alert.minPrice?.toLocaleString("en-KE") ?? "Any"} – ${alert.maxPrice?.toLocaleString("en-KE") ?? "Any"}`
+      : "Any price",
   ].filter(Boolean);
   return details.join(" · ");
 }
@@ -277,25 +282,26 @@ export function ListingAlertsManager({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="alert-price">Price range</Label>
-              <Select
-                value={form.priceRange}
-                onValueChange={(value) =>
-                  updateField("priceRange", value as ListingAlertInput["priceRange"])
-                }
-              >
-                <SelectTrigger id="alert-price" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LISTING_ALERT_PRICE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+              <Label>Price (KES)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <NumericComboInput
+                  aria-label="Price From"
+                  placeholder="From"
+                  value={String(form.minPrice ?? "")}
+                  onChange={(value) => updateField("minPrice", value)}
+                  options={PRICE_FILTER_OPTIONS}
+                  className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                />
+                <NumericComboInput
+                  aria-label="Price To"
+                  placeholder="To"
+                  value={String(form.maxPrice ?? "")}
+                  onChange={(value) => updateField("maxPrice", value)}
+                  options={PRICE_FILTER_OPTIONS}
+                  className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -426,6 +432,13 @@ export function ListingAlertsManager({
           ) : null}
 
           <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" disabled={isPending} onClick={() => {
+              setForm(emptyAlert);
+              setActionError(null);
+              setActionSuccess(null);
+            }}>
+              Reset all
+            </Button>
             {editingId ? (
               <Button
                 type="button"

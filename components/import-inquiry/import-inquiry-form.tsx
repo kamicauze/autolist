@@ -33,7 +33,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   const [yearFrom, setYearFrom] = React.useState("");
   const [yearTo, setYearTo] = React.useState("");
   const [engineSize, setEngineSize] = React.useState("");
-  const [selectedColor, setSelectedColor] = React.useState<(typeof COLORS)[number]>("Black");
+  const [selectedColor, setSelectedColor] = React.useState<(typeof COLORS)[number] | "">("");
   const [budgetFrom, setBudgetFrom] = React.useState("");
   const [budgetTo, setBudgetTo] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
@@ -71,7 +71,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
       setYearFrom("");
       setYearTo("");
       setEngineSize("");
-      setSelectedColor("Black");
+      setSelectedColor("");
       setBudgetFrom("");
       setBudgetTo("");
       setFirstName("");
@@ -222,7 +222,8 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             <button
               key={color.name}
               type="button"
-              onClick={() => setSelectedColor(color.name)}
+              onClick={() => setSelectedColor(selectedColor === color.name ? "" : color.name)}
+              aria-pressed={selectedColor === color.name}
               className={`flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-colors ${
                 selectedColor === color.name
                   ? "border-primary bg-primary/5 text-primary"
@@ -241,14 +242,20 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
 
       {/* Budget Range */}
       <div className="mb-8">
-        <h3 className="mb-5 text-lg font-semibold text-gray-900">Budget Range</h3>
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h3 className="text-lg font-semibold text-gray-900">Budget Range</h3>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setBudgetFrom(""); setBudgetTo(""); }}>
+            Reset all
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
+            <label htmlFor="import-budget-from" className="text-sm font-medium text-gray-700">
               Budget From <span className="text-red-500">*</span>
             </label>
             <Input
+              id="import-budget-from"
               value={budgetFrom}
               onChange={(e) => setBudgetFrom(formatImportBudget(e.target.value))}
               inputMode="numeric"
@@ -258,10 +265,11 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
+            <label htmlFor="import-budget-to" className="text-sm font-medium text-gray-700">
               Budget To <span className="text-red-500">*</span>
             </label>
             <Input
+              id="import-budget-to"
               value={budgetTo}
               onChange={(e) => setBudgetTo(formatImportBudget(e.target.value))}
               inputMode="numeric"

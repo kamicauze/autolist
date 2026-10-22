@@ -16,7 +16,7 @@ export const importInquirySchema = z.object({
   yearFrom: year,
   yearTo: year,
   engineSize: z.string().trim().max(100),
-  color: z.enum(COLORS),
+  color: z.union([z.enum(COLORS), z.literal("")]),
   budgetFrom: budget,
   budgetTo: budget,
   firstName: z.string().trim().min(2, "Enter your name.").max(120),

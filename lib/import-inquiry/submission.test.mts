@@ -49,6 +49,8 @@ test("submission persists actual requirements with import-only category; failure
   assert.equal((await submitImportInquiry(input)).success, true);
   assert.equal(inserts[1].created_by, "import-staff");
   assert.deepEqual(invalidations, ["/admin/car-inquiries", "/admin/car-inquiries"]);
+  assert.equal((await submitImportInquiry({ ...input, color: "" })).success, true);
+  assert.match(String(inserts[2].customer_summary), /Colour: Not specified/);
   failInsert = true;
   assert.equal((await submitImportInquiry(input)).success, false);
 });

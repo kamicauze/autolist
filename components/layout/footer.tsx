@@ -6,19 +6,20 @@ import { Input } from "@/components/ui/input";
 
 const footerLinks = {
   Buying: [
-    { name: "New listings", href: "/search?condition=new" },
+    { name: "Used cars", href: "/search?category=car&condition=used" },
+    { name: "New cars", href: "/search?category=car&condition=new" },
+    { name: "New listings", href: "/search?sortBy=newest" },
     { name: "All listings", href: "/search" },
     { name: "Compare", href: "/compare" },
     { name: "Financing", href: "/calculator" },
-    { name: "Latest listings", href: "/search?sortBy=newest" },
-    { name: "Vehicle valuation", href: "/valuation" },
+    { name: "Find a dealer", href: "/dealers" },
   ],
   Selling: [
     { name: "Sell your vehicle", href: "/sell" },
     { name: "Vehicle valuation", href: "/valuation" },
     { name: "Private seller", href: "/sell" },
     { name: "Dealer advertising", href: "/dealers" },
-    { name: "Part exchange", href: "/sell/dealer" },
+    { name: "Trade-In", href: "/trade-in" },
   ],
   About: [
     { name: "About Autolist", href: "/about" },

@@ -106,7 +106,7 @@ export default function InsurancePage() {
       <Header />
 
       <main className="flex-1 bg-white">
-        <PageHero label="CAR INSURANCE" heading="Compare quotes from top Kenyan insurers">
+        <PageHero label="CAR INSURANCE" heading="Compare quotes from top Kenyan insurers" backgroundImage="/images/insurance-hero.webp" align="left" description="Get the right cover for your car, at the best price.">
           <div className="mx-auto w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl sm:p-7">
             <h3 className="text-base font-semibold text-gray-900">Get your quote</h3>
             <p className="mt-1 text-xs text-gray-500">Fill in your details and we&apos;ll match you with the right cover.</p>

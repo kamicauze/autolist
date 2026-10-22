@@ -12,7 +12,6 @@ import type {
 import {
   buildListingAlertCriteria,
   buildListingAlertLabel,
-  getListingAlertPriceBounds,
 } from "@/lib/utils/listing-alerts";
 import { listingAlertInputSchema } from "@/lib/validations/listing-alert";
 
@@ -60,7 +59,8 @@ function buildAlertWriteValues(
   userId: string,
   input: ReturnType<typeof listingAlertInputSchema.parse>
 ) {
-  const { minPrice, maxPrice } = getListingAlertPriceBounds(input.priceRange);
+  const minPrice = input.minPrice ?? null;
+  const maxPrice = input.maxPrice ?? null;
   const criteria = buildListingAlertCriteria(
     input.category,
     input.primaryValue,
