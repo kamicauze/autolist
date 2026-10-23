@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -14,20 +14,28 @@ import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 
 interface DealerDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ page?: string }>;
 }
 
-export default async function DealerDetailPage({ params }: DealerDetailPageProps) {
+export default async function DealerDetailPage({ params, searchParams }: DealerDetailPageProps) {
   const { id } = await params;
+  const query = await searchParams;
+  const requestedPage = Number(query?.page);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const googleMapsApiKey = getGoogleMapsApiKey();
 
   const [dealer, inventory, newestListings] = await Promise.all([
     getDealerById(id),
-    getDealerInventory(id, 8),
+    getDealerInventory(id, page),
     getNewestListings(12),
   ]);
 
   if (!dealer) {
     notFound();
+  }
+
+  if (page > Math.max(1, Math.ceil(inventory.total / 12))) {
+    redirect(`/dealers/${id}?page=${Math.max(1, Math.ceil(inventory.total / 12))}#inventory`);
   }
 
   // Dealer listings are owned by the dealer's profile, so reviews key off it.
@@ -70,7 +78,9 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
           <DealerPageClient
             dealer={publicDealer}
             publicLinks={publicLinks}
-            inventory={inventory}
+            inventory={inventory.listings}
+            inventoryTotal={inventory.total}
+            inventoryPage={page}
             recommendedListings={recommendedListings}
             googleMapsApiKey={googleMapsApiKey}
             reviewsData={reviewsData}

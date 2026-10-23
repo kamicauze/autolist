@@ -49,6 +49,10 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
   }
 
   const destination = await resolvePostAuthPath(supabase, user.id);
+  if (profileRole?.role === "buyer" && destination === "/" && currentPath === "/dashboard/favorites") {
+    return <div className="mx-auto min-h-screen max-w-7xl px-4 py-8">{children}</div>;
+  }
+
   if (destination !== "/dashboard") {
     redirect(destination);
   }

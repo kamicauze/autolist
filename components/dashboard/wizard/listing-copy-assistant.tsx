@@ -15,6 +15,12 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
   const [result, setResult] = React.useState<ListingCopySuggestion | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
+  function handleClear() {
+    updateField("description", "");
+    setResult(null);
+    setError(null);
+  }
+
   async function handleGenerate() {
     setIsLoading(true);
     setError(null);
@@ -81,6 +87,20 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {isLoading ? "Generating..." : "Generate AI Description"}
         </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={isLoading || (!draft.description && !result)}
+          className="text-[13px] font-semibold text-primary underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Clear description
+        </button>
+        <p className="text-[12px] text-[#61708a]">
+          Apply replaces the current description. Clear it to start a fresh draft.
+        </p>
       </div>
 
       {error ? (

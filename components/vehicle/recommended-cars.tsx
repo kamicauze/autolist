@@ -1,5 +1,7 @@
 "use client";
 
+import { useFavoriteAccess } from "@/lib/hooks/use-favorite-access";
+
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +29,7 @@ export function RecommendedCars({
   sidebarMode = false,
   favoriteListingIds = EMPTY_FAVORITE_LISTING_IDS,
 }: RecommendedCarsProps) {
+  const canFavorite = useFavoriteAccess();
   const router = useRouter();
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
   const [likedIds, setLikedIds] = React.useState<Record<string, boolean>>(() =>
@@ -43,6 +46,7 @@ export function RecommendedCars({
   const displayListings = sidebarMode ? listings.slice(0, 4) : listings;
 
   const handleFavoriteToggle = (listingId: string) => {
+    if (!canFavorite) return;
     const nextValue = !likedIds[listingId];
     setLikedIds((current) => ({ ...current, [listingId]: nextValue }));
     setPendingListingId(listingId);
@@ -144,7 +148,7 @@ export function RecommendedCars({
                       >
                         {inCompare ? <Check className="h-3 w-3" /> : <GitCompare className="h-3 w-3" />}
                       </button>
-                      <button
+                      {canFavorite && <button
                         type="button"
                         onClick={(event) => {
                           event.preventDefault();
@@ -160,7 +164,7 @@ export function RecommendedCars({
                         )}
                       >
                         <Heart className={cn("h-3 w-3", isLiked && "fill-current")} />
-                      </button>
+                      </button>}
                     </div>
                   </details>
                   <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center bg-black/35 opacity-0 transition-opacity sm:flex sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
@@ -197,7 +201,7 @@ export function RecommendedCars({
                           <GitCompare className="h-4 w-4" />
                         )}
                       </button>
-                      <button
+                      {canFavorite && <button
                         type="button"
                         onClick={(event) => {
                           event.preventDefault();
@@ -212,7 +216,7 @@ export function RecommendedCars({
                         )}
                       >
                         <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 </div>

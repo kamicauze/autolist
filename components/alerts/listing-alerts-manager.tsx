@@ -31,9 +31,9 @@ import { getListingAlertCriterionValue } from "@/lib/utils/listing-alerts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
-import { Input } from "@/components/ui/input";
 import { NumericComboInput } from "@/components/ui/numeric-combo-input";
-import { LOCATIONS, PRICE_FILTER_OPTIONS } from "@/lib/constants/filters";
+import { LOCATIONS, PRICE_FILTER_OPTIONS, YEARS } from "@/lib/constants/filters";
+import { listingAlertInputSchema } from "@/lib/validations/listing-alert";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -136,6 +136,10 @@ export function ListingAlertsManager({
   const { models, isLoading: modelsLoading } = useCarModels(form.category === "car" ? form.make || null : null);
   const makeOptions = form.category === "car" ? makes : [...new Set([...(MAKES_BY_CATEGORY[form.category] || []), ...reference.makes])].sort((a, b) => a.localeCompare(b));
   const modelOptions = form.category === "car" ? models : reference.models;
+  const yearOptions = [...new Set([
+    ...YEARS,
+    ...[form.minYear, form.maxYear].filter((year) => year !== "" && year != null).map(Number),
+  ])].sort((a, b) => b - a);
 
   function resetForm() {
     setForm(emptyAlert);
@@ -169,6 +173,12 @@ export function ListingAlertsManager({
     event.preventDefault();
     setActionError(null);
     setActionSuccess(null);
+
+    const parsed = listingAlertInputSchema.safeParse(form);
+    if (!parsed.success) {
+      setActionError(parsed.error.issues[0]?.message || "Check the alert preferences.");
+      return;
+    }
 
     startTransition(async () => {
       const result = editingId
@@ -383,30 +393,47 @@ export function ListingAlertsManager({
 
             <div className="space-y-1.5">
               <Label htmlFor="alert-year-from">Year From</Label>
-              <Input
-                id="alert-year-from"
-                type="number"
-                min={1900}
-                max={new Date().getFullYear() + 1}
-                value={form.minYear ?? ""}
-                onChange={(event) => updateField("minYear", event.target.value)}
-                placeholder="e.g. 2016"
-                className="h-10"
-              />
+              <Select
+                value={String(form.minYear || "any")}
+                onValueChange={(value) => {
+                  if (value) updateField("minYear", value === "any" ? "" : value);
+                }}
+              >
+                <SelectTrigger id="alert-year-from" className="h-10">
+                  <SelectValue placeholder="Any year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any year</SelectItem>
+                  {yearOptions.map((year) => (
+                    <SelectItem key={year} value={String(year)} disabled={Boolean(form.maxYear) && year >= Number(form.maxYear)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="alert-year-to">Year To</Label>
-              <Input
-                id="alert-year-to"
-                type="number"
-                min={1900}
-                max={new Date().getFullYear() + 1}
-                value={form.maxYear ?? ""}
-                onChange={(event) => updateField("maxYear", event.target.value)}
-                placeholder="e.g. 2026"
-                className="h-10"
-              />
+              <Select
+                value={String(form.maxYear || "any")}
+                onValueChange={(value) => {
+                  if (value) updateField("maxYear", value === "any" ? "" : value);
+                }}
+              >
+                <SelectTrigger id="alert-year-to" className="h-10">
+                  <SelectValue placeholder="Any year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any year</SelectItem>
+                  {yearOptions.map((year) => (
+                    <SelectItem key={year} value={String(year)} disabled={Boolean(form.minYear) && year <= Number(form.minYear)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">When both are selected, Year From must be earlier than Year To.</p>
             </div>
           </div>
 

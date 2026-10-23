@@ -81,25 +81,27 @@ export async function getDealerPublicLinks(dealer: DealerProfile) {
 
 export async function getDealerInventory(
   dealerId: string,
-  limit = 8
-): Promise<Listing[]> {
+  page = 1,
+  pageSize = 12
+): Promise<{ listings: Listing[]; total: number }> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from("listings")
-    .select(LISTING_SELECT)
+    .select(LISTING_SELECT, { count: "exact" })
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])
     .eq("dealer_id", dealerId)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("id", { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (error) {
     console.error("Error fetching dealer inventory:", error);
-    return [];
+    return { listings: [], total: 0 };
   }
 
-  return (data || []) as Listing[];
+  return { listings: (data || []) as Listing[], total: count ?? 0 };
 }
 
 const DEALER_VERIFICATION_SELECT = `

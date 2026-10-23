@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { ArrowUpDown, ArrowRight, Calculator } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const services = [
   {
-    icon: ArrowUpDown,
-    title: "Compare vehicle",
+    title: "Car affordability",
     description:
-      "Save time as you no longer need to visit multiple store to find the right vehicle.",
-    href: "/compare",
-    buttonText: "Compare",
+      "Work out how much car you can afford based on your budget.",
+    href: "/calculator#affordability",
+    buttonText: "Check affordability",
   },
   {
-    icon: Calculator,
     title: "Autoloan calculator",
     description:
       "Estimate monthly vehicle loan repayments quickly",
@@ -32,7 +30,6 @@ export function ServicesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {services.map((service) => {
-            const Icon = service.icon;
             return (
               <div
                 key={service.title}

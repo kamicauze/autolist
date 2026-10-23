@@ -1,5 +1,7 @@
 "use client";
 
+import { useFavoriteAccess } from "@/lib/hooks/use-favorite-access";
+
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -110,6 +112,7 @@ export function CarCard({
   href,
   density = "default",
 }: CarCardProps) {
+  const canFavorite = useFavoriteAccess();
   const isCompact = density === "compact";
   const router = useRouter();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -175,7 +178,7 @@ export function CarCard({
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!active || !user) {
+      if (!active || !user || !canFavorite) {
         return;
       }
 
@@ -203,7 +206,7 @@ export function CarCard({
     return () => {
       active = false;
     };
-  }, [id, initialIsFavorited]);
+  }, [canFavorite, id, initialIsFavorited]);
 
   const scrollPrev = React.useCallback(
     (event: React.MouseEvent) => {
@@ -256,7 +259,7 @@ export function CarCard({
       event.preventDefault();
       event.stopPropagation();
 
-      if (isWishlistPending) {
+      if (!canFavorite || isWishlistPending) {
         return;
       }
 
@@ -287,7 +290,7 @@ export function CarCard({
         setIsWishlistPending(false);
       })();
     },
-    [href, id, isLiked, isWishlistPending, router]
+    [canFavorite, href, id, isLiked, isWishlistPending, router]
   );
 
   const onDealerToggle = React.useCallback(
@@ -366,7 +369,7 @@ export function CarCard({
             {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompare className="h-3.5 w-3.5" />}
           </button>
 
-          <button
+          {canFavorite && <button
             type="button"
             onClick={onLikeClick}
             disabled={isWishlistPending}
@@ -378,7 +381,7 @@ export function CarCard({
             )}
           >
             <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
-          </button>
+          </button>}
         </div>
 
         {imageCount > 1 && (

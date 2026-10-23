@@ -34,8 +34,9 @@ export function StepDescription() {
         </div>
 
         <div>
-          <label className={sellerLabelClass}>Description</label>
+          <label htmlFor="listing-description" className={sellerLabelClass}>Description</label>
           <textarea
+            id="listing-description"
             value={draft.description}
             maxLength={MAX_DESCRIPTION_LENGTH}
             onChange={(event) => updateField("description", event.target.value)}

@@ -14,6 +14,9 @@ export async function setListingWishlistState(listingId: string, shouldFavorite:
     return { error: "AUTH_REQUIRED" };
   }
 
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "buyer") return { error: "Favorites are available to buyer accounts only." };
+
   const normalizedListingId = listingId.trim();
   if (!normalizedListingId) {
     return { error: "Missing listing id." };

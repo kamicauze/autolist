@@ -6,7 +6,6 @@ import { AutolistLogo } from "@/components/brand/autolist-logo";
 import {
   BadgeCheck,
   CalendarDays,
-  Heart,
   Gavel,
   KeyRound,
   LayoutDashboard,
@@ -33,7 +32,6 @@ import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 const sellerNav = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My listings", href: "/dashboard/listings", icon: ListOrdered },
-  { name: "My favorite", href: "/dashboard/favorites", icon: Heart },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Customer Requests", href: "/dashboard/customer-requests", icon: CalendarDays },
   { name: "Reviews", href: "/dashboard/reviews", icon: Star },

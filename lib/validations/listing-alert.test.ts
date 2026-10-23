@@ -46,16 +46,32 @@ test("rejects a criterion that does not belong to the selected category", () => 
   }
 });
 
-test("rejects an inverted year range", () => {
-  const parsed = listingAlertInputSchema.safeParse({
-    ...validInput("truck"),
-    minYear: 2025,
-    maxYear: 2020,
-  });
+test("requires Year From to be earlier than Year To when both are selected", () => {
+  for (const [minYear, maxYear] of [[2025, 2020], [2025, 2025]]) {
+    const parsed = listingAlertInputSchema.safeParse({
+      ...validInput("truck"),
+      minYear,
+      maxYear,
+    });
 
-  assert.equal(parsed.success, false);
-  if (!parsed.success) {
-    assert.deepEqual(parsed.error.issues[0]?.path, ["maxYear"]);
+    assert.equal(parsed.success, false);
+    if (!parsed.success) {
+      assert.deepEqual(parsed.error.issues[0]?.path, ["maxYear"]);
+      assert.equal(parsed.error.issues[0]?.message, "Year From must be earlier than Year To.");
+    }
+  }
+});
+
+test("preserves open year bounds and existing older years", () => {
+  for (const [minYear, maxYear, expected] of [
+    ["", "", [undefined, undefined]],
+    ["1980", "", [1980, undefined]],
+    ["", "1989", [undefined, 1989]],
+    ["1980", "1989", [1980, 1989]],
+    ["2020", "2021", [2020, 2021]],
+  ] as const) {
+    const parsed = listingAlertInputSchema.parse({ ...validInput("car"), minYear, maxYear });
+    assert.deepEqual([parsed.minYear, parsed.maxYear], expected);
   }
 });
 

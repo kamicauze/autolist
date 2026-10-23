@@ -343,6 +343,7 @@ export function VehiclePageClient({
   location,
   googleMapsApiKey,
 }: VehiclePageClientProps) {
+  const canFavorite = !viewer || viewer.role === "buyer";
   const router = useRouter();
   const searchParams = useSearchParams();
   const preset = useMemo(
@@ -451,6 +452,7 @@ export function VehiclePageClient({
   };
 
   const handleWishlistToggle = async () => {
+    if (!canFavorite) return;
     const nextValue = !isLiked;
     setIsLiked(nextValue);
     setIsWishlistPending(true);
@@ -551,9 +553,10 @@ export function VehiclePageClient({
                 >
                   <Share2 className="h-3.5 w-3.5 text-gray-600" />
                 </Button>
-                <Button
+                {canFavorite && <Button
                   variant="outline"
                   size="icon"
+                  aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
                   className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
                   onClick={() => void handleWishlistToggle()}
                   disabled={isWishlistPending}
@@ -561,7 +564,7 @@ export function VehiclePageClient({
                   <Heart
                     className={`h-3.5 w-3.5 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
                   />
-                </Button>
+                </Button>}
               </div>
             </div>
 

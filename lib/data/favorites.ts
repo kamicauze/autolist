@@ -35,6 +35,9 @@ export async function getCurrentUserFavoriteListingIds(listingIds?: string[]) {
     return [] as string[];
   }
 
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "buyer") return [];
+
   let query = supabase
     .from("wishlists")
     .select("listing_id")
@@ -64,6 +67,9 @@ export async function getDashboardFavoritesData(): Promise<DashboardFavoriteItem
   if (authError || !user) {
     return [];
   }
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "buyer") return [];
 
   const { data, error } = await supabase
     .from("wishlists")

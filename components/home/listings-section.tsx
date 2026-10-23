@@ -1,5 +1,7 @@
 "use client";
 
+import { useFavoriteAccess } from "@/lib/hooks/use-favorite-access";
+
 import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ export function ListingsSection({
   showTabs = true,
   content,
 }: ListingsSectionProps) {
+  const canFavorite = useFavoriteAccess();
   const [activeTab, setActiveTab] = React.useState<HomepageListingRailTab>("featured");
   const sectionContent = content ?? DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT;
   const displayListings =
@@ -89,7 +92,7 @@ export function ListingsSection({
                 >
                   Recently added
                 </TabsTrigger>
-                {sectionContent.showFavoritesTab ? (
+                {sectionContent.showFavoritesTab && canFavorite ? (
                   <TabsTrigger
                     value="favorites"
                     className="rounded-full border border-border px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-white sm:px-6"
@@ -112,7 +115,7 @@ export function ListingsSection({
               <ListingsGrid listings={newestListings.slice(0, sectionContent.recentLimit)} />
             </TabsContent>
 
-            {sectionContent.showFavoritesTab ? (
+            {sectionContent.showFavoritesTab && canFavorite ? (
               <TabsContent value="favorites">
                 {favoriteListings.length > 0 ? (
                   <ListingsGrid listings={favoriteListings.slice(0, sectionContent.recentLimit)} />

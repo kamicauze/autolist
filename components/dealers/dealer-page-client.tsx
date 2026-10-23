@@ -33,6 +33,8 @@ interface DealerPageClientProps {
   dealer: DealerProfile;
   publicLinks?: DealerPublicLink[];
   inventory: Listing[];
+  inventoryTotal?: number;
+  inventoryPage?: number;
   recommendedListings: Listing[];
   googleMapsApiKey: string;
   reviewsData: SellerReviewDashboardData;
@@ -263,6 +265,8 @@ export function DealerPageClient({
   dealer,
   publicLinks = [],
   inventory,
+  inventoryTotal = inventory.length,
+  inventoryPage = 1,
   recommendedListings,
   googleMapsApiKey,
   reviewsData,
@@ -283,12 +287,19 @@ export function DealerPageClient({
             </p>
           </section>
 
-          <section>
+          <section id="inventory" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-gray-900">
-              Dealership inventory ({inventory.length})
+              Dealership inventory ({inventoryTotal})
             </h2>
             <div className="mt-4">
               <DealerInventory inventory={inventory} />
+              {inventoryTotal > 12 && (
+                <nav aria-label="Dealer inventory pages" className="mt-5 flex items-center justify-between gap-4 text-sm">
+                  {inventoryPage > 1 ? <Link className="text-primary hover:underline" href={`/dealers/${dealer.id}?page=${inventoryPage - 1}#inventory`}>Previous</Link> : <span />}
+                  <span>Page {inventoryPage} of {Math.ceil(inventoryTotal / 12)}</span>
+                  {inventoryPage * 12 < inventoryTotal ? <Link className="text-primary hover:underline" href={`/dealers/${dealer.id}?page=${inventoryPage + 1}#inventory`}>Next</Link> : <span />}
+                </nav>
+              )}
             </div>
           </section>
 

@@ -47,11 +47,11 @@ export const listingAlertInputSchema = z
     priceDropEnabled: z.boolean(),
   })
   .superRefine((value, ctx) => {
-    if (value.minYear && value.maxYear && value.minYear > value.maxYear) {
+    if (value.minYear !== undefined && value.maxYear !== undefined && value.minYear >= value.maxYear) {
       ctx.addIssue({
         code: "custom",
         path: ["maxYear"],
-        message: "Year To must be the same as or later than Year From.",
+        message: "Year From must be earlier than Year To.",
       });
     }
 

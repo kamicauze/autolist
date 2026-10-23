@@ -36,6 +36,12 @@ function buildRuleTitle(input: ListingCopyInput) {
 }
 
 function buildRuleDescription(input: ListingCopyInput) {
+  // Without a rewrite provider, keep the seller's current copy rather than
+  // wrapping it in another full description every time they regenerate.
+  if (input.description.trim()) {
+    return compactWhitespace(input.description);
+  }
+
   const sentences: string[] = [];
   const heading = [
     input.year ? String(input.year) : "",
@@ -74,13 +80,9 @@ function buildRuleDescription(input: ListingCopyInput) {
     sentences.push(`Notable features include ${featureSample}.`);
   }
 
-  if (input.description.trim()) {
-    sentences.push(compactWhitespace(input.description));
-  } else {
-    sentences.push(
-      "Well-kept vehicle with clean presentation, ready for viewing and buyer inspection."
-    );
-  }
+  sentences.push(
+    "Well-kept vehicle with clean presentation, ready for viewing and buyer inspection."
+  );
 
   sentences.push(
     "Contact the seller for viewing arrangements, ownership details, and any additional questions."

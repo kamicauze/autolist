@@ -22,17 +22,11 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [listingsResult, packageAccessResult, favoritesResult, reviewsData, approvedDealer] = await Promise.all([
+  const [listingsResult, packageAccessResult, reviewsData, approvedDealer] = await Promise.all([
     getMyListings(),
     user
       ? getSellerPackageAccessForUser(supabase, user.id)
       : Promise.resolve({ error: "Unauthorized", access: null }),
-    user
-      ? supabase
-          .from("wishlists")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-      : Promise.resolve({ count: 0 }),
     getSellerDashboardReviewsData(),
     getCurrentApprovedDealer(),
   ]);
@@ -65,12 +59,6 @@ export default async function DashboardPage() {
       icon: "pending",
       asset: "clock-pending" as const,
       tone: "warning" as const,
-    },
-    {
-      label: "Favorites",
-      value: String(favoritesResult.count ?? 0).padStart(2, "0"),
-      icon: "favorites",
-      asset: "favorites-heart" as const,
     },
     {
       label: "Reviews",
@@ -126,7 +114,7 @@ export default async function DashboardPage() {
               Seller workspace
             </h2>
             <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6b7280]">
-              Seller tools stay focused on listing publishing, messages, reviews, favorites,
+              Seller tools stay focused on listing publishing, messages, reviews,
               profile, membership, and account verification. Dealer team tools are only shown to
               dealer accounts.
             </p>
