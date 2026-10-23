@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createOpeningHours } from "../dealer-opening-hours";
 import {
   buildDealerPublicProfileUpdate,
   buildSellerProfileUpdate,
@@ -24,6 +25,16 @@ const input = profileUpdateSchema.parse({
   linkedin: "https://linkedin.com/company/ridgeway",
   tiktok: "",
   otherSocial: "",
+});
+
+test("accepts structured hours and rejects invalid dates and hours before saving", () => {
+  const schedule = createOpeningHours();
+  const encoded = JSON.stringify(schedule);
+  assert.equal(profileUpdateSchema.parse({ ...input, openingHours: encoded }).openingHours, encoded);
+  const invalid = { ...schedule, holidays: [{ date: "2026-02-30", hours: schedule.week.Monday }] };
+  assert.equal(profileUpdateSchema.safeParse({ ...input, openingHours: JSON.stringify(invalid) }).success, false);
+  assert.equal(profileUpdateSchema.safeParse({ ...input, openingHours: "{" }).success, false);
+  assert.equal(profileUpdateSchema.safeParse({ ...input, openingHours: "x".repeat(501) }).success, false);
 });
 
 test("maps the shared seller profile fields without dealer-only data", () => {

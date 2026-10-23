@@ -22,6 +22,7 @@ import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { deactivateMyAccount } from "@/lib/actions/account";
 import { updateMyProfile } from "@/lib/actions/profile";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
+import { OpeningHoursEditor } from "@/components/dealers/opening-hours-editor";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import type { SellerProfileRecord } from "@/lib/types/profile";
@@ -540,16 +541,12 @@ export function ProfileForm({
 
               {isApprovedDealerOwner ? (
                 <div>
-                  <label htmlFor="profile-opening-hours" className={sellerLabelClass}>
+                  <h3 className={sellerLabelClass}>
                     Opening Hours
-                  </label>
-                  <textarea
-                    id="profile-opening-hours"
+                  </h3>
+                  <OpeningHoursEditor
                     value={form.openingHours}
-                    onChange={(event) => update("openingHours", event.target.value)}
-                    className={sellerTextareaClass}
-                    placeholder="Mon–Fri 08:00–17:00; Sat 09:00–14:00; Sun closed"
-                    data-testid="profile-opening-hours"
+                    onChange={(value) => update("openingHours", value)}
                   />
                   <p className="mt-2 text-[12px] leading-5 text-[#7d7d7d]">
                     These hours appear on your public dealer profile and vehicle listings.
@@ -764,7 +761,9 @@ export function ProfileForm({
                       Social Links
                     </h2>
                     <p className="text-[13px] text-[#7b7b7b]">
-                      Attach public pages used by buyers.
+                      {isApprovedDealerOwner
+                        ? "Website and social links appear on your public dealer page with an active Professional or Enterprise package."
+                        : "Attach public pages used by buyers."}
                     </p>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { DealerPageClient } from "@/components/dealers/dealer-page-client";
 import {
   getDealerById,
   getDealerInventory,
+  getDealerPublicLinks,
 } from "@/lib/data/dealers";
 import { getNewestListings } from "@/lib/data/listings";
 import { getPublicSellerReviewsData } from "@/lib/data/reviews";
@@ -30,7 +31,21 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
   }
 
   // Dealer listings are owned by the dealer's profile, so reviews key off it.
-  const reviewsData = await getPublicSellerReviewsData(dealer.profile_id);
+  const [reviewsData, publicLinks] = await Promise.all([
+    getPublicSellerReviewsData(dealer.profile_id),
+    getDealerPublicLinks(dealer),
+  ]);
+
+  // Public URLs are supplied only through the entitlement-checked links above.
+  const publicDealer = {
+    ...dealer,
+    website: null,
+    social_links: dealer.social_links
+      ? Object.fromEntries(Object.entries(dealer.social_links).filter(([key]) =>
+          !["facebook", "instagram", "linkedin", "x", "tiktok", "other"].includes(key)
+        ))
+      : null,
+  };
 
   const recommendedListings = newestListings.filter(
     (listing) => listing.dealer?.id !== dealer.id
@@ -53,7 +68,8 @@ export default async function DealerDetailPage({ params }: DealerDetailPageProps
           />
 
           <DealerPageClient
-            dealer={dealer}
+            dealer={publicDealer}
+            publicLinks={publicLinks}
             inventory={inventory}
             recommendedListings={recommendedListings}
             googleMapsApiKey={googleMapsApiKey}

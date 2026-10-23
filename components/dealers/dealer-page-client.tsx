@@ -1,5 +1,6 @@
 "use client";
 
+import type { DealerPublicLink } from "@/lib/dealers/public-links";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,9 +27,11 @@ import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps"
 import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
 import { DealerProfileHeader } from "./dealer-profile-header";
 import { getDealerHoursPresentation } from "@/components/vehicle/seller-card";
+import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display";
 
 interface DealerPageClientProps {
   dealer: DealerProfile;
+  publicLinks?: DealerPublicLink[];
   inventory: Listing[];
   recommendedListings: Listing[];
   googleMapsApiKey: string;
@@ -106,12 +109,14 @@ function DealerInventory({ inventory }: { inventory: Listing[] }) {
 
 function DealerSidebar({
   dealer,
+  publicLinks,
   recommendedListings,
   googleMapsApiKey,
   reviewSummary,
   onReportDealer,
 }: {
   dealer: DealerProfile;
+  publicLinks: DealerPublicLink[];
   recommendedListings: Listing[];
   googleMapsApiKey: string;
   reviewSummary: SellerReviewDashboardData["summary"];
@@ -148,7 +153,7 @@ function DealerSidebar({
 
         <div className="mt-5 space-y-2 text-sm">
           <h4 className="font-semibold text-gray-900">Business hours</h4>
-          {businessHours.rows.map((row) => (
+          {businessHours.structured ? <OpeningHoursDisplay value={businessHours.structured} /> : businessHours.rows.map((row) => (
             <div
               key={`${row.label}-${row.value}`}
               className="flex items-start justify-between gap-3 text-gray-600"
@@ -161,6 +166,16 @@ function DealerSidebar({
             <p className="text-xs leading-5 text-gray-500">{businessHours.note}</p>
           ) : null}
         </div>
+
+        {publicLinks.length ? (
+          <nav aria-label="Dealership website and social pages" className="mt-5 flex flex-wrap gap-2">
+            {publicLinks.map((link) => (
+              <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-primary hover:bg-gray-50">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        ) : null}
 
         <div className="mt-5 border-t border-gray-100 pt-4">
           <p className="text-sm text-gray-600">
@@ -246,6 +261,7 @@ function DealerSidebar({
 
 export function DealerPageClient({
   dealer,
+  publicLinks = [],
   inventory,
   recommendedListings,
   googleMapsApiKey,
@@ -288,6 +304,7 @@ export function DealerPageClient({
 
         <DealerSidebar
           dealer={dealer}
+          publicLinks={publicLinks}
           recommendedListings={recommendedListings}
           googleMapsApiKey={googleMapsApiKey}
           reviewSummary={reviewsData.summary}

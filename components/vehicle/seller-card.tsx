@@ -18,6 +18,8 @@ import { IconWhatsapp } from "@/components/ui/icons";
 import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
 import type { ListingSalesRepContact, PublicSellerStats } from "@/lib/types/listing";
 import { AppointmentRequestDialog } from "./appointment-request-dialog";
+import { parseOpeningHours } from "@/lib/dealer-opening-hours";
+import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display";
 
 interface SellerCardProps {
   listingId: string;
@@ -129,6 +131,10 @@ export function getDealerHoursPresentation(
 
   const rows = toHoursRows(hoursSource);
 
+  if (typeof hoursSource === "string" && parseOpeningHours(hoursSource)) {
+    return { rows: [], note: null, isFallback: false, structured: hoursSource };
+  }
+
   if (rows.length > 0) {
     const note =
       hoursSource && typeof hoursSource === "object" && !Array.isArray(hoursSource)
@@ -139,6 +145,7 @@ export function getDealerHoursPresentation(
       rows,
       note,
       isFallback: false,
+      structured: null,
     };
   }
 
@@ -146,6 +153,7 @@ export function getDealerHoursPresentation(
     rows: [{ label: "Hours", value: "Please confirm opening times with the dealer." }],
     note: "No verified schedule has been published on this listing.",
     isFallback: true,
+    structured: null,
   };
 }
 
@@ -290,7 +298,7 @@ export function SellerCard({
                 Opening hours
               </p>
             </div>
-            <div className="mt-3 space-y-2 text-xs">
+            {dealerHours.structured ? <div className="mt-3"><OpeningHoursDisplay value={dealerHours.structured} /></div> : <div className="mt-3 space-y-2 text-xs">
               {dealerHours.rows.map((row) => (
                 <div key={`${row.label}-${row.value}`} className="flex items-start justify-between gap-3">
                   <span className="text-gray-500">{row.label}</span>
@@ -303,7 +311,7 @@ export function SellerCard({
                   </span>
                 </div>
               ))}
-            </div>
+            </div>}
             {dealerHours.note ? (
               <p className="mt-3 text-[11px] leading-relaxed text-gray-500">{dealerHours.note}</p>
             ) : null}

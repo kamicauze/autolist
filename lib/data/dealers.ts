@@ -13,6 +13,8 @@ import type {
   DealerVerificationRecord,
 } from "@/lib/types/dealer";
 
+import { buildDealerPublicLinks } from "@/lib/dealers/public-links";
+
 const LISTING_SELECT = `
   *,
   images:listing_images(id, r2_key, alt_text, image_order),
@@ -54,6 +56,27 @@ export async function getDealerById(id: string): Promise<DealerProfile | null> {
   }
 
   return data as DealerProfile;
+}
+
+// Membership rows remain private. Only eligible public URLs cross the RSC boundary.
+export async function getDealerPublicLinks(dealer: DealerProfile) {
+  if (dealer.status !== "APPROVED") return [];
+  const now = new Date().toISOString();
+  const { data, error } = await createAdminClient()
+    .from("seller_package_entitlements")
+    .select("plan_id")
+    .eq("user_id", dealer.profile_id)
+    .eq("status", "active")
+    .lte("starts_at", now)
+    .gt("ends_at", now)
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("Error checking public dealership link access:", error);
+    return [];
+  }
+  return buildDealerPublicLinks(dealer, data?.plan_id);
 }
 
 export async function getDealerInventory(

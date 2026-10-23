@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseOpeningHours } from "../dealer-opening-hours";
 
 const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 
@@ -44,7 +45,10 @@ export const profileUpdateSchema = z.object({
   city: z.string().trim().max(160),
   address: z.string().trim().max(300),
   location: z.string().trim().max(200),
-  openingHours: z.string().trim().max(500),
+  openingHours: z.string().trim().max(10000).refine(
+    (value) => value.startsWith("{") ? parseOpeningHours(value) !== null : value.length <= 500,
+    "Enter valid opening hours, with closing times after opening times and unique holiday dates.",
+  ),
   website: optionalHttpUrl,
   facebook: optionalHttpUrl,
   twitter: optionalHttpUrl,

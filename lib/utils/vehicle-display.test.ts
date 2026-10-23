@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import type { Listing } from "@/lib/types/listing";
+import { getListingCardProps } from "./listing-card-props";
+import { buildListingCardFacts } from "./listing-card-facts";
 import {
   getListingBodyTypeLabel,
   getListingFuelTypeLabel,
@@ -85,6 +87,22 @@ function makeListing(overrides: Partial<Listing>): Listing {
   assert.equal(getListingTransmissionLabel(listing), "");
   assert.equal(getListingBodyTypeLabel(listing), "Vehicle");
   assert.equal(getListingBodyTypeLabel(listing, ""), "");
+}
+
+{
+  // Bike transmission uses the same persisted field and card path as other vehicles.
+  for (const transmission of ["manual", "automatic", null]) {
+    const listing = makeListing({
+      make: "Honda",
+      model: "CB500X",
+      transmission,
+      metadata: { category: "motorbike", details: { engineCapacity: "500" } },
+    });
+    const props = getListingCardProps(listing);
+    const fact = buildListingCardFacts(props).find((item) => item.key === "transmission");
+    assert.equal(props.transmission, transmission === "manual" ? "Manual" : transmission === "automatic" ? "Automatic" : undefined);
+    assert.equal(fact?.value, props.transmission);
+  }
 }
 
 console.log("vehicle-display label tests passed");

@@ -28,3 +28,10 @@ export function validateShowroomPhotoSelection(
   }
   return null;
 }
+
+export function orderShowroomCover(keys: string[], coverIndex: number): string[] {
+  if (!Number.isInteger(coverIndex) || coverIndex < 0 || coverIndex >= Math.max(1, keys.length)) {
+    throw new Error("Choose a valid dealership cover photo.");
+  }
+  return keys.length ? [keys[coverIndex], ...keys.filter((_, index) => index !== coverIndex)] : [];
+}

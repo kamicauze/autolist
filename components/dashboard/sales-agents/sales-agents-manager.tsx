@@ -485,9 +485,8 @@ export function SalesAgentsManager({ dealer, agents, error }: SalesAgentsManager
             </p>
           </div>
           <div className="rounded-[14px] border border-brand-muted-border bg-brand-tint px-4 py-3 text-[12px] leading-5 text-brand-hover">
-            Email sending uses <span className="font-semibold">RESEND_API_KEY</span>. If it is not
-            configured, copy the invite link here and send it manually. WhatsApp delivery uses the
-            Meta Cloud API env vars when the rep has WhatsApp enabled.
+            After adding a rep, you can copy their invite link and share it with them directly.
+            Their status stays “Invite pending” until they accept and link their account.
           </div>
         </div>
       </SellerSurface>

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { r2 } from "@/lib/r2";
 import { canUpdateDealerPublicProfile } from "@/lib/profile/profile-update";
-import { isOwnedShowroomPhotoKey, validateShowroomPhotoSelection } from "@/lib/dealers/showroom-photos";
+import { isOwnedShowroomPhotoKey, orderShowroomCover, validateShowroomPhotoSelection } from "@/lib/dealers/showroom-photos";
 
 async function removeUploadedPhotos(keys: string[]) {
   if (!keys.length) return;
@@ -45,6 +45,9 @@ export async function updateMyDealerShowroom(formData: FormData) {
   const current: string[] = dealer.showroom_photo_keys ?? [];
   const validationError = validateShowroomPhotoSelection(retained, current, files, user.id);
   if (validationError) return { error: validationError };
+  const coverIndex = Number(formData.get("coverIndex") ?? 0);
+  try { orderShowroomCover(Array((retained as string[]).length + files.length).fill(""), coverIndex); }
+  catch { return { error: "Choose a valid dealership cover photo." }; }
   if (!process.env.R2_BUCKET_NAME) return { error: "Photo storage is unavailable. Please try again later." };
   const uploaded: string[] = [];
   let persisted = false;
@@ -57,7 +60,7 @@ export async function updateMyDealerShowroom(formData: FormData) {
       uploaded.push(key);
       await r2.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: key, Body: image, ContentType: "image/webp" }));
     }
-    const keys = [...retained as string[], ...uploaded];
+    const keys = orderShowroomCover([...retained as string[], ...uploaded], coverIndex);
     const { data: updated, error } = await supabase.from("dealers")
       .update({ showroom_photo_keys: keys })
       .eq("id", dealer.id).eq("profile_id", user.id).eq("status", "APPROVED")

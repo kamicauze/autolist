@@ -184,6 +184,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "engineCapacity", label: "Engine Size (cc)", type: "number", required: true, placeholder: "500" },
     { key: "enginePowerBhp", label: "Engine Power (BHP, Optional)", type: "number", required: false, placeholder: "47" },
     { key: "fuelType", label: "Fuel Type", type: "select", required: true, options: BIKE_FUEL_TYPES.map((value) => ({ value: value.toLowerCase(), label: value })) },
+    { key: "transmission", label: "Transmission (Optional)", type: "select", required: false, options: [{ value: "manual", label: "Manual" }, { value: "automatic", label: "Automatic" }] },
     { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "8000" },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Red" },
   ],
