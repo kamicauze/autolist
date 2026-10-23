@@ -4,6 +4,8 @@ import {
 } from "@/lib/constants/search-filter-config";
 
 const SEARCH_PARAM_KEYS_BY_FILTER: Partial<Record<SearchFilterId, readonly string[]>> = {
+  model: ["model"],
+  equipmentType: ["equipmentType"],
   bodyType: ["bodyType"],
   transmission: ["transmission"],
   fuelType: ["fuelType"],

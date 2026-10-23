@@ -8,6 +8,15 @@ import { AutolistLogo } from "@/components/brand/autolist-logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -107,6 +116,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const [mobileOpenMenu, setMobileOpenMenu] = React.useState<string | null>(null);
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
@@ -170,6 +180,8 @@ export function Header() {
     setOpenMenu(null);
     setAccountMenuOpen(false);
     setMobileOpenMenu(null);
+    setMobileMenuOpen(false);
+    setSearchOpen(false);
   }, [clearCloseMenuTimeout, pathname]);
 
   React.useEffect(() => {
@@ -309,9 +321,52 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="icon" className="xl:hidden">
-              <IconSearch className="h-5 w-5" />
-            </Button>
+            <Dialog
+              open={searchOpen}
+              onOpenChange={(open) => {
+                setSearchOpen(open);
+                if (open) setMobileMenuOpen(false);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="xl:hidden" aria-label="Search listings">
+                  <IconSearch className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[calc(100%-2rem)] rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Search listings</DialogTitle>
+                  <DialogDescription>
+                    Find vehicles by make, model or keyword, then refine your results with listing filters.
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  action="/search"
+                  method="get"
+                  role="search"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const query = String(new FormData(event.currentTarget).get("q") || "").trim();
+                    const params = new URLSearchParams();
+                    if (query) params.set("q", query);
+                    setSearchOpen(false);
+                    router.push(params.size ? `/search?${params.toString()}` : "/search");
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <label htmlFor="header-listing-query" className="text-sm font-medium">
+                      Make, model or keyword
+                    </label>
+                    <Input id="header-listing-query" name="q" type="search" placeholder="e.g. Toyota, CX-5 or sunroof" />
+                  </div>
+                  <Button type="submit" className="w-full gap-2">
+                    <IconSearch className="h-4 w-4" />
+                    Search listings
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             <Link href="/compare" className="relative hidden sm:block">
               <Button variant="ghost" size="icon">

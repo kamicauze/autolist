@@ -211,6 +211,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "year", label: "Year", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "6400" },
     { key: "operatingWeight", label: "Operating Weight (Optional)", type: "number", required: false, placeholder: "22000" },
+    { key: "fuelType", label: "Fuel Type (Optional)", type: "select", required: false, options: [{ value: "diesel", label: "Diesel" }, { value: "petrol", label: "Petrol" }, { value: "electric", label: "Electric" }, { value: "hybrid", label: "Hybrid" }] },
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
   farm_agricultural: [
@@ -221,6 +222,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "year", label: "Year", type: "select", required: true, options: MANUFACTURE_YEAR_OPTIONS },
     { key: "operatingHours", label: "Hours Used", type: "number", required: true, placeholder: "1200" },
     { key: "powerOutput", label: "Horsepower / Capacity (Optional)", type: "number", required: false, placeholder: "85" },
+    { key: "fuelType", label: "Fuel Type (Optional)", type: "select", required: false, options: [{ value: "diesel", label: "Diesel" }, { value: "petrol", label: "Petrol" }, { value: "electric", label: "Electric" }, { value: "hybrid", label: "Hybrid" }] },
     { key: "operationalStatus", label: "Operational Status", type: "select", required: true, options: [{ value: "working", label: "Working" }, { value: "needs_repair", label: "Needs Repair" }] },
   ],
 };
@@ -247,7 +249,7 @@ export function applyPowertrainFields(fields: DetailField[], isElectric: boolean
       field.key !== "rangeKm" &&
       !(isElectric && field.key === "engineCapacity")
   );
-  if (!isElectric) return baseFields;
+  if (!isElectric || fields.some((field) => field.key === "operatingHours")) return baseFields;
 
   const fuelIndex = baseFields.findIndex((field) => field.key === "engineType" || field.key === "fuelType");
   if (fuelIndex === -1) return baseFields;

@@ -1,5 +1,6 @@
 "use server";
 
+import { sendProviderEmail } from "@/lib/server/delivery-providers";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ export async function submitImportInquiry(input: ImportInquiryInput) {
     `Name: ${value.firstName}`, `Email: ${value.email}`, `Phone: ${value.phone}`,
     `Category: ${category}`, `Make: ${value.make}`, `Model: ${value.model}`,
     `Year from: ${importYearLabel(value.yearFrom)}`, `Year to: ${importYearLabel(value.yearTo)}`,
-    `Engine size: ${value.engineSize || "Not specified"}`, `Colour: ${value.color || "Not specified"}`,
+    `Engine size: ${value.engineSize || "Not specified"}`, `Fuel type: ${value.fuelType || "Not specified"}`, `Colour: ${value.color.join(", ") || "Not specified"}`,
     `Budget: KES ${value.budgetFrom.toLocaleString("en-KE")} - ${value.budgetTo.toLocaleString("en-KE")}`,
     `Additional notes: ${value.notes || "None"}`,
   ].join("\n");
@@ -37,6 +38,22 @@ export async function submitImportInquiry(input: ImportInquiryInput) {
   if (error || !ticket) {
     console.error("Failed to store import inquiry", error);
     return { success: false as const, error: "Unable to send your inquiry. Please try again." };
+  }
+  // Direct delivery avoids the shared preview notification queue (ADR-0001).
+  const notificationRecipient = process.env.IMPORT_INQUIRY_EMAIL_TO?.trim();
+  if (process.env.VERCEL_ENV === "production" && notificationRecipient) {
+    try {
+      const delivery = await sendProviderEmail({
+        to: notificationRecipient,
+        subject: `Import inquiry: ${value.make} ${value.model}`,
+        text: `Import inquiry ${ticket.id}\n\n${summary}`,
+      });
+      if (!delivery.success) {
+        console.error("Import inquiry saved but email notification failed", { ticketId: ticket.id, error: delivery.error });
+      }
+    } catch (error) {
+      console.error("Import inquiry saved but email notification failed", { ticketId: ticket.id, error });
+    }
   }
   revalidatePath("/admin/car-inquiries");
   return { success: true as const, message: "Your import inquiry has been sent. Our team will contact you shortly." };

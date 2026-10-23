@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { NumericComboInput } from "@/components/ui/numeric-combo-input";
-import { PRICE_FILTER_OPTIONS } from "@/lib/constants/filters";
+import { LOCATIONS, PRICE_FILTER_OPTIONS } from "@/lib/constants/filters";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -42,6 +42,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useCarModels } from "@/hooks/use-car-models";
+import { getNonCarVehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { Switch } from "@/components/ui/switch";
 
 const EMPTY_ALERT: ListingAlertInput = {
@@ -109,10 +113,12 @@ export function ListingAlertsManager({
   initialAlerts,
   viewerEmail,
   initialError,
+  makes = [],
 }: {
   initialAlerts: ListingAlertRecord[];
   viewerEmail: string | null;
   initialError: string | null;
+  makes?: string[];
 }) {
   const [alerts, setAlerts] = React.useState(initialAlerts);
   const emptyAlert = React.useMemo(
@@ -126,17 +132,26 @@ export function ListingAlertsManager({
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
   const config = LISTING_ALERT_CATEGORY_CONFIG[form.category];
+  const reference = getNonCarVehicleReferenceOptions(form.category);
+  const { models, isLoading: modelsLoading } = useCarModels(form.category === "car" ? form.make || null : null);
+  const makeOptions = form.category === "car" ? makes : [...new Set([...(MAKES_BY_CATEGORY[form.category] || []), ...reference.makes])].sort((a, b) => a.localeCompare(b));
+  const modelOptions = form.category === "car" ? models : reference.models;
 
-  const resetForm = React.useCallback(() => {
+  function resetForm() {
     setForm(emptyAlert);
     setEditingId(null);
-  }, [emptyAlert]);
+  }
 
   const updateField = <Key extends keyof ListingAlertInput>(
     key: Key,
     value: ListingAlertInput[Key]
   ) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "make" ? { model: "" } : {}),
+      ...(key === "minPrice" && value !== "" && current.maxPrice !== "" && current.maxPrice != null && Number(value) > Number(current.maxPrice) ? { maxPrice: "" } : {}),
+    }));
   };
 
   const handleCategoryChange = (category: ListingCategory) => {
@@ -273,11 +288,14 @@ export function ListingAlertsManager({
 
             <div className="space-y-1.5">
               <Label htmlFor="alert-location">Location</Label>
-              <Input
-                id="alert-location"
+              <SearchableSelect
+                aria-label="Location"
                 value={form.location || ""}
-                onChange={(event) => updateField("location", event.target.value)}
+                onChange={(value) => updateField("location", value)}
+                options={[{ value: "", label: "Any location" }, ...LOCATIONS.filter((location) => location !== "All Locations").map((location) => ({ value: location, label: location }))]}
                 placeholder="Any location"
+                searchPlaceholder="Search locations"
+                allowCustomValue
                 className="h-10"
               />
             </div>
@@ -298,7 +316,8 @@ export function ListingAlertsManager({
                   placeholder="To"
                   value={String(form.maxPrice ?? "")}
                   onChange={(value) => updateField("maxPrice", value)}
-                  options={PRICE_FILTER_OPTIONS}
+                  min={form.minPrice === "" || form.minPrice == null ? undefined : Number(form.minPrice)}
+                  options={PRICE_FILTER_OPTIONS.filter((option) => !option.value || form.minPrice === "" || form.minPrice == null || Number(option.value) >= Number(form.minPrice))}
                   className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 />
               </div>
@@ -306,22 +325,31 @@ export function ListingAlertsManager({
 
             <div className="space-y-1.5">
               <Label htmlFor="alert-make">{config.brandLabel}</Label>
-              <Input
-                id="alert-make"
+              <SearchableSelect
+                aria-label={config.brandLabel}
                 value={form.make || ""}
-                onChange={(event) => updateField("make", event.target.value)}
+                displayValue={form.make || undefined}
+                onChange={(value) => updateField("make", value)}
+                options={[{ value: "", label: `Any ${config.brandLabel.toLowerCase()}` }, ...makeOptions.map((value) => ({value, label: value}))]}
                 placeholder={`Any ${config.brandLabel.toLowerCase()}`}
+                searchPlaceholder={`Search ${config.brandLabel.toLowerCase()}`}
+                allowCustomValue
                 className="h-10"
               />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="alert-model">{config.modelLabel}</Label>
-              <Input
-                id="alert-model"
+              <SearchableSelect
+                aria-label={config.modelLabel}
                 value={form.model || ""}
-                onChange={(event) => updateField("model", event.target.value)}
+                displayValue={form.model || undefined}
+                onChange={(value) => updateField("model", value)}
+                options={[{ value: "", label: `Any ${config.modelLabel.toLowerCase()}` }, ...modelOptions.map((value) => ({value, label: value}))]}
                 placeholder={`Any ${config.modelLabel.toLowerCase()}`}
+                searchPlaceholder={`Search or enter ${config.modelLabel.toLowerCase()}`}
+                allowCustomValue
+                disabled={modelsLoading}
                 className="h-10"
               />
             </div>

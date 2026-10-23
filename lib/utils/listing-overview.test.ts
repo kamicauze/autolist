@@ -99,3 +99,14 @@ test("ordinary vehicle overviews use the body-type illustration key", () => {
   assert.equal(items.find((item) => item.label === "Body Type")?.key, "body-type");
   assert.equal(items.some((item) => item.key === "category"), false);
 });
+
+test("equipment overview includes wizard specifications without presenting hours as mileage", () => {
+  const items = buildListingOverviewItems(makeListing({ metadata: { category: "farm_agricultural", details: { operatingHours: "1200", powerOutput: "85", operatingWeight: "22000", operationalStatus: "needs_repair", fuelType: "diesel" } } }));
+  const values = Object.fromEntries(items.map((item) => [item.label, item.value]));
+  assert.equal(values["Hours Used"], "1,200 hrs");
+  assert.equal(values["Horsepower / Capacity"], "85");
+  assert.equal(values["Operating Weight"], "22000");
+  assert.equal(values["Operational Status"], "Needs Repair");
+  assert.equal(values["Fuel Type"], "Diesel");
+  assert.equal(values.Mileage, undefined);
+});

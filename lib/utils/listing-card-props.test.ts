@@ -58,3 +58,10 @@ test("images are ordered by image_order without mutating the listing", () => {
   assert.match(props.images[1], /second/);
   assert.equal(images?.[0].r2_key, "second.jpg");
 });
+
+test("farm cards show stored category, zero hours, and optional fuel without car facts", () => {
+  const props = getListingCardProps(buildListing({ metadata: { category: "farm_agricultural", details: { taxonomyCategory: "Tractors", operatingHours: "0", fuelType: "diesel" } } }));
+  assert.equal(props.equipmentCategory, "Tractors");
+  assert.equal(props.hoursUsed, "0 hrs");
+  assert.equal(props.fuelType, "Diesel");
+});

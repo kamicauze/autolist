@@ -34,6 +34,8 @@ export interface CarCardProps {
   bodyType: string;
   year: number;
   mileage?: string;
+  equipmentCategory?: string;
+  hoursUsed?: string;
   fuelType?: string;
   transmission?: string;
   engineSize?: string;
@@ -90,6 +92,8 @@ export function CarCard({
   title,
   bodyType,
   mileage,
+  equipmentCategory,
+  hoursUsed,
   fuelType,
   transmission,
   engineSize,
@@ -97,7 +101,7 @@ export function CarCard({
   contactKind = "message",
   price,
   originalPrice,
-  currency = "Ksh",
+  currency = "KES",
   images,
   isFeatured = false,
   seller: _seller,
@@ -133,6 +137,7 @@ export function CarCard({
   }, [isDealerOpen]);
   const { ids, isLoaded, isInCompare, toggleCompare, maxItems } = useCompare();
 
+  const displayCurrency = /^(ksh|kes)$/i.test(currency.trim()) ? "KES" : currency;
   const formattedPrice = new Intl.NumberFormat("en-KE").format(price);
   const formattedOriginalPrice = originalPrice
     ? new Intl.NumberFormat("en-KE").format(originalPrice)
@@ -152,6 +157,8 @@ export function CarCard({
     bodyType,
     transmission,
     mileage,
+    equipmentCategory,
+    hoursUsed,
   });
 
   React.useEffect(() => {
@@ -410,10 +417,10 @@ export function CarCard({
         {facts.length > 0 ? (
           <div
             className={cn(
-              "grid grid-cols-2 gap-x-3 gap-y-2 font-medium text-muted-foreground",
+              "grid grid-cols-2 content-start gap-x-3 gap-y-2 font-medium text-muted-foreground",
               isCompact
-                ? "py-3 text-[11px] leading-[17px]"
-                : "py-3.5 text-[12px] leading-[19.6px]"
+                ? "min-h-[72px] py-3 text-[11px] leading-[17px]"
+                : "min-h-[84px] py-3.5 text-[12px] leading-[19.6px]"
             )}
           >
             {facts.map((fact) => (
@@ -428,8 +435,7 @@ export function CarCard({
               isCompact ? "text-[17px] leading-[24px]" : "text-[20px] leading-[28px]"
             )}
           >
-            {currency}
-            {formattedPrice}
+            {displayCurrency}{" "}{formattedPrice}
           </span>
           {formattedOriginalPrice ? (
             <span
@@ -438,8 +444,7 @@ export function CarCard({
                 isCompact ? "text-[11px] leading-[16px]" : "text-[13px] leading-[19.6px]"
               )}
             >
-              {currency}
-              {formattedOriginalPrice}
+              {displayCurrency}{" "}{formattedOriginalPrice}
             </span>
           ) : null}
         </div>

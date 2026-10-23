@@ -3,13 +3,15 @@ import type { ListingOverviewAssetKey } from "@/lib/utils/listing-overview";
 export interface ListingCardFact {
   key: Extract<
     ListingOverviewAssetKey,
-    "fuel" | "engine-size" | "body-type" | "transmission" | "mileage"
+    "fuel" | "engine-size" | "body-type" | "transmission" | "mileage" | "category"
   >;
   value: string;
 }
 
 interface ListingCardFactInput {
   fuelType?: string;
+  equipmentCategory?: string;
+  hoursUsed?: string;
   engineSize?: string;
   bodyType?: string;
   transmission?: string;
@@ -18,12 +20,21 @@ interface ListingCardFactInput {
 
 export function buildListingCardFacts({
   fuelType,
+  equipmentCategory,
+  hoursUsed,
   engineSize,
   bodyType,
   transmission,
   mileage,
 }: ListingCardFactInput): ListingCardFact[] {
   const facts: ListingCardFact[] = [];
+
+  if (equipmentCategory || hoursUsed) {
+    if (equipmentCategory) facts.push({key: "category", value: equipmentCategory});
+    if (hoursUsed) facts.push({key: "mileage", value: hoursUsed});
+    if (fuelType) facts.push({key: "fuel", value: fuelType});
+    return facts;
+  }
 
   if (fuelType) {
     facts.push({ key: "fuel", value: fuelType });

@@ -483,8 +483,7 @@ export function VehiclePageClient({
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
                   <p className="text-xl font-bold text-primary">
-                    {listing.currency}
-                    {formattedPrice}
+                    {/^(kes|ksh)$/i.test(listing.currency.trim()) ? "KES" : listing.currency}{" "}{formattedPrice}
                   </p>
                   {listing.status === "reserved" && (
                     <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {
   countInlineImagesWithoutAltText,
+  getContentPlainText,
+  normalizeRichTextContent,
   sanitizeContentHtml,
 } from "./content-rich-text";
 
@@ -43,3 +45,11 @@ assert.equal(
   '<figure><img src="/api/listing-image?key=cms%2Fbody.webp&amp;variant=original" alt="Road &amp; track view"><figcaption>Road and track</figcaption></figure>'
 );
 assert.equal(sanitizeContentHtml(sanitizedImageWithQuery), sanitizedImageWithQuery);
+
+
+const pastedTable = '<table style="width:600px" onclick="alert(1)"><caption>Road test</caption><thead><tr><th>Pros</th><th>Cons</th></tr></thead><tbody><tr><td><p>Comfortable cabin</p></td><td>Fuel consumption</td></tr><tr><td colspan="2" rowspan="1" onmouseover="alert(1)">Verdict</td></tr></tbody></table>';
+const safeTable = sanitizeContentHtml(pastedTable);
+assert.equal(safeTable, '<table><caption>Road test</caption><thead><tr><th>Pros</th><th>Cons</th></tr></thead><tbody><tr><td><p>Comfortable cabin</p></td><td>Fuel consumption</td></tr><tr><td colspan="2" rowspan="1">Verdict</td></tr></tbody></table>');
+assert.equal(normalizeRichTextContent(safeTable), safeTable);
+assert.equal(sanitizeContentHtml('<table><tr><td colspan="0" rowspan="999" style="color:red">Copy</td></tr></table>'), '<table><tr><td>Copy</td></tr></table>');
+assert.equal(getContentPlainText('<table><tr><th>Pros</th><th>Cons</th></tr><tr><td>Comfort</td><td>Cost</td></tr></table>'), 'Pros\tCons\t\nComfort\tCost');

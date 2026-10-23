@@ -146,7 +146,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[var(--sidebar-width)] flex-col overflow-hidden bg-sidebar-bg transition-[width,transform] duration-300 lg:translate-x-0",
+          "fixed left-0 top-0 z-50 flex h-dvh w-[var(--sidebar-width)] flex-col overflow-hidden bg-sidebar-bg transition-[width,transform] duration-300 lg:translate-x-0",
           collapsed ? "lg:w-[84px]" : null,
           open ? "translate-x-0" : "-translate-x-full"
         )}
@@ -160,15 +160,15 @@ export function Sidebar({
 
         <div
           className={cn(
-            "flex items-center justify-between gap-2 px-7 pb-6 pt-7",
+            "flex shrink-0 items-center justify-between gap-2 px-7 pb-6 pt-7",
             collapsed ? "lg:flex-col lg:justify-center lg:gap-3 lg:px-3" : null
           )}
         >
-          <div className={cn(collapsed ? "lg:w-[34px] lg:overflow-hidden" : null)}>
+          <Link href="/" aria-label="Autolist home" onClick={onClose} className={cn(collapsed ? "lg:w-[34px] lg:overflow-hidden" : null)}>
             <AutolistLogo
               className="h-9 w-auto max-w-none [--brand-logo-accent:#FFFFFF] [--brand-logo-mark:#FFFFFF] [--brand-logo-text:#FFFFFF]"
             />
-          </div>
+          </Link>
           <button
             type="button"
             aria-label={collapsed ? "Expand dashboard sidebar" : "Collapse dashboard sidebar"}
@@ -187,7 +187,7 @@ export function Sidebar({
 
         <div
           className={cn(
-            "mx-5 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-2 flex flex-row items-center gap-4",
+            "mx-5 shrink-0 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-2 flex flex-row items-center gap-4",
             collapsed ? "lg:mx-3 lg:justify-center lg:border-transparent lg:bg-transparent lg:px-0" : null
           )}
         >
@@ -204,7 +204,7 @@ export function Sidebar({
           </div>
         </div>
 
-        <nav className={cn("flex-1 overflow-y-auto px-5 py-7", collapsed ? "lg:px-3" : null)}>
+        <nav className={cn("min-h-0 flex-1 overflow-y-auto px-5 py-7", collapsed ? "lg:px-3" : null)}>
           <p
             className={cn(
               "px-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35",
@@ -272,7 +272,7 @@ export function Sidebar({
           </div>
         </nav>
 
-        <div className={cn("border-t border-white/10 px-5 py-5", collapsed ? "lg:px-3" : null)}>
+        <div className={cn("shrink-0 border-t border-white/10 px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", collapsed ? "lg:px-3" : null)}>
           <button
             onClick={handleSignOut}
             title={collapsed ? "Logout" : undefined}

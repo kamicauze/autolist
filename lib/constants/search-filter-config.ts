@@ -125,10 +125,9 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
     visible: [
       "keyword",
       "make",
-      "model",
-      "equipmentType",
       "taxonomy",
       "hoursUsed",
+      "fuelType",
       "location",
       "sortBy",
       "condition",
@@ -146,10 +145,9 @@ export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryC
     visible: [
       "keyword",
       "make",
-      "model",
-      "equipmentType",
       "taxonomy",
       "hoursUsed",
+      "fuelType",
       "location",
       "sortBy",
       "condition",

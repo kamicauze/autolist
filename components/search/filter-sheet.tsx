@@ -1,7 +1,8 @@
 "use client";
 
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect, useDeferredValue } from "react";
 import {
   Sheet,
   SheetContent,
@@ -265,7 +266,6 @@ interface FilterSheetPanelProps {
 
 function FilterSheetPanel({
   makes,
-  totalCount,
   initialLocalFilters,
   onOpenChange,
   searchParamsString,
@@ -371,7 +371,7 @@ function FilterSheetPanel({
     }));
   }, []);
 
-  const applyFilters = () => {
+  const buildFilterParams = () => {
     const params = new URLSearchParams(searchParamsString);
     params.set("page", "1");
     if (categoryOverride) params.set("category", categoryOverride);
@@ -514,8 +514,35 @@ function FilterSheetPanel({
     // constraints active in the URL.
     clearHiddenSearchFilterParams(params, category);
 
+    return serializeSearchFilterParams(params);
+  };
+
+  const filterQuery = buildFilterParams();
+  const deferredFilterQuery = useDeferredValue(filterQuery);
+  const [countResult, setCountResult] = useState<{query: string; count: number} | null>(null);
+  const [countFailedQuery, setCountFailedQuery] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/listings/count?${deferredFilterQuery}`, {signal: controller.signal, cache: "no-store"});
+        if (!response.ok) throw new Error("Unable to count matching listings");
+        const data = await response.json() as {count?: number};
+        if (controller.signal.aborted) return;
+        if (typeof data.count !== "number") throw new Error("Missing matching count");
+        setCountResult({query: deferredFilterQuery, count: data.count});
+      } catch {
+        if (!controller.signal.aborted) setCountFailedQuery(deferredFilterQuery);
+      }
+    }, 200);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [deferredFilterQuery]);
+  const countReady = countResult?.query === filterQuery;
+  const countFailed = countFailedQuery === filterQuery;
+
+  const applyFilters = () => {
     startTransition(() => {
-      router.push(`/search?${serializeSearchFilterParams(params)}`);
+      router.push(`/search?${filterQuery}`);
       onOpenChange(false);
     });
   };
@@ -616,6 +643,16 @@ function FilterSheetPanel({
           {/* Make */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">{filterLabel("make", "Make")}</Label>
+            {category === "farm_agricultural" || category === "plant_construction" ? (
+              <SearchableSelect
+                value={localFilters.make || "all"}
+                onChange={(value) => setLocalFilters((previous) => ({...previous, make: value === "all" ? "" : value}))}
+                options={[{value: "all", label: "All Manufacturers"}, ...makes.map((make) => ({value: make, label: make}))]}
+                allowCustomValue
+                aria-label="Manufacturer"
+                searchPlaceholder="Search or enter a manufacturer"
+              />
+            ) : (
             <Select
               value={localFilters.make || "all"}
               onValueChange={(val) =>
@@ -634,10 +671,11 @@ function FilterSheetPanel({
                 ))}
               </SelectContent>
             </Select>
+            )}
           </div>
 
           {/* Model */}
-          <div className="space-y-3">
+          {showFilter("model") ? <div className="space-y-3">
             <Label className="text-sm font-medium">{filterLabel("model", "Model")}</Label>
             <Input
               placeholder={searchExamples.model}
@@ -646,7 +684,7 @@ function FilterSheetPanel({
                 setLocalFilters((p) => ({ ...p, model: e.target.value }))
               }
             />
-          </div>
+          </div> : null}
 
           {/* Location */}
           <div className="space-y-3">
@@ -1254,7 +1292,7 @@ function FilterSheetPanel({
           Reset all
         </Button>
         <Button onClick={applyFilters} disabled={isPending} className="flex-1">
-          Search {totalCount.toLocaleString()} vehicles
+          {countReady ? `Search ${countResult.count.toLocaleString()} listings` : countFailed ? "Search listings" : "Checking listings…"}
         </Button>
       </SheetFooter>
     </SheetContent>

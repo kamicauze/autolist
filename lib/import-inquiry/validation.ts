@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COLORS } from "@/lib/constants/filters";
+import { COLORS, FUEL_TYPES } from "@/lib/constants/filters";
 
 const year = z.string().refine(
   (value) => /^(1989|199\d|20\d\d)$/.test(value) && Number(value) <= new Date().getFullYear(),
@@ -15,8 +15,10 @@ export const importInquirySchema = z.object({
   model: z.string().trim().min(1, "Enter a model.").max(100),
   yearFrom: year,
   yearTo: year,
+  fuelType: z.union([z.enum(FUEL_TYPES), z.literal("")]).optional(),
   engineSize: z.string().trim().max(100),
-  color: z.union([z.enum(COLORS), z.literal("")]),
+  color: z.union([z.array(z.enum(COLORS)).max(COLORS.length), z.enum(COLORS), z.literal("")])
+    .transform((value) => Array.isArray(value) ? [...new Set(value)] : value ? [value] : []),
   budgetFrom: budget,
   budgetTo: budget,
   firstName: z.string().trim().min(2, "Enter your name.").max(120),

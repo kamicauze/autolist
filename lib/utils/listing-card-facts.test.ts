@@ -46,3 +46,9 @@ test("listing cards show one cc unit for numeric and previously suffixed capacit
     ]);
   }
 });
+
+test("equipment facts prioritize category and hours with optional fuel", () => {
+  assert.deepEqual(buildListingCardFacts({equipmentCategory: "Tractors", hoursUsed: "1,200 hrs", fuelType: "Diesel", transmission: "Manual", mileage: "12 km"}), [
+    {key: "category", value: "Tractors"}, {key: "mileage", value: "1,200 hrs"}, {key: "fuel", value: "Diesel"},
+  ]);
+});

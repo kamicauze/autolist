@@ -13,11 +13,19 @@ const ALLOWED_TAGS = new Set([
   "p",
   "s",
   "strong",
+  "table",
+  "caption",
+  "thead",
+  "tbody",
+  "tfoot",
+  "tr",
+  "th",
+  "td",
   "u",
   "ul",
 ]);
 
-const BLOCK_TAGS = new Set(["blockquote", "figcaption", "figure", "h2", "h3", "li", "ol", "p", "ul"]);
+const BLOCK_TAGS = new Set(["blockquote", "figcaption", "figure", "h2", "h3", "li", "ol", "p", "ul", "table"]);
 
 function escapeHtml(value: string) {
   return value
@@ -130,6 +138,15 @@ export function sanitizeContentHtml(value: string) {
         return href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">` : "<a>";
       }
 
+      if (tagName === "td" || tagName === "th") {
+        const spans = ["colspan", "rowspan"].map((attribute) => {
+          const match = String(rawAttributes).match(new RegExp(`\\s${attribute}=(?:"([^"\\s]*)"|'([^'\\s]*)'|([^\\s>]+))`, "i"));
+          const value = match?.[1] ?? match?.[2] ?? match?.[3] ?? "";
+          return /^[1-9]\d?$/.test(value) ? ` ${attribute}="${value}"` : "";
+        }).join("");
+        return `<${tagName}${spans}>`;
+      }
+
       if (tagName === "img") {
         const srcMatch = String(rawAttributes).match(/\ssrc=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
         const altMatch = String(rawAttributes).match(/\salt=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
@@ -156,6 +173,8 @@ export function getContentPlainText(value: string) {
   const html = normalizeRichTextContent(value);
   return html
     .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(td|th)>/gi, "\t")
+    .replace(/<\/(tr|caption)>/gi, "\n")
     .replace(/<\/(p|h2|h3|li|blockquote|figcaption|figure)>/gi, "\n")
     .replace(/<\/?(ol|ul)>/gi, "\n")
     .replace(/<[^>]*>/g, "")

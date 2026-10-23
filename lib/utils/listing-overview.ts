@@ -38,7 +38,10 @@ export type ListingOverviewAssetKey =
   | "colors"
   | "doors"
   | "seats"
-  | "location";
+  | "location"
+  | "operating-weight"
+  | "power-output"
+  | "operational-status";
 
 function registrationStatus(listing: Listing) {
   const value = getListingMetadataString(listing, "registrationStatus");
@@ -81,12 +84,15 @@ export function buildListingOverviewItems(
   location?: string
 ): ListingOverviewItem[] {
   const equipmentTaxonomy = usesEquipmentTaxonomy(listing);
+  const operatingHours = getListingMetadataString(listing, "hours_used") ?? getListingMetadataString(listing, "operatingHours");
 
   const items: ListingOverviewItem[] = [
     {
       key: "mileage",
-      label: "Mileage",
-      value: getListingMileageLabel(listing),
+      label: equipmentTaxonomy ? "Hours Used" : "Mileage",
+      value: equipmentTaxonomy
+        ? operatingHours !== null ? `${Number(operatingHours).toLocaleString("en-KE")} hrs` : ""
+        : getListingMileageLabel(listing),
     },
     {
       key: "year",
@@ -169,6 +175,21 @@ export function buildListingOverviewItems(
         listing.seats != null
           ? String(listing.seats)
           : getListingMetadataString(listing, "seats") || "",
+    },
+    {
+      key: "operating-weight",
+      label: "Operating Weight",
+      value: equipmentTaxonomy ? getListingMetadataString(listing, "operatingWeight") || "" : "",
+    },
+    {
+      key: "power-output",
+      label: "Horsepower / Capacity",
+      value: equipmentTaxonomy ? getListingMetadataString(listing, "powerOutput") || "" : "",
+    },
+    {
+      key: "operational-status",
+      label: "Operational Status",
+      value: equipmentTaxonomy ? formatListingLabel(getListingMetadataString(listing, "operationalStatus")) : "",
     },
     {
       key: "location",

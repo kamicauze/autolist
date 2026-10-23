@@ -29,12 +29,16 @@ test("every overview illustration is ready, mapped, and a transparent square PNG
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as AssetManifest;
   const mappedAssets = Object.entries(LISTING_OVERVIEW_ASSET_PATHS);
 
-  assert.equal(mappedAssets.length, 17);
+  assert.equal(mappedAssets.length, 20);
   assert.equal(manifest.assets.length, 17);
   assert.deepEqual(
     manifest.assets.map((asset) => asset.key).sort(),
-    mappedAssets.map(([key]) => key).sort()
+    mappedAssets.map(([key]) => key).filter((key) => !["operating-weight", "power-output", "operational-status"].includes(key)).sort()
   );
+
+  assert.equal(LISTING_OVERVIEW_ASSET_PATHS["operating-weight"], LISTING_OVERVIEW_ASSET_PATHS["body-type"]);
+  assert.equal(LISTING_OVERVIEW_ASSET_PATHS["power-output"], LISTING_OVERVIEW_ASSET_PATHS["engine-size"]);
+  assert.equal(LISTING_OVERVIEW_ASSET_PATHS["operational-status"], LISTING_OVERVIEW_ASSET_PATHS.condition);
 
   for (const asset of manifest.assets) {
     const expectedPath = LISTING_OVERVIEW_ASSET_PATHS[

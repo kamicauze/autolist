@@ -40,3 +40,12 @@ assert.equal(parseFiniteSearchNumber(["280", "999"]), 280);
 assert.equal(parseFiniteSearchNumber(""), undefined);
 assert.equal(parseFiniteSearchNumber("-1"), undefined);
 assert.equal(parseFiniteSearchNumber("not-a-number"), undefined);
+
+for (const category of ["farm_agricultural", "plant_construction"]) {
+  const equipmentParams = new URLSearchParams("model=320D&equipmentType=excavator&taxCategory=Excavators&fuelType=diesel");
+  clearHiddenSearchFilterParams(equipmentParams, category);
+  assert.equal(equipmentParams.has("model"), false);
+  assert.equal(equipmentParams.has("equipmentType"), false);
+  assert.equal(equipmentParams.get("taxCategory"), "Excavators");
+  assert.equal(equipmentParams.get("fuelType"), "diesel");
+}

@@ -13,6 +13,7 @@ import {
   Quote,
   RefreshCw,
   Strikethrough,
+  Table2,
   Trash2,
   Underline,
   Upload,
@@ -96,7 +97,7 @@ function moveRangeAfterContainingBlock(range: Range, editorElement: HTMLElement)
     range.commonAncestorContainer instanceof HTMLElement
       ? range.commonAncestorContainer
       : range.commonAncestorContainer.parentElement;
-  let block = container?.closest("p, h2, h3, blockquote, li, figure");
+  let block: Element | null | undefined = container?.closest("table") ?? container?.closest("p, h2, h3, blockquote, li, figure");
   if (block?.tagName.toLowerCase() === "li" && block.parentElement?.matches("ol, ul")) {
     block = block.parentElement;
   }
@@ -272,6 +273,34 @@ export function AdminRichTextEditor({
     selectImage(image);
   }
 
+  function insertTable() {
+    const editorElement = editorRef.current;
+    if (!editorElement) return;
+    editorElement.focus();
+    const range = savedSelectionRef.current ?? document.createRange();
+    if (!savedSelectionRef.current || !editorElement.contains(range.commonAncestorContainer)) {
+      range.selectNodeContents(editorElement);
+      range.collapse(false);
+    } else {
+      moveRangeAfterContainingBlock(range, editorElement);
+    }
+    const table = document.createElement("table");
+    table.innerHTML = "<thead><tr><th>Pros</th><th>Cons</th></tr></thead><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody>";
+    range.deleteContents();
+    range.insertNode(table);
+    const paragraph = document.createElement("p");
+    paragraph.append(document.createElement("br"));
+    table.after(paragraph);
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(table.querySelector("td")!);
+    nextRange.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(nextRange);
+    savedSelectionRef.current = nextRange.cloneRange();
+    emitChange();
+  }
+
   function replaceSelectedImage(url: string, altText: string, caption: string) {
     const image = getSelectedImageElement();
     if (!image) {
@@ -432,6 +461,15 @@ export function AdminRichTextEditor({
           >
             <Link2 className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onMouseDown={saveEditorSelection}
+            onClick={insertTable}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-[#cbd5e1] bg-white px-3 text-[12px] font-semibold text-[#334155] transition hover:border-primary hover:text-primary"
+          >
+            <Table2 className="h-4 w-4" />
+            Add table
+          </button>
           <span className="mx-1 h-9 w-px bg-[#dbe3ee]" aria-hidden="true" />
           <button
             type="button"
@@ -471,6 +509,7 @@ export function AdminRichTextEditor({
               "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-6",
               "[&_figure]:my-5 [&_figure]:rounded-[14px] [&_figure]:border [&_figure]:border-transparent [&_figure]:p-1 [&_figure]:transition [&_figure:has(img:hover)]:border-primary/40 [&_figcaption]:px-2 [&_figcaption]:pb-1 [&_figcaption]:pt-2 [&_figcaption]:text-center [&_figcaption]:text-[12px] [&_figcaption]:italic [&_figcaption]:text-[#64748b]",
               "[&_img]:max-h-[560px] [&_img]:w-full [&_img]:cursor-pointer [&_img]:rounded-[12px] [&_img]:object-cover",
+              "[&_table]:my-6 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_caption]:text-left [&_caption]:font-semibold [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-3 [&_td]:align-top",
               minHeightClassName
             )}
           />

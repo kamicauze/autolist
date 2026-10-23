@@ -11,6 +11,7 @@ import {
   OLDER_THAN_1990_YEAR_OPTION,
   PRICE_FILTER_OPTIONS,
 } from "@/lib/constants/filters";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { NumericComboInput } from "@/components/ui/numeric-combo-input";
 import {
   LANDING_SEARCH_CATEGORY_CONFIG,
@@ -26,7 +27,7 @@ import {
 } from "@/lib/types/cms";
 import { useCarModels } from "@/hooks/use-car-models";
 import { FilterSheet } from "@/components/search/filter-sheet";
-import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
+import { getTaxonomyForCategory, MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import { QuickSearchDialog } from "./quick-search-dialog";
 import { VehicleCategoryIcon } from "./vehicle-category-icon";
 import type { CmsBanner } from "@/lib/types/cms-banners";
@@ -174,6 +175,7 @@ export function HeroSearch({
   const [location, setLocation] = React.useState("any");
   const [make, setMake] = React.useState("any");
   const [model, setModel] = React.useState("");
+  const [taxCategory, setTaxCategory] = React.useState("any");
   const [yearFrom, setYearFrom] = React.useState("any");
   const [yearTo, setYearTo] = React.useState("any");
   // "Older than 1990" lives in the From select but is stored as maxYear=1989.
@@ -187,6 +189,7 @@ export function HeroSearch({
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
   const [matchingCount, setMatchingCount] = React.useState(totalCount);
+  const [countQuery, setCountQuery] = React.useState<string | null>(null);
   const [countStatus, setCountStatus] =
     React.useState<LandingSearchCountStatus>("loading");
   const carouselEnabled =
@@ -205,9 +208,11 @@ export function HeroSearch({
   useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
+  const isEquipmentCategory = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
+  const taxonomyOptions = getTaxonomyForCategory(activeCategory);
   const makeSuggestions = React.useMemo(() => {
     if (activeCategory === "car") return makes;
-    return NON_CAR_REFERENCE_DATA[activeCategory]?.makes ?? [];
+    return MAKES_BY_CATEGORY[activeCategory] ?? NON_CAR_REFERENCE_DATA[activeCategory]?.makes ?? [];
   }, [activeCategory, makes]);
 
   const { models: availableModels, isLoading: modelsLoading } = useCarModels(
@@ -216,6 +221,7 @@ export function HeroSearch({
 
   React.useEffect(() => {
     setMake("any");
+    setTaxCategory("any");
     setModel("");
     setYearFrom("any");
     setYearTo("any");
@@ -261,7 +267,6 @@ export function HeroSearch({
       : "Start with the essentials here, then open more filters for a tighter match.";
   const buildSearchParams = React.useCallback(() => {
     const params = new URLSearchParams();
-    const qParts: string[] = [];
     params.set("category", activeCategory);
 
     if (location !== "any") params.set("location", location);
@@ -287,36 +292,18 @@ export function HeroSearch({
       params.set("model", model.trim());
     }
 
-    switch (activeCategory) {
-      case "van":
-        params.set("bodyType", "Van");
-        break;
-      case "motorbike":
-        qParts.push("motorbike");
-        break;
-      case "truck":
-        params.set("bodyType", "Truck");
-        qParts.push("truck");
-        break;
-      case "plant_construction":
-        qParts.push("plant", "construction");
-        break;
-      case "farm_agricultural":
-        qParts.push("farm", "agricultural");
-        break;
-      case "car":
-      default:
-        break;
+    if (activeCategory === "van") params.set("bodyType", "Van");
+    if (activeCategory === "motorbike") params.set("q", "motorbike");
+    if (activeCategory === "truck") {
+      params.set("bodyType", "Truck");
+      params.set("q", "truck");
     }
-
-    const query = qParts.join(" ").trim();
-    if (query) {
-      params.set("q", query);
-    }
+    if (taxCategory !== "any") params.set("taxCategory", taxCategory);
 
     return params;
   }, [
     activeCategory,
+    taxCategory,
     location,
     make,
     maxHours,
@@ -329,15 +316,16 @@ export function HeroSearch({
     yearTo,
   ]);
 
-  const deferredCountQuery = React.useDeferredValue(
-    React.useMemo(() => buildSearchParams().toString(), [buildSearchParams]),
-  );
+  const searchQuery = React.useMemo(() => buildSearchParams().toString(), [buildSearchParams]);
+  const deferredCountQuery = React.useDeferredValue(searchQuery);
+  const activeCountStatus = countQuery === searchQuery ? countStatus : "loading";
 
   React.useEffect(() => {
     const controller = new AbortController();
 
     const updateCount = async () => {
       setCountStatus("loading");
+      setCountQuery(deferredCountQuery);
 
       try {
         const response = await fetch(
@@ -354,6 +342,7 @@ export function HeroSearch({
         }
 
         const data = (await response.json()) as { count?: number };
+        if (controller.signal.aborted) return;
         if (typeof data.count === "number") {
           setMatchingCount(data.count);
           setCountStatus("ready");
@@ -404,6 +393,7 @@ export function HeroSearch({
     () => ({
       make: make !== "any" ? make : "",
       model,
+      taxCategory: taxCategory !== "any" ? taxCategory : "",
       minPrice: priceFrom !== "any" ? priceFrom : "",
       maxPrice: priceTo !== "any" ? priceTo : "",
       location: location !== "any" ? location : "",
@@ -416,6 +406,7 @@ export function HeroSearch({
     }),
     [
       location,
+      taxCategory,
       make,
       maxHours,
       mileageFrom,
@@ -431,11 +422,24 @@ export function HeroSearch({
   const searchButtonLabel = getLandingSearchButtonLabel({
     category: activeCategory,
     count: matchingCount,
-    status: countStatus,
+    status: activeCountStatus,
   });
 
   const renderMakeField = () => {
     const MakeIcon = CarFront;
+
+    if (isEquipmentCategory) {
+      return <SearchableSelect
+        value={make}
+        onChange={setMake}
+        options={[{value: "any", label: "Any Manufacturer"}, ...makeSuggestions.map((manufacturer) => ({value: manufacturer, label: manufacturer}))]}
+        allowCustomValue
+        aria-label="Manufacturer"
+        placeholder="Any Manufacturer"
+        searchPlaceholder="Search or enter a manufacturer"
+        className={PANEL_INPUT_CLASS}
+      />;
+    }
 
     if (activeConfig.makeMode === "select") {
       return (
@@ -807,14 +811,14 @@ export function HeroSearch({
           <form
             onSubmit={handleSearch}
             className={cn(
-              "mx-auto max-w-[980px] overflow-hidden rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
+              "mx-auto max-w-[980px] rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
               hasSponsoredHero && "max-w-none lg:w-full",
             )}
           >
             <div className="flex flex-col lg:flex-row">
               <aside
                 className={cn(
-                  "relative border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:w-[88px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
+                  "relative rounded-t-[18px] border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:rounded-l-[18px] lg:rounded-tr-none lg:w-[88px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
                   hasSponsoredHero && "lg:w-[72px]",
                 )}
               >
@@ -909,6 +913,13 @@ export function HeroSearch({
                     >
                       Browse all
                     </Link>
+                    <button type="button" onClick={() => {
+                      setLocation("any"); setMake("any"); setModel(""); setTaxCategory("any");
+                      setYearFrom("any"); setYearTo("any"); setMileageFrom("any"); setMileageTo("any");
+                      setMaxHours("any"); setPriceFrom("any"); setPriceTo("any");
+                    }} className="px-3 py-1.5 text-[12px] font-semibold text-primary hover:underline">
+                      Reset all
+                    </button>
                   </div>
                 </div>
 
@@ -958,11 +969,11 @@ export function HeroSearch({
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {activeCategory === "car"
+                      {isEquipmentCategory ? "Category" : activeCategory === "car"
                         ? "Model"
                         : activeConfig.modelLabel}
                     </label>
-                    {renderModelField()}
+                    {isEquipmentCategory ? renderSelectField(taxCategory, setTaxCategory, [{label: "Any Category", value: "any"}, ...taxonomyOptions.map(node => ({label: node.category, value: node.category}))], SlidersHorizontal) : renderModelField()}
                   </div>
 
                   <div
@@ -1110,8 +1121,8 @@ export function HeroSearch({
                     </button>
                     <button
                       type="submit"
-                      disabled={countStatus === "loading"}
-                      aria-busy={countStatus === "loading"}
+                      disabled={activeCountStatus === "loading"}
+                      aria-busy={activeCountStatus === "loading"}
                       className="flex h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] bg-primary px-4 text-[13px] font-semibold text-white transition hover:bg-primary/90 active:translate-y-px disabled:cursor-wait disabled:opacity-75 xl:min-w-[156px]"
                     >
                       <Search className="h-3.5 w-3.5 shrink-0" />

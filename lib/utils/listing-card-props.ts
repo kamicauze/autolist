@@ -1,5 +1,6 @@
 import type { CarCardProps } from "@/components/ui/car-card";
 import type { Listing } from "@/lib/types/listing";
+import { getListingMetadataString } from "@/lib/utils/listing-details";
 import { getImageUrl } from "@/lib/utils/listings";
 import {
   getListingBodyTypeLabel,
@@ -17,7 +18,13 @@ export function getListingCardProps(listing: Listing): CarCardProps {
     .sort((left, right) => left.image_order - right.image_order)
     .map((image) => getImageUrl(image.r2_key, "card"));
 
+  const category = getListingMetadataString(listing, "category") || getListingMetadataString(listing, "vehicleType");
+  const isEquipment = category === "farm_agricultural" || category === "plant_construction";
+  const hours = getListingMetadataString(listing, "hours_used") ?? getListingMetadataString(listing, "operatingHours");
+
   return {
+    equipmentCategory: isEquipment ? getListingMetadataString(listing, "taxonomyCategory") || getListingMetadataString(listing, "equipmentType") || getListingBodyTypeLabel(listing, "Equipment") : undefined,
+    hoursUsed: isEquipment && hours !== null ? `${Number(hours).toLocaleString("en-KE")} hrs` : undefined,
     id: listing.id,
     title: getListingDisplayTitle(listing),
     subtitle: getListingSubtitle(listing),

@@ -3,8 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Banknote, CarFront, Construction, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,10 +16,7 @@ import { LOCATIONS, PRICE_RANGES } from "@/lib/constants/filters";
 import { IconSearch } from "@/components/ui/icons";
 import { useCarModels } from "@/hooks/use-car-models";
 import type { ListingCategory } from "@/lib/constants/marketplace";
-import {
-  NON_CAR_EQUIPMENT_TYPES_BY_CATEGORY,
-  NON_CAR_REFERENCE_DATA,
-} from "@/lib/constants/non-car-reference-data";
+import { getTaxonomyForCategory, MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 
 interface QuickFilterBarProps {
   makes: string[];
@@ -36,17 +33,13 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
   const currentMake = searchParams.get("make") || "";
   const currentModel = searchParams.get("model") || "";
   const currentLocation = searchParams.get("location") || "";
-  const currentEquipmentType = searchParams.get("equipmentType") || "";
+  const currentTaxCategory = searchParams.get("taxCategory") || "";
   const currentMinPrice = searchParams.get("minPrice") || "";
   const currentMaxPrice = searchParams.get("maxPrice") || "";
   const isEquipmentCategory =
     currentCategory === "plant_construction" || currentCategory === "farm_agricultural";
-  const equipmentTypeOptions = currentCategory
-    ? NON_CAR_EQUIPMENT_TYPES_BY_CATEGORY[currentCategory] ?? []
-    : [];
-  const equipmentMakeSuggestions = currentCategory
-    ? NON_CAR_REFERENCE_DATA[currentCategory]?.makes ?? []
-    : [];
+  const equipmentCategoryOptions = getTaxonomyForCategory(currentCategory);
+  const equipmentMakeSuggestions = currentCategory ? MAKES_BY_CATEGORY[currentCategory] ?? makes : makes;
 
   // Calculate price range value
   const getPriceRangeValue = () => {
@@ -72,6 +65,8 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
     } else {
       params.delete(key);
     }
+
+    if (key === "taxCategory") params.delete("taxSubcategory");
 
     // Clear model when make changes
     if (key === "make") {
@@ -113,8 +108,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
   const triggerClass =
     "h-10 w-full rounded-[12px] border-[#d8dde6] bg-white pl-8 pr-7 text-[13px] text-[#202224] shadow-sm";
-  const inputClass =
-    "h-10 w-full rounded-[12px] border-[#d8dde6] bg-white pl-8 pr-3 text-[13px] text-[#202224] shadow-sm";
+
 
   return (
     <div className="rounded-[18px] border border-[#e7ebf1] bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.055)]">
@@ -125,17 +119,17 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
             <div className="relative min-w-0">
               <Construction className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <Select
-                value={currentEquipmentType || "all"}
-                onValueChange={(val) => updateFilter("equipmentType", val === "all" ? null : val)}
+                value={currentTaxCategory || "all"}
+                onValueChange={(val) => updateFilter("taxCategory", val === "all" ? null : val)}
               >
                 <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="Subcategory" />
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Subcategories</SelectItem>
-                  {equipmentTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {equipmentCategoryOptions.map((option) => (
+                    <SelectItem key={option.category} value={option.category}>
+                      {option.category}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -167,72 +161,57 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
           <div className="relative min-w-0">
             <CarFront className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             {isEquipmentCategory ? (
-              <>
-                <Input
-                  key={`make-${currentCategory}-${currentMake}`}
-                  list={`quick-filter-makes-${currentCategory}`}
-                  defaultValue={currentMake}
-                  onBlur={(event) => updateFilter("make", event.target.value.trim() || null)}
-                  placeholder="Make optional"
-                  className={inputClass}
-                />
-                <datalist id={`quick-filter-makes-${currentCategory}`}>
-                  {equipmentMakeSuggestions.map((make) => (
-                    <option key={make} value={make} />
-                  ))}
-                </datalist>
-              </>
-            ) : (
-              <Select
+              <SearchableSelect
                 value={currentMake || "all"}
-                onValueChange={(val) => updateFilter("make", val === "all" ? null : val)}
-              >
-                <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="Make" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Makes</SelectItem>
-                  {makes.map((make) => (
-                    <SelectItem key={make} value={make}>
-                      {make}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => updateFilter("make", value === "all" ? null : value)}
+                options={[{value: "all", label: "All Manufacturers"}, ...equipmentMakeSuggestions.map((make) => ({value: make, label: make}))]}
+                allowCustomValue
+                aria-label="Manufacturer"
+                placeholder="Manufacturer"
+                searchPlaceholder="Search or enter a manufacturer"
+                className={triggerClass}
+              />
+            ) : (
+            <Select
+              value={currentMake || "all"}
+              onValueChange={(val) => updateFilter("make", val === "all" ? null : val)}
+            >
+              <SelectTrigger className={triggerClass}>
+                <SelectValue placeholder={isEquipmentCategory ? "Manufacturer" : "Make"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isEquipmentCategory ? "All Manufacturers" : "All Makes"}</SelectItem>
+                {(isEquipmentCategory ? equipmentMakeSuggestions : makes).map((make) => (
+                  <SelectItem key={make} value={make}>{make}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             )}
           </div>
 
-          {/* Model */}
-          <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-            {isEquipmentCategory ? (
-              <Input
-                key={`model-${currentCategory}-${currentModel}`}
-                defaultValue={currentModel}
-                onBlur={(event) => updateFilter("model", event.target.value.trim() || null)}
-                placeholder="Model optional"
-                className={inputClass}
-              />
-            ) : (
-              <Select
-                value={currentModel || "all"}
-                onValueChange={(val) => updateFilter("model", val === "all" ? null : val)}
-                disabled={!currentMake || modelsLoading}
-              >
-                <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder={modelsLoading ? "Loading..." : "Model"} />
-                </SelectTrigger>
+          {isEquipmentCategory ? (
+            <div className="relative min-w-0">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Select value={currentLocation || "all"} onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}>
+                <SelectTrigger className={triggerClass}><SelectValue placeholder="Location" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Models</SelectItem>
-                  {availableModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {LOCATIONS.filter((location) => location !== "All Locations").map((location) => <SelectItem key={location} value={location}>{location}</SelectItem>)}
                 </SelectContent>
               </Select>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="relative min-w-0">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Select value={currentModel || "all"} onValueChange={(val) => updateFilter("model", val === "all" ? null : val)} disabled={!currentMake || modelsLoading}>
+                <SelectTrigger className={triggerClass}><SelectValue placeholder={modelsLoading ? "Loading..." : "Model"} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Models</SelectItem>
+                  {availableModels.map((model) => <SelectItem key={model} value={model}>{model}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Price Range */}
           <div className="relative min-w-0">

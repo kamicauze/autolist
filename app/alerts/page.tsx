@@ -1,3 +1,4 @@
+import { getAllMakeNames } from "@/lib/data/car-data";
 import Link from "next/link";
 import { BellRing, ListChecks, Mail } from "lucide-react";
 import { Header } from "@/components/layout/header";
@@ -30,7 +31,7 @@ const alertSteps = [
 ] as const;
 
 export default async function AlertsPage() {
-  const data = await getListingAlertsPageData();
+  const [data, makes] = await Promise.all([getListingAlertsPageData(), getAllMakeNames()]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -46,6 +47,7 @@ export default async function AlertsPage() {
         >
           {data.viewer ? (
             <ListingAlertsManager
+              makes={makes}
               initialAlerts={data.alerts}
               viewerEmail={data.viewer.email}
               initialError={data.error}

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
+import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,7 +16,7 @@ import {
 import { useCarModels } from "@/hooks/use-car-models";
 import { Info } from "lucide-react";
 import Link from "next/link";
-import { COLORS, COLOR_SWATCHES, YEARS, OLDER_THAN_1990_YEAR_OPTION } from "@/lib/constants/filters";
+import { COLORS, COLOR_SWATCHES, FUEL_TYPES, YEARS, OLDER_THAN_1990_YEAR_OPTION } from "@/lib/constants/filters";
 import { LISTING_CATEGORY_OPTIONS, type ListingCategory } from "@/lib/constants/marketplace";
 import { getNonCarVehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { submitImportInquiry } from "@/lib/actions/import-inquiry";
@@ -32,8 +34,9 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   const [model, setModel] = React.useState("");
   const [yearFrom, setYearFrom] = React.useState("");
   const [yearTo, setYearTo] = React.useState("");
+  const [fuelType, setFuelType] = React.useState<(typeof FUEL_TYPES)[number] | "">("");
   const [engineSize, setEngineSize] = React.useState("");
-  const [selectedColor, setSelectedColor] = React.useState<(typeof COLORS)[number] | "">("");
+  const [selectedColors, setSelectedColors] = React.useState<(typeof COLORS)[number][]>([]);
   const [budgetFrom, setBudgetFrom] = React.useState("");
   const [budgetTo, setBudgetTo] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
@@ -46,13 +49,30 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   );
 
   const reference = getNonCarVehicleReferenceOptions(category);
-  const availableMakes = category === "car" ? makes : reference.makes;
+  const availableMakes = category === "car" ? makes : [...new Set([...(MAKES_BY_CATEGORY[category] || []), ...reference.makes])].sort((a, b) => a.localeCompare(b));
+
+  function resetFields() {
+      setCategory("car");
+      setMake("");
+      setModel("");
+      setYearFrom("");
+      setYearTo("");
+      setEngineSize("");
+      setFuelType("");
+      setSelectedColors([]);
+      setBudgetFrom("");
+      setBudgetTo("");
+      setFirstName("");
+      setEmail("");
+      setPhone("");
+      setNotes("");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
     setFeedback(null);
-    const input = { category, make, model, yearFrom, yearTo, engineSize, color: selectedColor, budgetFrom, budgetTo, firstName, email, phone, notes };
+    const input = { category, make, model, yearFrom, yearTo, engineSize, fuelType, color: selectedColors, budgetFrom, budgetTo, firstName, email, phone, notes };
     const parsed = importInquirySchema.safeParse(input);
     if (!parsed.success) {
       setFeedback({ success: false, message: parsed.error.issues[0]?.message || "Check your requirements." });
@@ -65,19 +85,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         setFeedback({ success: false, message: result.error });
         return;
       }
-      setCategory("car");
-      setMake("");
-      setModel("");
-      setYearFrom("");
-      setYearTo("");
-      setEngineSize("");
-      setSelectedColor("");
-      setBudgetFrom("");
-      setBudgetTo("");
-      setFirstName("");
-      setEmail("");
-      setPhone("");
-      setNotes("");
+      resetFields();
       setFeedback({ success: true, message: result.message });
     } catch {
       setFeedback({ success: false, message: "Unable to send your inquiry. Please try again." });
@@ -115,8 +123,18 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             <label className="text-sm font-medium text-gray-700">
               Make <span className="text-red-500">*</span>
             </label>
-            {category !== "car" && reference.makeInputMode === "manual" ? (
-              <Input aria-label="Make" value={make} onChange={(event) => { setMake(event.target.value); setModel(""); }} className="h-11" placeholder="Enter make" />
+            {category !== "car" ? (
+              <SearchableSelect
+                aria-label="Make"
+                value={make}
+                displayValue={make || undefined}
+                onChange={(value) => { setMake(value); setModel(""); }}
+                options={availableMakes.map((value) => ({ value, label: value }))}
+                allowCustomValue
+                className="h-11"
+                placeholder="Select or enter make"
+                searchPlaceholder="Search or enter make"
+              />
             ) : <Select value={make} onValueChange={(value) => { setMake(value); setModel(""); }}>
               <SelectTrigger className="h-11">
                 <SelectValue placeholder="e.g., Toyota, BMW, Mercedes" />
@@ -197,6 +215,17 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         </div>
 
         <div className="mt-4 space-y-1.5">
+          <label htmlFor="import-fuel-type" className="text-sm font-medium text-gray-700">Fuel Type (optional)</label>
+          <Select value={fuelType || "any"} onValueChange={(value) => setFuelType(value === "any" ? "" : value as (typeof FUEL_TYPES)[number])}>
+            <SelectTrigger id="import-fuel-type" className="h-11"><SelectValue placeholder="Any fuel type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any fuel type</SelectItem>
+              {FUEL_TYPES.map((fuel) => <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mt-4 space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Engine Size (CC)</label>
           <Input
             value={engineSize}
@@ -222,10 +251,10 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             <button
               key={color.name}
               type="button"
-              onClick={() => setSelectedColor(selectedColor === color.name ? "" : color.name)}
-              aria-pressed={selectedColor === color.name}
+              onClick={() => setSelectedColors((current) => current.includes(color.name) ? current.filter((name) => name !== color.name) : [...current, color.name])}
+              aria-pressed={selectedColors.includes(color.name)}
               className={`flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-colors ${
-                selectedColor === color.name
+                selectedColors.includes(color.name)
                   ? "border-primary bg-primary/5 text-primary"
                   : "border-gray-200 text-gray-700 hover:border-gray-300"
               }`}
@@ -244,7 +273,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
       <div className="mb-8">
         <div className="mb-5 flex items-center justify-between gap-4">
           <h3 className="text-lg font-semibold text-gray-900">Budget Range</h3>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setBudgetFrom(""); setBudgetTo(""); }}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { resetFields(); setFeedback(null); }}>
             Reset all
           </Button>
         </div>
@@ -257,9 +286,13 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             <Input
               id="import-budget-from"
               value={budgetFrom}
-              onChange={(e) => setBudgetFrom(formatImportBudget(e.target.value))}
+              onChange={(e) => {
+                const next = formatImportBudget(e.target.value);
+                setBudgetFrom(next);
+                if (next && budgetTo && Number(next.replace(/,/g, "")) > Number(budgetTo.replace(/,/g, ""))) setBudgetTo("");
+              }}
               inputMode="numeric"
-              placeholder="Kes"
+              placeholder="KES"
               className="h-11"
             />
           </div>
@@ -272,8 +305,11 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               id="import-budget-to"
               value={budgetTo}
               onChange={(e) => setBudgetTo(formatImportBudget(e.target.value))}
+              onBlur={() => {
+                if (budgetFrom && budgetTo && Number(budgetTo.replace(/,/g, "")) < Number(budgetFrom.replace(/,/g, ""))) setBudgetTo(budgetFrom);
+              }}
               inputMode="numeric"
-              placeholder="Kes"
+              placeholder="KES"
               className="h-11"
             />
           </div>

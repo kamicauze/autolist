@@ -216,17 +216,17 @@ export const OLDER_THAN_1990_YEAR_OPTION = { label: "Older than 1990", value: "1
 
 // Price Ranges
 export const PRICE_RANGES = [
-  { label: "Under Ksh 500K", min: 0, max: 500000 },
-  { label: "Ksh 500K - 1M", min: 500000, max: 1000000 },
-  { label: "Ksh 1M - 2M", min: 1000000, max: 2000000 },
-  { label: "Ksh 2M - 5M", min: 2000000, max: 5000000 },
-  { label: "Ksh 5M - 10M", min: 5000000, max: 10000000 },
-  { label: "Over Ksh 10M", min: 10000000, max: undefined },
+  { label: "Under KES 500K", min: 0, max: 500000 },
+  { label: "KES 500K - 1M", min: 500000, max: 1000000 },
+  { label: "KES 1M - 2M", min: 1000000, max: 2000000 },
+  { label: "KES 2M - 5M", min: 2000000, max: 5000000 },
+  { label: "KES 5M - 10M", min: 5000000, max: 10000000 },
+  { label: "Over KES 10M", min: 10000000, max: undefined },
 ] as const;
 
 // Preset steps for the price/mileage range inputs (users can also type any value).
 const formatPriceStep = (value: number) =>
-  value >= 1_000_000 ? `Ksh ${value / 1_000_000}M` : `Ksh ${value / 1_000}K`;
+  value >= 1_000_000 ? `KES ${value / 1_000_000}M` : `KES ${value / 1_000}K`;
 
 export const PRICE_FILTER_OPTIONS = [
   { label: "Any", value: "" },

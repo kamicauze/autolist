@@ -1,6 +1,9 @@
 import type { ListingOverviewAssetKey } from "@/lib/utils/listing-overview";
 
 export const LISTING_OVERVIEW_ASSET_PATHS = {
+  "operating-weight": "/assets/vehicle-specs/body-type.png",
+  "power-output": "/assets/vehicle-specs/engine-size.png",
+  "operational-status": "/assets/vehicle-specs/condition.png",
   mileage: "/assets/vehicle-specs/mileage.png",
   year: "/assets/vehicle-specs/year.png",
   condition: "/assets/vehicle-specs/condition.png",

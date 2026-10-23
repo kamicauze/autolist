@@ -41,3 +41,9 @@ assert.equal(isSearchFilterVisible("truck", "doors"), false);
 assert.equal(isSearchFilterVisible("farm_agricultural", "bodyType"), false);
 assert.equal(isSearchFilterVisible("plant_construction", "engineCc"), false);
 assert.ok(getSearchFilterConfig("truck").visible.includes("taxonomy"));
+
+for (const category of ["farm_agricultural", "plant_construction"]) {
+  assert.equal(isSearchFilterVisible(category, "model"), false);
+  assert.equal(isSearchFilterVisible(category, "taxonomy"), true);
+  assert.equal(isSearchFilterVisible(category, "fuelType"), true);
+}

@@ -15,6 +15,7 @@ interface NumericComboInputProps {
   value: string;
   onChange: (value: string) => void;
   options: ReadonlyArray<Option>;
+  min?: number;
   placeholder?: string;
   "aria-label"?: string;
   className?: string;
@@ -34,6 +35,7 @@ export function NumericComboInput({
   onChange,
   options,
   placeholder,
+  min,
   "aria-label": ariaLabel,
   className,
   portal = false,
@@ -63,8 +65,9 @@ export function NumericComboInput({
   }, [open, portal]);
 
   const commit = (digits: string) => {
-    setText(formatDigits(digits));
-    if (digits !== value) onChange(digits);
+    const bounded = digits && min !== undefined && Number(digits) < min ? String(min) : digits;
+    setText(formatDigits(bounded));
+    if (bounded !== value) onChange(bounded);
   };
 
   const pick = (optionValue: string) => {

@@ -24,6 +24,7 @@ export function RichContentRenderer({ body, className }: RichContentRendererProp
         "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:text-[15px] [&_p]:leading-8 [&_ul]:list-disc [&_ul]:pl-6",
         "[&_figure]:my-7 [&_figure]:w-full [&_figcaption]:px-2 [&_figcaption]:pt-3 [&_figcaption]:text-center [&_figcaption]:text-[13px] [&_figcaption]:leading-5 [&_figcaption]:text-[#64748b]",
         "[&_img]:max-h-[640px] [&_img]:h-auto [&_img]:w-full [&_img]:rounded-[18px] [&_img]:object-contain",
+        "[&_table]:my-6 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_caption]:text-left [&_caption]:font-semibold [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-3 [&_td]:align-top",
         className
       )}
       dangerouslySetInnerHTML={{ __html: html }}
