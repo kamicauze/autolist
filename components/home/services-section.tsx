@@ -13,7 +13,7 @@ const services = [
     title: "Autoloan calculator",
     description:
       "Estimate monthly vehicle loan repayments quickly",
-    href: "/calculator",
+    href: "/calculator#repayments",
     buttonText: "Calculate loan",
   },
 ];

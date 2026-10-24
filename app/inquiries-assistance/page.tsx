@@ -23,12 +23,12 @@ export default function InquiriesAssistancePage() {
             </h1>
             <p className="mt-4 text-sm leading-6 text-gray-600 sm:text-base">
               Buyers, sellers, and dealers can send marketplace questions, listing support requests,
-              and assistance inquiries directly to the admin team.
+              website feedback, and assistance inquiries directly to the admin team.
             </p>
           </div>
         </section>
 
-        <section className="py-10 sm:py-12">
+        <section id="inquiry-form" className="scroll-mt-24 py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
             <InquiryAssistanceForm />
           </div>

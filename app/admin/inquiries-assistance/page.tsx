@@ -7,7 +7,7 @@ export default async function AdminInquiriesAssistanceRoute() {
     <AdminTicketQueue
       initialData={data}
       title="Customer Support Inquiries"
-      description="Manage customer support questions submitted from the public inquiries and assistance page."
+      description="Manage customer support questions and website feedback submitted from the public inquiries and assistance page."
     />
   );
 }

@@ -82,6 +82,18 @@ export function Footer() {
           </div>
         </div>
 
+        <div className="border-t border-[#2E2E38]">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-5 text-sm sm:px-6 lg:px-8">
+            <p className="text-[#92929D]">Help us improve our website.</p>
+            <Link
+              href="/inquiries-assistance#inquiry-form"
+              className="font-medium text-white underline underline-offset-4 hover:text-primary"
+            >
+              Send feedback
+            </Link>
+          </div>
+        </div>
+
         {/* Bottom Bar */}
         <div className="border-t border-[#2E2E38]">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
