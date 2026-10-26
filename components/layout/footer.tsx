@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 import { BackToTopButton } from "@/components/layout/back-to-top-button";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CorporateInquiryForm } from "@/components/shared/corporate-inquiry-form";
 
 const footerLinks = {
   Buying: [
@@ -13,6 +12,7 @@ const footerLinks = {
     { name: "Compare", href: "/compare" },
     { name: "Financing", href: "/calculator" },
     { name: "Find a dealer", href: "/dealers" },
+    { name: "News & reviews", href: "/blog" },
   ],
   Selling: [
     { name: "Sell your vehicle", href: "/sell" },
@@ -23,7 +23,7 @@ const footerLinks = {
   About: [
     { name: "About Autolist", href: "/about" },
     { name: "Careers", href: "/careers" },
-    { name: "Blog", href: "/blog" },
+    { name: "Advertise with us", href: "/advertise-with-us" },
     { name: "Contact us", href: "/about" },
     { name: "FAQs", href: "/faqs" },
     { name: "Security advice", href: "/security-advice" },
@@ -61,23 +61,14 @@ export function Footer() {
               </div>
             ))}
 
-            {/* Newsletter */}
+            {/* Corporate inquiries */}
             <div className="col-span-2 md:col-span-1 lg:col-span-2">
-              <h3 className="mb-5 text-sm font-semibold">Newsletter</h3>
+              <h3 className="mb-5 text-sm font-semibold">Corporate Advertising &amp; Partnerships</h3>
               <p className="mb-4 text-sm leading-relaxed text-[#92929D]">
-                Stay on top of the latest marketplace trends, tips, and
-                advice for selling your vehicle.
+                Partner with us for advertising, brand collaborations, and strategic
+                opportunities. Reach out and let’s create value together.
               </p>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Your email address"
-                  className="h-10 border-[#2E2E38] bg-[#1C1C24] text-white placeholder:text-[#92929D]"
-                />
-                <Button className="h-10 bg-primary px-6 hover:bg-primary/90">
-                  Send
-                </Button>
-              </div>
+              <CorporateInquiryForm dark />
             </div>
           </div>
         </div>
