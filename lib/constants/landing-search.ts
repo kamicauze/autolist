@@ -146,7 +146,7 @@ export const LANDING_SEARCH_CATEGORY_CONFIG: Record<ListingCategory, LandingSear
     resultLabelPlural: "bikes",
     searchPageTitle: "Motorbikes for sale",
     searchPageDescription: "Browse scooters, commuter bikes, adventure bikes and other motorbike listings.",
-    makeMode: "suggested",
+    makeMode: "select",
     modelMode: "manual",
     primaryField: {
       label: "Bike type",
@@ -164,7 +164,7 @@ export const LANDING_SEARCH_CATEGORY_CONFIG: Record<ListingCategory, LandingSear
     resultLabelPlural: "trucks",
     searchPageTitle: "Trucks for sale",
     searchPageDescription: "Browse rigid trucks, tractor units and heavy commercial listings.",
-    makeMode: "suggested",
+    makeMode: "select",
     modelMode: "manual",
     primaryField: {
       label: "Truck type",

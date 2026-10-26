@@ -446,11 +446,15 @@ export function HeroSearch({
         <div className="relative">
           <MakeIcon className={PANEL_ICON_CLASS} />
           <select
+            aria-label={activeConfig.brandLabel}
             value={make}
             onChange={(event) => setMake(event.target.value)}
             className={`${PANEL_INPUT_CLASS} appearance-none pl-10 pr-10`}
           >
             <option value="any">{`Any ${activeConfig.brandLabel}`}</option>
+            {make !== "any" && !makeSuggestions.includes(make) ? (
+              <option value={make}>{make}</option>
+            ) : null}
             {makeSuggestions.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -536,6 +540,7 @@ export function HeroSearch({
     onChange: (nextValue: string) => void,
     options: ReadonlyArray<{ label: string; value: string }>,
     icon: LucideIcon,
+    ariaLabel?: string,
   ) => {
     const Icon = icon;
 
@@ -543,6 +548,7 @@ export function HeroSearch({
       <div className="relative">
         <Icon className={PANEL_ICON_CLASS} />
         <select
+          aria-label={ariaLabel}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className={`${PANEL_INPUT_CLASS} appearance-none pl-10 pr-10`}
@@ -960,20 +966,24 @@ export function HeroSearch({
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {activeCategory === "car"
-                        ? "Make"
-                        : activeConfig.brandLabel}
+                      {isEquipmentCategory ? "Category" : activeConfig.brandLabel}
                     </label>
-                    {renderMakeField()}
+                    {isEquipmentCategory
+                      ? renderSelectField(
+                          taxCategory,
+                          setTaxCategory,
+                          [{ label: "Any Category", value: "any" }, ...taxonomyOptions.map((node) => ({ label: node.category, value: node.category }))],
+                          SlidersHorizontal,
+                          "Category",
+                        )
+                      : renderMakeField()}
                   </div>
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      {isEquipmentCategory ? "Category" : activeCategory === "car"
-                        ? "Model"
-                        : activeConfig.modelLabel}
+                      {isEquipmentCategory ? activeConfig.brandLabel : activeConfig.modelLabel}
                     </label>
-                    {isEquipmentCategory ? renderSelectField(taxCategory, setTaxCategory, [{label: "Any Category", value: "any"}, ...taxonomyOptions.map(node => ({label: node.category, value: node.category}))], SlidersHorizontal) : renderModelField()}
+                    {isEquipmentCategory ? renderMakeField() : renderModelField()}
                   </div>
 
                   <div

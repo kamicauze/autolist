@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AdvertisingInquiryForm } from "@/components/shared/advertising-inquiry-form";
@@ -51,16 +52,20 @@ export default function AdvertiseWithUsPage() {
       <Header />
       <main className="flex-1 bg-gray-50">
         <section className="border-b border-gray-200 bg-white">
-          <div className={sectionClass}>
+          <div className={"mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8"}>
+            <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Corporate Advertising &amp; Partnerships</p>
-            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight text-gray-900 sm:text-5xl">Advertise with Autolist Kenya</h1>
-            <h2 className="mt-5 max-w-3xl text-2xl font-medium text-gray-900">Reach Kenya’s car buyers at the moment of decision</h2>
+            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight text-gray-900 sm:text-5xl">Advertise with us</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">Connect your brand with thousands of buyers actively researching their next vehicle. Reach people comparing models, checking prices and arranging viewings across Kenya.</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="#contact-sales" className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90">Request a Media Kit</Link>
+              <Link href="#contact-sales" className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90">Talk to our sales team</Link>
               <Link href="#packages" className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50">View packages</Link>
             </div>
             <p className="mt-8 border-t border-gray-200 pt-5 text-sm leading-7 text-gray-600">50+ dealers · 15,000+ monthly visitors · 500+ live listings · Nationwide reach</p>
+            </div>
+            <div className="relative aspect-[3/2] overflow-hidden rounded-2xl">
+              <Image src="/images/marketing/advertising-partnerships-hero.webp" alt="Advertising across Autolist marketplace screens and vehicle categories" fill priority sizes="(min-width: 1024px) 650px, 100vw" className="object-cover" />
+            </div>
           </div>
         </section>
 

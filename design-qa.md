@@ -37,3 +37,30 @@ scope.
 ## Final result
 
 passed
+
+---
+
+# Careers, advertising, About and search follow-up QA — 26 October 2026
+
+Source truth: Autolist Dev Team images15:31(Careers),15:38(Advertising),15:52(About),15:53(feedback CTA),16:02(equipment order),16:06(bike/truck dropdown). Comparison evidence lives in ignored output/playwright/visual-search-followup-2026-10-26/.
+
+Source captures are3024x1898 pixels; hero crops1098x438(Careers),1097x438(Advertising); About crop778x1020. Mockups have no declared CSS viewport. Normalize source and rendered content regions to700px common width, excluding header/browser/WhatsApp chrome. Desktop implementation1440x900 CSS px at1x; mobile390x900 at1x. This is a composition comparison, not a claim of pixel-identical photography.
+
+Combined comparison inputs: comparison-before-{careers,advertise-with-us,about}.png and comparison-after-{careers,advertise-with-us,about}.png. Final browser captures local-final-{careers,advertise-with-us,about}-{1440,390}.png. Focused controls: local-farm-order.png and local-plant-mobile.png. The About reference bottom is partially occluded in native capture; the explicit15:53 annotation supplies the exact CTA wording.
+
+Initial P2: excessive hero height compared with reference. Reduced hero padding; Careers/Advertising image slots changed4:3 to3:2. Rebuilt, recaptured and compared again. Final heights525px(Careers),510px(Advertising),460px(About). No remaining actionable P0/P1/P2 in the scoped states.
+
+Required fidelity surfaces:
+- Typography: existing Satoshi/font-heading, navy heading hierarchy, small uppercase blue labels, readable body/support copy; natural mobile wrapping.
+- Spacing/layout: paired desktop text/imagery, stacked mobile, values cards, CMS body and lower image CTA. No horizontal overflow at1440/390; controls remain visible.
+- Colors/tokens: existing primary blue, navy/gray text, white/light-blue backgrounds and existing theme/footer conventions.
+- Images: four separately generated WebPs reproduce the reference subjects and art direction; total under650KB. Actual image URLs load. These are illustrative scenes, not claimed photographs of Autolist staff/premises. Real editable text and links sit beside images.
+- Copy: existing published CMS title/summary/body/date/metadata and unpublished handling preserved. About facts describe existing marketplace behavior rather than unconfirmed founding/team figures. Draft Careers jobs/benefits remain pending. Advertising keeps the approved offer/pricing content and secondary package navigation. About Road ahead explicitly uses Send us feedback.
+
+Interactions: About CTA opens /inquiries-assistance#inquiry-form with actual contact/subject/message fields. Careers anchors work. Honda bike count1 matches1 result; Volvo truck count0 matches empty results. Farm/Plant show Location,Category,Manufacturer,Year in DOM/geometry; Tractors+John Deere count2 matches2 results. Plant custom manufacturer and Reset all work. Native Bike/Truck Make selects retain category catalogs; non-car Model stays manual because no catalog exists. No actual submissions/emails. IAB warning/error log empty for checked local flows. CMS route render assertions, focused tests, scoped lint and production TypeScript/build pass.
+
+P3 follow-up: generated people/vehicles differ from the illustration, and responsive image panels replace full-width photographic composites. This preserves the source subject/hierarchy without embedding UI text into raster art. No pixel-identical asset claim.
+
+Implementation checklist: scoped controls, four assets, CMS preservation, real CTA navigation, desktop/mobile coverage, post-fix combined comparison and browser-error review complete.
+
+final result: passed

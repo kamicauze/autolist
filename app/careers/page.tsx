@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowDown, ArrowRight, ShieldCheck, Users, Wrench } from "lucide-react";
 import { notFound } from "next/navigation";
 import { RichContentRenderer } from "@/components/cms/rich-content-renderer";
@@ -30,7 +31,7 @@ export default async function CareersPage() {
 
       <main className="flex-1 bg-[#f8fafc]">
         <section className="border-b border-[#e5e7eb] bg-white">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-12 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:px-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                 Work with Autolist
@@ -53,17 +54,8 @@ export default async function CareersPage() {
                 </Link>
               </div>
             </div>
-            <div className="rounded-3xl border border-blue-100 bg-blue-50 p-7 sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">The work ahead</p>
-              <h2 className="mt-4 font-heading text-3xl font-semibold leading-tight text-[#111827]">
-                Better journeys start with better information.
-              </h2>
-              <p className="mt-5 text-base leading-7 text-[#475467]">
-                From a seller creating a listing to a buyer arranging a viewing, each step is a chance to make the marketplace easier to use.
-              </p>
-              <div className="mt-8 grid grid-cols-3 gap-3 border-t border-blue-200 pt-6 text-sm font-medium text-primary">
-                <span>Discover</span><span>Connect</span><span>Improve</span>
-              </div>
+            <div className="relative aspect-[3/2] overflow-hidden rounded-2xl">
+              <Image src="/images/marketing/careers-team-hero.webp" alt="A team collaborating on vehicle marketplace ideas" fill priority sizes="(min-width: 1024px) 650px, 100vw" className="object-cover" />
             </div>
           </div>
         </section>
