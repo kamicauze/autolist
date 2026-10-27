@@ -39,6 +39,7 @@ const buyMenu = [
 ];
 
 const toolsMenu = [
+  { name: "Advertise with us", href: "/advertise-with-us" },
   { name: "Financing", href: "/calculator" },
   { name: "Compare listings", href: "/compare" },
   { name: "Vehicle Insurance", href: "/insurance" },

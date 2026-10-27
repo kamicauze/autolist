@@ -115,7 +115,7 @@ export function CarCard({
   const canFavorite = useFavoriteAccess();
   const isCompact = density === "compact";
   const router = useRouter();
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [isLiked, setIsLiked] = React.useState(Boolean(initialIsFavorited));
   const [isWishlistPending, setIsWishlistPending] = React.useState(false);
@@ -147,8 +147,8 @@ export function CarCard({
     : null;
 
   const imageCount = images.length;
-  const displayImages = imageCount > 0 ? images : ["/placeholder-car.jpg"];
-  const indicatorCount = Math.min(imageCount, 5);
+  const displayImages = imageCount > 0 ? images.slice(0, 4) : ["/placeholder-car.jpg"];
+  const indicatorCount = Math.min(imageCount, 4);
   const activeIndicatorIndex =
     indicatorCount > 0 ? Math.min(selectedIndex, indicatorCount - 1) : 0;
   const inCompare = isInCompare(id);
@@ -323,20 +323,22 @@ export function CarCard({
 
         {imageCount > 1 && (
           <>
-            <button
+            {selectedIndex > 0 && <button
+              type="button"
               onClick={scrollPrev}
               className="absolute left-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-card/65 text-card-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-card/85"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-            <button
+            </button>}
+            {selectedIndex < displayImages.length - 1 && <button
+              type="button"
               onClick={scrollNext}
               className="absolute right-2 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-card/65 text-card-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-card/85"
               aria-label="Next image"
             >
               <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </button>}
           </>
         )}
 
@@ -388,6 +390,7 @@ export function CarCard({
           <div className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-1.5">
             {Array.from({ length: indicatorCount }).map((_, index) => (
               <button
+                type="button"
                 key={index}
                 onClick={(event) => {
                   event.preventDefault();
@@ -402,6 +405,11 @@ export function CarCard({
               />
             ))}
           </div>
+        )}
+        {href && imageCount > displayImages.length && selectedIndex === displayImages.length - 1 && (
+          <span className="absolute bottom-8 right-2.5 z-30 rounded-md bg-black/70 px-2.5 py-1.5 text-xs font-semibold text-white">
+            View all {imageCount} photos
+          </span>
         )}
       </div>
 

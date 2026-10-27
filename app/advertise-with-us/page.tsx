@@ -5,6 +5,8 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AdvertisingInquiryForm } from "@/components/shared/advertising-inquiry-form";
 
+import { AdvertisingPlacementPreview } from "@/components/shared/advertising-placement-preview";
+
 export const metadata: Metadata = {
   title: "Advertise With Autolist Kenya | Reach Car Buyers Nationwide",
   description: "Partner with Autolist Kenya to reach high-intent car buyers. Explore banner placements, in-feed sponsorships and bundled packages, and request our Media Kit.",
@@ -59,7 +61,7 @@ export default function AdvertiseWithUsPage() {
             <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">Connect your brand with thousands of buyers actively researching their next vehicle. Reach people comparing models, checking prices and arranging viewings across Kenya.</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="#contact-sales" className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90">Talk to our sales team</Link>
-              <Link href="#packages" className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50">View packages</Link>
+              <a href="#placement-preview" className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50">Preview placements</a>
             </div>
             <p className="mt-8 border-t border-gray-200 pt-5 text-sm leading-7 text-gray-600">50+ dealers · 15,000+ monthly visitors · 500+ live listings · Nationwide reach</p>
             </div>
@@ -97,6 +99,8 @@ export default function AdvertiseWithUsPage() {
             </dl>
           </div>
         </section>
+
+        <AdvertisingPlacementPreview placements={placements} />
 
         <section id="placements" className={`${sectionClass} scroll-mt-24`}>
           <h2 className="text-2xl font-semibold text-gray-900">Advertising placements</h2>
