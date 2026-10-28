@@ -821,17 +821,21 @@ export function HeroSearch({
               hasSponsoredHero && "max-w-none lg:w-full",
             )}
           >
-            <div className="flex flex-col lg:flex-row">
+            <div className={cn("flex flex-col", hasSponsoredHero ? "lg:flex-row" : "md:flex-row")}>
               <aside
                 className={cn(
-                  "relative rounded-t-[18px] border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc] lg:rounded-l-[18px] lg:rounded-tr-none lg:w-[88px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent",
-                  hasSponsoredHero && "lg:w-[72px]",
+                  "relative shrink-0 rounded-t-[18px] border-b-[0.5px] border-[#e7ebf1] bg-[#f7f9fc]",
+                  hasSponsoredHero
+                    ? "lg:rounded-l-[18px] lg:rounded-tr-none lg:w-[72px] lg:border-b-0 lg:border-r-[0.5px] lg:bg-transparent"
+                    : "md:rounded-l-[18px] md:rounded-tr-none md:w-[88px] md:border-b-0 md:border-r-[0.5px] md:bg-transparent",
                 )}
               >
                 <div
                   className={cn(
-                    "grid grid-cols-5 gap-1 p-2 lg:h-full lg:grid-cols-1 lg:grid-rows-5 lg:gap-0 lg:bg-transparent",
-                    hasSponsoredHero && "lg:p-1.5",
+                    "grid grid-cols-5 gap-1 p-2",
+                    hasSponsoredHero
+                      ? "lg:h-full lg:grid-cols-1 lg:grid-rows-5 lg:gap-0 lg:bg-transparent lg:p-1.5"
+                      : "md:h-full md:grid-cols-1 md:grid-rows-5 md:gap-0 md:bg-transparent",
                   )}
                 >
                   {LANDING_SEARCH_CATEGORY_ORDER.map((category) => {
@@ -843,7 +847,7 @@ export function HeroSearch({
                         key={category}
                         type="button"
                         onClick={() => setActiveCategory(category)}
-                        className={`group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] px-1 transition-[background-color,color,transform] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 active:scale-[0.98] lg:h-full lg:min-h-0 ${
+                        className={`group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] px-1 transition-[background-color,color,transform] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 active:scale-[0.98] ${hasSponsoredHero ? "lg:h-full lg:min-h-0" : "md:h-full md:min-h-0"} ${
                           isActive
                             ? "bg-primary/[0.07] text-primary"
                             : "text-[#737b8c] hover:bg-white hover:text-[#202224]"
@@ -884,7 +888,7 @@ export function HeroSearch({
 
               <div
                 className={cn(
-                  "flex-1 px-4 py-4 sm:px-5 lg:px-8 lg:py-6",
+                  "min-w-0 flex-1 px-4 py-4 sm:px-5 lg:px-8 lg:py-6",
                   hasSponsoredHero && "lg:px-4 lg:py-4",
                 )}
               >
@@ -937,8 +941,8 @@ export function HeroSearch({
                 >
                   <div
                     className={cn(
-                      "col-span-2 xl:col-span-1",
-                      hasSponsoredHero && "sm:col-span-1",
+                      "col-span-2",
+                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
                     )}
                   >
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
@@ -988,8 +992,8 @@ export function HeroSearch({
 
                   <div
                     className={cn(
-                      "col-span-2 xl:col-span-1",
-                      hasSponsoredHero && "sm:col-span-1",
+                      "col-span-2",
+                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
                     )}
                   >
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
@@ -1033,9 +1037,10 @@ export function HeroSearch({
                 <div
                   className={cn(
                     // Buttons size to their content so the range fields get the spare width.
-                    "mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
-                    hasSponsoredHero &&
-                      "mt-3 gap-3 sm:grid-cols-2 xl:grid-cols-2",
+                    "mt-4 grid gap-4",
+                    hasSponsoredHero
+                      ? "mt-3 gap-3 sm:grid-cols-2"
+                      : "md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
                   )}
                 >
                   <div>
@@ -1118,7 +1123,7 @@ export function HeroSearch({
                   <div
                     className={cn(
                       "flex items-end gap-2",
-                      hasSponsoredHero && "sm:col-span-2",
+                      hasSponsoredHero ? "sm:col-span-2" : "md:col-span-2 xl:col-span-1",
                     )}
                   >
                     <button

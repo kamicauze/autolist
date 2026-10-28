@@ -58,7 +58,7 @@ const desktopLinks = [
 
 function VehicleTypeLinks({ activeCategory }: { activeCategory: ListingCategory | null }) {
   return (
-    <div className="hidden xl:block border-b border-gray-100">
+    <div className="hidden md:block border-b border-gray-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
         <div className="flex min-h-9 items-center justify-between gap-4">
           <nav className="flex items-center gap-2 text-[13px]">
@@ -228,7 +228,7 @@ export function Header() {
       </React.Suspense>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-4 lg:px-6">
-        <div className="flex h-16 items-center justify-between xl:h-14">
+        <div className="flex min-h-16 flex-wrap items-center justify-between md:gap-y-1 md:pb-2 xl:h-14 xl:min-h-0 xl:flex-nowrap xl:gap-y-0 xl:pb-0">
           <Link
             href="/"
             onClick={(event) => {
@@ -243,7 +243,7 @@ export function Header() {
             <AutolistLogo className="h-10 w-auto xl:h-10" />
           </Link>
 
-          <nav ref={desktopNavRef} className="hidden items-center gap-0.5 xl:flex">
+          <nav ref={desktopNavRef} className="order-3 hidden w-full items-center justify-between gap-0.5 md:flex xl:order-none xl:w-auto">
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 const isOpen = openMenu === item.key;
@@ -251,12 +251,14 @@ export function Header() {
                   <div
                     key={item.name}
                     className="relative"
-                    onPointerEnter={() => {
+                    onPointerEnter={(event) => {
+                      if (event.pointerType !== "mouse") return;
                       clearCloseMenuTimeout();
                       setOpenMenu(item.key);
                     }}
                     onPointerLeave={scheduleCloseMenu}
-                    onFocus={() => {
+                    onFocus={(event) => {
+                      if (!event.target.matches(":focus-visible")) return;
                       clearCloseMenuTimeout();
                       setOpenMenu(item.key);
                     }}
@@ -270,9 +272,12 @@ export function Header() {
                       type="button"
                       aria-expanded={isOpen}
                       aria-haspopup="menu"
-                      onClick={() => {
+                      onClick={(event) => {
                         clearCloseMenuTimeout();
-                        setOpenMenu((current) => (current === item.key ? null : item.key));
+                        const isMouseClick = (event.nativeEvent as PointerEvent).pointerType === "mouse";
+                        setOpenMenu((current) =>
+                          isMouseClick ? item.key : current === item.key ? null : item.key
+                        );
                       }}
                       className={cn(
                         "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-gray-700 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
@@ -457,7 +462,9 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden"
+              className="md:hidden"
+              aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen((prev) => !prev)}
             >
               {mobileMenuOpen ? <IconX className="h-6 w-6" /> : <IconMenu className="h-6 w-6" />}
@@ -467,7 +474,7 @@ export function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-border bg-card shadow-[0_18px_48px_rgb(var(--primary-rgb)/0.18)] xl:hidden">
+        <div className="border-t border-border bg-card shadow-[0_18px_48px_rgb(var(--primary-rgb)/0.18)] md:hidden">
           <div className="max-h-[calc(100dvh-4rem)] space-y-5 overflow-y-auto px-4 py-5">
             <div className="space-y-3 border-b border-border pb-5">
               {user ? (
