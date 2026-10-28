@@ -773,6 +773,12 @@ export function VehiclePageClient({
                       Avoid cash-only settlement
                     </li>
                   </ul>
+                  <Link
+                    href="/security-advice"
+                    className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+                  >
+                    Read more from our security advice
+                  </Link>
                 </div>
               </AccordionSection>
 

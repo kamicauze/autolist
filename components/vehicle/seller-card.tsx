@@ -11,7 +11,7 @@ import {
   Star,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { IconWhatsapp } from "@/components/ui/icons";
@@ -168,6 +168,8 @@ export function SellerCard({
   privateContact,
 }: SellerCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [revealedContact, setRevealedContact] = useState<string | null>(null);
+  const phoneLinkRef = useRef<HTMLAnchorElement>(null);
   const isDealer = !!dealer;
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
@@ -176,6 +178,11 @@ export function SellerCard({
   // The assigned sales rep is the primary contact; each channel falls back to
   // the dealership when the rep has hidden their number or disabled WhatsApp.
   const callNumber = isDealer ? rep?.phone || dealer?.mobile || null : privateContact?.phoneNumber || null;
+  const contactKey = `${listingId}:${callNumber}`;
+  const isPhoneRevealed = revealedContact === contactKey;
+  useEffect(() => {
+    if (isPhoneRevealed) phoneLinkRef.current?.focus({ preventScroll: true });
+  }, [isPhoneRevealed]);
   const whatsappNumber = normalizeWhatsAppPhone(
     isDealer ? rep?.whatsapp || dealer?.whatsapp || dealer?.mobile : privateContact?.whatsappNumber
   );
@@ -323,16 +330,23 @@ export function SellerCard({
           <p className="mt-1 text-lg font-bold text-gray-900">{contactLabel}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {callNumber ? (
-              <Button asChild variant="default" size="sm" className="gap-2">
-                <a href={`tel:${callNumber.replace(/\s+/g, "")}`}>
+              isPhoneRevealed ? (
+                <Button asChild variant="default" size="sm" className="h-auto min-h-9 min-w-0 gap-2 whitespace-normal py-2">
+                  <a ref={phoneLinkRef} href={`tel:${callNumber.replace(/\s+/g, "")}`} aria-label={`Call ${callNumber}`}>
+                    <Phone className="h-4 w-4" />
+                    <span className="break-all">{callNumber}</span>
+                  </a>
+                </Button>
+              ) : (
+                <Button type="button" variant="default" size="sm" className="gap-2" onClick={() => setRevealedContact(contactKey)}>
                   <Phone className="h-4 w-4" />
-                  Call
-                </a>
-              </Button>
+                  Show number
+                </Button>
+              )
             ) : (
-              <Button variant="default" size="sm" className="gap-2" disabled>
+              <Button type="button" variant="default" size="sm" className="gap-2" title="Phone number unavailable" disabled>
                 <Phone className="h-4 w-4" />
-                Call
+                Show number
               </Button>
             )}
             {whatsappUrl ? (

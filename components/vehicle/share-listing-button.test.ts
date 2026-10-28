@@ -84,6 +84,12 @@ test("sharing opens a labelled dialog with a clean listing URL and confirms only
   assert.equal(tree.props.open, true);
   assert.equal(getElement(tree, "input").props.value, "https://staging.example/vehicle/sample-listing");
   assert.equal(getElement(tree, "input").props.readOnly, true);
+  const whatsapp = getElement(tree, "a");
+  const shareUrl = new URL(whatsapp.props.href as string);
+  assert.equal(shareUrl.origin, "https://wa.me");
+  assert.equal(shareUrl.searchParams.get("text"), "Sample vehicle https://staging.example/vehicle/sample-listing");
+  assert.equal(whatsapp.props.target, "_blank");
+  assert.equal(whatsapp.props.rel, "noopener noreferrer");
   assert.equal(getElement(tree, "label").props.htmlFor, getElement(tree, "input").props.id);
   copy(tree);
   tree = share.render();

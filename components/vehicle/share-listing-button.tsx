@@ -87,6 +87,17 @@ export function ShareListingButton({ listingId, title }: { listingId: string; ti
           <Copy className="h-4 w-4" />
           {copying ? "Copying…" : "Copy link"}
         </Button>
+        {url ? (
+          <Button asChild variant="outline">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Share via WhatsApp
+            </a>
+          </Button>
+        ) : null}
         <p role="status" aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
           {status}
         </p>
