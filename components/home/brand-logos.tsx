@@ -4,16 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getBrandLogo } from "@/lib/constants/brand-logos";
 
 const brands = [
-  { name: "Land Rover", slug: "land-rover", logo: "/brands/land-rover.svg" },
-  { name: "Kia", slug: "kia", logo: "/brands/kia.svg" },
-  { name: "Toyota", slug: "toyota", logo: "/brands/toyota.svg" },
-  { name: "Jeep", slug: "jeep", logo: "/brands/jeep.svg" },
-  { name: "Nissan", slug: "nissan", logo: "/brands/nissan.svg" },
-  { name: "Ford", slug: "ford", logo: "/brands/ford.svg" },
-  { name: "BMW", slug: "bmw", logo: "/brands/bmw.svg" },
-  { name: "Hyundai", slug: "hyundai", logo: "/brands/hyundai.svg" },
+  { name: "Land Rover", slug: "land-rover" },
+  { name: "Kia", slug: "kia" },
+  { name: "Toyota", slug: "toyota" },
+  { name: "Jeep", slug: "jeep" },
+  { name: "Nissan", slug: "nissan" },
+  { name: "Ford", slug: "ford" },
+  { name: "BMW", slug: "bmw" },
+  { name: "Hyundai", slug: "hyundai" },
 ];
 
 export function BrandLogos() {
@@ -92,7 +93,7 @@ export function BrandLogos() {
                   {/* Brand Logo */}
                   <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
                     <Image
-                      src={brand.logo}
+                      src={getBrandLogo(brand.name).src!}
                       alt={brand.name}
                       width={48}
                       height={48}
