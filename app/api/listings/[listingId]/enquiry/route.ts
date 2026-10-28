@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   buildListingTitle,
   emitNotificationEvent,
@@ -18,6 +19,22 @@ type EnquiryListing = {
   sale_channel: string;
 };
 
+const amountSchema = z.string().trim().max(30).regex(/^$|^\d+(?:\.\d{1,2})?$/, "Enter amounts in KES using numbers only.").optional();
+const financingRequestSchema = z.object({
+  contactName: z.string().trim().min(2, "Enter your full name.").max(120).regex(/^[^\r\n]+$/, "Enter your name on one line."),
+  contactEmail: z.string().trim().email("Enter a valid email address.").max(160),
+  contactPhone: z.string().trim().min(7, "Enter your phone number.").max(40).regex(/^\+?[\d ()-]+$/, "Enter a valid phone number.").refine((value) => value.replace(/\D/g, "").length >= 7, "Enter a valid phone number."),
+  monthlyIncome: amountSchema,
+  downPayment: amountSchema,
+  message: z.string().trim().max(2000, "Keep additional details within 2,000 characters.").optional(),
+});
+
+function financingResponseMessage(emailQueued: boolean) {
+  return emailQueued
+    ? "Your financing request is saved in the seller's dashboard. An email notification has been queued."
+    : "Your financing request is saved in the seller's dashboard. Email notification is unavailable; the seller can read it in Messages.";
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ listingId: string }> }
@@ -29,16 +46,36 @@ export async function POST(
       data: { user },
     } = await supabase.auth.getUser();
 
-    const payload = (await request.json()) as {
-      message?: string;
-      contactName?: string;
-      contactEmail?: string;
-      contactPhone?: string;
-    };
-    const message = payload.message?.trim();
-    const contactName = payload.contactName?.trim() || "";
-    const contactEmail = payload.contactEmail?.trim() || "";
-    const contactPhone = payload.contactPhone?.trim() || "";
+    const rawPayload: unknown = await request.json().catch(() => null);
+    if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
+      return NextResponse.json({ error: "Invalid enquiry request." }, { status: 400 });
+    }
+    const payload = rawPayload as Record<string, unknown>;
+    if (payload.requestType !== undefined && payload.requestType !== "enquiry" && payload.requestType !== "financing") {
+      return NextResponse.json({ error: "Invalid enquiry request type." }, { status: 400 });
+    }
+    const isFinancingRequest = payload.requestType === "financing";
+    const financing = isFinancingRequest ? financingRequestSchema.safeParse(payload) : null;
+    if (financing && !financing.success) {
+      return NextResponse.json({ error: financing.error.issues[0]?.message || "Complete the financing request." }, { status: 400 });
+    }
+    const financingDetails = financing?.success ? financing.data : null;
+    const inputString = (key: string) => typeof payload[key] === "string" ? payload[key].trim() : "";
+    const contactName = financingDetails?.contactName ?? inputString("contactName");
+    const contactEmail = financingDetails?.contactEmail ?? inputString("contactEmail");
+    const contactPhone = financingDetails?.contactPhone ?? inputString("contactPhone");
+    const message = financingDetails ? [
+      "Financing request",
+      `Name: ${contactName}`,
+      `Email: ${contactEmail}`,
+      `Phone: ${contactPhone}`,
+      financingDetails.monthlyIncome ? `Monthly income (KES): ${financingDetails.monthlyIncome}` : null,
+      financingDetails.downPayment ? `Preferred down payment (KES): ${financingDetails.downPayment}` : null,
+      financingDetails.message ? `Additional details: ${financingDetails.message}` : null,
+    ].filter((line) => line !== null).join("\n") : inputString("message");
+    // Staging and local submissions must never enter a live email delivery path.
+    const canQueueFinancingEmail = process.env.VERCEL_ENV === "production" || process.env.EMAIL_PROVIDER === "mailtrap";
+    let financingEmailQueued = false;
 
     if (!message) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
@@ -171,14 +208,14 @@ export async function POST(
       }
 
       try {
-        await emitNotificationEvent({
+        const eventId = await emitNotificationEvent({
           eventType: "new_enquiry",
           actorId: null,
           listingId: listing.id,
           threadId: guestThreadId,
           messageId: guestMessage.id,
           payload: {
-            kind: "public_listing_enquiry",
+            kind: isFinancingRequest ? "financing_request" : "public_listing_enquiry",
             listingTitle,
             contactName,
             contactEmail,
@@ -187,7 +224,7 @@ export async function POST(
           deliveries: [
             {
               recipientId: listing.seller_id,
-              title: `New public enquiry on ${listingTitle}`,
+              title: `${isFinancingRequest ? "New financing request" : "New public enquiry"} on ${listingTitle}`,
               body: `${contactName}: ${message.slice(0, 140)}`,
               href: getMessagingHref("seller", guestThreadId),
               metadata: {
@@ -198,15 +235,25 @@ export async function POST(
                 contactPhone,
               },
             },
+            ...(isFinancingRequest && canQueueFinancingEmail ? [{
+              recipientId: listing.seller_id,
+              channel: "email" as const,
+              title: `New financing request on ${listingTitle}`,
+              body: message,
+              href: getMessagingHref("seller", guestThreadId),
+              metadata: { threadId: guestThreadId, listingId: listing.id },
+            }] : []),
           ],
         });
+        financingEmailQueued = isFinancingRequest && canQueueFinancingEmail && Boolean(eventId);
       } catch (notificationError) {
         console.error("Failed to emit guest enquiry notification", notificationError);
       }
 
       return NextResponse.json({
         success: true,
-        message: guestEmail
+        ...(isFinancingRequest ? { threadId: guestThreadId, emailQueued: financingEmailQueued } : {}),
+        message: isFinancingRequest ? financingResponseMessage(financingEmailQueued) : guestEmail
           ? "Enquiry sent. The seller's reply will be emailed to you."
           : "Enquiry sent. The seller will contact you on the number you provided.",
       });
@@ -291,20 +338,20 @@ export async function POST(
     }
 
     try {
-      await emitNotificationEvent({
+      const eventId = await emitNotificationEvent({
         eventType: "new_enquiry",
         actorId: user.id,
         listingId: listing.id,
         threadId: thread.id,
         messageId: insertedMessage.id,
         payload: {
-          kind: "buyer_enquiry",
+          kind: isFinancingRequest ? "financing_request" : "buyer_enquiry",
           listingTitle,
         },
         deliveries: [
           {
             recipientId: listing.seller_id,
-            title: `New enquiry on ${listingTitle}`,
+            title: `${isFinancingRequest ? "New financing request" : "New enquiry"} on ${listingTitle}`,
             body: message.slice(0, 160),
             href: getMessagingHref("seller", thread.id),
             metadata: {
@@ -313,8 +360,17 @@ export async function POST(
               listingTitle,
             },
           },
+          ...(isFinancingRequest && canQueueFinancingEmail ? [{
+            recipientId: listing.seller_id,
+            channel: "email" as const,
+            title: `New financing request on ${listingTitle}`,
+            body: message,
+            href: getMessagingHref("seller", thread.id),
+            metadata: { threadId: thread.id, listingId: listing.id },
+          }] : []),
         ],
       });
+      financingEmailQueued = isFinancingRequest && canQueueFinancingEmail && Boolean(eventId);
     } catch (notificationError) {
       console.error("Failed to emit enquiry notification", notificationError);
     }
@@ -322,7 +378,8 @@ export async function POST(
     return NextResponse.json({
       success: true,
       threadId: thread.id,
-      message: "Enquiry sent. It is saved in Messages and delivered to the seller.",
+      ...(isFinancingRequest ? { emailQueued: financingEmailQueued } : {}),
+      message: isFinancingRequest ? financingResponseMessage(financingEmailQueued) : "Enquiry sent. It is saved in Messages and delivered to the seller.",
     });
   } catch (error) {
     console.error("Failed to submit listing enquiry", error);

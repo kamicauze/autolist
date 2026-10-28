@@ -182,7 +182,7 @@ export function VehicleLoanCalculator({
         className="w-full bg-primary text-white hover:bg-primary/90"
         onClick={onApplyForFinancing}
       >
-        Apply for Financing
+        Request for financing
       </Button>
     </div>
   );

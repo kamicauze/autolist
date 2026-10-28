@@ -940,6 +940,8 @@ export function VehiclePageClient({
 
 
       <FinancingRequestDialog
+        listingId={listing.id}
+        recipientName={listing.dealer?.name || listing.seller?.full_name || "the seller"}
         open={isFinancingDialogOpen}
         onOpenChange={setIsFinancingDialogOpen}
         title={title}
