@@ -15,7 +15,6 @@ import {
   Loader2,
   MapPin,
   ShieldCheck,
-  Share2,
   Video,
 } from "lucide-react";
 import { setListingWishlistState } from "@/lib/actions/favorites";
@@ -49,6 +48,7 @@ import {
 import { FinancingRequestDialog } from "./financing-request-dialog";
 import { ReportAdDialog } from "./report-ad-dialog";
 import { QuickContactQr } from "./quick-contact-qr";
+import { ShareListingButton } from "./share-listing-button";
 import {
   getListingTrim,
   getListingVariant,
@@ -546,13 +546,7 @@ export function VehiclePageClient({
                 >
                   {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompare className="h-3.5 w-3.5" />}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-gray-600" />
-                </Button>
+                <ShareListingButton listingId={listing.id} title={title} />
                 {canFavorite && <Button
                   variant="outline"
                   size="icon"
