@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListingInteractionInsights } from "@/components/dashboard/listing-interaction-insights";
 import { PageInsightsChart } from "@/components/dashboard/page-insights-chart";
 import { DashboardStatCards, type DashboardStat } from "@/components/dashboard/dashboard-stat-cards";
 import { ListingsTable } from "@/components/dashboard/listings-table";
@@ -101,6 +102,8 @@ export default async function DashboardPage() {
       <DashboardStatCards stats={dashboardStats} />
 
       <ListingsTable listings={recentListings} />
+
+      <ListingInteractionInsights listingIds={listingsResult.error ? null : listingItems.map(listing => listing.id)} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <PageInsightsChart />

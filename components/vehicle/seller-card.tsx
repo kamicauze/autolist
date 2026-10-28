@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { recordListingInteraction } from "@/lib/actions/listing-interactions";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -332,7 +333,7 @@ export function SellerCard({
             {callNumber ? (
               isPhoneRevealed ? (
                 <Button asChild variant="default" size="sm" className="h-auto min-h-9 min-w-0 gap-2 whitespace-normal py-2">
-                  <a ref={phoneLinkRef} href={`tel:${callNumber.replace(/\s+/g, "")}`} aria-label={`Call ${callNumber}`}>
+                  <a onClick={() => { void recordListingInteraction({ listingId, interaction: "call" }).catch(() => {}); }} ref={phoneLinkRef} href={`tel:${callNumber.replace(/\s+/g, "")}`} aria-label={`Call ${callNumber}`}>
                     <Phone className="h-4 w-4" />
                     <span className="break-all">{callNumber}</span>
                   </a>

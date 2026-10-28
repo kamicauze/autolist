@@ -14,6 +14,7 @@ const compiled = ts.transpileModule(source, { compilerOptions: {
 } }).outputText;
 
 function sellerHarness(initialProps: Record<string, unknown>) {
+  const interactions: unknown[] = [];
   let stateIndex = 0;
   const states: unknown[] = [];
   const componentModule = { exports: {} as { SellerCard: (props: unknown) => Element } };
@@ -33,6 +34,7 @@ function sellerHarness(initialProps: Record<string, unknown>) {
         jsxs: (type: unknown, props: Element["props"]) => ({ type, props }),
         Fragment: "fragment",
       };
+      if (name.endsWith("/listing-interactions")) return { recordListingInteraction: async (input: unknown) => { interactions.push(input); } };
       if (name === "next/image") return "image";
       if (name === "next/link") return "link";
       if (name.endsWith("/button")) return { Button: "button" };
@@ -43,6 +45,7 @@ function sellerHarness(initialProps: Record<string, unknown>) {
     },
   });
   return {
+    interactions,
     render: (overrides: Record<string, unknown> = {}) => {
       stateIndex = 0;
       return componentModule.exports.SellerCard({ listingId: "sample-listing", listingTitle: "Sample vehicle", ...initialProps, ...overrides });
@@ -75,6 +78,10 @@ test("private phone contacts are revealed before dialing and reset for a differe
   tree = seller.render();
   assert.equal(revealButton(tree), undefined);
   const link = telephoneLinks(tree)[0];
+  assert.equal(seller.interactions.length, 0);
+  (link.props.onClick as () => void)();
+  assert.equal(seller.interactions.length, 1);
+  assert.equal((seller.interactions[0] as { interaction: string }).interaction, "call");
   assert.equal(link.props.href, "tel:+254700000001");
   assert.equal(link.props["aria-label"], "Call +254 700 000 001");
   assert.ok(elements(link).some((node) => node.type === "span" && node.props.children === privateContact.phoneNumber));

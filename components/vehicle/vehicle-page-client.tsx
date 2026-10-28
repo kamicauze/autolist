@@ -30,6 +30,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ImageGallery } from "./image-gallery";
+import { recordListingInteraction } from "@/lib/actions/listing-interactions";
 import { SellerCard } from "./seller-card";
 import { getPrivateListingContact } from "@/lib/utils/listing-contact";
 import { normalizeWhatsAppPhone } from "@/lib/utils/phone";
@@ -627,7 +628,10 @@ export function VehiclePageClient({
                 <VehicleLoanCalculator
                   price={Number(listing.price)}
                   currency={listing.currency}
-                  onApplyForFinancing={() => setIsFinancingDialogOpen(true)}
+                  onApplyForFinancing={() => {
+                    setIsFinancingDialogOpen(true);
+                    void recordListingInteraction({ listingId: listing.id, interaction: "financing" }).catch(() => {});
+                  }}
                 />
               </TabsContent>
             </Tabs>
@@ -808,7 +812,10 @@ export function VehiclePageClient({
                 <VehicleLoanCalculator
                   price={Number(listing.price)}
                   currency={listing.currency}
-                  onApplyForFinancing={() => setIsFinancingDialogOpen(true)}
+                  onApplyForFinancing={() => {
+                    setIsFinancingDialogOpen(true);
+                    void recordListingInteraction({ listingId: listing.id, interaction: "financing" }).catch(() => {});
+                  }}
                 />
               </AccordionSection>
 
