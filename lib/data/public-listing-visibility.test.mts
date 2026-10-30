@@ -39,7 +39,9 @@ test("public marketplace reads exclude dealer-only rows even when session RLS pe
   assert.equal(await listings.countMatchingListings({ category: "car" }), 2);
   expectPublic(await listings.getListingsByIds(inventory.map(row => row.id)));
   expectPublic(await listings.getSimilarListings({ ...inventory[0], id: "source" } as never));
-  expectPublic(await getDealerInventory("dealer"));
+  const dealerInventory = await getDealerInventory("dealer");
+  expectPublic(dealerInventory.listings);
+  assert.equal(dealerInventory.total, 2);
   assert.equal(await listings.getListingById("private-request"), null);
   assert.equal((await listings.getListingById("public-standard"))?.id, "public-standard");
   assert.ok(queryTables.every(table => table === "listings"));

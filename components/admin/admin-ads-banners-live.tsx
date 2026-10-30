@@ -302,7 +302,7 @@ function PreviewBannerCreative({
   return (
     <div
       className={cn(
-        "relative isolate flex min-h-[128px] overflow-hidden rounded-[14px] border border-primary bg-[#eff6ff]",
+        "relative isolate flex min-h-[128px] overflow-hidden rounded-[14px] border border-primary bg-brand-soft-surface",
         mode === "tall" ? "h-full min-h-[280px]" : null,
         mode === "hero" ? "min-h-[220px]" : null
       )}
@@ -314,7 +314,7 @@ function PreviewBannerCreative({
           className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#dbeafe] text-[12px] font-semibold text-primary">
+        <div className="absolute inset-0 flex items-center justify-center bg-brand-tint-strong text-[12px] font-semibold text-primary">
           No creative selected
         </div>
       )}
@@ -956,7 +956,7 @@ export function AdminAdsBannersLive({
                             "grid min-h-[150px] grid-cols-1 gap-3 rounded-[14px] border p-3 text-left transition active:translate-y-[1px] sm:grid-cols-[112px_minmax(0,1fr)]",
                             selected
                               ? "border-primary bg-brand-soft-surface"
-                              : "border-[#e5e7eb] bg-white hover:border-[#bfdbfe]"
+                              : "border-[#e5e7eb] bg-white hover:border-primary"
                           )}
                           aria-pressed={selected}
                         >

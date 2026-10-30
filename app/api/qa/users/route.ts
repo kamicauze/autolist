@@ -10,7 +10,7 @@ const QA_ROLES = new Set<UserRole>(["buyer", "seller", "dealer"]);
 const DEALER_STATUSES = new Set<QaDealerStatus>(["PENDING", "APPROVED", "REJECTED"]);
 
 function isQaToolsEnabled() {
-  return process.env.QA_TOOLS_ENABLED === "true";
+  return process.env.VERCEL_ENV !== "production" && process.env.QA_TOOLS_ENABLED === "true";
 }
 
 function isAuthorized(request: Request) {

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
   CalendarRange,
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { createClient } from "@/lib/supabase/client";
-import { activateSellerPackagePlan } from "@/lib/actions/membership";
 import {
   SELLER_PACKAGE_PLANS,
   getSellerMembershipDashboardData,
@@ -21,7 +19,6 @@ import {
 import type {
   SellerMembershipDashboardData,
   SellerPackagePaymentProvider,
-  SellerPackagePlan,
 } from "@/lib/types/membership";
 import {
   SellerPageHeader,
@@ -123,26 +120,6 @@ async function loadMembershipForCurrentUser() {
   };
 }
 
-function getPlanButtonLabel({
-  plan,
-  activePlanId,
-  hasActivePlan,
-}: {
-  plan: SellerPackagePlan;
-  activePlanId: string | null;
-  hasActivePlan: boolean;
-}) {
-  if (activePlanId === plan.id) {
-    return "Current Plan";
-  }
-
-  if (hasActivePlan) {
-    return "Switch Plan";
-  }
-
-  return "Choose Plan";
-}
-
 export function MembershipPage() {
   const [tab, setTab] = React.useState("packages");
   const [dashboardData, setDashboardData] =
@@ -150,11 +127,6 @@ export function MembershipPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [audience, setAudience] = React.useState<MembershipAudience | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
-  const [actionError, setActionError] = React.useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = React.useState<string | null>(null);
-  const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
-  const [isPending, startTransition] = React.useTransition();
-  const router = useRouter();
 
   React.useEffect(() => {
     let isMounted = true;
@@ -194,21 +166,15 @@ export function MembershipPage() {
     };
   }, []);
 
-  const activePlanId = dashboardData.access.currentPlan?.id ?? null;
   const isIntroTrialActive =
     dashboardData.access.activeEntitlement?.metadata?.intro_trial === true;
   const membershipStats = [
     {
-      label: "Available listing",
-      value:
-        dashboardData.access.remainingListings === null
-          ? "Unlimited"
-          : String(dashboardData.access.remainingListings ?? 0),
+      label: "Listing access",
+      value: "Free during pilot",
       icon: BadgeCheck,
       asset: "verified-badge" as const,
-      note: dashboardData.access.currentPlan
-        ? `${dashboardData.access.currentPlan.name}${isIntroTrialActive ? " intro" : ""} plan`
-        : "No active package",
+      note: "No paid package required",
     },
     {
       label: "Used listing",
@@ -219,14 +185,14 @@ export function MembershipPage() {
       note: "Draft, pending, active, and reserved listings",
     },
     {
-      label: "Renewal due",
-      value: dashboardData.access.renewalDateLabel || "No plan",
+      label: "Existing access through",
+      value: dashboardData.access.renewalDateLabel || "No expiry set",
       icon: CalendarRange,
       asset: "calendar" as const,
       tone: "warning" as const,
       note: dashboardData.access.hasActivePlan
         ? "Auto-renew is off"
-        : "Activate a seller package",
+        : "No purchase required during pilot",
     },
     {
       label: "Billing cycle",
@@ -241,47 +207,6 @@ export function MembershipPage() {
         : "No package charges recorded",
     },
   ];
-
-  const handlePlanSelection = (planId: SellerPackagePlan["id"]) => {
-    startTransition(async () => {
-      setSelectedPlanId(planId);
-      setActionError(null);
-      setActionSuccess(null);
-
-      const result = await activateSellerPackagePlan(planId);
-
-      if (result.error) {
-        setActionError(result.error);
-        setSelectedPlanId(null);
-        return;
-      }
-
-      try {
-        const refreshed = await loadMembershipForCurrentUser();
-        setDashboardData(refreshed.data);
-        setLoadError(refreshed.error);
-        setAudience(refreshed.audience);
-        router.refresh();
-        setActionSuccess(
-          result.renewalDate
-            ? `${result.planName} ${result.trialApplied ? "intro trial" : "package"} activated. ${result.trialApplied ? "Access runs through" : "Renewal due"} ${new Date(result.renewalDate).toLocaleDateString("en-KE", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}.`
-            : `${result.planName} activated.`
-        );
-      } catch (error) {
-        setActionError(
-          error instanceof Error
-            ? error.message
-            : "Package activated, but the dashboard could not refresh."
-        );
-      } finally {
-        setSelectedPlanId(null);
-      }
-    });
-  };
 
   if (isLoading && audience === null) {
     return (
@@ -364,8 +289,6 @@ export function MembershipPage() {
     );
   }
 
-  const canManagePlans = audience === "dealer";
-
   return (
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
@@ -373,33 +296,13 @@ export function MembershipPage() {
         description={
           audience === "sales_agent"
             ? "Review the dealership package and recent billing activity. Sales reps have read-only access."
-            : "Choose the package that fits your dealership inventory, compare coverage, and review recent billing activity."
+            : "Dealer listings are free during the pilot. Paid package purchases are unavailable."
         }
       />
 
-      {(loadError || actionError || actionSuccess) ? (
-        <div className="space-y-3">
-          {loadError ? (
-            <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
-              {loadError}
-            </div>
-          ) : null}
-          {actionError ? (
-            <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
-              {actionError}
-            </div>
-          ) : null}
-          {actionSuccess ? (
-            <div className="rounded-[18px] border border-[#d1fadf] bg-[#eefaf2] px-4 py-3 text-[14px] text-[#2f9e63]">
-              {actionSuccess}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {dashboardData.entitlements.length === 0 ? (
-        <div className="rounded-[18px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[14px] text-brand-hover">
-          First activation on a seller account runs as a free 6-month intro membership.
+      {loadError ? (
+        <div className="rounded-[18px] border border-[#ffd9d6] bg-[#fff3f2] px-4 py-3 text-[14px] text-[#d92d20]">
+          {loadError}
         </div>
       ) : null}
 
@@ -416,7 +319,7 @@ export function MembershipPage() {
               Membership Package
             </h2>
             <p className="mt-1 text-[13px] text-[#7a7a7a]">
-              Select a plan for your seller account or review prior package payments.
+              Review your free pilot access or existing payment history.
             </p>
           </div>
           <SellerTabs
@@ -430,77 +333,19 @@ export function MembershipPage() {
         </div>
 
         {tab === "packages" ? (
-          <div className="grid gap-5 p-6 xl:grid-cols-3">
-            {dashboardData.plans.map((plan, index) => {
-              const isActive = activePlanId === plan.id;
-              const highlighted = isActive || (!activePlanId && index === 1);
-
-              return (
-                <article
-                  key={plan.id}
-                  className={[
-                    "rounded-[26px] border p-6 transition",
-                    highlighted
-                      ? "border-primary bg-brand-tint shadow-[0_18px_36px_rgb(var(--primary-rgb)/0.12)]"
-                      : "border-[#ededed] bg-white",
-                  ].join(" ")}
-                >
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
-                    {isActive ? "Active package" : highlighted ? "Recommended" : "Seller package"}
-                  </p>
-                  <h3 className="mt-4 font-heading text-[28px] font-semibold text-[#202224]">
-                    {plan.name}
-                  </h3>
-                  <p className="mt-4 font-heading text-[34px] font-semibold text-[#202224]">
-                    {plan.priceLabel}
-                    <span className="ml-1 text-[15px] font-medium text-[#7d7d7d]">
-                      {plan.periodLabel}
-                    </span>
-                  </p>
-
-                  {isActive ? (
-                    <p className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-primary">
-                      {isIntroTrialActive
-                        ? "Free intro active"
-                        : dashboardData.access.remainingListings === null
-                          ? "Unlimited listing access"
-                          : `${dashboardData.access.remainingListings ?? 0} listing slots left`}
-                    </p>
-                  ) : null}
-
-                  <ul className="mt-6 space-y-3 text-[14px] leading-6 text-[#666]">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-3">
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    type="button"
-                    onClick={() => handlePlanSelection(plan.id)}
-                    disabled={!canManagePlans || isLoading || isPending || isActive}
-                    className={[
-                      "mt-8 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
-                      highlighted
-                        ? "bg-primary text-white hover:bg-brand-hover"
-                        : "border border-[#d9d9d9] bg-white text-[#202224] hover:border-primary hover:text-primary",
-                    ].join(" ")}
-                  >
-                    {!canManagePlans
-                      ? "Read only"
-                      : selectedPlanId === plan.id && isPending
-                      ? "Activating..."
-                      : getPlanButtonLabel({
-                          plan,
-                          activePlanId,
-                          hasActivePlan: dashboardData.access.hasActivePlan,
-                        })}
-                  </button>
-                </article>
-              );
-            })}
+          <div className="px-6 py-8">
+            <h3 className="font-heading text-[24px] font-semibold text-[#202224]">
+              No purchase is needed during the pilot
+            </h3>
+            <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#666]">
+              Create and submit dealer listings without activating a paid package. Existing membership and payment records remain available for reference.
+            </p>
+            <Link
+              href="/dashboard/listings/new"
+              className="mt-6 inline-flex h-12 items-center justify-center rounded-[14px] bg-primary px-5 text-[14px] font-semibold text-white transition hover:bg-brand-hover"
+            >
+              View listing access
+            </Link>
           </div>
         ) : dashboardData.paymentHistory.length > 0 ? (
           <div className="space-y-4 p-6">
@@ -546,7 +391,7 @@ export function MembershipPage() {
               No payment history yet
             </p>
             <p className="mt-2 text-[14px] text-[#7a7a7a]">
-              Activate a seller package to start recording package charges on this account.
+              Paid package purchases are unavailable during the free pilot.
             </p>
           </div>
         )}

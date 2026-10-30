@@ -7,52 +7,23 @@ type Check = {
   requiredFor: string;
 };
 
+const build = process.argv.includes("--build");
+const production = process.argv.includes("--production") || (build && process.env.VERCEL_ENV === "production");
+const emailProvider = () => process.env.EMAIL_PROVIDER?.trim() || "resend";
 const checks: Check[] = [
-  {
-    key: "NEXT_PUBLIC_SUPABASE_URL",
-    label: "Supabase project URL",
-    requiredFor: "Auth, database, and storage access",
-  },
-  {
-    key: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    label: "Supabase anon key",
-    requiredFor: "Browser auth and Supabase client access",
-  },
-  {
-    key: "SUPABASE_SERVICE_ROLE_KEY",
-    label: "Supabase service role key",
-    requiredFor: "Admin scripts, sales-agent invites, and notification processor",
-  },
-  {
-    key: "NEXT_PUBLIC_SITE_URL",
-    label: "Public site URL",
-    requiredFor: "Invite links, OAuth redirects, and notification deep links",
-  },
-  {
-    key: "RESEND_API_KEY",
-    label: "Resend API key",
-    requiredFor: "Email delivery",
-  },
-  {
-    key: "EMAIL_FROM",
-    label: "Email from address",
-    requiredFor: "Email delivery sender identity",
-  },
-  {
-    key: "WHATSAPP_ACCESS_TOKEN",
-    label: "WhatsApp access token",
-    requiredFor: "WhatsApp Cloud API delivery",
-  },
-  {
-    key: "WHATSAPP_PHONE_NUMBER_ID",
-    label: "WhatsApp phone number id",
-    requiredFor: "WhatsApp Cloud API delivery",
-  },
-  {
-    key: "NOTIFICATION_PROCESS_SECRET",
-    label: "Notification processor secret",
-    requiredFor: "Protected /api/notifications/process route",
-  },
+  { key: "NEXT_PUBLIC_SUPABASE_URL", label: "Supabase project URL", requiredFor: "Auth, database and storage" },
+  { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "Supabase public key", requiredFor: "Browser auth" },
+  { key: "SUPABASE_SERVICE_ROLE_KEY", label: "Supabase service key", requiredFor: "Privileged server operations" },
+  { key: "NEXT_PUBLIC_SITE_URL", label: "Public site URL", requiredFor: "Auth redirects and notification links" },
+  { key: "R2_ACCOUNT_ID", label: "R2 account", requiredFor: "Listing media" },
+  { key: "R2_ACCESS_KEY_ID", label: "R2 access key", requiredFor: "Listing media" },
+  { key: "R2_SECRET_ACCESS_KEY", label: "R2 secret key", requiredFor: "Listing media" },
+  { key: "R2_BUCKET_NAME", label: "R2 bucket", requiredFor: "Listing media" },
+  { key: "NEXT_PUBLIC_R2_PUBLIC_URL", label: "Public media URL", requiredFor: "Listing images" },
+  { key: "EMAIL_FROM", label: "Verified email sender", requiredFor: "Email delivery" },
+  { key: "WHATSAPP_ACCESS_TOKEN", label: "WhatsApp token", requiredFor: "Phone verification" },
+  { key: "WHATSAPP_PHONE_NUMBER_ID", label: "WhatsApp phone number ID", requiredFor: "Phone verification" },
+  { key: "NOTIFICATION_PROCESS_SECRET", label: "Notification processor secret", requiredFor: "Protected delivery worker" },
 ];
 
 function loadLocalEnv() {
@@ -100,35 +71,48 @@ function statusFor(key: string) {
 }
 
 function main() {
-  loadLocalEnv();
-
-  const rows = checks.map((check) => ({
-    key: check.key,
-    label: check.label,
-    status: statusFor(check.key),
-    requiredFor: check.requiredFor,
+  if (build && !production) return;
+  // Production checks must inspect the supplied deployment environment. Local QA
+  // credentials must never make an incomplete production configuration pass.
+  if (!production) loadLocalEnv();
+  const providerChecks: Check[] = emailProvider() === "mailtrap"
+    ? [
+        { key: "MAILTRAP_API_TOKEN", label: "Mailtrap token", requiredFor: "Sandbox email" },
+        { key: "MAILTRAP_INBOX_ID", label: "Mailtrap inbox", requiredFor: "Sandbox email" },
+      ]
+    : [{ key: "RESEND_API_KEY", label: "Resend API key", requiredFor: "Live email delivery" }];
+  const productionChecks: Check[] = production ? [
+    { key: "SELLER_PHONE_OTP_SECRET", label: "Phone OTP signing secret", requiredFor: "Phone verification" },
+    { key: "WHATSAPP_OTP_TEMPLATE_NAME", label: "Approved authentication template", requiredFor: "Phone OTP delivery" },
+    { key: "WHATSAPP_OTP_TEMPLATE_LANGUAGE", label: "Authentication template language", requiredFor: "Phone OTP delivery" },
+  ] : [];
+  const rows = [...checks, ...providerChecks, ...productionChecks].map((check) => ({
+    ...check, status: statusFor(check.key),
   }));
-
-  const missing = rows.filter((row) => row.status === "missing");
   console.table(rows);
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (siteUrl) {
-    console.log(`OAuth callback URL: ${siteUrl.replace(/\/$/, "")}/auth/callback`);
-    console.log(`Sales-agent invite base: ${siteUrl.replace(/\/$/, "")}/join/sales-agent/[token]`);
+  const issues = rows.filter((row) => row.status === "missing").map((row) => `Missing ${row.key}`);
+  if (production) {
+    if (process.env.EMAIL_PROVIDER !== "resend") issues.push("Production EMAIL_PROVIDER must be resend.");
+    if (process.env.QA_TOOLS_ENABLED === "true") issues.push("QA account tools must be disabled in production.");
+    if ((process.env.SELLER_PHONE_OTP_SECRET?.trim().length || 0) < 32) {
+      issues.push("SELLER_PHONE_OTP_SECRET must contain at least 32 characters.");
+    }
+    for (const key of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_R2_PUBLIC_URL"]) {
+      try {
+        const url = new URL(process.env[key] || "");
+        if (url.protocol !== "https:" || ["localhost", "127.0.0.1"].includes(url.hostname)
+          || url.username || url.password || url.search || url.hash) throw new Error("Invalid public URL");
+      } catch {
+        issues.push(`${key} must be a public HTTPS URL without credentials or query parameters.`);
+      }
+    }
   }
-
-  if (missing.length > 0) {
-    console.log(
-      `Missing ${missing.length} integration setting${missing.length === 1 ? "" : "s"}: ${missing
-        .map((row) => row.key)
-        .join(", ")}`
-    );
+  if (issues.length) {
+    console.error(issues.join("\n"));
     process.exitCode = 1;
     return;
   }
-
-  console.log("All integration settings are present.");
+  console.log("Required application settings are present. Provider delivery, environment isolation and database permissions still require live acceptance.");
 }
 
 main();

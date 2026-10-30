@@ -138,7 +138,7 @@ export default function AdvertiseWithUsPage() {
                 ["Go live in 48 hours", "Once your creative is approved, your campaign goes live within 48 hours, with reporting on impressions, clicks and leads."],
               ].map(([title, description], index) => <li key={title}><p className="text-sm font-semibold text-primary">Step {index + 1}</p><h3 className="mt-2 text-lg font-semibold text-gray-900">{title}</h3><p className="mt-3 text-sm leading-6 text-gray-600">{description}</p></li>)}
             </ol>
-            <div className="mt-10 rounded-xl border border-blue-200 bg-blue-50 p-6 sm:p-8">
+            <div className="mt-10 rounded-xl border border-brand-muted-border bg-brand-soft-surface p-6 sm:p-8">
               <h3 className="text-xl font-semibold text-gray-900">Founding advertiser offer</h3>
               <p className="mt-3 text-base leading-7 text-gray-700">Get 30% off your first three months. Limited placements are available. Contact our sales team to claim the offer and confirm your placement.</p>
               <Link href="#contact-sales" className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline">Ask about the founding advertiser offer</Link>

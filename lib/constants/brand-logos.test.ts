@@ -21,7 +21,7 @@ assert.equal(BRAND_LOGO_BY_MAKE.Honda.colorClass, "text-[#cc0000]");
 test("every supported make has a local, decodable brand logo", async () => {
   for (const make of [...ALL_MAKES, "MINI"]) {
     const { src } = getBrandLogo(make);
-    assert.ok(src?.startsWith("/brands/"), `${make} must have an actual logo`);
+    assert.ok(src && src.startsWith("/brands/"), `${make} must have an actual logo`);
     const file = await readFile(resolve(process.cwd(), "public", src.slice(1)));
     if (src.endsWith(".svg")) {
       const svg = file.toString("utf8");

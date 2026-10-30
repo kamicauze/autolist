@@ -75,7 +75,15 @@ async function sendMailtrapEmail(input: EmailInput): Promise<DeliveryResult> {
 }
 
 export async function sendProviderEmail(input: EmailInput): Promise<DeliveryResult> {
-  if (process.env.EMAIL_PROVIDER === "mailtrap") {
+  const production = process.env.VERCEL_ENV === "production";
+  const sandbox = process.env.EMAIL_PROVIDER === "mailtrap";
+  if (production && sandbox) {
+    return { success: false, skipped: true, error: "Sandbox email delivery is disabled in production." };
+  }
+  if (!production && !sandbox) {
+    return { success: false, skipped: true, error: "Non-production email must use the Mailtrap sandbox." };
+  }
+  if (sandbox) {
     return sendMailtrapEmail(input);
   }
 
@@ -113,7 +121,7 @@ export async function sendProviderEmail(input: EmailInput): Promise<DeliveryResu
   return { success: true, externalId: payload?.id || null };
 }
 
-export async function sendProviderWhatsApp(input: WhatsAppInput): Promise<DeliveryResult> {
+async function sendWhatsAppMessage(input: WhatsAppInput | { to: string; code: string }): Promise<DeliveryResult> {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const apiVersion = process.env.WHATSAPP_API_VERSION || "v21.0";
@@ -131,6 +139,24 @@ export async function sendProviderWhatsApp(input: WhatsAppInput): Promise<Delive
     return { success: false, skipped: true, error: "Recipient WhatsApp number is missing." };
   }
 
+  const otp = "code" in input ? input.code : null;
+  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME?.trim();
+  const templateLanguage = process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE?.trim();
+  if (otp !== null && (!/^\d{6}$/.test(otp) || !templateName || !templateLanguage)) {
+    return { success: false, skipped: true, error: "WhatsApp phone verification template is not configured or the code is invalid." };
+  }
+  const message = "code" in input ? {
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: templateLanguage },
+      components: [
+        { type: "body", parameters: [{ type: "text", text: input.code }] },
+        { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: input.code }] },
+      ],
+    },
+  } : { type: "text", text: { preview_url: false, body: input.body } };
+
   const response = await fetch(
     `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`,
     {
@@ -142,11 +168,7 @@ export async function sendProviderWhatsApp(input: WhatsAppInput): Promise<Delive
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: input.body,
-        },
+        ...message,
       }),
     }
   );
@@ -162,5 +184,15 @@ export async function sendProviderWhatsApp(input: WhatsAppInput): Promise<Delive
     };
   }
 
-  return { success: true, externalId: payload?.messages?.[0]?.id || null };
+  const externalId = payload?.messages?.[0]?.id;
+  if (!externalId) return { success: false, error: "WhatsApp did not acknowledge the message." };
+  return { success: true, externalId };
+}
+
+export async function sendProviderWhatsApp(input: WhatsAppInput): Promise<DeliveryResult> {
+  return sendWhatsAppMessage(input);
+}
+
+export async function sendProviderPhoneOtp(input: { to: string; code: string }): Promise<DeliveryResult> {
+  return sendWhatsAppMessage(input);
 }

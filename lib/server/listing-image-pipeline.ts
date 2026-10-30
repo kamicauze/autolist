@@ -1,7 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import { nanoid } from "nanoid";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 import { r2 } from "@/lib/r2";
 import { buildListingWatermarkSvgMarkup } from "@/lib/server/listing-watermark";
 import { buildListingImageVariantKey } from "@/lib/utils/image-variants";
@@ -85,7 +85,7 @@ async function sampleBrightness(bytes: Buffer) {
   return pixels > 0 ? total / (pixels * 3) : 128;
 }
 
-async function computeDHashFromSharp(image: sharp.Sharp) {
+async function computeDHashFromSharp(image: Sharp) {
   const { data, info } = await image
     .grayscale()
     .resize(9, 8, { fit: "fill" })
@@ -186,7 +186,7 @@ async function uploadBuffer(key: string, bytes: Buffer, contentType: string) {
   );
 }
 
-async function addWatermark(image: sharp.Sharp) {
+async function addWatermark(image: Sharp) {
   // Raw pixels avoid a lossy re-encode in the input format before compositing.
   const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
 

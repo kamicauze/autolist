@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { isSellerVerificationSchemaUnavailable } from "@/lib/data/seller-verification";
-import { sendProviderWhatsApp } from "@/lib/server/delivery-providers";
+import { sendProviderPhoneOtp } from "@/lib/server/delivery-providers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SellerVerificationDocumentType } from "@/lib/types/seller-verification";
@@ -392,9 +392,9 @@ export async function requestSellerPhoneOtp(rawPhone: string) {
 
     if (challengeError) return { error: challengeError.message };
 
-    const delivery = await sendProviderWhatsApp({
+    const delivery = await sendProviderPhoneOtp({
       to: phone,
-      body: `Your Autolist phone verification code is ${code}. It expires in 10 minutes. Do not share this code.`,
+      code,
     });
 
     if (!delivery.success) {

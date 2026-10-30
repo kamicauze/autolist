@@ -6,8 +6,11 @@
     "admin:ensure": "tsx scripts/ensure-admin.ts",
     "integrations:check": "tsx scripts/check-integrations.ts",
     "dev": "NEXT_DIST_DIR=.next-dev next dev --webpack",
+    "prebuild": "tsx scripts/check-integrations.ts --build",
     "build": "next build",
     "start": "next start",
+    "test": "node scripts/test.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -38,15 +41,16 @@
     "lucide-react": "^0.563.0",
     "mammoth": "^1.12.0",
     "mime": "^4.1.0",
-    "nanoid": "^5.1.6",
-    "next": "^16.2.6",
+    "nanoid": "5.1.16",
+    "next": "16.4.3",
     "pdf-parse": "^2.4.5",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sharp": "^0.34.5",
+    "server-only": "0.0.1",
+    "sharp": "0.35.5",
     "tailwind-merge": "^3.4.0",
-    "zod": "^4.3.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.0",
@@ -64,7 +68,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.2.6",
+    "eslint-config-next": "16.4.3",
     "storybook": "^10.2.1",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
@@ -74,6 +78,7 @@
   "overrides": {
     "hermes-estree": "0.36.1",
     "hermes-parser": "0.36.1",
-    "postcss": "8.5.15"
+    "postcss": "8.5.32",
+    "source-map-js": "1.2.2"
   }
 }

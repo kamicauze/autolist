@@ -48,9 +48,9 @@ export default async function AboutPage() {
             <div className="mt-5"><RichContentRenderer body={page.body} /></div>
             {page.publishedAt ? <p className="mt-5 text-xs text-gray-500">Published {formatContentPageDate(page.publishedAt)}</p> : null}
           </div>
-          <aside className="self-start rounded-2xl border border-blue-100 bg-blue-50 p-6 sm:p-8">
+          <aside className="self-start rounded-2xl border border-brand-muted-border bg-brand-soft-surface p-6 sm:p-8">
             <h3 className="text-xl font-semibold text-gray-900">At a glance</h3>
-            <dl className="mt-5 divide-y divide-blue-100">
+            <dl className="mt-5 divide-y divide-brand-muted-border">
               {[
                 ["Marketplace", "Vehicle buying and selling"],
                 ["Who we serve", "Buyers, private sellers and dealerships"],
@@ -61,7 +61,7 @@ export default async function AboutPage() {
           </aside>
         </section>
 
-        <section className="border-y border-blue-100 bg-blue-50/60">
+        <section className="border-y border-brand-muted-border bg-brand-soft-surface/60">
           <div className={sectionClass}>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">What drives us</p>
             <h2 className="mt-3 font-heading text-3xl font-semibold text-gray-900">Built around trust, clarity and progress</h2>

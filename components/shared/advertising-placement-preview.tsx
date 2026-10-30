@@ -33,7 +33,7 @@ function SampleAd({ name, business, headline, compact = false }: { name: string;
       <p className="bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-white">Your ad · {name}</p>
       <div className={`relative flex flex-1 overflow-hidden bg-slate-900 text-white ${compact ? "min-h-48 flex-col" : "min-h-40 sm:min-h-48"}`}>
         <div className={`relative z-10 flex min-w-0 flex-1 flex-col justify-center p-4 ${compact ? "" : "sm:p-6"}`}>
-          <p className="break-words text-xs font-semibold text-blue-200">{business}</p>
+          <p className="break-words text-xs font-semibold text-white/80">{business}</p>
           <p className={`mt-3 break-words font-semibold leading-tight ${compact ? "text-lg" : "text-xl sm:text-2xl"}`}>{headline}</p>
           <p className="mt-2 text-[11px] leading-5 text-slate-300">Explore our latest vehicles and offers.</p>
           <span className="mt-4 self-start rounded bg-white px-3 py-2 text-[11px] font-bold text-slate-900">Explore offers →</span>
@@ -76,7 +76,7 @@ export function AdvertisingPlacementPreview({ placements }: { placements: readon
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">See exactly where your ad goes</p>
         <h2 className="mt-3 text-2xl font-semibold text-gray-900">Preview your advert on Autolist</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Choose a placement, then add your business name. The blue outline marks the advertising space you are buying; the surrounding content shows where it appears.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Choose a placement, then add your business name. The highlighted outline marks the advertising space you are buying; the surrounding content shows where it appears.</p>
         <div className="mt-7 grid items-start gap-7 lg:grid-cols-[0.55fr_1fr]">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
             <label htmlFor={`${fieldId}-placement`} className="block text-sm font-semibold text-gray-900">1. Choose an advertising placement</label>
@@ -95,7 +95,7 @@ export function AdvertisingPlacementPreview({ placements }: { placements: readon
             <a href="#contact-sales" className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary/90">Ask sales about this placement</a>
           </div>
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><p className="font-semibold text-gray-900">3. Your ad in context: {format.page}</p><p className="font-semibold text-primary">Blue outline = your paid placement</p></div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><p className="font-semibold text-gray-900">3. Your ad in context: {format.page}</p><p className="font-semibold text-primary">Highlighted outline = your paid placement</p></div>
             <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm" role="img" aria-label={`${selected.name} preview on ${format.page}. ${format.description} Advertiser: ${business}.${profile ? "" : ` Headline: ${headline}`}`}>
               <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-100 px-3 py-2 text-[10px] text-gray-500"><span>{email ? "Inbox / Autolist weekly digest" : `autolist.co.ke / ${format.page}`}</span><span>Example layout</span></div>
               <div aria-hidden="true">
