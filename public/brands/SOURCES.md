@@ -68,3 +68,19 @@ GWM uses the current mark downloaded directly from the [official GWM global home
 | Volkswagen | [volkswagen.svg](volkswagen.svg) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/volkswagen-logo.svg) |
 | Volvo | [volvo.svg](volvo.svg) | [Simple Icons source](https://raw.githubusercontent.com/simple-icons/simple-icons/90646e4bf7f3b89df6c37e65baf3e7bc759a517c/icons/volvo.svg) |
 | MINI (existing supported make) | [mini.svg](mini.svg) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/mini-logo.svg) |
+
+## Additional makes — October 30, 2026
+
+The following seven assets reuse the pinned VehicleSpecs source and license above. ICAUR and Lepas are downloaded from official brand sites. Lepas retains its original vector geometry with white fill changed to dark grey for legibility on the white make cards; its XML declaration and external DTD declaration are removed.
+
+| Catalog make | Local asset | Download source |
+| --- | --- | --- |
+| BAIC | [baic.svg](baic.svg) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/baic-logo.svg) |
+| Haval | [haval.png](haval.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/haval-logo.png) |
+| ICAUR | [icaur.png](icaur.png) | [source](https://www.icaur.com.co/wp-content/uploads/2026/09/Logo_iCAUR_negro.png) |
+| Lepas | [lepas.svg](lepas.svg) | [source](https://www.lepasinternational.com/data/tms/website/html/images/logo.svg) |
+| Mahindra | [mahindra.png](mahindra.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/mahindra-logo.png) |
+| Maxus | [maxus.png](maxus.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/maxus-logo.png) |
+| Proton | [proton.png](proton.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/proton-logo.png) |
+| Xpeng | [xpeng.png](xpeng.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/xpeng-logo.png) |
+| Zeekr | [zeekr.png](zeekr.png) | [source](https://raw.githubusercontent.com/vehiclespecs/brand-logos/3f0929e70e0a9a2a502063edc4b3e5c0146cba74/zeekr-logo.png) |

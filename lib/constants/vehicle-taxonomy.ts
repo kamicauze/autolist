@@ -164,9 +164,9 @@ export const BIKE_MAKES: readonly string[] = [
 ];
 
 export const TRUCK_MAKES: readonly string[] = [
-  "Bedford", "DAF", "Dongfeng", "FAW", "Foton", "Fuso", "Hino", "Howo", "Isuzu", "Iveco",
+  "Ashok Leyland", "Bedford", "DAF", "Dongfeng", "FAW", "Foton", "Fuso", "Hino", "Howo", "Isuzu", "Iveco",
   "MAN", "Mitsubishi Fuso", "Mercedes Benz", "Nissan Diesel", "Renault", "Scania", "Shacman",
-  "UD Trucks", "Volvo", "Yutong",
+  "Tata", "Toyota", "UD Trucks", "Volvo", "Yutong",
 ];
 
 export const PLANT_TAXONOMY: readonly TaxonomyNode[] = [
@@ -333,7 +333,7 @@ export const BIKE_BODY_TYPES: readonly string[] = [
 ];
 
 export const TRUCK_BODY_TYPES: readonly string[] = [
-  "Beavertail", "Box", "Chassis Cab", "Coach", "Concrete Mixer", "Crane Mounted",
+  "Beavertail", "Box", "Bus", "Chassis Cab", "Coach", "Concrete Mixer", "Crane Mounted",
   "Curtain Side", "Dropside", "Flatbed", "Gritter Truck", "Hook Loader", "Municipal",
   "Pantechnician", "Road Sweeper", "Skip Loader", "Tanker", "Temperature Controlled", "Tipper",
   "Tipper Grab", "Tractor Unit", "Vehicle Transporter",

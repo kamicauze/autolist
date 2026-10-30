@@ -175,6 +175,10 @@ const chery: CarMakeData = {
   name: "Chery",
   trims: ["Aspire", "Distinction", "Summit", "Executive", "Premium"],
   models: [
+    { name: "Tiggo 4 Pro" },
+    { name: "Tiggo 7 Pro" },
+    { name: "Tiggo 8 Pro" },
+    { name: "Tiggo Cross" },
     { name: "Tiggo 7" },
     { name: "Tiggo 8" },
     { name: "Tiggo 9" },
@@ -1352,7 +1356,300 @@ const volvo: CarMakeData = {
 // Aggregated export
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Additions supplied in Additional Makes.docx (30 October 2026).
+const baic: CarMakeData = {
+  "name": "BAIC",
+  "trims": [
+    "Base",
+    "City Hunter",
+    "Chamion",
+    "Dynamic",
+    "Elite",
+    "Elite Adventure",
+    "Premium"
+  ],
+  "models": [
+    {
+      "name": "B30"
+    },
+    {
+      "name": "B40"
+    },
+    {
+      "name": "D20"
+    },
+    {
+      "name": "X25"
+    },
+    {
+      "name": "X55"
+    }
+  ]
+};
+
+const haval: CarMakeData = {
+  "name": "Haval",
+  "trims": [
+    "Base",
+    "Premium",
+    "Luxury",
+    "Ultra",
+    "Max"
+  ],
+  "models": [
+    {
+      "name": "H1"
+    },
+    {
+      "name": "H2"
+    },
+    {
+      "name": "H6"
+    },
+    {
+      "name": "H6 GT"
+    },
+    {
+      "name": "H6C"
+    },
+    {
+      "name": "H7"
+    },
+    {
+      "name": "H9"
+    },
+    {
+      "name": "Jolion"
+    },
+    {
+      "name": "Jolion Pro"
+    }
+  ]
+};
+
+const icaur: CarMakeData = {
+  "name": "ICAUR",
+  "trims": [
+    "Classic",
+    "Premium",
+    "Flagship",
+    "Royal"
+  ],
+  "models": [
+    {
+      "name": "03T"
+    },
+    {
+      "name": "V23"
+    },
+    {
+      "name": "V27"
+    }
+  ]
+};
+
+const lepas: CarMakeData = {
+  "name": "Lepas",
+  "trims": [
+    "Amur",
+    "Javan",
+    "Pantera",
+    "Essense",
+    "Elevate"
+  ],
+  "models": [
+    {
+      "name": "L4"
+    },
+    {
+      "name": "L6"
+    }
+  ]
+};
+
+const mahindra: CarMakeData = {
+  "name": "Mahindra",
+  "trims": [],
+  "models": [
+    {
+      "name": "Bolero",
+      "trims": [
+        "B4",
+        "B6",
+        "B8"
+      ]
+    },
+    {
+      "name": "Scorpio",
+      "trims": [
+        "S",
+        "S11"
+      ]
+    },
+    {
+      "name": "Scorpio Safari",
+      "trims": [
+        "S6",
+        "S11"
+      ]
+    },
+    {
+      "name": "Scorpio-N",
+      "trims": [
+        "Z2",
+        "Z4",
+        "Z6",
+        "Z8S",
+        "Z8",
+        "Z8T",
+        "Z8L"
+      ]
+    },
+    {
+      "name": "XUV400 EV",
+      "trims": [
+        "EC PRO",
+        "EL PRO"
+      ]
+    }
+  ]
+};
+
+const maxus: CarMakeData = {
+  "name": "Maxus",
+  "trims": [
+    "Standard",
+    "Elite",
+    "Comfort",
+    "Luxury",
+    "Executive"
+  ],
+  "models": [
+    {
+      "name": "T60"
+    },
+    {
+      "name": "D90"
+    },
+    {
+      "name": "MIFA 9"
+    }
+  ]
+};
+
+const proton: CarMakeData = {
+  "name": "Proton",
+  "trims": [
+    "Standard",
+    "Executive",
+    "Luxury",
+    "Premium",
+    "Flagship",
+    "Sport Edition"
+  ],
+  "models": [
+    {
+      "name": "Saga"
+    },
+    {
+      "name": "S70"
+    },
+    {
+      "name": "X50"
+    },
+    {
+      "name": "X70"
+    },
+    {
+      "name": "X90"
+    },
+    {
+      "name": "e.MAS 5"
+    },
+    {
+      "name": "e.Mas 7"
+    },
+    {
+      "name": "e.MAS 7 PHEV"
+    }
+  ]
+};
+
+const xpeng: CarMakeData = {
+  "name": "Xpeng",
+  "trims": [
+    "Standard Range",
+    "Standard Range Plus",
+    "Long Range",
+    "Long Range Pro",
+    "Long Range Plus",
+    "Performance",
+    "Max",
+    "Ultra"
+  ],
+  "models": [
+    {
+      "name": "G6"
+    },
+    {
+      "name": "X9"
+    },
+    {
+      "name": "G9"
+    },
+    {
+      "name": "G9L"
+    },
+    {
+      "name": "P7"
+    },
+    {
+      "name": "P7L"
+    }
+  ]
+};
+
+const zeekr: CarMakeData = {
+  "name": "Zeekr",
+  "trims": [
+    "Core",
+    "Long Range",
+    "Privilege",
+    "Platinum",
+    "Standard",
+    "Performance",
+    "Max",
+    "Ultra",
+    "Hyper",
+    "Radiant Black"
+  ],
+  "models": [
+    {
+      "name": "X"
+    },
+    {
+      "name": "7X"
+    },
+    {
+      "name": "009"
+    },
+    {
+      "name": "9X"
+    }
+  ]
+};
+
 export const CAR_MAKES_DATA: CarMakeData[] = [
+  baic,
+  haval,
+  icaur,
+  lepas,
+  mahindra,
+  maxus,
+  proton,
+  xpeng,
+  zeekr,
+
   alfaRomeo,
   astonMartin,
   audi,
