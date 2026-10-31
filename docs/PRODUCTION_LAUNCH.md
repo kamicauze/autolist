@@ -1,7 +1,8 @@
 # Monday production launch
 
 Target: **2 November 2026**, Africa/Nairobi. Release scope: **free dealer pilot**.
-Retain current accounts/listings; move staging to a separate database and bucket.
+Retain current accounts/listings and all existing News & Reviews articles,
+including Evans's published posts and drafts; move staging to a separate database and bucket.
 Paid package activation is paused on the server and in the membership UI.
 
 ## Required before traffic cutover
@@ -9,6 +10,7 @@ Paid package activation is paused on the server and in the membership UI.
 | Gate | Acceptance evidence |
 | --- | --- |
 | Recovery | A complete database backup plus media/KYC object inventory; successful isolated restore. An empty/failed dump is not a backup. |
+| Editorial preservation | All existing `content_posts` rows and linked media retained, including Evans's posts under both `Evans M` and `Evans M.` author labels. Compare the complete editorial snapshot and media checksums against the restored/retained production data; verify published article URLs, content and images before cutover. Keep drafts private. |
 | Staging isolation | Separate Supabase project, Auth settings, notification queue, R2 bucket and credentials. Preview and production references must differ. |
 | Database security | Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Never run the divergent migration history wholesale. |
 | Email | Verified live sender, Supabase custom SMTP and confirmed delivery of registration/reset and app notification emails. Preview remains Mailtrap-only. |
@@ -17,6 +19,31 @@ Paid package activation is paused on the server and in the membership UI.
 | Existing inventory | Review existing pilot/test inventory before publishing. The retired seed login owns 78 retained listings, including 69 active listings; review their dealer ownership and publication status without deleting them. |
 | Operations | Named support/moderation owner, error/uptime alert destination, restore procedure and approved identity-document retention/deletion policy. |
 | Acceptance | Desktop/mobile registration, real confirmation/reset, dealer onboarding/KYC review, listing/photos, search/detail, enquiry/reply and delivered notifications. Verify denial of another dealer's private data. |
+
+## News & Reviews preservation
+
+The user explicitly requires every article Evans has written to survive the
+production move. Retain the full editorial catalog rather than filtering only
+by an author string: names can vary, and authorship metadata must not determine
+whether an existing article is discarded.
+
+Preserve IDs, slugs/URLs, titles, excerpts, complete body content, author and
+creator attribution, categories/subcategories, draft/published status, publication
+dates, creation/update dates, cover images, galleries and inline images. Do not
+replace this catalog with a reference-data seed or automatically publish drafts.
+
+Before isolation/cutover, refresh the private editorial JSON snapshot, per-row
+hashes and media manifest; record every new or deliberately edited post since
+the prior capture. Verify all baseline rows and linked original media in the
+isolated restore and retained production resources. After approved production
+deployment, open each published article at its existing URL and verify its text,
+cover/gallery/inline media; confirm drafts remain accessible only to authorised
+editors. Missing or unexplained differences block traffic cutover.
+
+The initial private preservation baseline was captured on 31 October 2026:
+14 posts (9 published, 5 drafts). Raw content, creator IDs and media backups stay
+outside Git in the private launch-backup folder. This targeted snapshot does not
+replace the full database backup and isolated restore gate above.
 
 ## Deployment target
 
