@@ -5,6 +5,52 @@ Retain current accounts/listings and all existing News & Reviews articles,
 including Evans's published posts and drafts; move staging to a separate database and bucket.
 Paid package activation is paused on the server and in the membership UI.
 
+## Verified preparation as of 31 October
+
+- The supplied retained-database password works. The logical database archive,
+  role definitions and separate scheduler history have passed an offline restore
+  on Postgres 17.6, with networking unavailable and scheduled execution disabled.
+  Restored inventory: 110 listings, 30 profiles, 30 Auth users and 8 storage records.
+- Compared 620 schema/security objects and every row in 87 core tables. All
+  application tables matched. Four Auth tables reflect later sign-in/session
+  changes; all 33 non-volatile Auth-user columns, including credentials and account
+  state, matched. All 204,520 captured scheduler-history rows passed digest checks.
+- All 14 editorial rows (9 published, 5 drafts) match the complete private
+  preservation snapshot after timestamp normalization. All 26 linked image
+  originals (5,215,168 bytes) match the object backup. Four private RLS/notification
+  helper functions also match their source definitions, ownership and grants.
+- The private launch-backup folder contains
+  `database-recovery-manifest-2026-10-31.json`, the core archive, role SQL,
+  encrypted/compressed history chunks and their separate recovery key. Keep these
+  together, outside Git. The earlier `database-snapshot-2026-10-31.dump` is a
+  preserved **failed partial export**, not the usable recovery archive.
+- Recovery covers database data/definitions plus the separate media/KYC backups.
+  Managed service configuration and role passwords require separate handling;
+  ephemeral `pg_net` transport tables are excluded by the extension. The database
+  and object captures occurred at different times; take a fresh pre-cutover
+  capture. This does not establish an off-device backup or hosted-service recovery.
+- Applied migration `20261031093042_protect_profile_privileges` only, recording its
+  own history entry without replaying older migrations. Ordinary clients cannot
+  assign staff/sales-agent roles or edit account deactivation fields. Existing
+  buyer/seller/dealer onboarding remains supported. Removed public-client
+  TRUNCATE/REFERENCES/TRIGGER privileges and their public-schema defaults.
+  `supabase/tests/profile_access.sql` passes against the isolated restore; live
+  denial/profile-edit checks were rolled back and profile fingerprints matched.
+  Applied `20261031094149_pin_database_function_search_paths` for 18 existing
+  functions without changing their bodies, ownership or execution grants.
+  Applied `20261031094351_constrain_insurance_request_submissions`: guest/owner
+  requests remain supported while requester impersonation and prepopulated quote
+  fields are denied. Isolated SQL regressions pass; retained request rows match.
+  The database-only CLI security advisor now reports one warning (the existing
+  `pg_net` extension location), down from 20. Auth settings, RPC exposure and
+  other access policies still require review; this is not a full-platform sign-off.
+- New staging project `autolist-staging-isolated` / `uivndmsjrwmsmxhnhgkl` is
+  healthy in Ireland under AutoList KE's Free organization. Automatic RLS is on;
+  automatic table exposure is off. The reviewed public schema and reference-only
+  catalog are prepared privately; no retained accounts, listings, KYC, messages or
+  delivery queues have been copied there. Credential handoff/import, Auth/storage
+  setup and Preview switching remain pending.
+
 ## Required before traffic cutover
 
 | Gate | Acceptance evidence |
@@ -15,7 +61,7 @@ Paid package activation is paused on the server and in the membership UI.
 | Database security | Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Never run the divergent migration history wholesale. |
 | Email | Verified live sender, Supabase custom SMTP and confirmed delivery of registration/reset and app notification emails. Preview remains Mailtrap-only. |
 | Phone verification | Active WhatsApp sender/token and an approved authentication template with a copy-code button, language and 10-minute expiry. Confirm receipt, expiry and retry limits with an authorised test number. |
-| Staff email | Complete the new Workspace signup for `autolist.co.ke`, preserve existing mailbox contents, verify the domain and configure sender authentication. Change MX only after the new mailboxes are ready. |
+| Staff email | Confirm a monitored domain mailbox and support ownership. Workspace checkout is deferred; existing domain mail can remain in use. If migrating to Workspace, preserve existing mailbox contents, verify the domain and configure sender authentication before changing MX. |
 | Existing inventory | Review existing pilot/test inventory before publishing. The retired seed login owns 78 retained listings, including 69 active listings; review their dealer ownership and publication status without deleting them. |
 | Operations | Named support/moderation owner, error/uptime alert destination, restore procedure and approved identity-document retention/deletion policy. |
 | Acceptance | Desktop/mobile registration, real confirmation/reset, dealer onboarding/KYC review, listing/photos, search/detail, enquiry/reply and delivered notifications. Verify denial of another dealer's private data. |
