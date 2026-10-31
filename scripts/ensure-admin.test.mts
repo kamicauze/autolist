@@ -15,7 +15,7 @@ for (const password of [undefined, "short"]) {
     const directory = mkdtempSync(join(tmpdir(), "admin-bootstrap-preflight-"));
     try {
       // No project env files or provider credentials can reach this subprocess.
-      const env: Record<string, string> = { PATH: process.env.PATH || "", NODE_ENV: "test" };
+      const env: NodeJS.ProcessEnv = { PATH: process.env.PATH || "", NODE_ENV: "test" };
       if (password) env.SEED_ADMIN_PASSWORD = password;
       const result = spawnSync(process.execPath, ["--import", loader, script], {
         cwd: directory, env, encoding: "utf8", timeout: 15000,
