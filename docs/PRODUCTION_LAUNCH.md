@@ -81,6 +81,31 @@ Paid package activation is paused on the server and in the membership UI.
   Profile access, privacy and insurance SQL regressions pass with rolled-back
   fixtures; the dedicated-review and enquiry-fallback relationships are covered.
 
+- Rehearsed the same retained archive on the healthy staging platform's exact
+  PostgreSQL image, `supabase/postgres:17.11.0.011`, with networking unavailable
+  and scheduled execution disabled. All 87 core table counts/digests and all
+  204,520 scheduler-history rows match the 17.6 recovery instance. All four launch
+  SQL regression files pass on both engines. The retained platform has **not**
+  been upgraded. Its dashboard estimates up to one hour of downtime and warns
+  that a successful upgrade cannot be downgraded to the current build. Take and
+  verify a fresh backup, then obtain maintenance-window approval before starting.
+- Migration `20261031110356` is applied to both databases. Ordinary owners cannot
+  approve dealers or forge review fields. Public listing submission enforces a
+  positive price, supported condition and three images; activation requires staff
+  review or an approved linked dealer. New featured placement requires staff or
+  an existing active package. Existing public inventory, dealer-only requests,
+  assigned sales reps and normal business/profile edits remain supported. Existing
+  retained listing/dealer/entitlement fingerprints match. Offline regressions and
+  staging Data API checks pass; controlled rows were removed without real payments.
+- Removed the administrator bootstrap's shared password fallback and password
+  output. It requires a unique password of at least 12 characters and rejects
+  previously published defaults. Two preflight tests and private published-default
+  checks pass before provider access. A live, read-only audit found four retained
+  application accounts still using published defaults, including privileged demo
+  accounts. Rotation and session revocation require the pending account-access
+  approval; **these accounts remain a launch blocker until remediated**. Preserve
+  their IDs, roles, listings and editorial attribution during remediation.
+
 ## Required before traffic cutover
 
 | Gate | Acceptance evidence |
@@ -88,11 +113,12 @@ Paid package activation is paused on the server and in the membership UI.
 | Recovery | A complete database backup plus media/KYC object inventory; successful isolated restore. An empty/failed dump is not a backup. |
 | Editorial preservation | All existing `content_posts` rows and linked media retained, including Evans's posts under both `Evans M` and `Evans M.` author labels. Compare the complete editorial snapshot and media checksums against the restored/retained production data; verify published article URLs, content and images before cutover. Keep drafts private. |
 | Staging isolation | Separate Supabase project, Auth settings, notification queue, R2 bucket and credentials. Preview and production references must differ. |
-| Database security | Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Apply `20261031102957_restrict_private_profile_reads` to the retained database with the compatible production app; verify public seller names plus anonymous/cross-account private-profile denial. Never run the divergent migration history wholesale. |
+| Database security | Rotate the four identified published-default application credentials and revoke their sessions, preserving account IDs and content. Complete the approved PostgreSQL maintenance with a fresh verified backup. Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Apply `20261031102957_restrict_private_profile_reads` to the retained database with the compatible production app; verify public seller names plus anonymous/cross-account private-profile denial. Never run the divergent migration history wholesale. |
 | Email | Verified live sender, Supabase custom SMTP and confirmed delivery of registration/reset and app notification emails. Preview remains Mailtrap-only. |
-| Phone verification | Active WhatsApp sender/token and an approved authentication template with a copy-code button, language and 10-minute expiry. Confirm receipt, expiry and retry limits with an authorised test number. |
-| Staff email | Confirm a monitored domain mailbox and support ownership. Workspace checkout is deferred; existing domain mail can remain in use. If migrating to Workspace, preserve existing mailbox contents, verify the domain and configure sender authentication before changing MX. |
+| Phone verification | No existing Meta WhatsApp Business setup was reported on 31 October. Provision the business sender and authentication template, then verify an active WhatsApp sender/token and an approved authentication template with a copy-code button, language and 10-minute expiry. Confirm receipt, expiry and retry limits with an authorised test number. |
+| Staff email | Confirm a monitored domain mailbox and support ownership. Workspace checkout was deferred in this chat; concurrent Admin Console activity needs a fresh completion check. Existing domain mail can remain in use. If migrating to Workspace, preserve existing mailbox contents, verify the domain and configure sender authentication before changing MX. |
 | Existing inventory | Review existing pilot/test inventory before publishing. The retired seed login owns 78 retained listings, including 69 active listings; review their dealer ownership and publication status without deleting them. |
+| Hosting plan | Confirm a Vercel plan that permits commercial use; the current team reports Hobby. No paid upgrade has been made. |
 | Operations | Named support/moderation owner, error/uptime alert destination, restore procedure and approved identity-document retention/deletion policy. |
 | Acceptance | Desktop/mobile registration, real confirmation/reset, dealer onboarding/KYC review, listing/photos, search/detail, enquiry/reply and delivered notifications. Verify denial of another dealer's private data. |
 

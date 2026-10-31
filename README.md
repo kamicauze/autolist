@@ -88,14 +88,16 @@ This MVP allows us to validate demand and trust in a structured marketplace whil
 
 To create or reset a local admin account against the configured Supabase project:
 
+Set `SEED_ADMIN_PASSWORD` privately to a unique password of at least 12 characters before running these commands. Missing, short and published example passwords are rejected. The script reports account details without printing the password.
+
 ```bash
-npm run admin:ensure -- --email admin@autolist.local --password TempAdmin123! --name "Local Admin"
+npm run admin:ensure -- --email admin@autolist.local --name "Local Admin"
 ```
 
 The script will create the auth user if it does not exist, reset the password if it does, and upsert the `profiles.role`. Use `--role super_admin` for the first owner account so that account can manage role-permission mappings:
 
 ```bash
-npm run admin:ensure -- --email owner@example.com --password "TempAdmin123!" --name "Owner Admin" --role super_admin
+npm run admin:ensure -- --email owner@example.com --name "Owner Admin" --role super_admin
 ```
 
 ### Sales Agent Invites

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { createHash } from "node:crypto";
 import { createAdminClient } from "../lib/supabase/admin";
 
 type Role = "admin" | "super_admin" | "support";
@@ -10,6 +11,11 @@ type Options = {
   name: string;
   role: Role;
 };
+
+const publishedDefaultPasswordHashes = new Set([
+  "13e9c77fc659019641209eb64ffe689e74080c5ea617dd2099894aa4e6f3b4d9",
+  "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+]);
 
 function parseArgs(argv: string[]): Partial<Options> {
   const options: Partial<Options> = {};
@@ -121,9 +127,16 @@ async function main() {
   loadLocalEnv();
 
   const args = parseArgs(process.argv.slice(2));
+  const password = args.password || process.env.SEED_ADMIN_PASSWORD;
+  if (!password) {
+    throw new Error("Provide a unique password using SEED_ADMIN_PASSWORD or --password.");
+  }
+  if (password.length < 12 || publishedDefaultPasswordHashes.has(createHash("sha256").update(password).digest("hex"))) {
+    throw new Error("Use a unique password of at least 12 characters; published example passwords are not allowed.");
+  }
   const options: Options = {
     email: args.email || "admin@autolist.local",
-    password: args.password || "TempAdmin123!",
+    password,
     name: args.name || "Local Admin",
     role: args.role || "admin",
   };
@@ -187,7 +200,6 @@ async function main() {
     JSON.stringify(
       {
         email: options.email,
-        password: options.password,
         name: options.name,
         role: options.role,
         authAction,
