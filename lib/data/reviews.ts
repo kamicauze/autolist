@@ -140,7 +140,7 @@ const REVIEW_SELECT = `
   body,
   created_at,
   updated_at,
-  reviewer:profiles!reviewer_id(id, full_name, avatar_url),
+  reviewer:public_profiles(id, full_name, avatar_url),
   listing:listings(id, make, model, year)
 `;
 
@@ -151,7 +151,7 @@ const ENQUIRY_REVIEW_SELECT = `
   message,
   created_at,
   updated_at,
-  reviewer:profiles!user_id(id, full_name, avatar_url),
+  reviewer:public_profiles(id, full_name, avatar_url),
   listing:listings!listing_id(id, make, model, year, seller_id)
 `;
 
@@ -164,7 +164,7 @@ const SELLER_ENQUIRY_REVIEW_SELECT = `
   message,
   created_at,
   updated_at,
-  reviewer:profiles!user_id(id, full_name, avatar_url),
+  reviewer:public_profiles(id, full_name, avatar_url),
   listing:listings!listing_id!inner(id, make, model, year, seller_id)
 `;
 

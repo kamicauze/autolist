@@ -65,7 +65,10 @@ export async function getMySalesAgents(): Promise<{
     return { dealer: null, agents: [] };
   }
 
-  const { data, error } = await supabase
+  // The dealer was resolved from the signed-in owner's id above. Keep both
+  // ownership filters when reading the agents' private account-state field.
+  const agentClient = createOptionalAdminClient() ?? supabase;
+  const { data, error } = await agentClient
     .from("dealer_sales_agents")
     .select(
       "id, dealer_id, profile_id, agent_profile_id, name, email, phone, status, is_verified, whatsapp_enabled, hide_phone_number, permissions, listings_scope, invite_status, invite_expires_at, invite_sent_at, invite_accepted_at, created_at, updated_at, agent:profiles!agent_profile_id(deactivated_at)"

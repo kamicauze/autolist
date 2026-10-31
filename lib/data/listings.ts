@@ -298,7 +298,7 @@ function getListingSelect(includeDealerLocationFilter = false) {
   return `
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
+      seller:public_profiles(id, full_name, avatar_url),
       ${dealerJoin}
     `;
 }
@@ -750,7 +750,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
+      seller:public_profiles(id, full_name, avatar_url),
       dealer:dealers(id, name, logo_url, city)
     `)
     .eq("status", "active")
@@ -783,7 +783,7 @@ export async function getNewestListings(limit = 8): Promise<Listing[]> {
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
+      seller:public_profiles(id, full_name, avatar_url),
       dealer:dealers(id, name, logo_url, city)
     `)
     .eq("status", "active")
@@ -807,7 +807,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
+      seller:public_profiles(id, full_name, avatar_url),
       dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("id", id)
@@ -837,7 +837,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url),
+      seller:public_profiles(id, full_name, avatar_url),
       dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("status", "active")
@@ -1070,7 +1070,7 @@ export async function getSimilarListings(
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:profiles!seller_id(id, full_name, avatar_url)
+      seller:public_profiles(id, full_name, avatar_url)
     `)
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])

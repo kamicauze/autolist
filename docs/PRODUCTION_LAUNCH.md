@@ -45,11 +45,41 @@ Paid package activation is paused on the server and in the membership UI.
   `pg_net` extension location), down from 20. Auth settings, RPC exposure and
   other access policies still require review; this is not a full-platform sign-off.
 - New staging project `autolist-staging-isolated` / `uivndmsjrwmsmxhnhgkl` is
-  healthy in Ireland under AutoList KE's Free organization. Automatic RLS is on;
-  automatic table exposure is off. The reviewed public schema and reference-only
-  catalog are prepared privately; no retained accounts, listings, KYC, messages or
-  delivery queues have been copied there. Credential handoff/import, Auth/storage
-  setup and Preview switching remain pending.
+  healthy on Postgres 17.11 in Ireland under AutoList KE's Free organization.
+  Automatic RLS is on; automatic table exposure is off. The application schema,
+  required private helpers, Auth trigger, private KYC policies and six reference
+  tables are imported and verified. No retained accounts, listings, editorial
+  content, KYC bytes, messages or queues were copied. Staging contains controlled
+  QA accounts only. Sandbox signup/confirmation, login, private KYC signed access
+  and cross-account denial checks have passed.
+- Both Vercel projects' Preview and Development settings now use the isolated
+  staging database and `autolist-staging-isolated` R2 bucket. Production values
+  were preserved when shared environment records were partitioned. The staging
+  R2 key can read/write only its bucket; access to the retained bucket returns
+  403. Presigned upload, public download, exact bytes and allowed/denied CORS
+  origins passed; disposable test objects were removed. Local development also
+  uses the isolated resources, with unrelated local settings preserved.
+- Vercel Authentication protects both projects' current and older Preview URLs.
+  Anonymous requests redirect to Vercel; production-domain protection is unchanged.
+  The canonical staging worker has separate automation access stored in staging
+  Vault. The retained database's old staging cron job is paused, with its command,
+  history and queue rows preserved; it had no pending external deliveries or
+  listing-alert jobs. The isolated worker's automatic one-minute run delivered
+  a controlled message to Mailtrap on its first attempt; the exact test event and
+  delivery were removed. Live email was not sent.
+- Public profile queries now use a three-column projection: ID, display name and
+  avatar. Offline SQL and staging Data API tests verify anonymous/cross-account
+  contact denial, owner editing, staff support access and seller/reviewer embeds.
+  The projection migration `20261031102857` is applied to both databases. The
+  private-read policy `20261031102957` is applied to staging only: **apply it to
+  the retained database with the updated production application before cutover**.
+  Its existing raw-profile contact exposure remains a production launch blocker.
+- Migration `20261031103408` is applied to both databases. User-controlled signup
+  metadata accepts only buyer/seller/dealer roles; sales-agent and staff values
+  fall back to buyer. Validated server-side invite acceptance still assigns rep
+  roles. Existing retained profile rows matched their pre-change fingerprint.
+  Profile access, privacy and insurance SQL regressions pass with rolled-back
+  fixtures; the dedicated-review and enquiry-fallback relationships are covered.
 
 ## Required before traffic cutover
 
@@ -58,7 +88,7 @@ Paid package activation is paused on the server and in the membership UI.
 | Recovery | A complete database backup plus media/KYC object inventory; successful isolated restore. An empty/failed dump is not a backup. |
 | Editorial preservation | All existing `content_posts` rows and linked media retained, including Evans's posts under both `Evans M` and `Evans M.` author labels. Compare the complete editorial snapshot and media checksums against the restored/retained production data; verify published article URLs, content and images before cutover. Keep drafts private. |
 | Staging isolation | Separate Supabase project, Auth settings, notification queue, R2 bucket and credentials. Preview and production references must differ. |
-| Database security | Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Never run the divergent migration history wholesale. |
+| Database security | Current RLS/policy/adviser review, private KYC buckets and restricted signed-document access. Apply `20261031102957_restrict_private_profile_reads` to the retained database with the compatible production app; verify public seller names plus anonymous/cross-account private-profile denial. Never run the divergent migration history wholesale. |
 | Email | Verified live sender, Supabase custom SMTP and confirmed delivery of registration/reset and app notification emails. Preview remains Mailtrap-only. |
 | Phone verification | Active WhatsApp sender/token and an approved authentication template with a copy-code button, language and 10-minute expiry. Confirm receipt, expiry and retry limits with an authorised test number. |
 | Staff email | Confirm a monitored domain mailbox and support ownership. Workspace checkout is deferred; existing domain mail can remain in use. If migrating to Workspace, preserve existing mailbox contents, verify the domain and configure sender authentication before changing MX. |

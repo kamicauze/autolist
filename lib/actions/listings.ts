@@ -1724,7 +1724,7 @@ export async function getMyListings() {
         .select(`
             *,
             images:listing_images(id, r2_key, alt_text, image_order),
-            seller:profiles!seller_id(id, full_name, avatar_url, email),
+            seller:public_profiles(id, full_name, avatar_url),
             dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .order('created_at', { ascending: false });

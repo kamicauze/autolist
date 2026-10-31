@@ -17,10 +17,31 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('b52e1acf-6b32-46d1-9297-fccf44f73003', 'profile-access-insert@example.invalid', '{"intended_role":"super_admin"}');
 
 do $$
+declare
+  requested_role text;
+  account_id uuid;
 begin
   if (select role from public.profiles where id = 'b52e1acf-6b32-46d1-9297-fccf44f73003') <> 'buyer' then
     raise exception 'Signup metadata must not create a staff role.';
   end if;
+  foreach requested_role in array array['sales_agent', 'support', 'admin', 'super_admin'] loop
+    account_id := gen_random_uuid();
+    insert into auth.users (id, email, raw_user_meta_data)
+    values (account_id, account_id::text || '@example.invalid',
+      jsonb_build_object('intended_role', requested_role));
+    if (select role from public.profiles where id=account_id) <> 'buyer' then
+      raise exception 'Signup metadata created privileged role %.', requested_role;
+    end if;
+  end loop;
+  foreach requested_role in array array['buyer', 'seller', 'dealer'] loop
+    account_id := gen_random_uuid();
+    insert into auth.users (id, email, raw_user_meta_data)
+    values (account_id, account_id::text || '@example.invalid',
+      jsonb_build_object('intended_role', requested_role));
+    if (select role from public.profiles where id=account_id) <> requested_role then
+      raise exception 'Self-service signup role % was not preserved.', requested_role;
+    end if;
+  end loop;
 end;
 $$;
 
