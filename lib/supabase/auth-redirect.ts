@@ -21,7 +21,12 @@ export function getBrowserBaseUrl() {
 }
 
 export function getAuthCallbackUrl(nextPath?: string | null) {
-  const callbackUrl = new URL("/auth/callback", getBrowserBaseUrl());
+  // Keep the callback with the PKCE verifier cookie set by this browser origin.
+  const baseUrl =
+    typeof window !== "undefined"
+      ? normalizeBaseUrl(window.location.origin)
+      : getBrowserBaseUrl();
+  const callbackUrl = new URL("/auth/callback", baseUrl);
 
   if (nextPath) {
     callbackUrl.searchParams.set("next", nextPath);
