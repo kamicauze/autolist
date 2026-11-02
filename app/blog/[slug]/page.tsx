@@ -1,6 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { cache } from "react";
+import { publicPageMetadata } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -12,6 +14,17 @@ import type { ContentPostCategory } from "@/lib/types/content-posts";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
+}
+
+const getPublicPost = cache(getPublishedContentPostBySlug);
+
+export async function generateMetadata({ params }: BlogPostPageProps) {
+  const post = await getPublicPost((await params).slug);
+  if (!post) notFound();
+  return publicPageMetadata({
+    title: post.title, description: post.excerpt,
+    path: `/blog/${encodeURIComponent(post.slug)}`, image: post.coverImageUrl,
+  });
 }
 
 function formatDate(value: string | null) {
@@ -43,7 +56,7 @@ function getCategoryLabel(category: ContentPostCategory) {
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = await getPublishedContentPostBySlug(slug);
+  const post = await getPublicPost(slug);
 
   if (!post) {
     notFound();

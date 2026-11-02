@@ -2,6 +2,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicEnv } from "@/lib/supabase/config";
+import { isPrivateSearchPath, isProductionIndexing } from "@/lib/seo";
+
+function applyIndexingHeaders(response: NextResponse, request: NextRequest) {
+    if (!isProductionIndexing() || isPrivateSearchPath(request.nextUrl.pathname)) {
+        response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    }
+    return response;
+}
 
 export async function proxy(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
@@ -21,7 +29,7 @@ export async function proxy(request: NextRequest) {
     // A PKCE callback (?code=) must not refresh here: a stale session makes getUser()
     // sign out, which also deletes the code-verifier cookie the exchange needs.
     if (!configured || request.nextUrl.searchParams.has("code")) {
-        return response;
+        return applyIndexingHeaders(response, request);
     }
 
     const supabase = createServerClient(
@@ -61,7 +69,7 @@ export async function proxy(request: NextRequest) {
         console.error("Supabase auth refresh failed in proxy:", error);
     }
 
-    return response;
+    return applyIndexingHeaders(response, request);
 }
 
 export const config = {

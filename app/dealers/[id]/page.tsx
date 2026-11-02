@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
+import { publicPageMetadata } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -17,6 +19,21 @@ interface DealerDetailPageProps {
   searchParams?: Promise<{ page?: string }>;
 }
 
+const getPublicDealer = cache(getDealerById);
+
+export async function generateMetadata({ params, searchParams }: DealerDetailPageProps) {
+  const dealer = await getPublicDealer((await params).id);
+  if (!dealer) notFound();
+  const page = Number((await searchParams)?.page);
+  const suffix = Number.isSafeInteger(page) && page > 1 ? `?page=${page}` : "";
+  const location = dealer.city || "Kenya";
+  return publicPageMetadata({
+    title: `${dealer.name} — Vehicles for Sale in ${location}${suffix ? `, Page ${page}` : ""}`,
+    description: dealer.about_text || `Browse available vehicles from ${dealer.name} in ${location}. View dealership details and contact this approved Autolist dealer.`,
+    path: `/dealers/${dealer.id}${suffix}`, image: dealer.logo_url,
+  });
+}
+
 export default async function DealerDetailPage({ params, searchParams }: DealerDetailPageProps) {
   const { id } = await params;
   const query = await searchParams;
@@ -25,7 +42,7 @@ export default async function DealerDetailPage({ params, searchParams }: DealerD
   const googleMapsApiKey = getGoogleMapsApiKey();
 
   const [dealer, inventory, newestListings] = await Promise.all([
-    getDealerById(id),
+    getPublicDealer(id),
     getDealerInventory(id, page),
     getNewestListings(12),
   ]);

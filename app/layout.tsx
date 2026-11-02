@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { resolveThemeId } from "@/lib/theme/themes";
+import { isProductionIndexing, SITE_DESCRIPTION, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Autolist",
-  description: "Find and list items easily",
+  metadataBase: new URL(SITE_URL),
+  title: "Cars & Vehicles for Sale in Kenya | Autolist",
+  description: SITE_DESCRIPTION,
+  robots: { index: isProductionIndexing(), follow: true },
 };
 
 const initialTheme = resolveThemeId(process.env.NEXT_PUBLIC_AUTOLIST_THEME);

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { publicPageMetadata } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -15,6 +16,17 @@ import {
 } from "@/lib/content-post-subcategories";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
 import type { ContentPost } from "@/lib/types/content-posts";
+
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const filtered = Object.keys(await searchParams).length > 0;
+  return publicPageMetadata({
+    title: "Car Reviews, News & Buying Advice in Kenya",
+    description: "Read vehicle reviews, comparisons and practical buying, selling and ownership advice for motorists in Kenya from Autolist.",
+    path: filtered ? null : "/blog", noIndex: filtered,
+  });
+}
 
 const tabs = [
   { label: "All", query: "" },

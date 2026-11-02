@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { publicPageMetadata, SITE_DESCRIPTION } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroSearch } from "@/components/home/hero-search";
@@ -25,6 +26,10 @@ import { getAllMakeNames, getPopularMakes, getPopularModels } from "@/lib/data/c
 import { getHomepageCmsContent } from "@/lib/data/cms";
 import { getActiveCmsBanners } from "@/lib/data/cms-banners";
 import type { HomepageCmsContent } from "@/lib/types/cms";
+
+export const metadata = publicPageMetadata({
+  title: "Cars & Vehicles for Sale in Kenya", description: SITE_DESCRIPTION, path: "/",
+});
 
 async function RecentActivitiesData({
   content,

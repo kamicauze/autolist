@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { publicPageMetadata } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { getApprovedDealers } from "@/lib/data/dealers";
+
+export const metadata = publicPageMetadata({
+  title: "Verified Vehicle Dealers in Kenya",
+  description: "Find approved Autolist vehicle dealers in Kenya. Browse dealership profiles, explore their available stock and contact a dealer.",
+  path: "/dealers",
+});
 
 export default async function DealersPage() {
   const dealers = await getApprovedDealers(24);

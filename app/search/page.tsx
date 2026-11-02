@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { publicPageMetadata } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import {
@@ -24,6 +25,15 @@ import { parseSearchListingFilters } from "@/lib/search/search-listing-filters";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export async function generateMetadata({ searchParams }: SearchPageProps) {
+  const filtered = Object.keys(await searchParams).length > 0;
+  return publicPageMetadata({
+    title: "New & Used Vehicles for Sale in Kenya",
+    description: "Browse vehicles for sale in Kenya. Filter by make, model, price and location to find cars, vans, motorbikes and commercial vehicles.",
+    path: filtered ? null : "/search", noIndex: filtered,
+  });
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

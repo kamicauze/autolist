@@ -1,4 +1,7 @@
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
+import { publicPageMetadata } from "@/lib/seo";
+import { getImageUrl } from "@/lib/utils/listings";
+import { getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -26,9 +29,24 @@ interface VehiclePageProps {
   params: Promise<{ id: string }>;
 }
 
+const getPublicListing = cache(getListingById);
+
+export async function generateMetadata({ params }: VehiclePageProps) {
+  const listing = await getPublicListing((await params).id);
+  if (!listing) notFound();
+  const title = getListingDisplayTitle(listing);
+  const location = getListingDisplayLocation(listing);
+  const cover = [...(listing.images ?? [])].sort((a, b) => a.image_order - b.image_order)[0];
+  return publicPageMetadata({
+    title: `${title} for Sale in ${location}`,
+    description: `${title} for sale in ${location} at ${listing.currency} ${Number(listing.price).toLocaleString("en-KE")}. ${listing.description || "View photos, specifications and seller contact details on Autolist."}`,
+    path: `/vehicle/${listing.id}`, image: cover ? getImageUrl(cover.r2_key, "hero") : null,
+  });
+}
+
 export default async function VehiclePage({ params }: VehiclePageProps) {
   const { id } = await params;
-  const listing = await getListingById(id);
+  const listing = await getPublicListing(id);
 
   if (!listing) {
     notFound();
