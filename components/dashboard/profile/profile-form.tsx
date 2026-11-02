@@ -222,6 +222,7 @@ export function ProfileForm({
   salesRepDealerName = null,
 }: ProfileFormProps) {
   const isSalesRep = Boolean(salesRepDealerName);
+  const isBuyer = profile?.role === "buyer";
   const router = useRouter();
   const approvedDealer =
     user.id &&
@@ -266,7 +267,7 @@ export function ProfileForm({
   const [success, setSuccess] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const displayName = form.fullName.trim() || "Seller";
+  const displayName = form.fullName.trim() || (isBuyer ? "Account" : "Seller");
   const locationLabel = form.location.trim() || form.city.trim() || "Location not set";
   const mapQuery = buildGoogleMapsQuery([form.address, form.location, form.city, "Kenya"]);
   const mapUrl = getGoogleMapsSearchUrl(mapQuery);
@@ -386,6 +387,8 @@ export function ProfileForm({
         description={
           isSalesRep
             ? `Your personal details as a sales rep for ${salesRepDealerName}.`
+            : isBuyer
+              ? "Update your account name and contact details."
             : isApprovedDealerOwner
               ? "Update the dealership details buyers see on your public dealer page."
               : "Update your public seller profile, contact details, location, and social links."
@@ -407,7 +410,7 @@ export function ProfileForm({
 
       <SellerSurface className="p-5 lg:p-6">
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px]">
+          <div className={isBuyer ? "grid gap-6" : "grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px]"}>
             <div className="space-y-6">
               <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
                 <div className="flex flex-col gap-5 md:flex-row md:items-center">
@@ -431,7 +434,7 @@ export function ProfileForm({
                         <Icon3D icon={ShieldCheck} variant="glyph" />
                         {accountType}
                       </span>
-                      {isSalesRep ? null : (
+                      {isSalesRep || isBuyer ? null : (
                         <>
                           <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#6f6f6f]">
                             <Icon3D icon={MapPin} tone="neutral" variant="glyph" />
@@ -524,7 +527,7 @@ export function ProfileForm({
                 </div>
               </div>
 
-              {isSalesRep ? null : (
+              {isSalesRep || isBuyer ? null : (
               <>
               <div>
                 <label htmlFor="profile-bio" className={sellerLabelClass}>
@@ -657,6 +660,7 @@ export function ProfileForm({
               )}
             </div>
 
+            {isBuyer ? null : (
             <div className="space-y-6">
               {isSalesRep ? null : (
               <>
@@ -911,6 +915,7 @@ export function ProfileForm({
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           <div className="mt-6 flex justify-end">

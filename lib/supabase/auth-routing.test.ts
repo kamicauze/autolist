@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import test from "node:test";
 import {
+  canRenderBuyerAccountPage,
   inferMarketplaceRoleFromNextPath,
   isPrivateSellerRole,
   resolveDealerRegistrationPath,
@@ -66,3 +68,42 @@ assert.equal(sanitizeNextPath("/\n/example.net", ""), "");
 assert.equal(sanitizeNextPath("//example.net", ""), "");
 assert.equal(sanitizeNextPath("https://example.net", ""), "");
 assert.equal(sanitizeNextPath("/sell/dealer?draft=1", ""), "/sell/dealer?draft=1");
+
+test("buyers can open their exact profile and favorites routes, including query strings", () => {
+  for (const path of [
+    "/dashboard/profile",
+    "/dashboard/profile?source=account-menu",
+    "/dashboard/favorites",
+    "/dashboard/favorites?sort=newest",
+  ]) {
+    assert.equal(canRenderBuyerAccountPage("buyer", "/", path), true, path);
+  }
+});
+
+test("the buyer account exception does not open other dashboard or nested profile routes", () => {
+  for (const path of [
+    "/dashboard",
+    "/dashboard/profile/security",
+    "/dashboard/profile-edit",
+    "/dashboard/change-password",
+    "/dashboard/listings/new",
+    "/dashboard/verification",
+    "/dashboard/membership",
+    "/admin/dashboard",
+    "//example.com/dashboard/profile",
+    "/dashboard/profile%2fsecurity",
+  ]) {
+    assert.equal(canRenderBuyerAccountPage("buyer", "/", path), false, path);
+  }
+});
+
+test("buyer account pages preserve account-state redirects and other roles' routing", () => {
+  for (const path of ["/dashboard/profile", "/dashboard/favorites"]) {
+    for (const destination of ["/account-deactivated", "/register/onboarding", "/admin/dashboard", "/dashboard/verification"]) {
+      assert.equal(canRenderBuyerAccountPage("buyer", destination, path), false);
+    }
+    for (const role of ["seller", "dealer", "sales_agent", "support", "admin", "super_admin", null]) {
+      assert.equal(canRenderBuyerAccountPage(role, "/", path), false);
+    }
+  }
+});

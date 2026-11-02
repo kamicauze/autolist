@@ -50,6 +50,17 @@ export function isPrivateSellerRole(
   return role === "seller";
 }
 
+export function canRenderBuyerAccountPage(
+  role: string | null | undefined,
+  postAuthPath: string,
+  requestedPath: string,
+) {
+  const pathname = sanitizeNextPath(requestedPath, "").split("?")[0];
+  return role === "buyer" && postAuthPath === "/" && (
+    pathname === "/dashboard/favorites" || pathname === "/dashboard/profile"
+  );
+}
+
 export function resolveSelfServiceRoleTransition(
   currentRole: string | null | undefined,
   requestedPath: string | null | undefined,

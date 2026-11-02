@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  canRenderBuyerAccountPage,
   resolvePostAuthPath,
   resolveSelfServiceRoleTransition,
   sanitizeNextPath,
@@ -49,7 +50,7 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
   }
 
   const destination = await resolvePostAuthPath(supabase, user.id);
-  if (profileRole?.role === "buyer" && destination === "/" && currentPath === "/dashboard/favorites") {
+  if (canRenderBuyerAccountPage(profileRole?.role, destination, currentPath)) {
     return <div className="mx-auto min-h-screen max-w-7xl px-4 py-8">{children}</div>;
   }
 
