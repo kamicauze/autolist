@@ -19,6 +19,7 @@ import {
 } from "../seller-dashboard-ui";
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getMySellerVerification } from "@/lib/data/seller-verification";
+import { isWhatsAppEnabled } from "@/lib/server/whatsapp-availability";
 import { createClient } from "@/lib/supabase/server";
 import { SellerVerificationPanel } from "./seller-verification-panel";
 import { VerificationUploadPanel } from "./verification-upload-panel";
@@ -134,7 +135,10 @@ export async function VerificationPage() {
           title="Account Verification"
           description="Verify your identity document and phone ownership without exposing either on your public listings."
         />
-        <SellerVerificationPanel verification={sellerVerification} />
+        <SellerVerificationPanel
+          verification={sellerVerification}
+          verificationAvailable={isWhatsAppEnabled()}
+        />
       </div>
     );
   }

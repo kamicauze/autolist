@@ -96,8 +96,10 @@ function statusMeta(status: string) {
 
 export function SellerVerificationPanel({
   verification,
+  verificationAvailable = true,
 }: {
   verification: SellerVerificationView;
+  verificationAvailable?: boolean;
 }) {
   const router = useRouter();
   const record = verification.record;
@@ -226,6 +228,33 @@ export function SellerVerificationPanel({
 
     setMessage("Private seller verification submitted for review.");
     router.refresh();
+  }
+
+  if (!verificationAvailable) {
+    return (
+      <SellerSurface className="p-6">
+        <div className="flex items-start gap-4">
+          <Icon3D icon={ShieldCheck} tone="neutral" />
+          <div className="space-y-3">
+            <h2 className="font-heading text-[22px] font-semibold text-[#202224]">
+              Private seller verification is temporarily unavailable
+            </h2>
+            <SellerStatusPill label={meta.label} tone={meta.tone} />
+            <p className="text-[14px] leading-6 text-[#6d6d6d]">
+              New document uploads, phone checks and verification submissions
+              are paused. Your existing verification status and documents are
+              preserved. Contact Autolist support for assistance.
+            </p>
+            {record?.review_notes ? (
+              <p className="text-[13px] leading-5 text-[#6d6d6d]">
+                <span className="font-semibold">Review feedback:</span>{" "}
+                {record.review_notes}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </SellerSurface>
+    );
   }
 
   if (!verification.setupAvailable) {

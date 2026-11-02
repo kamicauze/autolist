@@ -3,7 +3,7 @@ import { after, afterEach, beforeEach, mock, test } from "node:test";
 
 mock.module("server-only", { namedExports: {} });
 const { sendProviderEmail, sendProviderPhoneOtp, sendProviderWhatsApp } = await import("./delivery-providers");
-const keys = ["VERCEL_ENV", "EMAIL_PROVIDER", "RESEND_API_KEY", "EMAIL_FROM", "MAILTRAP_API_TOKEN", "MAILTRAP_INBOX_ID", "WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_OTP_TEMPLATE_NAME", "WHATSAPP_OTP_TEMPLATE_LANGUAGE"] as const;
+const keys = ["VERCEL_ENV", "EMAIL_PROVIDER", "RESEND_API_KEY", "EMAIL_FROM", "MAILTRAP_API_TOKEN", "MAILTRAP_INBOX_ID", "WHATSAPP_ENABLED", "WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_OTP_TEMPLATE_NAME", "WHATSAPP_OTP_TEMPLATE_LANGUAGE"] as const;
 const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 let requests: Array<{ url: string; body: Record<string, unknown> }>;
 let acknowledged: boolean;
@@ -11,7 +11,7 @@ beforeEach(() => {
   Object.assign(process.env, {
     VERCEL_ENV: "production", EMAIL_PROVIDER: "resend", RESEND_API_KEY: "sample_email_key",
     EMAIL_FROM: "Autolist <notifications@example.com>", MAILTRAP_API_TOKEN: "sample_sandbox_key",
-    MAILTRAP_INBOX_ID: "sample_inbox", WHATSAPP_ACCESS_TOKEN: "sample_phone_token",
+    MAILTRAP_INBOX_ID: "sample_inbox", WHATSAPP_ENABLED: "true", WHATSAPP_ACCESS_TOKEN: "sample_phone_token",
     WHATSAPP_PHONE_NUMBER_ID: "sample_phone", WHATSAPP_OTP_TEMPLATE_NAME: "phone_verification",
     WHATSAPP_OTP_TEMPLATE_LANGUAGE: "en_US",
   });
@@ -44,6 +44,7 @@ test("configured production and preview email use the intended provider", async 
   assert.match(requests[1].url, /^https:\/\/sandbox\.api\.mailtrap\.io\//);
 });
 test("phone OTP uses an authentication template with matching body and copy-code parameters", async () => {
+  delete process.env.WHATSAPP_ENABLED;
   assert.equal((await sendProviderPhoneOtp({ to: "+254 700 000 001", code: "123456" })).success, true);
   assert.deepEqual(requests[0].body, {
     messaging_product: "whatsapp", to: "254700000001", type: "template",
@@ -52,6 +53,18 @@ test("phone OTP uses an authentication template with matching body and copy-code
       { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: "123456" }] },
     ] },
   });
+});
+test("disabled automated WhatsApp cannot send notifications or phone codes", async () => {
+  process.env.WHATSAPP_ENABLED = "false";
+  for (const result of [
+    await sendProviderPhoneOtp({ to: "+254700000001", code: "123456" }),
+    await sendProviderWhatsApp({ to: "+254700000001", body: "Listing update" }),
+  ]) {
+    assert.equal(result.success, false);
+    assert.equal(result.skipped, true);
+    assert.match(result.error || "", /temporarily unavailable/);
+  }
+  assert.equal(requests.length, 0);
 });
 test("invalid or unconfigured OTP requests fail before contacting WhatsApp", async () => {
   assert.equal((await sendProviderPhoneOtp({ to: "+254700000001", code: "invalid" })).success, false);

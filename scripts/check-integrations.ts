@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { isWhatsAppEnabled } from "../lib/server/whatsapp-availability";
 
 type Check = {
   key: string;
@@ -21,8 +22,6 @@ const checks: Check[] = [
   { key: "R2_BUCKET_NAME", label: "R2 bucket", requiredFor: "Listing media" },
   { key: "NEXT_PUBLIC_R2_PUBLIC_URL", label: "Public media URL", requiredFor: "Listing images" },
   { key: "EMAIL_FROM", label: "Verified email sender", requiredFor: "Email delivery" },
-  { key: "WHATSAPP_ACCESS_TOKEN", label: "WhatsApp token", requiredFor: "Phone verification" },
-  { key: "WHATSAPP_PHONE_NUMBER_ID", label: "WhatsApp phone number ID", requiredFor: "Phone verification" },
   { key: "NOTIFICATION_PROCESS_SECRET", label: "Notification processor secret", requiredFor: "Protected delivery worker" },
 ];
 
@@ -81,12 +80,17 @@ function main() {
         { key: "MAILTRAP_INBOX_ID", label: "Mailtrap inbox", requiredFor: "Sandbox email" },
       ]
     : [{ key: "RESEND_API_KEY", label: "Resend API key", requiredFor: "Live email delivery" }];
-  const productionChecks: Check[] = production ? [
-    { key: "SELLER_PHONE_OTP_SECRET", label: "Phone OTP signing secret", requiredFor: "Phone verification" },
-    { key: "WHATSAPP_OTP_TEMPLATE_NAME", label: "Approved authentication template", requiredFor: "Phone OTP delivery" },
-    { key: "WHATSAPP_OTP_TEMPLATE_LANGUAGE", label: "Authentication template language", requiredFor: "Phone OTP delivery" },
+  const whatsAppEnabled = isWhatsAppEnabled();
+  const phoneChecks: Check[] = whatsAppEnabled ? [
+    { key: "WHATSAPP_ACCESS_TOKEN", label: "WhatsApp token", requiredFor: "Phone verification" },
+    { key: "WHATSAPP_PHONE_NUMBER_ID", label: "WhatsApp phone number ID", requiredFor: "Phone verification" },
+    ...(production ? [
+      { key: "SELLER_PHONE_OTP_SECRET", label: "Phone OTP signing secret", requiredFor: "Phone verification" },
+      { key: "WHATSAPP_OTP_TEMPLATE_NAME", label: "Approved authentication template", requiredFor: "Phone OTP delivery" },
+      { key: "WHATSAPP_OTP_TEMPLATE_LANGUAGE", label: "Authentication template language", requiredFor: "Phone OTP delivery" },
+    ] : []),
   ] : [];
-  const rows = [...checks, ...providerChecks, ...productionChecks].map((check) => ({
+  const rows = [...checks, ...providerChecks, ...phoneChecks].map((check) => ({
     ...check, status: statusFor(check.key),
   }));
   console.table(rows);
@@ -94,7 +98,7 @@ function main() {
   if (production) {
     if (process.env.EMAIL_PROVIDER !== "resend") issues.push("Production EMAIL_PROVIDER must be resend.");
     if (process.env.QA_TOOLS_ENABLED === "true") issues.push("QA account tools must be disabled in production.");
-    if ((process.env.SELLER_PHONE_OTP_SECRET?.trim().length || 0) < 32) {
+    if (whatsAppEnabled && (process.env.SELLER_PHONE_OTP_SECRET?.trim().length || 0) < 32) {
       issues.push("SELLER_PHONE_OTP_SECRET must contain at least 32 characters.");
     }
     for (const key of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_R2_PUBLIC_URL"]) {
@@ -111,6 +115,9 @@ function main() {
     console.error(issues.join("\n"));
     process.exitCode = 1;
     return;
+  }
+  if (!whatsAppEnabled) {
+    console.log("Automated WhatsApp delivery and phone-code verification are disabled.");
   }
   console.log("Required application settings are present. Provider delivery, environment isolation and database permissions still require live acceptance.");
 }

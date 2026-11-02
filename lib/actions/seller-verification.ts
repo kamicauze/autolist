@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminAction } from "@/lib/admin/guard";
 import { isSellerVerificationSchemaUnavailable } from "@/lib/data/seller-verification";
 import { sendProviderPhoneOtp } from "@/lib/server/delivery-providers";
+import { isWhatsAppEnabled } from "@/lib/server/whatsapp-availability";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { SellerVerificationDocumentType } from "@/lib/types/seller-verification";
@@ -19,6 +20,10 @@ const MAX_KYC_FILE_BYTES = 6 * 1024 * 1024;
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_MS = 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
+const PHONE_VERIFICATION_UNAVAILABLE =
+  "Phone verification is temporarily unavailable. Contact Autolist support for assistance.";
+const PRIVATE_VERIFICATION_UNAVAILABLE =
+  "Private seller verification is temporarily unavailable. Contact Autolist support for assistance.";
 
 const ACCEPTED_KYC_MIME_TYPES = new Set([
   "application/pdf",
@@ -176,6 +181,7 @@ async function logSellerVerificationAudit(
 export async function createSellerKycUploadTicket(input: UploadDescriptor) {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
+  if (!isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
 
   try {
     assertUploadDescriptor(input);
@@ -222,6 +228,7 @@ export async function finalizeSellerKycDocument(
 ) {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
+  if (!isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
 
   try {
     assertUploadDescriptor(input);
@@ -342,6 +349,7 @@ export async function finalizeSellerKycDocument(
 export async function requestSellerPhoneOtp(rawPhone: string) {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
+  if (!isWhatsAppEnabled()) return { error: PHONE_VERIFICATION_UNAVAILABLE };
 
   const phone = normalizePhoneForVerification(rawPhone);
   if (!isValidPhoneNumber(phone) || !phone.startsWith("+")) {
@@ -460,6 +468,7 @@ export async function requestSellerPhoneOtp(rawPhone: string) {
 export async function verifySellerPhoneOtp(rawCode: string) {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
+  if (!isWhatsAppEnabled()) return { error: PHONE_VERIFICATION_UNAVAILABLE };
 
   const code = rawCode.replace(/\D/g, "");
   if (!/^\d{6}$/.test(code))
@@ -563,6 +572,7 @@ export async function verifySellerPhoneOtp(rawCode: string) {
 export async function submitSellerVerification() {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
+  if (!isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
 
   try {
     const admin = createAdminClient();

@@ -54,3 +54,21 @@ test("weak phone signing secrets and non-public site URLs fail", () => {
   assert.match(result.output, /at least 32 characters/);
   assert.match(result.output, /public HTTPS URL/);
 });
+
+test("explicitly disabled WhatsApp needs no phone credentials but preserves other production requirements", () => {
+  const unavailable = {
+    WHATSAPP_ENABLED: "false", WHATSAPP_ACCESS_TOKEN: "", WHATSAPP_PHONE_NUMBER_ID: "",
+    SELLER_PHONE_OTP_SECRET: "", WHATSAPP_OTP_TEMPLATE_NAME: "", WHATSAPP_OTP_TEMPLATE_LANGUAGE: "",
+  };
+  const disabled = check(unavailable);
+  assert.equal(disabled.status, 0, disabled.output);
+  assert.match(disabled.output, /Automated WhatsApp delivery and phone-code verification are disabled/);
+  const missingServiceKey = check({ ...unavailable, SUPABASE_SERVICE_ROLE_KEY: "" });
+  assert.equal(missingServiceKey.status, 1);
+  assert.match(missingServiceKey.output, /Missing SUPABASE_SERVICE_ROLE_KEY/);
+
+  const enabledByDefault = check({ ...unavailable, WHATSAPP_ENABLED: "" });
+  assert.equal(enabledByDefault.status, 1);
+  assert.match(enabledByDefault.output, /Missing WHATSAPP_ACCESS_TOKEN/);
+  assert.match(enabledByDefault.output, /at least 32 characters/);
+});

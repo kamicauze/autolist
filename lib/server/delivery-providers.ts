@@ -1,4 +1,5 @@
 import "server-only";
+import { isWhatsAppEnabled } from "@/lib/server/whatsapp-availability";
 
 type DeliveryResult = {
   success: boolean;
@@ -122,6 +123,9 @@ export async function sendProviderEmail(input: EmailInput): Promise<DeliveryResu
 }
 
 async function sendWhatsAppMessage(input: WhatsAppInput | { to: string; code: string }): Promise<DeliveryResult> {
+  if (!isWhatsAppEnabled()) {
+    return { success: false, skipped: true, error: "Automated WhatsApp delivery is temporarily unavailable." };
+  }
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const apiVersion = process.env.WHATSAPP_API_VERSION || "v21.0";
