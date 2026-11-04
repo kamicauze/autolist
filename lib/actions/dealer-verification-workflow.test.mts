@@ -5,7 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 type Row = Record<string, unknown>;
-type Write = { table: string; operation: string; values: Row };
+type Write = { table: string; operation: string; values: Row; privileged: boolean };
 type Options = {
   signedIn?: boolean;
   userId?: string;
@@ -16,6 +16,8 @@ type Options = {
   status?: string;
   queueFails?: boolean;
   workflowFails?: boolean;
+  auditFails?: boolean;
+  auditThrows?: boolean;
 };
 type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
 type Actions = {
@@ -33,7 +35,7 @@ function load<T>(file: string, dependencies: Record<string, unknown>): T {
   vm.runInNewContext(source, {
     exports: loaded.exports, module: loaded, FormData, File, Buffer,
     process: { env: { R2_BUCKET_NAME: "sample-media" } },
-    console: { error() {} },
+    console: { error() {}, warn() {} },
     require(name: string) {
       if (!(name in dependencies)) throw new Error(`Unexpected verification dependency: ${name}`);
       return dependencies[name];
@@ -65,13 +67,18 @@ function harness(options: Options = {}) {
             assert.equal(privileged, true, "private workflow reads/writes require the service client");
             rows = [workflow];
           } else if (table === "dealer_verification_documents") rows = [{ dealer_id: dealer.id, document_type: "contact_photo", r2_key: "sample-photo" }, { dealer_id: dealer.id, document_type: "incorporation_certificate", r2_key: "sample-certificate" }];
-          else if (table === "audit_logs") rows = [];
+          else if (table === "audit_logs") {
+            assert.equal(privileged, true, "audit writes require the service client after authorization");
+            if (options.auditThrows) throw new Error("Audit service unavailable");
+            if (options.auditFails) return { data: [], error: { message: "Audit insert denied" } };
+            rows = [];
+          }
           else throw new Error(`Unexpected verification table: ${table}`);
           rows = rows.filter(row => filters.every(filter => filter(row)));
           if (table === "dealer_verification_workflows" && operation === "upsert" && options.workflowFails) return { data: [], error: { message: "Private workflow unavailable" } };
           if (operation !== "select" && (operation !== "update" || rows.length)) {
             if (table === "dealers") for (const key of privateFields) assert.equal(key in values, false, `${key} must never be written to public dealers`);
-            writes.push({ table, operation, values: { ...values } });
+            writes.push({ table, operation, values: { ...values }, privileged });
             if (table === "dealers") Object.assign(dealer, values);
             if (table === "dealer_verification_workflows") Object.assign(workflow, values);
           }
@@ -154,6 +161,14 @@ test("saving a notes-only verification draft preserves review status and timesta
   assert.equal(sample.workflow.review_notes, "Prior review");
   assert.equal(sample.dealer.status, "REJECTED");
   assert.equal(sample.notifications.length, 0);
+  const audit = sample.writes.find(write => write.table === "audit_logs");
+  assert.ok(audit);
+  assert.equal(audit.privileged, true);
+  assert.equal(audit.values.user_id, "sample-owner");
+  assert.equal(audit.values.action, "dealer_verification_documents_saved");
+  assert.equal(audit.values.entity_type, "dealer");
+  assert.equal(audit.values.entity_id, "sample-dealer");
+  assert.equal(Array.isArray((audit.values.details as Row).document_types), true);
 });
 
 test("resubmission records its actual submission time and clears the previous review privately", async () => {
@@ -168,6 +183,7 @@ test("resubmission records its actual submission time and clears the previous re
   assert.ok(submittedAt >= before && submittedAt <= Date.now());
   for (const key of ["reviewed_at", "reviewed_by", "review_notes"]) assert.equal(sample.workflow[key], null);
   assert.equal(sample.workflow.verification_notes, "Updated evidence ready for review.");
+  assert.equal(sample.writes.find(write => write.table === "audit_logs")?.values.action, "dealer_verification_resubmitted");
 });
 
 test("approval and rejection queue one owner-addressed in-app/email event only for an actual status transition", async () => {
@@ -181,7 +197,16 @@ test("approval and rejection queue one owner-addressed in-app/email event only f
     const reviewedAt = Date.parse(String(sample.workflow.reviewed_at));
     assert.ok(reviewedAt >= before && reviewedAt <= Date.now());
     assert.equal(sample.workflow.review_notes, "Review result");
+    const audit = sample.writes.find(write => write.table === "audit_logs");
+    assert.ok(audit);
+    assert.equal(audit.privileged, true);
+    assert.equal(audit.values.user_id, "sample-staff");
+    assert.equal(audit.values.action, status === "APPROVED" ? "dealer_approved" : "dealer_rejected");
+    assert.equal(audit.values.entity_type, "dealer");
+    assert.equal(audit.values.entity_id, "sample-dealer");
+    assert.equal((audit.values.details as Row)[status === "APPROVED" ? "note" : "reason"], "Review result");
     assert.equal(sample.notifications.length, 1);
+    assert.equal(sample.writes.filter(write => write.table === "audit_logs").length, 1);
     const event = sample.notifications[0];
     assert.equal(event.eventType, "dealer_verification_status_changed");
     const deliveries = event.deliveries as Row[];
@@ -219,4 +244,30 @@ test("unauthorized staff review attempts perform no privileged write or notifica
   assert.equal(sample.adminClients, 0);
   assert.equal(sample.writes.length, 0);
   assert.equal(sample.notifications.length, 0);
+});
+
+test("signed-out and unrelated dealer submissions cannot create an audit record", async () => {
+  for (const options of [{ signedIn: false }, { userId: "another-owner" }]) {
+    const sample = harness(options);
+    const form = new FormData();
+    form.set("intent", "draft");
+    form.set("verificationNotes", "Unrelated request");
+    assert.ok((await sample.actions().resubmitDealerVerificationDocuments(form)).error);
+    assert.equal(sample.writes.length, 0);
+  }
+});
+
+test("audit insertion errors and exceptions warn without failing an already saved review", async () => {
+  for (const options of [{ auditFails: true }, { auditThrows: true }, { auditFails: true, queueFails: true }]) {
+    const sample = harness({ staff: true, ...options });
+    const result = await sample.actions().approveDealer("sample-dealer", "Review completed");
+    assert.equal(result.success, true);
+    assert.equal(result.error, undefined);
+    assert.match(String(result.warning), /saved.*audit log/i);
+    assert.equal(sample.dealer.status, "APPROVED");
+    assert.equal(sample.workflow.review_notes, "Review completed");
+    assert.equal(sample.writes.filter(write => write.table === "audit_logs").length, 0);
+    assert.equal(sample.notifications.length, options.queueFails ? 0 : 1);
+    if (options.queueFails) assert.match(String(result.warning), /email notification/i);
+  }
 });

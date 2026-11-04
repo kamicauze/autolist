@@ -199,15 +199,19 @@ async function logAudit(
   entityId: string,
   details: Record<string, unknown>
 ) {
-  const supabase = await createClient();
-
-  await supabase.from("audit_logs").insert({
-    user_id: actorId,
-    action,
-    entity_type: entityType,
-    entity_id: entityId,
-    details,
-  });
+  try {
+    const { error } = await createAdminClient().from("audit_logs").insert({
+      user_id: actorId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      details,
+    });
+    if (error) throw error;
+  } catch (error) {
+    console.warn("Unable to record dealer audit log:", error);
+    return "The change was saved, but its audit log could not be recorded. Please contact support.";
+  }
 }
 
 export async function submitDealerVerification(formData: FormData) {
@@ -455,7 +459,7 @@ export async function submitDealerVerification(formData: FormData) {
       return { error: roleError.message };
     }
 
-    await logAudit(user.id, "dealer_verification_submitted", "dealer", dealer.id, {
+    const warning = await logAudit(user.id, "dealer_verification_submitted", "dealer", dealer.id, {
       submitted_at: new Date().toISOString(),
     });
 
@@ -464,7 +468,7 @@ export async function submitDealerVerification(formData: FormData) {
     revalidatePath("/register/dealer");
     revalidatePath("/admin/dealers");
 
-    return { success: true as const, dealerId: dealer.id };
+    return { success: true as const, dealerId: dealer.id, warning };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Unable to submit dealer verification.",
@@ -737,7 +741,7 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
         .map((document) => document.r2_key),
     );
 
-    await logAudit(
+    const warning = await logAudit(
       user.id,
       intent === "draft" ? "dealer_verification_documents_saved" : "dealer_verification_resubmitted",
       "dealer",
@@ -749,7 +753,7 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
     revalidatePath("/dashboard/verification");
     revalidatePath("/admin/dealers");
 
-    return { success: true as const, intent };
+    return { success: true as const, intent, warning };
   } catch (error) {
     return {
       error:
@@ -829,11 +833,12 @@ export async function approveDealer(dealerId: string, note?: string) {
   }
 
   await adminSupabase.from("profiles").update({ role: "dealer" }).eq("id", dealer.profile_id);
-  await logAudit(user.id, "dealer_approved", "dealer", dealer.id, { note: note || null });
-  const warning = await finishDealerReview({
+  const auditWarning = await logAudit(user.id, "dealer_approved", "dealer", dealer.id, { note: note || null });
+  const reviewWarning = await finishDealerReview({
     dealerId: dealer.id, profileId: dealer.profile_id, actorId: user.id,
     status: "APPROVED", reviewedAt, note: note || null,
   });
+  const warning = [auditWarning, reviewWarning].filter(Boolean).join(" ") || undefined;
 
   revalidatePath("/admin/dealers");
   revalidatePath("/dashboard");
@@ -870,13 +875,14 @@ export async function rejectDealer(dealerId: string, reason: string) {
     return error || !existing ? { error: error?.message || "Dealer not found." } : { success: true };
   }
 
-  await logAudit(user.id, "dealer_rejected", "dealer", dealer.id, {
+  const auditWarning = await logAudit(user.id, "dealer_rejected", "dealer", dealer.id, {
     reason: reason || null,
   });
-  const warning = await finishDealerReview({
+  const reviewWarning = await finishDealerReview({
     dealerId: dealer.id, profileId: dealer.profile_id, actorId: user.id,
     status: "REJECTED", reviewedAt, note: reason || "Needs additional review.",
   });
+  const warning = [auditWarning, reviewWarning].filter(Boolean).join(" ") || undefined;
 
   revalidatePath("/admin/dealers");
   revalidatePath("/dashboard");
