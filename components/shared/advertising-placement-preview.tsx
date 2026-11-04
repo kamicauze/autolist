@@ -76,7 +76,7 @@ export function AdvertisingPlacementPreview({ placements }: { placements: readon
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">See exactly where your ad goes</p>
         <h2 className="mt-3 text-2xl font-semibold text-gray-900">Preview your advert on Autolist</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Choose a placement, then add your business name. The highlighted outline marks the advertising space you are buying; the surrounding content shows where it appears.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">Choose an example placement, then add your business name. The highlighted outline shows a possible advertising space. Confirm availability and campaign details with our team.</p>
         <div className="mt-7 grid items-start gap-7 lg:grid-cols-[0.55fr_1fr]">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
             <label htmlFor={`${fieldId}-placement`} className="block text-sm font-semibold text-gray-900">1. Choose an advertising placement</label>
