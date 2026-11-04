@@ -199,7 +199,11 @@ export const getActiveCmsBanners = cache(
       .or(`ends_at.is.null,ends_at.gte.${now}`)
       .order("sort_order", { ascending: true })
       .order("updated_at", { ascending: false })
-      .limit(Math.max(requestedLimit, 24));
+      .limit(requestedLimit);
+
+    query = categoryTarget
+      ? query.or(`category_targets.eq.{},category_targets.cs.{${categoryTarget}}`)
+      : query.eq("category_targets", "{}");
 
     if (placement) {
       query = query.eq("placement", placement);

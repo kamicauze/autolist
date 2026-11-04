@@ -17,32 +17,6 @@ const trackSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
-async function incrementCounter({
-  table,
-  id,
-  column,
-}: {
-  table: "cms_banners" | "cms_special_offers";
-  id: string;
-  column: "impression_count" | "click_count" | "redemption_count";
-}) {
-  const supabase = createOptionalAdminClient();
-  if (!supabase) return;
-
-  const { data, error } = await supabase
-    .from(table)
-    .select(column)
-    .eq("id", id)
-    .maybeSingle<Record<string, number | null>>();
-
-  if (error || !data) return;
-
-  await supabase
-    .from(table)
-    .update({ [column]: (data[column] ?? 0) + 1 })
-    .eq("id", id);
-}
-
 export async function POST(request: Request) {
   const payload = trackSchema.safeParse(await request.json().catch(() => null));
 
@@ -50,32 +24,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  if (payload.data.type === "banner_impression") {
-    await Promise.all(
-      payload.data.ids.map((id) =>
-        incrementCounter({
-          table: "cms_banners",
-          id,
-          column: "impression_count",
-        })
-      )
-    );
+  const supabase = createOptionalAdminClient();
+  if (!supabase) {
+    return NextResponse.json({ ok: false }, { status: 503 });
   }
 
-  if (payload.data.type === "banner_click") {
-    await incrementCounter({
-      table: "cms_banners",
-      id: payload.data.id,
-      column: "click_count",
-    });
-  }
-
-  if (payload.data.type === "offer_redemption") {
-    await incrementCounter({
-      table: "cms_special_offers",
-      id: payload.data.id,
-      column: "redemption_count",
-    });
+  const campaignIds = payload.data.type === "banner_impression"
+    ? [...new Set(payload.data.ids)]
+    : [payload.data.id];
+  const { error } = await supabase.rpc("record_cms_campaign_event", {
+    event_type: payload.data.type,
+    campaign_ids: campaignIds,
+  });
+  if (error) {
+    return NextResponse.json({ ok: false }, { status: 503 });
   }
 
   return NextResponse.json({ ok: true });

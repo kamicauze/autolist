@@ -29,6 +29,7 @@ function PublicCmsBannerCard({
   banner: CmsBanner;
   variant: PublicCmsBannerVariant;
 }) {
+  const impressionRef = useCmsBannerImpressions([banner.id]);
   const href = getBannerHref(banner);
   const hasHref = Boolean(href);
   const external = hasHref && isExternalHref(href);
@@ -48,6 +49,7 @@ function PublicCmsBannerCard({
   );
   const body = (
     <div
+      ref={impressionRef}
       className={cn(
         "group relative overflow-hidden border border-[#e5e7eb] bg-white shadow-sm",
         variant === "hero" ? "rounded-none border-x-0 border-t-0" : "rounded-[18px]",
@@ -156,8 +158,6 @@ export function PublicCmsBannerList({
   variant: PublicCmsBannerVariant;
   className?: string;
 }) {
-  useCmsBannerImpressions(banners.map((banner) => banner.id));
-
   if (banners.length === 0) return null;
 
   return (

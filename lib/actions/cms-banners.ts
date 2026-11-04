@@ -59,6 +59,10 @@ function normalizeOptionalDate(value: string, label: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(trimmed)) {
+    throw new Error(`${label} must include a timezone.`);
+  }
+
   const date = new Date(trimmed);
   if (Number.isNaN(date.getTime())) {
     throw new Error(`${label} must be a valid date and time.`);
@@ -72,8 +76,7 @@ function slugifyBanner(value: string) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120);
+    .replace(/^-+|-+$/g, "");
 
   return normalized || "banner";
 }
@@ -180,8 +183,12 @@ export async function saveCmsBanner(input: SaveCmsBannerInput): Promise<CmsBanne
     const targetUrl = normalizeOptionalPathOrUrl(parsed.data.targetUrl, "Target URL");
     const startsAt = normalizeOptionalDate(parsed.data.startsAt, "Start date");
     const endsAt = normalizeOptionalDate(parsed.data.endsAt, "End date");
-    const slugBase = slugifyBanner(parsed.data.slug || parsed.data.title);
-    const slug = `${slugBase}-${parsed.data.bannerId.slice(0, 8)}`;
+    const slugSuffix = `-${parsed.data.bannerId.slice(0, 8)}`;
+    const normalizedSlug = slugifyBanner(parsed.data.slug || parsed.data.title);
+    const slugBase = normalizedSlug.endsWith(slugSuffix)
+      ? normalizedSlug.slice(0, -slugSuffix.length)
+      : normalizedSlug;
+    const slug = `${slugBase.slice(0, 120)}${slugSuffix}`;
 
     if (startsAt && endsAt && new Date(startsAt).getTime() >= new Date(endsAt).getTime()) {
       return { success: false, error: "End date must be after the start date." };

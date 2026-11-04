@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cmsBannerMatchesCategoryTarget,
+  cmsBannerDateTimeToIso,
   getCmsBannerCategoryTargetForListingCategory,
   normalizeCmsBannerCategoryTargets,
 } from "./cms-banners";
@@ -35,4 +36,19 @@ test("banner category targets drop unknown values from legacy data", () => {
     normalizeCmsBannerCategoryTargets(["cars_vans", "unknown", "truck", 12]),
     ["cars_vans", "truck"]
   );
+});
+
+test("banner schedule serialization preserves browser-local time as an explicit instant", () => {
+  const previousTimezone = process.env.TZ;
+  try {
+    process.env.TZ = "Africa/Nairobi";
+    assert.equal(cmsBannerDateTimeToIso("2026-11-05T10:30"), "2026-11-05T07:30:00.000Z");
+    process.env.TZ = "America/Los_Angeles";
+    assert.equal(cmsBannerDateTimeToIso("2026-11-05T10:30"), "2026-11-05T18:30:00.000Z");
+    assert.equal(cmsBannerDateTimeToIso(""), "");
+    assert.equal(cmsBannerDateTimeToIso("invalid"), "invalid");
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
 });

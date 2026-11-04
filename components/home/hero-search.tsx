@@ -205,7 +205,7 @@ export function HeroSearch({
     heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
   const hasSponsoredHero = Boolean(heroBanner);
 
-  useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
+  const heroImpressionRef = useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
   const isEquipmentCategory = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
@@ -659,6 +659,7 @@ export function HeroSearch({
         )}
       >
         <div
+          ref={heroImpressionRef}
           className={cn(
             "relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]",
             hasSponsoredHero &&
