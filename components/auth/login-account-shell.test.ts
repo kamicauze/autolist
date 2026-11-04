@@ -23,8 +23,8 @@ test("login adopts the supplied two-panel account structure with truthful Autoli
   assert.doesNotMatch(shell, /mobile\.de/i);
 });
 
-test("login only renders providers supported by the existing form", () => {
+test("login renders Google while Facebook signup is deferred", () => {
   assert.match(form, /Continue with Google/);
-  assert.match(form, /Continue with Facebook/);
+  assert.doesNotMatch(form, /Continue with Facebook|login-facebook/);
   assert.doesNotMatch(form, /Continue with Apple/);
 });

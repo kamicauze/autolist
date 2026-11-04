@@ -14,13 +14,12 @@ import {
   sanitizeNextPath,
 } from "@/lib/supabase/auth-routing";
 import {
-  FacebookIcon,
   GoogleIcon,
   SocialAuthButton,
 } from "@/components/auth/social-auth-button";
 import { ResendVerification } from "@/components/auth/resend-verification";
 
-type SocialProvider = "google" | "facebook";
+type SocialProvider = "google";
 
 export function LoginForm() {
   const router = useRouter();
@@ -134,14 +133,6 @@ export function LoginForm() {
           onClick={() => handleSocialLogin("google")}
           disabled={isLoading || !!socialLoading}
           data-testid="login-google"
-          className="h-12 rounded-[10px] border-2 border-primary/70 text-[#2f3a48] hover:border-primary hover:bg-brand-tint"
-        />
-        <SocialAuthButton
-          label="Continue with Facebook"
-          icon={<FacebookIcon />}
-          onClick={() => handleSocialLogin("facebook")}
-          disabled={isLoading || !!socialLoading}
-          data-testid="login-facebook"
           className="h-12 rounded-[10px] border-2 border-primary/70 text-[#2f3a48] hover:border-primary hover:bg-brand-tint"
         />
       </div>

@@ -29,6 +29,8 @@ test("registration uses the same account shell language and a deliberate replace
   assert.match(shell, /imageSrc="\/auth\/login-bmw-x2-front\.jpg"/);
   assert.doesNotMatch(page, /sample-car-2\.jpg/);
   assert.match(shell, /min-h-\[100dvh\]/);
+  assert.match(form, /data-testid="register-google"/);
+  assert.doesNotMatch(form, /data-testid="register-facebook"/);
 });
 
 test("account selection is a reversible first step that retains the form component state", () => {

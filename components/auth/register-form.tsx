@@ -37,13 +37,12 @@ import {
 import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import { USER_ROLE_OPTIONS, type UserRole } from "@/lib/constants/marketplace";
 import {
-  FacebookIcon,
   GoogleIcon,
   SocialAuthButton,
 } from "@/components/auth/social-auth-button";
 import { ResendVerification } from "@/components/auth/resend-verification";
 
-type SocialProvider = "google" | "facebook";
+type SocialProvider = "google";
 type RegistrationStep = "role" | "details";
 
 const ROLE_PRESENTATION: Record<
@@ -634,20 +633,13 @@ export function RegisterForm() {
         <div className="h-px flex-1 bg-[#EDEDED]" />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid gap-3">
         <SocialAuthButton
           label="Google"
           icon={<GoogleIcon />}
           onClick={() => handleSocialRegister("google")}
           disabled={isLoading || !!socialLoading}
           data-testid="register-google"
-        />
-        <SocialAuthButton
-          label="Facebook"
-          icon={<FacebookIcon />}
-          onClick={() => handleSocialRegister("facebook")}
-          disabled={isLoading || !!socialLoading}
-          data-testid="register-facebook"
         />
       </div>
     </form>
