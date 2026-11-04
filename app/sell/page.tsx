@@ -9,7 +9,6 @@ import {
   Clock,
   HandCoins,
   Check,
-  Star,
   ArrowRight,
 } from "lucide-react";
 
@@ -17,7 +16,7 @@ const sellingOptions = [
   {
     title: "Selling your own car?",
     description:
-      "List your car as a private seller, set your asking price and speak directly with interested buyers.",
+      "Private seller phone verification is currently paused. Check the requirements before preparing a listing; immediate listing access is unavailable.",
     image: "/images/sell-private.webp",
     imageAlt: "A private seller beside their car",
     features: [
@@ -25,7 +24,7 @@ const sellingOptions = [
       "Manage your listing and enquiries",
       "Or request offers from approved dealers",
     ],
-    cta: "List your car",
+    cta: "View seller requirements",
     href: "/register?role=seller&next=/dashboard/listings/new",
   },
   {
@@ -68,27 +67,6 @@ const benefits = [
   },
 ] as const;
 
-const testimonials = [
-  {
-    name: "Jacob Mwangi",
-    role: "Private Seller",
-    quote:
-      "I listed my car in minutes and got serious buyers the same week. The process felt straightforward and safe.",
-  },
-  {
-    name: "Lynn Achieng",
-    role: "Dealer",
-    quote:
-      "Autolist brings consistent leads and serious buyers. It has become a key channel for our dealership stock.",
-  },
-  {
-    name: "Brian Mutiso",
-    role: "Seller",
-    quote:
-      "The valuation and listing tips helped me price correctly. I sold faster than I expected and with zero hassle.",
-  },
-];
-
 export default function SellPage() {
   return (
     <div className="flex min-h-screen flex-col">
@@ -113,8 +91,8 @@ export default function SellPage() {
                 Sell your car, your way.
               </h1>
               <p className="mt-5 max-w-md text-base leading-7 text-white/90">
-                List privately, connect with buyers or get offers from approved
-                dealers. Choose the route that works for you.
+                Apply to the free dealer pilot or review the current private
+                seller requirements. Vehicle transactions remain between buyer and seller.
               </p>
               <Button asChild className="mt-7">
                 <Link href="#selling-options">
@@ -232,36 +210,22 @@ export default function SellPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-            Customer reviews
+            Join the free dealer pilot
           </h2>
-          <div className="mt-8 grid gap-7 sm:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <article
-                key={testimonial.name}
-                className="border-t border-gray-200 pt-5"
-              >
-                <div
-                  className="flex gap-1 text-primary"
-                  aria-label="5 out of 5 stars"
-                >
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <Star
-                      key={rating}
-                      aria-hidden="true"
-                      className="h-4 w-4 fill-current"
-                    />
-                  ))}
-                </div>
-                <blockquote className="mt-4 text-sm leading-7 text-gray-600">
-                  “{testimonial.quote}”
-                </blockquote>
-                <p className="mt-5 text-sm font-semibold text-gray-900">
-                  {testimonial.name}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">{testimonial.role}</p>
-              </article>
-            ))}
-          </div>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-gray-600">
+            Vehicle dealerships can apply for staff review and, once approved,
+            manage inventory, team access and buyer enquiries. Paid package
+            purchases are paused during the pilot. Listing approval does not
+            guarantee enquiries or a sale.
+          </p>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+            Individual seller phone verification is currently paused. Check the
+            requirements before starting a private listing. Buyers and sellers
+            arrange inspections, payments and ownership transfers directly.
+          </p>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href="/register?role=dealer">Apply to the dealer pilot</Link>
+          </Button>
         </section>
       </main>
       <Footer />

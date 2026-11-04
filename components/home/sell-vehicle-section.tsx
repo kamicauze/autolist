@@ -7,26 +7,26 @@ const sellOptions = [
   {
     title: "Create an advert",
     description:
-      "Create your own advert and reach thousands of buyers directly. You set the price and stay in control of the entire process.",
+      "Review selling options and current requirements. Private seller phone verification is currently paused.",
     benefits: [
       "Set your own asking price",
-      "Reach thousands of buyers",
+      "Connect with interested buyers",
       "Manage enquiries your way",
     ],
-    buttonText: "Create your advert",
+    buttonText: "View selling options",
     href: "/sell",
     variant: "outline" as const,
   },
   {
     title: "Sell to a dealer",
     description:
-      "Get a quick, guaranteed offer from a trusted dealer. No haggling, no hassle — just a fair price and a fast deal.",
+      "Submit your vehicle for offers from approved dealers. Offers depend on dealer interest and your vehicle details.",
     benefits: [
-      "Get an instant valuation",
-      "No haggling or tyre-kickers",
-      "Fast, hassle-free collection",
+      "Share your vehicle details",
+      "Review any offers you receive",
+      "Agree inspection and handover directly",
     ],
-    buttonText: "Get your offer",
+    buttonText: "Request dealer offers",
     href: "/sell/dealer",
     variant: "outline" as const,
   },
@@ -45,7 +45,7 @@ export function SellVehicleSection() {
             Choose how you want to sell
           </h2>
           <p className="mx-auto max-w-xl text-sm text-gray-500">
-            Whether you want full control or a quick, hassle-free sale &mdash; we&apos;ve got the right option for you.
+            Advertise your vehicle or request dealer offers. View the requirements for each selling route.
           </p>
         </div>
 

@@ -9,7 +9,7 @@ const steps = [
     number: "01",
     title: "Find your ideal vehicle",
     description:
-      "Browse thousands of listings from private sellers and trusted dealers.",
+      "Browse available vehicles from dealers and private sellers.",
   },
   {
     icon: GitCompare,
@@ -17,7 +17,7 @@ const steps = [
     number: "02",
     title: "Compare and verify",
     description:
-      "Review detailed vehicle histories, compare prices across multiple listings.",
+      "Compare listing details and prices. Inspect the vehicle and confirm its documents before paying.",
   },
   {
     icon: Handshake,
@@ -39,7 +39,7 @@ export function HowItWorks() {
         </p>
 
         <h2 className="mb-4 text-center text-2xl font-bold text-gray-900 sm:text-3xl">
-          Reserve online with Autolist
+          Find and compare vehicles with Autolist
         </h2>
 
         {/* Steps */}
