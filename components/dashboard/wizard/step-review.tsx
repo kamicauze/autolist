@@ -311,7 +311,7 @@ export function StepReview() {
       <p className="rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[13px] leading-5 text-[#475467]">
         {isEditing
           ? "Saving will update the existing listing. Existing gallery cover changes keep the same media files; uploading new media replaces the current media set."
-          : "The listing will be sent for moderation and remain pending until it is approved."}
+          : "Listings from approved dealers publish as soon as submission finishes. Other listings stay pending until approved."}
       </p>
       <ListingQualityPanel />
     </div>
