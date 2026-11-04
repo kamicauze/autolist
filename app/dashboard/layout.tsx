@@ -54,7 +54,11 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
     return <div className="mx-auto min-h-screen max-w-7xl px-4 py-8">{children}</div>;
   }
 
-  if (destination !== "/dashboard") {
+  const canRenderDealerVerification =
+    profileRole?.role === "dealer" &&
+    destination === "/dashboard/verification" &&
+    currentPath.split("?")[0] === destination;
+  if (destination !== "/dashboard" && !canRenderDealerVerification) {
     redirect(destination);
   }
 
