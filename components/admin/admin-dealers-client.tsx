@@ -66,7 +66,12 @@ export function AdminDealersClient({
     setDealerRows((current) =>
       current.filter((dealer) => dealer.id !== dealerId),
     );
-    setFeedback({ tone: "success", message: "Dealer verification approved." });
+    setFeedback({
+      tone: "success",
+      message: result.warning
+        ? `Dealer verification approved. ${result.warning}`
+        : "Dealer verification approved.",
+    });
     setProcessingId(null);
   };
 
@@ -83,7 +88,12 @@ export function AdminDealersClient({
     setDealerRows((current) =>
       current.filter((dealer) => dealer.id !== dealerId),
     );
-    setFeedback({ tone: "success", message: "Dealer verification rejected." });
+    setFeedback({
+      tone: "success",
+      message: result.warning
+        ? `Dealer verification rejected. ${result.warning}`
+        : "Dealer verification rejected.",
+    });
     setRejectingDealerId(null);
     setProcessingId(null);
   };

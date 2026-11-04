@@ -238,23 +238,11 @@ export function VerificationUploadPanel({
           placeholder="Call out updated files, expiry dates, or alternate business names."
           className={sellerTextareaClass}
         />
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {(["email", "whatsapp", "sms"] as const).map((channel) => (
-            <label
-              key={channel}
-              className="flex items-center gap-2 rounded-[14px] border border-[#e6e6e6] bg-white px-3 py-3 text-[13px] font-medium capitalize text-[#24272c]"
-            >
-              <input
-                type="radio"
-                name="preferredConfirmationChannel"
-                value={channel}
-                disabled={!canUpload || isApproved}
-                defaultChecked={(dealer?.preferred_confirmation_channel || "email") === channel}
-              />
-              {channel}
-            </label>
-          ))}
-        </div>
+        <input type="hidden" name="preferredConfirmationChannel" value="email" />
+        <p className="mt-4 text-[13px] leading-5 text-[#717171]">
+          Review updates are sent by email to the address on your Autolist account.
+          Sign in to check your verification status and review feedback.
+        </p>
       </div>
 
       {error ? (

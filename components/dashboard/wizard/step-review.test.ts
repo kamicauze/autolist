@@ -5,6 +5,7 @@ import { TRUCK_CATEGORIES } from "@/lib/constants/vehicle-taxonomy";
 import {
   buildDraftAfterCategoryChange,
   buildFreshDraft,
+  buildGalleryDraftAfterFilesChange,
   buildSellerAccountDefaults,
   DEFAULT_DRAFT,
   DETAIL_FIELDS_BY_CATEGORY,
@@ -116,6 +117,41 @@ test("a failed submission retry continues the draft created by the first attempt
 
 test("new listings require the seller to choose a condition", () => {
   assert.equal(DEFAULT_DRAFT.condition, "");
+});
+
+test("reordering photos keeps the selected cover when another photo moves into its position", () => {
+  const photos = ["front.jpg", "side.jpg", "rear.jpg"].map((name) => new File([name], name));
+
+  for (const [from, to] of [[2, 1], [0, 1], [1, 2], [1, 0]]) {
+    const reordered = [...photos];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    const result = buildGalleryDraftAfterFilesChange(photos, reordered, 1);
+
+    assert.equal(reordered[result.coverFromGalleryIndex!], photos[1]);
+    assert.deepEqual(result.galleryImageNames, reordered.map((photo) => photo.name));
+  }
+});
+
+test("removing photos preserves the selected cover until that photo is removed", () => {
+  const photos = ["front.jpg", "side.jpg", "rear.jpg"].map((name) => new File([name], name));
+  const remaining = photos.filter((photo) => photo !== photos[0]);
+  const result = buildGalleryDraftAfterFilesChange(photos, remaining, 1);
+
+  assert.equal(remaining[result.coverFromGalleryIndex!], photos[1]);
+  assert.deepEqual(result.galleryImageNames, ["side.jpg", "rear.jpg"]);
+  assert.equal(buildGalleryDraftAfterFilesChange(photos, [photos[0], photos[2]], 1).coverFromGalleryIndex, 0);
+  assert.equal(buildGalleryDraftAfterFilesChange(photos, [], 1).coverFromGalleryIndex, null);
+  assert.equal(buildGalleryDraftAfterFilesChange(photos, remaining, null).coverFromGalleryIndex, null);
+});
+
+test("cover selection tracks the actual file when filenames are the same", () => {
+  const photos = [new File(["front"], "photo.jpg"), new File(["side"], "photo.jpg")];
+  const reordered = [photos[1], photos[0]];
+  const result = buildGalleryDraftAfterFilesChange(photos, reordered, 1);
+
+  assert.equal(result.coverFromGalleryIndex, 0);
+  assert.equal(reordered[result.coverFromGalleryIndex!], photos[1]);
 });
 
 test("dealer account defaults fall back to profile contact details", () => {

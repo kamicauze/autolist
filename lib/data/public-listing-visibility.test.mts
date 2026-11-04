@@ -23,6 +23,7 @@ function query(table: string) {
   };
   return chain;
 }
+mock.module("server-only", { namedExports: {} });
 mock.module("@/lib/supabase/server", { namedExports: { createClient: async () => ({ from: query }) } });
 mock.module("@/lib/supabase/admin", { namedExports: { createOptionalAdminClient: () => null, createAdminClient: () => { throw new Error("Privileged client forbidden"); } } });
 mock.module("@/lib/data/membership", { namedExports: { getSellerPackageFeaturedPriority: () => 0 } });

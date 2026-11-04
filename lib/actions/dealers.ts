@@ -18,6 +18,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/utils/listings";
+import { emitNotificationEvent } from "@/lib/server/notifications";
 
 type DealerVerificationInsertRow = {
   dealer_id: string;
@@ -38,7 +39,6 @@ type DealerVerificationResubmissionRow = {
   contact_person: { photo_url?: string | null; [key: string]: unknown } | null;
   doc_incorporation_key?: string | null;
   doc_id_key?: string | null;
-  submitted_at?: string | null;
 };
 
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
@@ -80,17 +80,6 @@ function omitUpdateKeys(source: Record<string, unknown>, keys: string[]) {
     delete next[key];
   }
   return next;
-}
-
-function isMissingDealerWorkflowColumns(error: PostgrestSchemaError | null | undefined) {
-  return [
-    "submitted_at",
-    "reviewed_by",
-    "reviewed_at",
-    "review_notes",
-    "verification_notes",
-    "preferred_confirmation_channel",
-  ].some((column) => schemaErrorIncludes(error, column));
 }
 
 function isMissingDealerVerificationDocumentsTable(error: PostgrestSchemaError | null | undefined) {
@@ -354,33 +343,11 @@ export async function submitDealerVerification(formData: FormData) {
       rejection_reason: null,
     };
 
-    let { data: dealer, error: dealerError } = await adminSupabase
+    const { data: dealer, error: dealerError } = await adminSupabase
       .from("dealers")
-      .upsert(
-        {
-          ...baseDealerPayload,
-          submitted_at: new Date().toISOString(),
-          reviewed_by: null,
-          reviewed_at: null,
-          review_notes: null,
-          verification_notes: optionalString(formData, "verificationNotes"),
-          preferred_confirmation_channel:
-            requiredString(formData, "preferredConfirmationChannel") || "email",
-        },
-        { onConflict: "profile_id" }
-      )
+      .upsert(baseDealerPayload, { onConflict: "profile_id" })
       .select("id")
       .single();
-
-    if (dealerError && isMissingDealerWorkflowColumns(dealerError)) {
-      const legacyResult = await adminSupabase
-        .from("dealers")
-        .upsert(baseDealerPayload, { onConflict: "profile_id" })
-        .select("id")
-        .single();
-      dealer = legacyResult.data;
-      dealerError = legacyResult.error;
-    }
 
     if (dealerError || !dealer) {
       await removeDealerKycReferences(adminSupabase, [
@@ -388,6 +355,21 @@ export async function submitDealerVerification(formData: FormData) {
         idUpload?.r2Key,
       ]);
       return { error: dealerError?.message || "Unable to save the dealer profile." };
+    }
+
+    const { error: workflowError } = await adminSupabase
+      .from("dealer_verification_workflows")
+      .upsert({
+        dealer_id: dealer.id,
+        submitted_at: new Date().toISOString(),
+        reviewed_by: null,
+        reviewed_at: null,
+        review_notes: null,
+        verification_notes: optionalString(formData, "verificationNotes"),
+        preferred_confirmation_channel: "email",
+      }, { onConflict: "dealer_id" });
+    if (workflowError) {
+      return { error: "Your dealer profile was saved, but verification details could not be saved. Please retry." };
     }
 
     const documentRows = [
@@ -522,22 +504,12 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
     const dealerResult = await adminSupabase
       .from("dealers")
       .select(
-        "id, profile_id, status, contact_person, doc_incorporation_key, doc_id_key, submitted_at"
+        "id, profile_id, status, contact_person, doc_incorporation_key, doc_id_key"
       )
       .eq("profile_id", user.id)
       .maybeSingle();
     let dealer = dealerResult.data as DealerVerificationResubmissionRow | null;
     let dealerError = dealerResult.error;
-
-    if (dealerError && isMissingDealerWorkflowColumns(dealerError)) {
-      const fallback = await adminSupabase
-        .from("dealers")
-        .select("id, profile_id, status, contact_person, doc_incorporation_key, doc_id_key")
-        .eq("profile_id", user.id)
-        .maybeSingle();
-      dealer = fallback.data as DealerVerificationResubmissionRow | null;
-      dealerError = fallback.error;
-    }
 
     if (dealerError && isMissingDealerDocumentColumn(dealerError)) {
       const fallback = await adminSupabase
@@ -561,8 +533,8 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
       companyLogo || contactPhoto || incorporationCertificate || contactPersonId
     );
 
-    if (!hasSelectedFiles && intent === "draft") {
-      return { error: "Choose at least one file to save as a draft." };
+    if (!hasSelectedFiles && intent === "draft" && !formData.has("verificationNotes")) {
+      return { error: "Choose a file or add verification notes to save a draft." };
     }
 
     const { data: existingDocuments, error: documentsError } = await adminSupabase
@@ -689,16 +661,9 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
 
     if (intent === "submit") {
       dealerUpdates.status = "PENDING";
-      dealerUpdates.submitted_at = new Date().toISOString();
-      dealerUpdates.reviewed_by = null;
-      dealerUpdates.reviewed_at = null;
-      dealerUpdates.review_notes = null;
       dealerUpdates.verified_by = null;
       dealerUpdates.verified_at = null;
       dealerUpdates.rejection_reason = null;
-      dealerUpdates.verification_notes = optionalString(formData, "verificationNotes");
-      dealerUpdates.preferred_confirmation_channel =
-        requiredString(formData, "preferredConfirmationChannel") || "email";
     }
 
     if (logoUpload) {
@@ -727,24 +692,6 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
         .eq("id", dealer.id)
         .eq("profile_id", user.id);
 
-      if (updateError && isMissingDealerWorkflowColumns(updateError)) {
-        const legacyUpdates = omitUpdateKeys(dealerUpdates, [
-          "submitted_at",
-          "reviewed_by",
-          "reviewed_at",
-          "review_notes",
-          "verification_notes",
-          "preferred_confirmation_channel",
-        ]);
-
-        const legacyResult = await adminSupabase
-          .from("dealers")
-          .update(legacyUpdates)
-          .eq("id", dealer.id)
-          .eq("profile_id", user.id);
-        updateError = legacyResult.error;
-      }
-
       if (updateError && isMissingDealerDocumentColumn(updateError)) {
         const legacyUpdates = omitUpdateKeys(dealerUpdates, [
           "doc_incorporation_key",
@@ -761,6 +708,23 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
       if (updateError) {
         return { error: updateError.message };
       }
+    }
+
+    const { error: workflowError } = await adminSupabase
+      .from("dealer_verification_workflows")
+      .upsert({
+        dealer_id: dealer.id,
+        verification_notes: optionalString(formData, "verificationNotes"),
+        preferred_confirmation_channel: "email",
+        ...(intent === "submit" ? {
+          submitted_at: new Date().toISOString(),
+          reviewed_by: null,
+          reviewed_at: null,
+          review_notes: null,
+        } : {}),
+      }, { onConflict: "dealer_id" });
+    if (workflowError) {
+      return { error: "Your documents were saved, but verification details could not be saved. Please retry." };
     }
 
     await removeDealerKycReferences(
@@ -794,6 +758,50 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
   }
 }
 
+async function finishDealerReview(input: {
+  dealerId: string;
+  profileId: string;
+  actorId: string;
+  status: "APPROVED" | "REJECTED";
+  reviewedAt: string;
+  note: string | null;
+}) {
+  const warnings: string[] = [];
+  const { error: workflowError } = await createAdminClient()
+    .from("dealer_verification_workflows")
+    .upsert({
+      dealer_id: input.dealerId,
+      reviewed_by: input.actorId,
+      reviewed_at: input.reviewedAt,
+      review_notes: input.note,
+    }, { onConflict: "dealer_id" });
+  if (workflowError) {
+    warnings.push("The review was saved, but its private notes and timeline could not be saved.");
+  }
+
+  const approved = input.status === "APPROVED";
+  try {
+    await emitNotificationEvent({
+      eventType: "dealer_verification_status_changed",
+      actorId: input.actorId,
+      payload: { dealer_id: input.dealerId, status: input.status, reviewed_at: input.reviewedAt },
+      deliveries: (["in_app", "email"] as const).map((channel) => ({
+        recipientId: input.profileId,
+        channel,
+        title: approved ? "Your dealership is approved" : "Your dealership verification needs attention",
+        body: approved
+          ? "Your dealership has been approved. Sign in to manage your profile and publish vehicle listings."
+          : `Please sign in to review the feedback and resubmit your dealership documents.${input.note ? ` Feedback: ${input.note}` : ""}`,
+        href: approved ? "/dashboard" : "/dashboard/verification",
+      })),
+    });
+  } catch (error) {
+    console.error("Unable to queue dealer review notification:", error);
+    warnings.push("The review was saved, but its email notification could not be queued. Please contact the dealer directly.");
+  }
+  return warnings.length > 0 ? warnings.join(" ") : undefined;
+}
+
 export async function approveDealer(dealerId: string, note?: string) {
   const adminContext = await requireAdminAction();
   if ("error" in adminContext) return adminContext;
@@ -801,43 +809,31 @@ export async function approveDealer(dealerId: string, note?: string) {
   const { user } = adminContext;
   const adminSupabase = createAdminClient();
   const reviewedAt = new Date().toISOString();
-  let { data: dealer, error: dealerError } = await adminSupabase
+  const { data: dealer, error: dealerError } = await adminSupabase
     .from("dealers")
     .update({
       status: "APPROVED",
-      reviewed_by: user.id,
-      reviewed_at: reviewedAt,
       verified_by: user.id,
       verified_at: reviewedAt,
       rejection_reason: null,
-      review_notes: note || null,
     })
     .eq("id", dealerId)
+    .neq("status", "APPROVED")
     .select("id, profile_id")
-    .single();
+    .maybeSingle();
 
-  if (dealerError && isMissingDealerWorkflowColumns(dealerError)) {
-    const legacyResult = await adminSupabase
-      .from("dealers")
-      .update({
-        status: "APPROVED",
-        verified_by: user.id,
-        verified_at: reviewedAt,
-        rejection_reason: null,
-      })
-      .eq("id", dealerId)
-      .select("id, profile_id")
-      .single();
-    dealer = legacyResult.data;
-    dealerError = legacyResult.error;
-  }
-
-  if (dealerError || !dealer) {
-    return { error: dealerError?.message || "Dealer not found." };
+  if (dealerError) return { error: dealerError.message };
+  if (!dealer) {
+    const { data: existing, error } = await adminSupabase.from("dealers").select("id").eq("id", dealerId).maybeSingle();
+    return error || !existing ? { error: error?.message || "Dealer not found." } : { success: true };
   }
 
   await adminSupabase.from("profiles").update({ role: "dealer" }).eq("id", dealer.profile_id);
   await logAudit(user.id, "dealer_approved", "dealer", dealer.id, { note: note || null });
+  const warning = await finishDealerReview({
+    dealerId: dealer.id, profileId: dealer.profile_id, actorId: user.id,
+    status: "APPROVED", reviewedAt, note: note || null,
+  });
 
   revalidatePath("/admin/dealers");
   revalidatePath("/dashboard");
@@ -845,7 +841,7 @@ export async function approveDealer(dealerId: string, note?: string) {
   revalidatePath("/register/dealer");
   revalidatePath("/dealers");
 
-  return { success: true };
+  return { success: true, warning };
 }
 
 export async function rejectDealer(dealerId: string, reason: string) {
@@ -855,43 +851,31 @@ export async function rejectDealer(dealerId: string, reason: string) {
   const { user } = adminContext;
   const adminSupabase = createAdminClient();
   const reviewedAt = new Date().toISOString();
-  let { data: dealer, error: dealerError } = await adminSupabase
+  const { data: dealer, error: dealerError } = await adminSupabase
     .from("dealers")
     .update({
       status: "REJECTED",
-      reviewed_by: user.id,
-      reviewed_at: reviewedAt,
       verified_by: null,
       verified_at: null,
       rejection_reason: reason || "Needs additional review.",
-      review_notes: reason || null,
     })
     .eq("id", dealerId)
-    .select("id")
-    .single();
+    .neq("status", "REJECTED")
+    .select("id, profile_id")
+    .maybeSingle();
 
-  if (dealerError && isMissingDealerWorkflowColumns(dealerError)) {
-    const legacyResult = await adminSupabase
-      .from("dealers")
-      .update({
-        status: "REJECTED",
-        verified_by: null,
-        verified_at: null,
-        rejection_reason: reason || "Needs additional review.",
-      })
-      .eq("id", dealerId)
-      .select("id")
-      .single();
-    dealer = legacyResult.data;
-    dealerError = legacyResult.error;
-  }
-
-  if (dealerError || !dealer) {
-    return { error: dealerError?.message || "Dealer not found." };
+  if (dealerError) return { error: dealerError.message };
+  if (!dealer) {
+    const { data: existing, error } = await adminSupabase.from("dealers").select("id").eq("id", dealerId).maybeSingle();
+    return error || !existing ? { error: error?.message || "Dealer not found." } : { success: true };
   }
 
   await logAudit(user.id, "dealer_rejected", "dealer", dealer.id, {
     reason: reason || null,
+  });
+  const warning = await finishDealerReview({
+    dealerId: dealer.id, profileId: dealer.profile_id, actorId: user.id,
+    status: "REJECTED", reviewedAt, note: reason || "Needs additional review.",
   });
 
   revalidatePath("/admin/dealers");
@@ -899,5 +883,5 @@ export async function rejectDealer(dealerId: string, reason: string) {
   revalidatePath("/dashboard/verification");
   revalidatePath("/register/dealer");
 
-  return { success: true };
+  return { success: true, warning };
 }

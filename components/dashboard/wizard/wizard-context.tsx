@@ -379,6 +379,22 @@ export function resolveSubmissionListingId(
   return editingListingId ?? createdListingId;
 }
 
+export function buildGalleryDraftAfterFilesChange(
+  previousFiles: readonly File[],
+  nextFiles: readonly File[],
+  previousCoverIndex: number | null,
+): Pick<ListingDraft, "galleryImageNames" | "coverFromGalleryIndex"> {
+  const selectedCover = previousCoverIndex === null ? undefined : previousFiles[previousCoverIndex];
+  const nextCoverIndex = selectedCover ? nextFiles.indexOf(selectedCover) : -1;
+
+  return {
+    galleryImageNames: nextFiles.map((file) => file.name),
+    coverFromGalleryIndex: previousCoverIndex === null
+      ? null
+      : nextCoverIndex >= 0 ? nextCoverIndex : nextFiles.length > 0 ? 0 : null,
+  };
+}
+
 export function unformatPrice(value: string): string {
   return value.replace(/[^0-9]/g, "");
 }
@@ -1568,37 +1584,25 @@ export function WizardProvider({
   const removeGalleryFile = (fileToRemove: File) => {
     const updated = galleryFiles.filter((f) => f !== fileToRemove);
     setGalleryFiles(updated);
-    setDraft((prev) => {
-      const newNames = updated.map((f) => f.name);
-      let newCoverIndex = prev.coverFromGalleryIndex;
-      if (newCoverIndex !== null && newCoverIndex >= newNames.length) newCoverIndex = newNames.length > 0 ? 0 : null;
-      return { ...prev, galleryImageNames: newNames, coverFromGalleryIndex: newCoverIndex };
-    });
+    setDraft((prev) => ({
+      ...prev,
+      ...buildGalleryDraftAfterFilesChange(galleryFiles, updated, prev.coverFromGalleryIndex),
+    }));
   };
 
   const reorderGalleryImages = (fromIndex: number, toIndex: number) => {
-    setDraft((prev) => {
-      if (toIndex < 0 || toIndex >= prev.galleryImageNames.length) return prev;
-      if (fromIndex < 0 || fromIndex >= prev.galleryImageNames.length) return prev;
-      if (fromIndex === toIndex) return prev;
-      const reorderedNames = [...prev.galleryImageNames];
-      const [movedName] = reorderedNames.splice(fromIndex, 1);
-      reorderedNames.splice(toIndex, 0, movedName);
-      const reorderedFiles = [...galleryFiles];
-      const [movedFile] = reorderedFiles.splice(fromIndex, 1);
-      reorderedFiles.splice(toIndex, 0, movedFile);
-      setGalleryFiles(reorderedFiles);
-      let coverIdx = prev.coverFromGalleryIndex;
-      if (coverIdx === fromIndex) {
-        coverIdx = toIndex;
-      } else if (coverIdx !== null) {
-        const direction = fromIndex < toIndex ? -1 : 1;
-        if (coverIdx > Math.min(fromIndex, toIndex) && coverIdx < Math.max(fromIndex, toIndex)) {
-          coverIdx += direction;
-        }
-      }
-      return { ...prev, galleryImageNames: reorderedNames, coverFromGalleryIndex: coverIdx };
-    });
+    if (toIndex < 0 || toIndex >= galleryFiles.length) return;
+    if (fromIndex < 0 || fromIndex >= galleryFiles.length) return;
+    if (fromIndex === toIndex) return;
+
+    const reorderedFiles = [...galleryFiles];
+    const [movedFile] = reorderedFiles.splice(fromIndex, 1);
+    reorderedFiles.splice(toIndex, 0, movedFile);
+    setGalleryFiles(reorderedFiles);
+    setDraft((prev) => ({
+      ...prev,
+      ...buildGalleryDraftAfterFilesChange(galleryFiles, reorderedFiles, prev.coverFromGalleryIndex),
+    }));
   };
 
   const moveGalleryImage = (index: number, direction: "up" | "down") => {

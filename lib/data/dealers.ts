@@ -14,6 +14,7 @@ import type {
 } from "@/lib/types/dealer";
 
 import { buildDealerPublicLinks } from "@/lib/dealers/public-links";
+import { getDealerVerificationWorkflows } from "@/lib/data/dealer-verification-workflows";
 
 const LISTING_SELECT = `
   *,
@@ -269,7 +270,18 @@ export async function getMyDealerVerification(): Promise<DealerVerificationRecor
     return null;
   }
 
-  return addDealerDocumentReviewUrls(data as DealerVerificationRecord | null);
+  if (!data) return null;
+  const workflows = await getDealerVerificationWorkflows([data.id]);
+  return addDealerDocumentReviewUrls({
+    ...data,
+    submitted_at: null,
+    reviewed_by: null,
+    reviewed_at: null,
+    review_notes: null,
+    verification_notes: null,
+    preferred_confirmation_channel: "email",
+    ...workflows.get(data.id),
+  } as DealerVerificationRecord);
 }
 
 export async function getPendingDealerVerifications(): Promise<DealerVerificationRecord[]> {
@@ -299,7 +311,6 @@ export async function getPendingDealerVerifications(): Promise<DealerVerificatio
     .from("dealers")
     .select(DEALER_VERIFICATION_SELECT)
     .eq("status", "PENDING")
-    .order("submitted_at", { ascending: true })
     .order("created_at", { ascending: true });
 
   let { data, error } = await query;
@@ -319,13 +330,25 @@ export async function getPendingDealerVerifications(): Promise<DealerVerificatio
     return [];
   }
 
+  const workflows = await getDealerVerificationWorkflows((data ?? []).map((record: { id: string }) => record.id));
   const records = await Promise.all(
     ((data || []) as DealerVerificationRecord[]).map((record) =>
-      addDealerDocumentReviewUrls(record),
+      addDealerDocumentReviewUrls({
+        ...record,
+        submitted_at: null,
+        reviewed_by: null,
+        reviewed_at: null,
+        review_notes: null,
+        verification_notes: null,
+        preferred_confirmation_channel: "email",
+        ...workflows.get(record.id),
+      }),
     ),
   );
 
   return records.filter(
     (record): record is DealerVerificationRecord => Boolean(record),
+  ).sort((left, right) =>
+    (left.submitted_at || left.created_at).localeCompare(right.submitted_at || right.created_at),
   );
 }

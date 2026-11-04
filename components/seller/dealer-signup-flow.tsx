@@ -11,8 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { submitDealerVerification } from "@/lib/actions/dealers";
 
-type ConfirmationChannel = "email" | "whatsapp" | "sms";
-
 type DealerSignupData = {
   dealershipName: string;
   registeredBusinessName: string;
@@ -41,7 +39,6 @@ type DealerSignupData = {
   acceptDealerTerms: boolean;
   acceptPrivacyPolicy: boolean;
   verificationNotes: string;
-  preferredConfirmationChannel: ConfirmationChannel;
 };
 
 const DEALER_SIGNUP_STEPS = [
@@ -104,7 +101,6 @@ const DEFAULT_DATA: DealerSignupData = {
   acceptDealerTerms: false,
   acceptPrivacyPolicy: false,
   verificationNotes: "",
-  preferredConfirmationChannel: "email",
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -287,7 +283,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("acceptDealerTerms", String(formData.acceptDealerTerms));
       submission.set("acceptPrivacyPolicy", String(formData.acceptPrivacyPolicy));
       submission.set("verificationNotes", formData.verificationNotes);
-      submission.set("preferredConfirmationChannel", formData.preferredConfirmationChannel);
+      submission.set("preferredConfirmationChannel", "email");
 
       if (companyLogoFile) submission.set("companyLogo", companyLogoFile);
       if (contactPhotoFile) submission.set("contactPhoto", contactPhotoFile);
@@ -319,19 +315,6 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
   };
 
   if (submitted) {
-    const target =
-      formData.preferredConfirmationChannel === "email"
-        ? formData.officialEmail
-        : formData.preferredConfirmationChannel === "whatsapp"
-          ? formData.whatsappNumber
-          : formData.mobileNumber;
-    const channelLabel =
-      formData.preferredConfirmationChannel === "email"
-        ? "Email"
-        : formData.preferredConfirmationChannel === "whatsapp"
-          ? "WhatsApp"
-          : "SMS";
-
     return (
       <section
         className="space-y-5 rounded-2xl border border-warning/30 bg-gradient-to-br from-warning/10 via-white to-info/10 p-8"
@@ -357,12 +340,14 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
         </div>
 
         <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm">
-          <p className="font-semibold text-foreground">Post-verification magic link delivery</p>
+          <p className="font-semibold text-foreground">Dealer review updates</p>
           <p className="mt-1 text-muted-foreground">
-            After approval, a smart confirmation link will be sent via{" "}
-            <span className="font-semibold text-foreground">{channelLabel}</span> to{" "}
-            <span className="font-semibold text-foreground">{target || "-"}</span>.
+            We will email the review result to the email address on your Autolist account.
+            Sign in to check your verification status. Once approved, you can access your dealer dashboard.
           </p>
+          <Link href="/dashboard/verification" className="mt-3 inline-block font-semibold text-primary hover:underline">
+            View verification status
+          </Link>
         </div>
       </section>
     );
@@ -783,43 +768,12 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
               </p>
             </div>
           </div>
-          <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm">
-            <p className="font-semibold text-foreground">Confirmation Magic Link Channel</p>
+          <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm" data-testid="dealer-confirmation-email">
+            <p className="font-semibold text-foreground">Dealer review updates by email</p>
             <p className="mt-1 text-muted-foreground">
-              After verification, send the dealer confirmation smart link through:
+              We will email the review result to the email address on your Autolist account.
+              You can also sign in to check your verification status and review feedback.
             </p>
-            <div className="mt-3 flex flex-wrap gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="confirmation-channel"
-                  checked={formData.preferredConfirmationChannel === "email"}
-                  onChange={() => updateField("preferredConfirmationChannel", "email")}
-                  data-testid="dealer-confirmation-email"
-                />
-                Email
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="confirmation-channel"
-                  checked={formData.preferredConfirmationChannel === "whatsapp"}
-                  onChange={() => updateField("preferredConfirmationChannel", "whatsapp")}
-                  data-testid="dealer-confirmation-whatsapp"
-                />
-                WhatsApp
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="confirmation-channel"
-                  checked={formData.preferredConfirmationChannel === "sms"}
-                  onChange={() => updateField("preferredConfirmationChannel", "sms")}
-                  data-testid="dealer-confirmation-sms"
-                />
-                SMS
-              </label>
-            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Dealer status will be set to Pending Verification after submission.

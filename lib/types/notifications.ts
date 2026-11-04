@@ -10,6 +10,7 @@ export type NotificationEventType =
   | "listing_status_changed"
   | "listing_updated"
   | "listing_alert_match"
+  | "dealer_verification_status_changed"
   | "dealer_request_opened";
 
 export type NotificationChannel = "in_app" | "email" | "whatsapp";
