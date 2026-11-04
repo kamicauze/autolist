@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeScript } from "@/components/theme/theme-script";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { getGoogleAnalyticsMeasurementId } from "@/lib/google-analytics";
 import { resolveThemeId } from "@/lib/theme/themes";
 import { isProductionIndexing, SITE_DESCRIPTION, SITE_URL } from "@/lib/seo";
 import "./globals.css";
@@ -12,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 const initialTheme = resolveThemeId(process.env.NEXT_PUBLIC_AUTOLIST_THEME);
+const measurementId = getGoogleAnalyticsMeasurementId();
 
 export default function RootLayout({
   children,
@@ -34,6 +37,7 @@ export default function RootLayout({
         className="antialiased"
       >
         {children}
+        {measurementId && <GoogleAnalytics measurementId={measurementId} />}
       </body>
     </html>
   );

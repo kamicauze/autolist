@@ -239,8 +239,8 @@ If you need help with the platform itself, use the available support channels so
   cookies: {
     title: "Cookie Policy",
     summary:
-      "How Autolist uses essential cookies and similar browser storage to operate and protect the Platform.",
-    body: `<p><strong>Effective date: 22 July 2026</strong></p>
+      "How Autolist uses essential cookies, optional Google Analytics, and browser storage.",
+    body: `<p><strong>Effective date: 4 November 2026</strong></p>
 <p>This Cookie Policy explains how Autolist Kenya uses cookies and similar browser storage on the Platform. A cookie is a small text record stored by your browser. Some cookies last only for a session; others remain until they expire or you remove them.</p>
 <h2>1. Cookies we currently use</h2>
 <h3>Essential authentication and security</h3>
@@ -250,8 +250,10 @@ If you need help with the platform itself, use the available support channels so
 <h3>Preferences and local storage</h3>
 <p>The Platform may use browser storage, which is technically separate from cookies, to remember interface preferences such as theme, dismissed guidance, or draft state on your device.</p>
 <h2>2. Analytics and advertising</h2>
-<p>Autolist does not currently set third-party advertising cookies or operate Meta Pixel or Google Analytics cookies in this application. If we introduce non-essential analytics or advertising cookies, we will update this policy and provide any notice or choice required by applicable law before using them.</p>
+<p>With your permission, we use Google Analytics to understand visits to public pages on autolist.co.ke, including which pages are visited and how visitors arrive. Google Analytics may set _ga and _ga_* cookies to distinguish browsers and sessions. We load Google Analytics only after you choose Allow analytics. Account, sign-in, dashboard, invitation, and seller onboarding pages are excluded, and page URLs and referrers are sent without query strings or fragments. We do not send account details, messages, form contents, or user IDs to Google Analytics.</p>
+<p>Google processes analytics data on our behalf and may process it outside Kenya. Read <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from sites or apps that use its services</a>. We do not use Meta Pixel or advertising cookies in this application.</p>
 <h2>3. Managing cookies</h2>
+<p>Choose Allow analytics or Decline analytics in the cookie notice. You can reopen Cookie preferences on public pages to change your choice. Declining or withdrawing consent stops analytics collection and removes this site's Google Analytics cookies; essential features remain available. Your choice is remembered in local storage on this browser.</p>
 <p>You can view, block, or delete cookies in your browser settings. Blocking essential cookies may prevent sign-in, account management, listing submission, and other secured features from working. Browser storage can usually be cleared from the same privacy or site-data controls.</p>
 <h2>4. Third-party destinations</h2>
 <p>Links from Autolist may open third-party websites such as payment, map, social, or government services. Those sites control their own cookies and privacy practices; review their policies before continuing.</p>
@@ -259,7 +261,7 @@ If you need help with the platform itself, use the available support channels so
 <p>We may update this policy when our technology or legal obligations change. The effective date above identifies the current version. Questions can be sent to <a href="mailto:support@autolist.co.ke">support@autolist.co.ke</a>. For more information about personal data, read our <a href="/privacy">Privacy Policy</a>.</p>`,
     seoTitle: "Cookie Policy | Autolist",
     seoDescription:
-      "Learn how Autolist Kenya uses essential cookies and browser storage for authentication, security, and preferences.",
+      "Learn how Autolist Kenya uses essential cookies and optional Google Analytics, and manage your choices.",
   },
 };
 
