@@ -82,6 +82,13 @@ export function cmsBannerMatchesCategoryTarget(
   return bannerTargets.includes(activeTarget);
 }
 
+export function cmsBannerDateTimeToIso(value: string) {
+  if (!value.trim()) return "";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString();
+}
+
 export type CmsBannerRecord = {
   id: string;
   title: string;

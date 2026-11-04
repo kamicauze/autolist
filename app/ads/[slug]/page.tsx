@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
@@ -45,11 +43,16 @@ export default async function AdDetailPage({ params }: AdDetailPageProps) {
         >
           <article className="overflow-hidden rounded-[24px] border border-[#e5e7eb] bg-white shadow-sm">
             <div className="relative aspect-[16/8] w-full overflow-hidden bg-[#0f172a]">
-              <img
-                src={banner.desktopImageUrl}
-                alt={banner.altText || banner.title}
-                className="h-full w-full object-cover"
-              />
+              <picture>
+                {banner.mobileImageUrl ? (
+                  <source srcSet={banner.mobileImageUrl} media="(max-width: 640px)" />
+                ) : null}
+                <img
+                  src={banner.desktopImageUrl}
+                  alt={banner.altText || banner.title}
+                  className="h-full w-full object-cover"
+                />
+              </picture>
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
                 <p className="w-fit rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">

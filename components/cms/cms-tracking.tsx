@@ -21,8 +21,7 @@ function sendCmsTrackEvent(event: CmsTrackEvent) {
 
   if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
     const blob = new Blob([payload], { type: "application/json" });
-    navigator.sendBeacon("/api/cms/track", blob);
-    return;
+    if (navigator.sendBeacon("/api/cms/track", blob)) return;
   }
 
   void fetch("/api/cms/track", {
@@ -30,17 +29,41 @@ function sendCmsTrackEvent(event: CmsTrackEvent) {
     headers: { "Content-Type": "application/json" },
     body: payload,
     keepalive: true,
-  });
+  }).catch(() => undefined);
 }
 
 export function useCmsBannerImpressions(ids: string[]) {
+  const ref = React.useRef<HTMLDivElement>(null);
   const key = ids.join(",");
 
   React.useEffect(() => {
+    const element = ref.current;
     const trackedIds = key.split(",").filter(Boolean);
-    if (trackedIds.length === 0) return;
-    sendCmsTrackEvent({ type: "banner_impression", ids: trackedIds });
+    if (!element || trackedIds.length === 0) return;
+
+    let recorded = false;
+    let visible = false;
+    const recordImpression = () => {
+      if (recorded || !visible || document.visibilityState !== "visible") return;
+      recorded = true;
+      sendCmsTrackEvent({ type: "banner_impression", ids: trackedIds });
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", recordImpression);
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting && entry.intersectionRatio >= 0.01;
+      recordImpression();
+    }, { threshold: 0.01 });
+    observer.observe(element);
+    document.addEventListener("visibilitychange", recordImpression);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", recordImpression);
+    };
   }, [key]);
+
+  return ref;
 }
 
 export function trackCmsBannerClick(id: string) {

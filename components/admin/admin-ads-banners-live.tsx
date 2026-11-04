@@ -32,6 +32,7 @@ import {
   CMS_BANNER_CATEGORY_TARGET_LABELS,
   CMS_BANNER_CATEGORY_TARGETS,
   CMS_BANNER_STATUSES,
+  cmsBannerDateTimeToIso,
   type AdminCmsBannersData,
   type CmsBanner,
   type CmsBannerCategoryTarget,
@@ -677,8 +678,8 @@ export function AdminAdsBannersLive({
           body: editor.body,
           ctaLabel: editor.ctaLabel,
           targetUrl: editor.targetUrl,
-          startsAt: editor.startsAt,
-          endsAt: editor.endsAt,
+          startsAt: cmsBannerDateTimeToIso(editor.startsAt),
+          endsAt: cmsBannerDateTimeToIso(editor.endsAt),
           sortOrder: editor.sortOrder,
         });
 

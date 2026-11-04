@@ -205,7 +205,7 @@ export function HeroSearch({
     heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
   const hasSponsoredHero = Boolean(heroBanner);
 
-  useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
+  const heroImpressionRef = useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
   const isEquipmentCategory = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
@@ -659,22 +659,28 @@ export function HeroSearch({
         )}
       >
         <div
+          ref={heroImpressionRef}
           className={cn(
             "relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]",
             hasSponsoredHero &&
               "order-1 h-[250px] rounded-[22px] sm:h-[330px] md:h-[390px] lg:order-2 lg:h-[520px]",
           )}
         >
-          <Image
-            key={heroBanner?.id ?? activeHeroSlide.id}
-            src={heroImageUrl}
-            alt={heroImageAlt}
-            fill
-            priority={activeHeroSlideIndex === 0}
-            quality={95}
-            sizes="(min-width: 1280px) 1280px, 100vw"
-            className="absolute inset-0 object-cover"
-          />
+          <picture>
+            {heroBanner?.mobileImageUrl ? (
+              <source srcSet={heroBanner.mobileImageUrl} media="(max-width: 640px)" />
+            ) : null}
+            <Image
+              key={heroBanner?.id ?? activeHeroSlide.id}
+              src={heroImageUrl}
+              alt={heroImageAlt}
+              fill
+              priority={activeHeroSlideIndex === 0}
+              quality={95}
+              sizes="(min-width: 1280px) 1280px, 100vw"
+              className="absolute inset-0 object-cover"
+            />
+          </picture>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,9,18,0.12)_0%,rgba(5,9,18,0.58)_100%)]" />
 
           {carouselEnabled ? (
