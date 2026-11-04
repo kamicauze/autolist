@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import Image from "next/image";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 
-type Placement = { name: string; location: string; rate: number };
+type Placement = { name: string; location: string };
 const formats: Record<string, { page: string; description: string }> = {
   "Hero Banner": { page: "Homepage", description: "Your large banner sits at the top of the homepage, before the vehicle search. Buyers see your campaign as they arrive." },
   "Top Banner": { page: "Homepage", description: "Your wide banner sits directly below the homepage search, before the vehicle listings." },
@@ -90,12 +90,12 @@ export function AdvertisingPlacementPreview({ placements }: { placements: readon
             <div aria-live="polite" aria-atomic="true" className="mt-5 border-t border-gray-200 pt-5">
               <h3 className="text-lg font-semibold text-gray-900">{selected.name}</h3>
               <p className="mt-2 text-sm leading-6 text-gray-600">{format.description}</p>
-              <p className="mt-4 text-xl font-semibold text-gray-900">KES {selected.rate.toLocaleString("en-KE")} <span className="text-sm font-normal text-gray-500">per month</span></p>
+              <p className="mt-4 text-sm text-gray-600">Illustration only. Confirm availability, pricing and reporting with our team.</p>
             </div>
             <a href="#contact-sales" className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary/90">Ask sales about this placement</a>
           </div>
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><p className="font-semibold text-gray-900">3. Your ad in context: {format.page}</p><p className="font-semibold text-primary">Highlighted outline = your paid placement</p></div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><p className="font-semibold text-gray-900">3. Your ad in context: {format.page}</p><p className="font-semibold text-primary">Highlighted outline = example placement</p></div>
             <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm" role="img" aria-label={`${selected.name} preview on ${format.page}. ${format.description} Advertiser: ${business}.${profile ? "" : ` Headline: ${headline}`}`}>
               <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-100 px-3 py-2 text-[10px] text-gray-500"><span>{email ? "Inbox / Autolist weekly digest" : `autolist.co.ke / ${format.page}`}</span><span>Example layout</span></div>
               <div aria-hidden="true">
