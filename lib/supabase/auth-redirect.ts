@@ -1,3 +1,5 @@
+import { sanitizeNextPath } from "./auth-routing";
+
 function normalizeBaseUrl(value: string) {
   const trimmed = value.trim();
   const withProtocol = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
@@ -42,4 +44,25 @@ export function getPasswordResetUrl() {
       ? normalizeBaseUrl(window.location.origin)
       : getBrowserBaseUrl();
   return new URL("/reset-password", baseUrl).toString();
+}
+
+// Email confirmation is followed by password sign-in, so it works across browsers.
+export function getSignupVerificationUrl(nextPath?: string | null) {
+  const url = new URL(getAuthCallbackUrl(sanitizeNextPath(nextPath, "")));
+  url.searchParams.set("flow", "signup");
+  return url.toString();
+}
+
+export function cleanVerificationReturn(href: string) {
+  const url = new URL(href);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  if ([url.searchParams, fragment].some(params => params.has("error") || params.has("error_code"))) {
+    url.searchParams.set("verification", "failed");
+  }
+  // Do not exchange the signup code or retain returned credentials in the URL.
+  for (const key of ["code", "error", "error_code", "error_description"]) {
+    url.searchParams.delete(key);
+  }
+  url.hash = "";
+  return `${url.pathname}${url.search}`;
 }

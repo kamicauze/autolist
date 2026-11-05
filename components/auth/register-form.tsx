@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
-import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
+import { getAuthCallbackUrl, getSignupVerificationUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
@@ -162,7 +162,7 @@ export function RegisterForm() {
           email: normalizedEmail,
           password,
           options: {
-            emailRedirectTo: getAuthCallbackUrl(nextPath),
+            emailRedirectTo: getSignupVerificationUrl(nextPath),
             data: {
               intended_role: selectedRole,
               terms_accepted_at: new Date().toISOString(),

@@ -7,7 +7,7 @@ import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
-import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
+import { cleanVerificationReturn, getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import {
@@ -35,19 +35,12 @@ export function LoginForm() {
     : "";
   React.useEffect(() => {
     if (searchParams.get("verification") !== "complete") return;
-    // Supabase resend confirms the account before returning implicit tokens.
-    // Continue through password sign-in instead of attempting a PKCE exchange.
-    const returnedParams = new URLSearchParams(window.location.hash.slice(1));
-    if (returnedParams.has("error") || returnedParams.has("error_code")) {
-      const loginUrl = new URL(window.location.href);
-      loginUrl.searchParams.set("verification", "failed");
-      loginUrl.hash = "";
-      window.history.replaceState(null, "", `${loginUrl.pathname}${loginUrl.search}`);
-      router.replace(`${loginUrl.pathname}${loginUrl.search}`);
-      return;
-    }
-    if (window.location.hash) {
-      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    // Confirmation has already happened at Supabase. Sign in separately instead
+    // of exchanging a code tied to the browser that originally registered.
+    const destination = cleanVerificationReturn(window.location.href);
+    window.history.replaceState(null, "", destination);
+    if (new URL(destination, window.location.origin).searchParams.get("verification") === "failed") {
+      router.replace(destination);
     }
   }, [router, searchParams]);
 
@@ -112,7 +105,12 @@ export function LoginForm() {
       )}
       {searchParams.get("verification") === "failed" && (
         <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-          This verification link has expired or could not be used. Enter your email and request a new link below.
+          This link may have expired or already been used. Try signing in if you have already confirmed your email. If sign-in asks you to verify, request a new link below.
+        </p>
+      )}
+      {searchParams.get("verification") === "signin" && (
+        <p role="status" className="rounded-xl bg-brand-tint p-3 text-sm text-primary">
+          We could not sign you in automatically. Try signing in with your email and password. If your email still needs verification, request a new link below.
         </p>
       )}
       <div className="grid gap-2">
