@@ -45,6 +45,8 @@ export type ThreadMessageItem = {
   createdAt: string;
 };
 
+export type MessageCursors = Record<string, Pick<ThreadMessageItem, "id" | "createdAt">>;
+
 export type MessagingCenterData = {
   viewer: MessagingViewer | null;
   threads: ThreadListItem[];

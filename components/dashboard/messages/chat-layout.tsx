@@ -15,8 +15,10 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
+import { refreshMessagingCenter } from "@/lib/actions/messaging-refresh";
+import { useVisiblePolling } from "@/lib/hooks/use-visible-polling";
 import type { CommsAgentResult } from "@/lib/types/comms-agent";
-import type { MessagingCenterData, ThreadListItem, ThreadMessageItem } from "@/lib/types/messaging";
+import type { MessageCursors, MessagingCenterData, ThreadListItem, ThreadMessageItem } from "@/lib/types/messaging";
 import { SellerPageHeader, SellerSurface, getInitials } from "../seller-dashboard-ui";
 
 type ChatLayoutProps = {
@@ -72,15 +74,26 @@ function isUnreadThread(thread: ThreadListItem, messages: ThreadMessageItem[]) {
   return Boolean(thread.lastMessageSenderId);
 }
 
+function getMessageCursors(messagesByThread: Record<string, ThreadMessageItem[]>): MessageCursors {
+  const cursors: MessageCursors = {};
+  for (const [threadId, messages] of Object.entries(messagesByThread)) {
+    const latest = messages.at(-1);
+    if (latest) cursors[threadId] = { id: latest.id, createdAt: latest.createdAt };
+  }
+  return cursors;
+}
+
 export function ChatLayout({ initialData }: ChatLayoutProps) {
   const searchParams = useSearchParams();
   const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const sendVersion = React.useRef(0);
   const [query, setQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<ConversationTab>("all");
   const [threads, setThreads] = React.useState<ThreadListItem[]>(initialData?.threads || []);
   const [messagesByThread, setMessagesByThread] = React.useState<Record<string, ThreadMessageItem[]>>(
     initialData?.messagesByThread || {}
   );
+  const cursors = React.useRef<MessageCursors | null>(null);
   const [activeConversationId, setActiveConversationId] = React.useState(initialData?.threads[0]?.id || "");
   const [message, setMessage] = React.useState("");
   const [isSending, setIsSending] = React.useState(false);
@@ -91,7 +104,49 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
   const [isAgentOpen, setIsAgentOpen] = React.useState(false);
 
   const viewer = initialData?.viewer || null;
-  const loadError = initialData?.error || null;
+  const [loadError, setLoadError] = React.useState(initialData?.error || null);
+  useVisiblePolling(async (signal) => {
+    const version = sendVersion.current;
+    // Advance only from fetched rows. A send response can arrive before
+    // an earlier reply has been fetched.
+    const previousCursors = cursors.current ?? getMessageCursors(initialData?.messagesByThread || {});
+    const data = await refreshMessagingCenter(previousCursors);
+    if (signal.aborted || sendVersion.current !== version || !data?.viewer || data.viewer.id !== viewer?.id || data.error) return;
+    const isStaff = ["admin", "super_admin", "support"].includes(data.viewer.role);
+
+    const nextCursors = getMessageCursors(data.messagesByThread);
+    const nextMessages: Record<string, ThreadMessageItem[]> = {};
+    const nextThreads = data.threads.map((thread) => {
+      const history = messagesByThread[thread.id] || [];
+      const messages = !isStaff && viewer && ["admin", "super_admin", "support"].includes(viewer.role)
+        ? history.filter((message) => message.visibility === "participants")
+        : history;
+      const delta = data.messagesByThread[thread.id] || [];
+      let merged = messages;
+      if (delta.length) {
+        const knownIds = new Set(messages.map((message) => message.id));
+        merged = [...messages, ...delta.filter((message) => !knownIds.has(message.id))]
+          .sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
+      }
+      nextMessages[thread.id] = merged;
+      const previous = previousCursors[thread.id];
+      if (previous && !nextCursors[thread.id]) nextCursors[thread.id] = previous;
+
+      if (isStaff) return thread;
+      const latest = merged.at(-1);
+      return {
+        ...thread,
+        lastMessagePreview: latest?.body.slice(0, 180) || null,
+        lastMessageAt: latest?.createdAt || "",
+        lastMessageSenderId: latest?.senderId || null,
+      };
+    }).sort((left, right) => right.lastMessageAt.localeCompare(left.lastMessageAt));
+
+    cursors.current = nextCursors;
+    setThreads(nextThreads);
+    setMessagesByThread(nextMessages);
+    setLoadError(null);
+  }, 30_000, Boolean(viewer) && !isSending);
   const canUseSellerAgent = viewer?.role === "seller" || viewer?.role === "dealer";
   const roleDescription =
     viewer?.role === "buyer"
@@ -135,12 +190,10 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
     }
   }, [activeConversationId, threads]);
 
+  const linkedThreadId = threads.find((thread) => thread.id === searchParams.get("thread"))?.id;
   React.useEffect(() => {
-    const selectedThread = searchParams.get("thread");
-    if (selectedThread && threads.some((thread) => thread.id === selectedThread)) {
-      setActiveConversationId(selectedThread);
-    }
-  }, [searchParams, threads]);
+    if (linkedThreadId) setActiveConversationId(linkedThreadId);
+  }, [linkedThreadId]);
 
   React.useEffect(() => {
     setAgentResult(null);
@@ -202,6 +255,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
     const body = message.trim();
     if (!body) return;
 
+    sendVersion.current++;
     setIsSending(true);
     setSendError(null);
 
@@ -254,6 +308,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Unable to send message.");
     } finally {
+      sendVersion.current++;
       setIsSending(false);
     }
   }

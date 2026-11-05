@@ -63,7 +63,7 @@ export async function getNotificationCenterData(limit = 40): Promise<Notificatio
   }
 
   const [{ data: deliveries, error: deliveriesError }, { count: unreadCount }] = await Promise.all([
-    supabase
+    limit === 0 ? Promise.resolve({ data: [], error: null }) : supabase
       .from("notification_deliveries")
       .select(
         `
