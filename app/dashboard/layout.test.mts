@@ -47,6 +47,9 @@ async function renderLayout({ path, role = "dealer", status = "PENDING", signedI
     },
   };
   const dependencies: Record<string, unknown> = {
+    "next/link": "navigation-link",
+    "@/components/layout/header": { Header: "site-header" },
+    "@/components/layout/footer": { Footer: "site-footer" },
     "next/headers": { headers: async () => new Headers({ "x-autolist-pathname": path }) },
     "next/navigation": { redirect: (destination: string) => { throw new Redirect(destination); } },
     "@/lib/supabase/server": { createClient: async () => client },
@@ -55,7 +58,7 @@ async function renderLayout({ path, role = "dealer", status = "PENDING", signedI
     "@/lib/data/dashboard-account": { getDashboardAccountContext: async () => ({ kind: role === "dealer" ? "dealer" : "seller" }) },
     "@/lib/data/membership": { getSellerPackageAccessForUser: async () => ({ access: null }) },
     "@/lib/data/sales-agent-permissions": { getSalesAgentViewerContext: async () => null },
-    "react/jsx-runtime": { jsx: (type: unknown, props: Element["props"]) => ({ type, props }) },
+    "react/jsx-runtime": { jsxs: (type: unknown, props: Element["props"]) => ({ type, props }), jsx: (type: unknown, props: Element["props"]) => ({ type, props }) },
   };
   const layoutModule = { exports: {} as { default: (props: { children: string }) => Promise<Element> } };
   vm.runInNewContext(layoutSource, {
@@ -98,6 +101,9 @@ test("verification access preserves approved dealer, authentication, deactivatio
   await expectRedirect({ path: "/dashboard/verification", deactivatedAt: "2026-01-01" }, "/account-deactivated");
   await expectRedirect({ path: "/dashboard/verification", role: "buyer" }, "/");
   await expectRedirect({ path: "/dashboard/listings/new", role: "buyer" }, "/register/onboarding?role=seller&next=%2Fdashboard%2Flistings%2Fnew");
-  assert.equal((await renderLayout({ path: "/dashboard/profile", role: "buyer" })).type, "div");
+  await expectRedirect({ path: "/dashboard/listings/new", role: "buyer", deactivatedAt: "2026-01-01" }, "/account-deactivated");
+  for (const path of ["/dashboard", "/dashboard/profile", "/dashboard/favorites"]) {
+    assert.equal((await renderLayout({ path, role: "buyer" })).type, "div");
+  }
   await expectRedirect({ path: "/dashboard/verification", role: "admin" }, "/admin/dashboard");
 });

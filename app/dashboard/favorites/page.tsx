@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { FavoritesGrid } from "@/components/dashboard/favorites/favorites-grid";
 import { getDashboardFavoritesData } from "@/lib/data/favorites";
 
+export const metadata = { title: "Favourites | Autolist" };
+
 export default async function FavoritesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

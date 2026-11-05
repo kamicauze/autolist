@@ -6,6 +6,7 @@ interface PageHeroProps {
   label: string;
   heading: string;
   backgroundImage?: string;
+  hideMobileBackground?: boolean;
   align?: "center" | "left";
   description?: string;
   className?: string;
@@ -16,6 +17,7 @@ export function PageHero({
   label,
   heading,
   backgroundImage = "/hero-car.jpg",
+  hideMobileBackground = false,
   align = "center",
   description,
   className,
@@ -27,11 +29,11 @@ export function PageHero({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4">
         <div className={cn("relative overflow-hidden rounded-xl", align === "left" ? "min-h-[320px] sm:min-h-[360px] md:min-h-[400px]" : "h-[280px] sm:h-[320px] md:h-[340px]")}>
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className={cn("absolute inset-0 bg-cover bg-center", hideMobileBackground && "hidden sm:block")}
             style={{ backgroundImage: `url('${backgroundImage}')` }}
           />
           {/* Dark overlay for text legibility */}
-          <div className={cn("absolute inset-0", align === "left" ? "bg-gradient-to-r from-black/75 via-black/30 to-transparent" : "bg-black/40")} />
+          <div className={cn("absolute inset-0", hideMobileBackground && "bg-slate-900 sm:bg-transparent", align === "left" ? "bg-gradient-to-r from-black/75 via-black/30 to-transparent" : "bg-black/40")} />
 
           {/* Text overlay */}
           <div className={cn("relative z-10 flex flex-col justify-center px-6", align === "left" ? "min-h-[320px] items-start py-12 text-left sm:min-h-[360px] sm:px-10 md:min-h-[400px] lg:px-12" : "h-full items-center text-center")}>

@@ -96,7 +96,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
   return (
     <div className="space-y-6 lg:space-y-7">
       <SellerPageHeader
-        title="My Favorite"
+        title="My favourites"
         description="Saved vehicles from around the marketplace that you want to revisit, compare, or message about later."
       />
 
@@ -108,7 +108,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
         ) : null}
 
         <div className="flex flex-col gap-3 border-b border-[#ededed] px-5 py-5 md:flex-row md:items-center md:justify-between">
-          <p className="text-[14px] text-[#7a7a7a]">{items.length} cars in wishlist</p>
+          <p className="text-[14px] text-[#7a7a7a]">{items.length} saved {items.length === 1 ? "vehicle" : "vehicles"}</p>
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
@@ -125,7 +125,7 @@ export function FavoritesGrid({ favorites = [] }: FavoritesGridProps) {
           <div className="px-5 py-14 text-center">
             <div className="mx-auto max-w-xl space-y-3">
               <h2 className="font-heading text-[28px] font-semibold text-[#202224]">
-                Your wishlist is empty
+                You have no favourites yet
               </h2>
               <p className="text-[14px] leading-6 text-[#767676]">
                 Save vehicles from search and detail pages to keep track of the ones you want

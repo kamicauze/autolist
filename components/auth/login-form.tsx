@@ -59,42 +59,46 @@ export function LoginForm() {
     setErrorMessage(null);
     setIsLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: normalizeAuthEmail(email),
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: normalizeAuthEmail(email),
+        password,
+      });
 
-    if (error) {
-      const isDeactivated =
-        (error as { code?: string }).code === "user_banned" ||
-        /banned|deactiv/i.test(error.message);
-      setErrorMessage(
-        isDeactivated
-          ? "This account has been deactivated. Contact support to reactivate it."
-          : error.message,
+      if (error) {
+        const isDeactivated =
+          (error as { code?: string }).code === "user_banned" ||
+          /banned|deactiv/i.test(error.message);
+        setErrorMessage(
+          isDeactivated
+            ? "This account has been deactivated. Contact support to reactivate it."
+            : error.message,
+        );
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setErrorMessage("Unable to establish your session. Please try again.");
+        return;
+      }
+
+      const destination = await resolvePostAuthPath(
+        supabase,
+        user.id,
+        requestedNextPath,
       );
+      router.replace(destination);
+      router.refresh();
+    } catch {
+      setErrorMessage("Unable to sign in right now. Please try again.");
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setErrorMessage("Unable to establish your session. Please try again.");
-      setIsLoading(false);
-      return;
-    }
-
-    const destination = await resolvePostAuthPath(
-      supabase,
-      user.id,
-      requestedNextPath,
-    );
-    router.replace(destination);
-    router.refresh();
   };
 
   const handleSocialLogin = async (provider: SocialProvider) => {

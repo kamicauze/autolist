@@ -12,7 +12,6 @@ import { SellVehicleSection } from "@/components/home/sell-vehicle-section";
 import { VideoSection } from "@/components/home/video-section";
 import { ServicesSection } from "@/components/home/services-section";
 import { NewsSection } from "@/components/home/news-section";
-import { SocialMediaSection } from "@/components/home/social-media-section";
 import { PublicCmsBannerPlacement } from "@/components/cms/public-cms-banners";
 import { PublicSpecialOffers } from "@/components/cms/public-special-offers";
 import {
@@ -172,7 +171,6 @@ export default async function Home() {
         {cmsContent.sections.showBrandLogos ? <BrandLogos /> : null}
 
         {/* Follow us on social media */}
-        {cmsContent.sections.showSocialMedia ? <SocialMediaSection /> : null}
       </main>
 
       <Footer />

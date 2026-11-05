@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { MetadataRoute } from "next";
 import { getSupabasePublicEnv } from "@/lib/supabase/config";
+import { getPublicContentPostSlug } from "../content-post-slugs";
 import { SITE_URL } from "@/lib/seo";
 
 export async function getPublicSitemapEntries(): Promise<MetadataRoute.Sitemap> {
@@ -30,7 +31,7 @@ export async function getPublicSitemapEntries(): Promise<MetadataRoute.Sitemap> 
       if (error) throw new Error(`Unable to load public sitemap entries from ${table}.`);
       for (const row of data ?? []) {
         const segment = table === "listings" ? "vehicle" : table === "dealers" ? "dealers" : "blog";
-        const identifier = "slug" in row ? row.slug : row.id;
+        const identifier = "slug" in row ? getPublicContentPostSlug(row.slug) : row.id;
         entries.push({
           url: `${SITE_URL}/${segment}/${encodeURIComponent(identifier)}`,
           ...(row.updated_at ? { lastModified: row.updated_at } : {}),

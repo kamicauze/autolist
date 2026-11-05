@@ -67,6 +67,8 @@ const INITIAL_FORM: InsuranceRequestSubmissionInput = {
   startDate: "",
 };
 
+export const metadata = { title: "Car Insurance | Autolist" };
+
 export default function InsurancePage() {
   const [form, setForm] = React.useState<InsuranceRequestSubmissionInput>(INITIAL_FORM);
   const [error, setError] = React.useState<string | null>(null);
@@ -239,7 +241,7 @@ export default function InsurancePage() {
         </PageHero>
 
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-bold text-gray-900">Why Get Insurance Through AutoDrive?</h2>
+          <h2 className="text-center text-2xl font-bold text-gray-900">Why Get Insurance Through Autolist?</h2>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-gray-600">
             Save time by comparing providers in one place and choosing the best fit for your budget.
           </p>

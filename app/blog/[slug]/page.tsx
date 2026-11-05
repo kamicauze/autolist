@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { cache } from "react";
 import { publicPageMetadata } from "@/lib/seo";
-import { notFound } from "next/navigation";
+import { getLegacyContentPostSlug, getPublicContentPostSlug } from "@/lib/content-post-slugs";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -16,14 +17,18 @@ interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
-const getPublicPost = cache(getPublishedContentPostBySlug);
+const getPublicPost = cache(async (slug: string) => {
+  const direct = await getPublishedContentPostBySlug(slug);
+  const legacySlug = getLegacyContentPostSlug(slug);
+  return direct ?? (legacySlug !== slug ? await getPublishedContentPostBySlug(legacySlug) : null);
+});
 
 export async function generateMetadata({ params }: BlogPostPageProps) {
   const post = await getPublicPost((await params).slug);
   if (!post) notFound();
   return publicPageMetadata({
     title: post.title, description: post.excerpt,
-    path: `/blog/${encodeURIComponent(post.slug)}`, image: post.coverImageUrl,
+    path: `/blog/${encodeURIComponent(getPublicContentPostSlug(post.slug))}`, image: post.coverImageUrl,
   });
 }
 
@@ -61,6 +66,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) {
     notFound();
   }
+
+  const publicSlug = getPublicContentPostSlug(post.slug);
+  if (slug !== publicSlug) permanentRedirect(`/blog/${encodeURIComponent(publicSlug)}`);
 
   return (
     <div className="min-h-screen flex flex-col">

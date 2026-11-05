@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -43,15 +46,36 @@ export default async function DashboardLayoutPage({ children }: DashboardLayoutP
     .eq("id", user.id)
     .maybeSingle<{ role: string | null }>();
 
-  if (resolveSelfServiceRoleTransition(profileRole?.role, currentPath)) {
+  const destination = await resolvePostAuthPath(supabase, user.id);
+  if (destination === "/" && resolveSelfServiceRoleTransition(profileRole?.role, currentPath)) {
     redirect(
       `/register/onboarding?role=seller&next=${encodeURIComponent(currentPath)}`,
     );
   }
 
-  const destination = await resolvePostAuthPath(supabase, user.id);
   if (canRenderBuyerAccountPage(profileRole?.role, destination, currentPath)) {
-    return <div className="mx-auto min-h-screen max-w-7xl px-4 py-8">{children}</div>;
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+          <nav aria-label="Buyer account" className="mb-6 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary">
+            {[
+              { href: "/dashboard", label: "Dashboard" },
+              { href: "/dashboard/profile", label: "Account details" },
+              { href: "/dashboard/favorites", label: "Favourites" },
+              { href: "/alerts", label: "Listing alerts" },
+              { href: "/notifications", label: "Notifications" },
+            ].map(({ href, label }) => (
+              <Link key={href} href={href} aria-current={currentPath.split("?")[0] === href ? "page" : undefined} className="hover:underline aria-[current=page]:underline">
+                {label}
+              </Link>
+            ))}
+          </nav>
+          {children}
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   const canRenderDealerVerification =

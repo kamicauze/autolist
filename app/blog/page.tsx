@@ -14,6 +14,7 @@ import {
   getContentPostSubcategoryLabel,
   isContentPostSubcategory,
 } from "@/lib/content-post-subcategories";
+import { getPublicContentPostSlug } from "@/lib/content-post-slugs";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
 import type { ContentPost } from "@/lib/types/content-posts";
 
@@ -67,7 +68,7 @@ function Story({
       }
     >
       <Link
-        href={`/blog/${post.slug}`}
+        href={`/blog/${getPublicContentPostSlug(post.slug)}`}
         className={`block overflow-hidden rounded-lg bg-gray-100 ${compact ? "self-start" : "mb-4"}`}
         aria-label={`Read ${post.title}`}
       >
@@ -76,7 +77,7 @@ function Story({
             src={post.coverImageUrl}
             alt={post.title}
             loading={featured ? "eager" : "lazy"}
-            className={`w-full object-contain ${featured ? "aspect-[16/9]" : "aspect-[4/3]"}`}
+            className={`w-full object-contain ${featured ? "h-auto" : "aspect-[4/3]"}`}
           />
         ) : (
           <div
@@ -95,7 +96,7 @@ function Story({
         <h2
           className={`mt-2 font-bold leading-snug text-gray-900 ${featured ? "text-2xl sm:text-3xl" : "text-lg"}`}
         >
-          <Link href={`/blog/${post.slug}`} className="hover:text-primary">
+          <Link href={`/blog/${getPublicContentPostSlug(post.slug)}`} className="hover:text-primary">
             {post.title}
           </Link>
         </h2>
@@ -116,7 +117,7 @@ function Story({
           {post.author ? ` · ${post.author}` : ""}
         </p>
         <Link
-          href={`/blog/${post.slug}`}
+          href={`/blog/${getPublicContentPostSlug(post.slug)}`}
           className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
         >
           {post.category === "review" ? "Read review" : "Read article"}

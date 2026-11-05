@@ -71,6 +71,7 @@ assert.equal(sanitizeNextPath("/sell/dealer?draft=1", ""), "/sell/dealer?draft=1
 
 test("buyers can open their exact profile and favorites routes, including query strings", () => {
   for (const path of [
+    "/dashboard",
     "/dashboard/profile",
     "/dashboard/profile?source=account-menu",
     "/dashboard/favorites",
@@ -82,7 +83,6 @@ test("buyers can open their exact profile and favorites routes, including query 
 
 test("the buyer account exception does not open other dashboard or nested profile routes", () => {
   for (const path of [
-    "/dashboard",
     "/dashboard/profile/security",
     "/dashboard/profile-edit",
     "/dashboard/change-password",
@@ -98,7 +98,7 @@ test("the buyer account exception does not open other dashboard or nested profil
 });
 
 test("buyer account pages preserve account-state redirects and other roles' routing", () => {
-  for (const path of ["/dashboard/profile", "/dashboard/favorites"]) {
+  for (const path of ["/dashboard", "/dashboard/profile", "/dashboard/favorites"]) {
     for (const destination of ["/account-deactivated", "/register/onboarding", "/admin/dashboard", "/dashboard/verification"]) {
       assert.equal(canRenderBuyerAccountPage("buyer", destination, path), false);
     }

@@ -42,6 +42,7 @@ test("editorial landing renders real featured and latest stories without croppin
   assert.match(html, /Cars, reviews and advice for Kenya/);
   assert.match(html, /Featured stories/);
   assert.match(html, /Latest from Autolist/);
+  assert.match(html, /loading="eager" class="w-full object-contain h-auto"/);
   assert.match(html, /object-contain/);
   assert.doesNotMatch(html, /object-cover/);
   assert.match(html, /href="\/blog\?page=2"/);

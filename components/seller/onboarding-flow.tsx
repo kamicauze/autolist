@@ -102,6 +102,16 @@ interface OnboardingFlowProps {
   previewMode?: boolean;
   dashboardHref?: string;
   createListingHref?: string;
+  initialProfile?: {
+    email?: string;
+    full_name?: string | null;
+    role?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    bio?: string | null;
+    city?: string | null;
+    address?: string | null;
+  };
 }
 
 function isKnownRole(value: string | null): value is UserRole {
@@ -132,6 +142,7 @@ export function OnboardingFlow({
   previewMode = false,
   dashboardHref = "/dashboard",
   createListingHref = "/dashboard/listings/new",
+  initialProfile,
 }: OnboardingFlowProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -139,64 +150,26 @@ export function OnboardingFlow({
   const [isSubmitted, setIsSubmitted] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
-  const [formData, setFormData] = React.useState<OnboardingData>(DEFAULT_DATA);
-
-  React.useEffect(() => {
-    const prefillFromSession = async () => {
-      const queryRole = searchParams.get("role");
-      const roleFromQuery = isKnownRole(queryRole) ? queryRole : null;
-
-      if (previewMode) {
-        setFormData((current) => ({
-          ...current,
-          role: roleFromQuery ?? current.role,
-        }));
-        return;
-      }
-
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, role, phone, whatsapp, bio, city, address")
-        .eq("id", user.id)
-        .maybeSingle<{
-          full_name: string | null;
-          role: string | null;
-          phone: string | null;
-          whatsapp: string | null;
-          bio: string | null;
-          city: string | null;
-          address: string | null;
-        }>();
-      const rawProfileRole = profile?.role ?? null;
-      const profileRole: UserRole | null = isKnownRole(rawProfileRole) ? rawProfileRole : null;
-
-      setFormData((current) => ({
-        ...current,
-        email: user.email || current.email,
-        fullName: profile?.full_name || user.user_metadata?.full_name || current.fullName,
-        role: roleFromQuery ?? profileRole ?? current.role,
-        phone: profile?.phone || current.phone,
-        whatsapp: profile?.whatsapp || current.whatsapp,
-        bio: profile?.bio || current.bio,
-        city: profile?.city || current.city,
-        address: profile?.address || current.address,
-      }));
-    };
-
-    prefillFromSession();
-  }, [previewMode, searchParams]);
+  const queryRole = searchParams.get("role");
+  const profileRole = initialProfile?.role ?? null;
+  const [formData, setFormData] = React.useState<OnboardingData>(() => ({
+    ...DEFAULT_DATA,
+    role: isKnownRole(queryRole) ? queryRole : isKnownRole(profileRole) ? profileRole : DEFAULT_DATA.role,
+    email: initialProfile?.email ?? "",
+    fullName: initialProfile?.full_name ?? "",
+    phone: initialProfile?.phone ?? "",
+    whatsapp: initialProfile?.whatsapp ?? "",
+    bio: initialProfile?.bio ?? "",
+    city: initialProfile?.city ?? "",
+    address: initialProfile?.address ?? "",
+  }));
 
   const isLastStep = activeStep === ONBOARDING_STEPS.length - 1;
   const presentation = ROLE_PRESENTATION[formData.role];
   const isSellerLike = formData.role === "seller" || formData.role === "dealer";
-  const destination = getDestination(formData.role, dashboardHref, createListingHref);
+  const destination = formData.role === "seller" && searchParams.get("next") === "/sell/dealer"
+    ? "/sell/dealer"
+    : getDestination(formData.role, dashboardHref, createListingHref);
 
   const updateField = <Key extends keyof OnboardingData>(
     key: Key,

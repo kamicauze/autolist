@@ -213,9 +213,8 @@ export function Header() {
 
   const handleSignOut = async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    const { error } = await supabase.auth.signOut();
+    if (!error) window.location.assign("/");
   };
 
   const userLabel = user?.email?.split("@")[0] || "Account";

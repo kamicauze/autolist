@@ -437,9 +437,9 @@ export function ListingAlertsManager({
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:grid-cols-2">
             <div className="flex items-start justify-between gap-4 rounded-lg bg-white p-3">
-              <div>
+              <div className="min-w-0 break-words">
                 <Label htmlFor="alert-email" className="flex items-center gap-2">
                   <Icon3D icon={Mail} variant="glyph" /> Email notifications
                 </Label>
@@ -451,6 +451,7 @@ export function ListingAlertsManager({
               </div>
               <Switch
                 id="alert-email"
+                className="shrink-0"
                 checked={form.emailEnabled}
                 disabled={!viewerEmail}
                 onCheckedChange={(checked) => updateField("emailEnabled", checked)}
@@ -458,7 +459,7 @@ export function ListingAlertsManager({
             </div>
 
             <div className="flex items-start justify-between gap-4 rounded-lg bg-white p-3">
-              <div>
+              <div className="min-w-0 break-words">
                 <Label htmlFor="alert-price-drops">Price-drop alerts</Label>
                 <p className="mt-1 text-xs text-gray-500">
                   Notify me when a matching active listing gets cheaper.
@@ -466,6 +467,7 @@ export function ListingAlertsManager({
               </div>
               <Switch
                 id="alert-price-drops"
+                className="shrink-0"
                 checked={form.priceDropEnabled}
                 onCheckedChange={(checked) => updateField("priceDropEnabled", checked)}
               />

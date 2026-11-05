@@ -28,6 +28,8 @@ type SearchableSelectProps = {
   /** Lets the user commit the typed search text when it is not one of the options. */
   allowCustomValue?: boolean;
   "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 };
 
 const CUSTOM_OPTION_PREFIX = "__custom__:";
@@ -54,6 +56,8 @@ export function SearchableSelect({
   displayValue,
   allowCustomValue = false,
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -150,6 +154,8 @@ export function SearchableSelect({
         aria-controls={listboxId}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={(event) => {

@@ -20,7 +20,7 @@ import { COLORS, COLOR_SWATCHES, FUEL_TYPES, YEARS, OLDER_THAN_1990_YEAR_OPTION 
 import { LISTING_CATEGORY_OPTIONS, type ListingCategory } from "@/lib/constants/marketplace";
 import { getNonCarVehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
 import { submitImportInquiry } from "@/lib/actions/import-inquiry";
-import { formatImportBudget, importInquirySchema } from "@/lib/import-inquiry/validation";
+import { formatImportBudget, importInquirySchema, type ImportInquiryInput } from "@/lib/import-inquiry/validation";
 
 interface ImportInquiryFormProps {
   makes: string[];
@@ -30,6 +30,8 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
   const [category, setCategory] = React.useState<ListingCategory>("car");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [feedback, setFeedback] = React.useState<{ success: boolean; message: string } | null>(null);
+  const [errors, setErrors] = React.useState<Partial<Record<keyof ImportInquiryInput, string>>>({});
+  const errorSummary = React.useRef<HTMLDivElement>(null);
   const [make, setMake] = React.useState("");
   const [model, setModel] = React.useState("");
   const [yearFrom, setYearFrom] = React.useState("");
@@ -72,10 +74,17 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
     e.preventDefault();
     if (isSubmitting) return;
     setFeedback(null);
+    setErrors({});
     const input = { category, make, model, yearFrom, yearTo, engineSize, fuelType, color: selectedColors, budgetFrom, budgetTo, firstName, email, phone, notes };
     const parsed = importInquirySchema.safeParse(input);
     if (!parsed.success) {
-      setFeedback({ success: false, message: parsed.error.issues[0]?.message || "Check your requirements." });
+      const fieldErrors: typeof errors = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as keyof ImportInquiryInput;
+        fieldErrors[field] ??= issue.message;
+      }
+      setErrors(fieldErrors);
+      requestAnimationFrame(() => errorSummary.current?.focus());
       return;
     }
     setIsSubmitting(true);
@@ -94,8 +103,19 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
     }
   };
 
+  function validationProps(field: keyof ImportInquiryInput) {
+    return {
+      "aria-invalid": Boolean(errors[field]),
+      "aria-describedby": errors[field] ? `import-error-${field}` : undefined,
+    };
+  }
+
+  function fieldError(field: keyof ImportInquiryInput) {
+    return errors[field] && <p id={`import-error-${field}`} className="text-sm text-red-700">{errors[field]}</p>;
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+    <form onSubmit={handleSubmit} noValidate className="mx-auto max-w-3xl">
       <fieldset disabled={isSubmitting} className="min-w-0">
       {/* How it works info bar */}
       <div className="mb-8 flex items-start gap-3 rounded-xl border border-brand-muted-border bg-brand-tint/50 p-4">
@@ -106,6 +126,12 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
           ideal vehicle. We handle all paperwork, shipping, and compliance.
         </p>
       </div>
+
+      {Object.keys(errors).length > 0 && (
+        <div ref={errorSummary} tabIndex={-1} role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Check the highlighted fields before submitting your inquiry.
+        </div>
+      )}
 
       {/* Vehicle Details */}
       <div className="mb-8">
@@ -126,6 +152,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
             {category !== "car" ? (
               <SearchableSelect
                 aria-label="Make"
+                {...validationProps("make")}
                 value={make}
                 displayValue={make || undefined}
                 onChange={(value) => { setMake(value); setModel(""); }}
@@ -135,11 +162,12 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 placeholder="Select or enter make"
                 searchPlaceholder="Search or enter make"
               />
-            ) : <Select value={make} onValueChange={(value) => { setMake(value); setModel(""); }}>
-              <SelectTrigger className="h-11">
+            ) : <Select value={make || "unset"} onValueChange={(value) => { setMake(value === "unset" ? "" : value); setModel(""); }}>
+              <SelectTrigger aria-label="Make" {...validationProps("make")} className="h-11">
                 <SelectValue placeholder="e.g., Toyota, BMW, Mercedes" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="unset">Select a make</SelectItem>
                 {availableMakes.map((m) => (
                   <SelectItem key={m} value={m}>
                     {m}
@@ -147,6 +175,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 ))}
               </SelectContent>
             </Select>}
+            {fieldError("make")}
           </div>
 
           <div className="space-y-1.5">
@@ -154,13 +183,13 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               Model <span className="text-red-500">*</span>
             </label>
             {category !== "car" ? (
-              <Input aria-label="Model" value={model} onChange={(event) => setModel(event.target.value)} disabled={!make} className="h-11" placeholder="Enter model" />
+              <Input aria-label="Model" {...validationProps("model")} value={model} onChange={(event) => setModel(event.target.value)} disabled={!make} className="h-11" placeholder="Enter model" />
             ) : <Select
               value={model}
               onValueChange={setModel}
               disabled={!make || modelsLoading}
             >
-              <SelectTrigger className="h-11">
+              <SelectTrigger aria-label="Model" {...validationProps("model")} className="h-11">
                 <SelectValue
                   placeholder={modelsLoading ? "Loading..." : "e.g., Supra, M3, AMG GT"}
                 />
@@ -173,6 +202,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 ))}
               </SelectContent>
             </Select>}
+            {fieldError("model")}
           </div>
 
           <div className="space-y-1.5">
@@ -180,7 +210,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               Year From <span className="text-red-500">*</span>
             </label>
             <Select value={yearFrom} onValueChange={setYearFrom}>
-              <SelectTrigger className="h-11">
+              <SelectTrigger aria-label="Year From" {...validationProps("yearFrom")} className="h-11">
                 <SelectValue placeholder="2021" />
               </SelectTrigger>
               <SelectContent>
@@ -192,6 +222,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 ))}
               </SelectContent>
             </Select>
+            {fieldError("yearFrom")}
           </div>
 
           <div className="space-y-1.5">
@@ -199,7 +230,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               Year To <span className="text-red-500">*</span>
             </label>
             <Select value={yearTo} onValueChange={setYearTo}>
-              <SelectTrigger className="h-11">
+              <SelectTrigger aria-label="Year To" {...validationProps("yearTo")} className="h-11">
                 <SelectValue placeholder="2026" />
               </SelectTrigger>
               <SelectContent>
@@ -211,6 +242,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
                 ))}
               </SelectContent>
             </Select>
+            {fieldError("yearTo")}
           </div>
         </div>
 
@@ -226,13 +258,15 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
         </div>
 
         <div className="mt-4 space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">Engine Size (CC)</label>
+          <label htmlFor="import-engine-size" className="text-sm font-medium text-gray-700">Engine Size (CC)</label>
           <Input
+            id="import-engine-size" {...validationProps("engineSize")}
             value={engineSize}
             onChange={(e) => setEngineSize(e.target.value)}
             placeholder="e.g., 2000, 3000, or 2.0L - 3.5L"
             className="h-11"
           />
+            {fieldError("engineSize")}
           <p className="text-xs text-gray-400">
             Specify engine displacement in cubic centimeters or as a range
           </p>
@@ -284,7 +318,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               Budget From <span className="text-red-500">*</span>
             </label>
             <Input
-              id="import-budget-from"
+              id="import-budget-from" {...validationProps("budgetFrom")}
               value={budgetFrom}
               onChange={(e) => {
                 const next = formatImportBudget(e.target.value);
@@ -295,6 +329,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               placeholder="KES"
               className="h-11"
             />
+            {fieldError("budgetFrom")}
           </div>
 
           <div className="space-y-1.5">
@@ -302,7 +337,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               Budget To <span className="text-red-500">*</span>
             </label>
             <Input
-              id="import-budget-to"
+              id="import-budget-to" {...validationProps("budgetTo")}
               value={budgetTo}
               onChange={(e) => setBudgetTo(formatImportBudget(e.target.value))}
               onBlur={() => {
@@ -312,6 +347,7 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
               placeholder="KES"
               className="h-11"
             />
+            {fieldError("budgetTo")}
           </div>
         </div>
       </div>
@@ -322,42 +358,48 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
+            <label htmlFor="import-first-name" className="text-sm font-medium text-gray-700">
               First Name <span className="text-red-500">*</span>
             </label>
             <Input
-              value={firstName}
+              id="import-first-name" {...validationProps("firstName")}
+                value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="John Doe"
               className="h-11"
             />
+            {fieldError("firstName")}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
+              <label htmlFor="import-email" className="text-sm font-medium text-gray-700">
                 Email <span className="text-red-500">*</span>
               </label>
               <Input
                 type="email"
+                id="import-email" {...validationProps("email")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john.smith@example.com"
                 className="h-11"
               />
+            {fieldError("email")}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">
+              <label htmlFor="import-phone" className="text-sm font-medium text-gray-700">
                 Phone Number <span className="text-red-500">*</span>
               </label>
               <Input
                 type="tel"
+                id="import-phone" {...validationProps("phone")}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+254 7700 900000"
                 className="h-11"
               />
+            {fieldError("phone")}
             </div>
           </div>
         </div>
@@ -367,12 +409,14 @@ export function ImportInquiryForm({ makes }: ImportInquiryFormProps) {
       <div className="mb-8">
         <h3 className="mb-5 text-lg font-semibold text-gray-900">Additional Notes</h3>
         <textarea
+          aria-label="Additional notes" {...validationProps("notes")}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any additional requirements, preferences, or questions..."
           rows={4}
           className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
+        {fieldError("notes")}
       </div>
 
       {feedback && (

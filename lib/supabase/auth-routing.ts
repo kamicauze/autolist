@@ -57,7 +57,7 @@ export function canRenderBuyerAccountPage(
 ) {
   const pathname = sanitizeNextPath(requestedPath, "").split("?")[0];
   return role === "buyer" && postAuthPath === "/" && (
-    pathname === "/dashboard/favorites" || pathname === "/dashboard/profile"
+    pathname === "/dashboard" || pathname === "/dashboard/favorites" || pathname === "/dashboard/profile"
   );
 }
 

@@ -29,6 +29,9 @@ export default async function DealerSellPage() {
 
   if (!isPrivateSellerRole(profile?.role)) {
     const destination = await resolvePostAuthPath(supabase, user.id);
+    if (profile?.role === "buyer" && destination === "/") {
+      redirect("/register/onboarding?role=seller&next=%2Fsell%2Fdealer");
+    }
     redirect(destination);
   }
 

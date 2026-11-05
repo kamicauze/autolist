@@ -15,6 +15,8 @@ interface LoginPageProps {
   }>;
 }
 
+export const metadata = { title: "Sign In | Autolist" };
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const supabase = await createClient();
   const params = searchParams ? await searchParams : undefined;

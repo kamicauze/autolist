@@ -122,11 +122,6 @@ const SECTION_TOGGLE_FIELDS: Array<{
     label: "Brand logos",
     description: "Popular makes and brand discovery.",
   },
-  {
-    key: "showSocialMedia",
-    label: "Social media",
-    description: "Follow/social channel footer module.",
-  },
 ];
 
 function toContentEditorState(page: ContentPageRecord): ContentEditorState {

@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
+import { getPublicContentPostSlug } from "@/lib/content-post-slugs";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getPublishedContentPosts } from "@/lib/data/content-posts";
@@ -54,7 +55,7 @@ export async function VideoSection() {
             {posts.map((post) => (
               <Link
                 key={post.id}
-                href={`/blog/${post.slug}`}
+                href={`/blog/${getPublicContentPostSlug(post.slug)}`}
                 className="group flex w-[280px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md sm:w-[320px] lg:w-[360px]"
               >
                 <div className="relative h-48 overflow-hidden">

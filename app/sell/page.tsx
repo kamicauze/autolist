@@ -67,6 +67,8 @@ const benefits = [
   },
 ] as const;
 
+export const metadata = { title: "Sell Your Vehicle | Autolist" };
+
 export default function SellPage() {
   return (
     <div className="flex min-h-screen flex-col">

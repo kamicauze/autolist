@@ -1,5 +1,6 @@
 "use client";
 
+import { getPublicContentPostSlug } from "@/lib/content-post-slugs";
 import * as React from "react";
 import Link from "next/link";
 import {
@@ -344,7 +345,7 @@ export function AdminBlogsContentLive({
   }
 
   const previewHref =
-    selectedPost?.status === "published" ? `/blog/${selectedPost.slug}` : null;
+    selectedPost?.status === "published" ? `/blog/${getPublicContentPostSlug(selectedPost.slug)}` : null;
 
   return (
     <div className="space-y-8">

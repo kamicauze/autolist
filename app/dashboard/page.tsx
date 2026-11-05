@@ -17,11 +17,26 @@ import {
   sellerGhostButtonClass,
 } from "@/components/dashboard/seller-dashboard-ui";
 
+export const metadata = { title: "Dashboard | Autolist" };
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    : { data: null };
+  if (profile?.role === "buyer") {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-3xl font-semibold">Buyer dashboard</h1>
+        <p className="text-muted-foreground">Manage your account, saved vehicles, and listing alerts.</p>
+        <Link href="/search" className="font-semibold text-primary hover:underline">Browse vehicles</Link>
+      </div>
+    );
+  }
 
   const [listingsResult, packageAccessResult, reviewsData, approvedDealer] = await Promise.all([
     getMyListings(),

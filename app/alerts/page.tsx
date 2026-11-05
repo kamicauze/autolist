@@ -30,6 +30,8 @@ const alertSteps = [
   },
 ] as const;
 
+export const metadata = { title: "Listing Alerts | Autolist" };
+
 export default async function AlertsPage() {
   const [data, makes] = await Promise.all([getListingAlertsPageData(), getAllMakeNames()]);
 
@@ -42,6 +44,7 @@ export default async function AlertsPage() {
           label="LISTING ALERTS"
           heading="Get notified when the right listing becomes available"
           backgroundImage="/images/alerts-hero.webp"
+          hideMobileBackground
           align="left"
           description="Be the first to know about new vehicles that match your criteria."
         >

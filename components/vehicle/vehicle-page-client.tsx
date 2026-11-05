@@ -532,6 +532,8 @@ export function VehiclePageClient({
                   type="button"
                   variant={inCompare ? "default" : "outline"}
                   size="icon"
+                  aria-label={inCompare ? "Remove from comparison" : "Add to comparison"}
+                  aria-pressed={inCompare}
                   onClick={() => toggleCompare(listing.id)}
                   disabled={!isLoaded || compareLimitReached}
                   title={
