@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSalesAgentViewerContext } from "@/lib/data/sales-agent-permissions";
 import { filterAdminVisibleSupportTickets } from "@/lib/data/support-ticket-filters";
 import type {
+  MessageCursors,
   MessagingCenterData,
   MessagingViewer,
   ProfileRole,
@@ -125,7 +126,7 @@ function firstRelation<T>(value: T | T[] | null | undefined) {
   return Array.isArray(value) ? value[0] || null : value || null;
 }
 
-export const getMessagingCenterData = cache(async (): Promise<MessagingCenterData | null> => {
+export const getMessagingCenterData = cache(async (cursors?: MessageCursors): Promise<MessagingCenterData | null> => {
   const supabase = await createClient();
   const adminSupabase = createOptionalAdminClient();
   const {
@@ -257,25 +258,57 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
   }
 
   const messageClient = adminSupabase ?? supabase;
-  let messageQuery = messageClient
-    .from("conversation_messages")
-    .select(
-      `
-        id,
-        thread_id,
-        sender_id,
-        body,
-        visibility,
-        message_type,
-        created_at,
-        sender:profiles!sender_id(id, full_name, email)
-      `
-    )
-    .in("thread_id", threadIds)
-    .order("created_at", { ascending: true });
+  function selectMessages(ids: string[]) {
+    const query = messageClient
+      .from("conversation_messages")
+      .select(
+        `
+          id,
+          thread_id,
+          sender_id,
+          body,
+          visibility,
+          message_type,
+          created_at,
+          sender:profiles!sender_id(id, full_name, email)
+        `
+      )
+      .in("thread_id", ids)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+    return isStaffViewer ? query : query.eq("visibility", "participants");
+  }
 
-  if (!isStaffViewer) messageQuery = messageQuery.eq("visibility", "participants");
-  const { data: messageRows, error: messageError } = await messageQuery;
+  const messageRows: MessageRow[] = [];
+  let messageError = false;
+  if (!cursors) {
+    const { data, error } = await selectMessages(threadIds);
+    messageRows.push(...((data || []) as unknown as MessageRow[]));
+    messageError = Boolean(error);
+  } else {
+    // Bound the size of each PostgREST filter and page large backlogs.
+    const threadBatchSize = 20;
+    const pageSize = 250;
+    for (let start = 0; start < threadIds.length; start += threadBatchSize) {
+      const ids = threadIds.slice(start, start + threadBatchSize);
+      const filter = ids.map((id) => {
+        const cursor = cursors[id];
+        if (!cursor) return `thread_id.eq.${id}`;
+        const { id: messageId, createdAt } = cursor;
+        return `and(thread_id.eq.${id},or(created_at.gt.${createdAt},and(created_at.eq.${createdAt},id.gt.${messageId})))`;
+      }).join(",");
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await selectMessages(ids).or(filter).range(offset, offset + pageSize - 1);
+        if (error) {
+          messageError = true;
+          break;
+        }
+        messageRows.push(...((data || []) as unknown as MessageRow[]));
+        if (!data || data.length < pageSize) break;
+      }
+      if (messageError) break;
+    }
+  }
 
   if (messageError) {
     return {
@@ -289,7 +322,7 @@ export const getMessagingCenterData = cache(async (): Promise<MessagingCenterDat
 
   const messagesByThread: Record<string, ThreadMessageItem[]> = {};
 
-  for (const message of (messageRows || []) as unknown as MessageRow[]) {
+  for (const message of messageRows) {
     const sender = firstRelation(message.sender);
     if (!messagesByThread[message.thread_id]) {
       messagesByThread[message.thread_id] = [];

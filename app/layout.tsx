@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NotificationRefreshProvider } from "@/components/notifications/notification-refresh-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { getGoogleAnalyticsMeasurementId } from "@/lib/google-analytics";
@@ -37,7 +38,7 @@ export default function RootLayout({
         className="antialiased"
       >
         {measurementId && <GoogleAnalytics measurementId={measurementId} />}
-        {children}
+        <NotificationRefreshProvider>{children}</NotificationRefreshProvider>
       </body>
     </html>
   );

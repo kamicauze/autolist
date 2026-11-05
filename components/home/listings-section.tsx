@@ -1,9 +1,11 @@
 "use client";
 
 import { useFavoriteAccess } from "@/lib/hooks/use-favorite-access";
+import { useVisiblePolling } from "@/lib/hooks/use-visible-polling";
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IconChevronRight } from "@/components/ui/icons";
@@ -40,7 +42,12 @@ export function ListingsSection({
   content,
 }: ListingsSectionProps) {
   const canFavorite = useFavoriteAccess();
+  const router = useRouter();
+  const [isRefreshing, startRefresh] = React.useTransition();
   const [activeTab, setActiveTab] = React.useState<HomepageListingRailTab>("featured");
+  useVisiblePolling(() => {
+    if (!isRefreshing) startRefresh(() => router.refresh());
+  }, 60_000);
   const sectionContent = content ?? DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT;
   const displayListings =
     featuredListings.length > 0 ? featuredListings : newestListings;

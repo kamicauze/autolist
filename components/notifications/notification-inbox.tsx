@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { BellRing, CheckCheck, ChevronRight } from "lucide-react";
 import { Illustration3D } from "@/components/ui/icon-3d";
+import { useNotificationRefresh } from "./notification-refresh-provider";
 import type { NotificationCenterData, NotificationListItem } from "@/lib/types/notifications";
 
 type NotificationInboxProps = {
@@ -26,11 +27,20 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
   const [notifications, setNotifications] = React.useState<NotificationListItem[]>(
     initialData?.notifications || []
   );
-  const [unreadCount, setUnreadCount] = React.useState(initialData?.unreadCount || 0);
+  const { unreadCount, setUnreadCount, subscribeInbox, beginRead } = useNotificationRefresh();
   const [isMarkingAll, setIsMarkingAll] = React.useState(false);
   const viewer = initialData?.viewer || null;
+  const initialUnreadCount = initialData?.unreadCount ?? 0;
+
+  React.useEffect(() => {
+    if (!viewer) return;
+    return subscribeInbox((data) => {
+      if (data.viewer.id === viewer.id) setNotifications(data.notifications);
+    }, initialUnreadCount);
+  }, [initialUnreadCount, subscribeInbox, viewer]);
 
   async function markAllAsRead() {
+    const finishRead = beginRead();
     setIsMarkingAll(true);
     try {
       const response = await fetch("/api/notifications", {
@@ -52,11 +62,13 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
       );
       setUnreadCount(0);
     } finally {
+      finishRead();
       setIsMarkingAll(false);
     }
   }
 
   async function markRead(id: string) {
+    const finishRead = beginRead();
     setNotifications((current) =>
       current.map((item) =>
         item.id === id && !item.readAt
@@ -68,13 +80,15 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
           : item
       )
     );
-    setUnreadCount((current) => Math.max(0, current - 1));
+    setUnreadCount((current) => Math.max(0, (current ?? initialUnreadCount) - 1));
 
     await fetch(`/api/notifications/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ read: true }),
-    }).catch(() => undefined);
+    }).catch(() => undefined).finally(() => {
+      finishRead();
+    });
   }
 
   if (!viewer) {
@@ -122,7 +136,7 @@ export function NotificationInbox({ initialData }: NotificationInboxProps) {
             />
             <div>
               <p className="text-[15px] font-semibold text-[#111827]">Inbox</p>
-              <p className="text-[13px] text-[#667085]">{unreadCount} unread</p>
+              <p className="text-[13px] text-[#667085]">{unreadCount ?? initialUnreadCount} unread</p>
             </div>
           </div>
         </div>

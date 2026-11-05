@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const rawLimit = Number(url.searchParams.get("limit") || "8");
-  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 8;
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 0), 50) : 8;
   const data = await getNotificationCenterData(limit);
 
   if (!data) {
