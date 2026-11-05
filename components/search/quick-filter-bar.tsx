@@ -117,7 +117,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
     <div className="rounded-[18px] border border-[#e7ebf1] bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.055)]">
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         {/* Filter Dropdowns */}
-        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
           {isEquipmentCategory ? (
             <div className="relative min-w-0">
               <Construction className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -140,7 +140,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
             </div>
           ) : null}
 
-          <div>
+          <div className="min-w-0 max-md:order-first max-md:col-span-2">
             <p className="mb-1 text-xs font-medium text-gray-600">County</p>
             <SearchableSelect
               aria-label="County"
@@ -207,7 +207,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
           ) : null}
 
           {/* Price Range */}
-          <div className="relative min-w-0">
+          <div className="relative min-w-0 max-md:col-span-2">
             <Banknote className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
             <Select value={getPriceRangeValue()} onValueChange={updatePriceRange}>
               <SelectTrigger className={triggerClass}>

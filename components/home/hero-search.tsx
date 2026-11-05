@@ -946,7 +946,7 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div>
+                  <div className="min-w-0 max-md:col-span-2">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       County
                     </label>
@@ -983,12 +983,7 @@ export function HeroSearch({
                     {isEquipmentCategory ? renderMakeField() : renderModelField()}
                   </div>
 
-                  <div
-                    className={cn(
-                      "col-span-2",
-                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
-                    )}
-                  >
+                  <div className="col-span-2 md:col-span-1">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Choose Year
                     </label>
