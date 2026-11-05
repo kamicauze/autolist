@@ -946,9 +946,12 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div className="min-w-0 self-end max-md:col-span-2">
+                  <div className="min-w-0 max-md:col-span-2">
+                    <span className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
+                      Location
+                    </span>
                     <SearchableSelect
-                      aria-label="County"
+                      aria-label="Location"
                       value={countyTown.county}
                       onChange={(county) => setCountyTown({ county, town: "" })}
                       options={[{ value: "", label: "All counties" }, ...countyOptions]}
