@@ -37,7 +37,7 @@ async function RecentActivitiesData({
   content: HomepageCmsContent["featuredListings"];
 }) {
   const [featuredListings, newestListings, favorites, authResult] = await Promise.all([
-    getHomepageFeaturedListings(),
+    getHomepageFeaturedListings(content.featuredLimit),
     getNewestListings(content.recentLimit),
     getDashboardFavoritesData(),
     getAuthUser(),

@@ -17,7 +17,10 @@ import type {
   FeaturedListingPinStatus,
   FeaturedListingPinVisibility,
 } from "@/lib/types/featured-listing-pins";
-import { HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT } from "@/lib/utils/featured-listing-rotation";
+import {
+  HOMEPAGE_FEATURED_LISTING_LIMIT,
+  HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT,
+} from "@/lib/utils/featured-listing-rotation";
 
 type FeaturedListingPinRow = {
   id: string;
@@ -248,13 +251,25 @@ export const getAdminFeaturedListingPinsData = cache(
 );
 
 export async function getHomepageFeaturedListings(
-  limit = HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT
+  displayLimit = HOMEPAGE_FEATURED_LISTING_LIMIT
 ): Promise<Listing[]> {
-  const pins = await getActiveFeaturedListingPins(limit);
+  const pinnedListings = (await getActiveFeaturedListingPins(HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT))
+    .map((pin) => pin.listing);
 
-  if (pins.length > 0) {
-    return pins.map((pin) => pin.listing);
+  if (pinnedListings.length >= displayLimit) {
+    return pinnedListings;
   }
 
-  return getFeaturedListings(limit);
+  if (pinnedListings.length === 0) {
+    return getFeaturedListings(HOMEPAGE_FEATURED_ROTATION_POOL_LIMIT);
+  }
+
+  const pinnedIds = new Set(pinnedListings.map((listing) => listing.id));
+  const featuredListings = await getFeaturedListings(displayLimit);
+  return [
+    ...pinnedListings,
+    ...featuredListings
+      .filter((listing) => !pinnedIds.has(listing.id))
+      .slice(0, displayLimit - pinnedListings.length),
+  ];
 }
