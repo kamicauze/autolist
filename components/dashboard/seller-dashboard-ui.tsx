@@ -259,45 +259,6 @@ export type SellerReview = {
   listing?: string;
 };
 
-export const sellerReviews: SellerReview[] = [
-  {
-    id: "1",
-    name: "Courtney Henry",
-    rating: 5,
-    date: "29 Jan, 2025",
-    listing: "Mercedes Benz GLC 2021",
-    review:
-      "Professional seller. Car condition matched the pictures and the paperwork was ready before I arrived.",
-  },
-  {
-    id: "2",
-    name: "Darrell Steward",
-    rating: 5,
-    date: "17 Jan, 2025",
-    listing: "Toyota Land Cruiser Prado TXL",
-    review:
-      "Fast response, transparent pricing and a very smooth handover. I would buy from this dashboard again.",
-  },
-  {
-    id: "3",
-    name: "Savannah Nguyen",
-    rating: 4,
-    date: "08 Jan, 2025",
-    listing: "Mazda CX-5 Touring",
-    review:
-      "Good communication throughout the process. Delivery took a bit longer than expected but the vehicle was clean and exactly as described.",
-  },
-  {
-    id: "4",
-    name: "Marvin McKinney",
-    rating: 5,
-    date: "22 Dec, 2024",
-    listing: "Subaru Forester XT",
-    review:
-      "Helpful guidance on financing and inspection. The seller shared extra photos and made the process easy to trust.",
-  },
-];
-
 export function SellerReviewStars({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-1">

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ListingReviewRecord } from "@/lib/types/listing-review";
-import { SellerReviewSnippet, SellerSurface, sellerReviews } from "./seller-dashboard-ui";
+import { SellerReviewSnippet, SellerSurface } from "./seller-dashboard-ui";
 
 function toDisplayReview(review: ListingReviewRecord) {
   return {
@@ -21,7 +21,7 @@ function toDisplayReview(review: ListingReviewRecord) {
 }
 
 export function RecentReviews({ reviews = [] }: { reviews?: ListingReviewRecord[] }) {
-  const items = reviews.length > 0 ? reviews.map(toDisplayReview) : sellerReviews.slice(0, 3);
+  const items = reviews.map(toDisplayReview);
 
   return (
     <SellerSurface className="p-5">
@@ -32,11 +32,17 @@ export function RecentReviews({ reviews = [] }: { reviews?: ListingReviewRecord[
         </p>
       </div>
 
-      <div className="space-y-4">
-        {items.map((review) => (
-          <SellerReviewSnippet key={review.id} review={review} />
-        ))}
-      </div>
+      {items.length > 0 ? (
+        <div className="space-y-4">
+          {items.map((review) => (
+            <SellerReviewSnippet key={review.id} review={review} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-[20px] border border-dashed border-[#e5e7eb] bg-[#faf9f7] px-4 py-8 text-center text-[13px] text-[#7a7a7a]">
+          No buyer reviews yet. Reviews appear here once buyers rate your listings.
+        </div>
+      )}
     </SellerSurface>
   );
 }

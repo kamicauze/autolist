@@ -91,6 +91,12 @@ const ROLE_PRESENTATION: Record<UserRole, RolePresentation> = {
   },
 };
 
+const HEADING_SCROLL_CLASS = "scroll-mt-24 md:scroll-mt-44 xl:scroll-mt-28";
+const STEP_HEADING_CLASS = cn(
+  HEADING_SCROLL_CLASS,
+  "font-heading text-[24px] font-semibold text-[#202224]"
+);
+
 const FIELD_LABEL_CLASS = "text-[13px] font-semibold text-[#24272C]";
 const FIELD_HELP_CLASS = "mt-1 text-[12px] leading-5 text-[#8a8a8a]";
 const FIELD_INPUT_CLASS =
@@ -140,6 +146,17 @@ export function OnboardingFlow({
   const [isSaving, setIsSaving] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [formData, setFormData] = React.useState<OnboardingData>(DEFAULT_DATA);
+  const headingRef = React.useRef<HTMLHeadingElement>(null);
+  const previousStepRef = React.useRef(activeStep);
+
+  React.useEffect(() => {
+    if (!isSubmitted && previousStepRef.current === activeStep) return;
+
+    previousStepRef.current = activeStep;
+    const heading = headingRef.current;
+    heading?.scrollIntoView({ behavior: "instant", block: "start" });
+    heading?.focus({ preventScroll: true });
+  }, [activeStep, isSubmitted]);
 
   React.useEffect(() => {
     const prefillFromSession = async () => {
@@ -323,7 +340,11 @@ export function OnboardingFlow({
             <p className="mt-5 text-[12px] font-semibold uppercase tracking-[0.18em] text-primary">
               Onboarding complete
             </p>
-            <h2 className="mt-2 font-heading text-[34px] font-semibold leading-tight text-[#202224]">
+            <h2
+              ref={headingRef}
+              tabIndex={-1}
+              className={cn(HEADING_SCROLL_CLASS, "mt-2 font-heading text-[34px] font-semibold leading-tight text-[#202224]")}
+            >
               {presentation.savedOutcome}
             </h2>
             <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#696665]">
@@ -407,9 +428,9 @@ export function OnboardingFlow({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]" data-testid="onboarding-step-account">
             <section className="space-y-4 rounded-[18px] border border-[#eef2f7] bg-white p-4">
               <div>
-                <p className="font-heading text-[24px] font-semibold text-[#202224]">
+                <h2 ref={headingRef} tabIndex={-1} className={STEP_HEADING_CLASS}>
                   Confirm your profile
-                </p>
+                </h2>
                 <p className="mt-1 text-[13px] leading-5 text-[#696665]">
                   This is the name buyers, sellers, and support staff will see across Autolist.
                 </p>
@@ -467,9 +488,9 @@ export function OnboardingFlow({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]" data-testid="onboarding-step-role">
             <section className="space-y-3">
               <div>
-                <p className="font-heading text-[24px] font-semibold text-[#202224]">
+                <h2 ref={headingRef} tabIndex={-1} className={STEP_HEADING_CLASS}>
                   Choose the account path
-                </p>
+                </h2>
                 <p className="mt-1 text-[13px] leading-5 text-[#696665]">
                   The selected path changes dashboard routing and what we ask for next.
                 </p>
@@ -540,9 +561,9 @@ export function OnboardingFlow({
               <div className="flex items-start gap-3">
                 <Illustration3D asset="phone-contact" fallbackIcon={Phone} size="md" />
                 <div>
-                  <p className="font-heading text-[24px] font-semibold text-[#202224]">
+                  <h2 ref={headingRef} tabIndex={-1} className={STEP_HEADING_CLASS}>
                     Contact and location
-                  </p>
+                  </h2>
                   <p className="mt-1 text-[13px] leading-5 text-[#696665]">
                     {isSellerLike
                       ? "Private sellers and dealers need a phone number and city so buyer inquiries can route correctly."
@@ -630,9 +651,9 @@ export function OnboardingFlow({
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" data-testid="onboarding-step-confirmation">
             <section className="space-y-4">
               <div>
-                <p className="font-heading text-[24px] font-semibold text-[#202224]">
+                <h2 ref={headingRef} tabIndex={-1} className={STEP_HEADING_CLASS}>
                   Review before saving
-                </p>
+                </h2>
                 <p className="mt-1 text-[13px] leading-5 text-[#696665]">
                   These fields will be written to your Autolist profile.
                 </p>
