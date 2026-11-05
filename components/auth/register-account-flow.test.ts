@@ -71,3 +71,8 @@ test("duplicate signup exits before profile updates or success feedback", () => 
   assert.ok(duplicateCheck < form.indexOf('.from("profiles")'));
   assert.match(form.slice(duplicateCheck), /setErrorMessage\(EMAIL_ALREADY_REGISTERED_MESSAGE\);\s*return;/);
 });
+
+test("email signup uses the confirmation handoff while Google retains its session callback", () => {
+  assert.match(form, /emailRedirectTo: getSignupVerificationUrl\(nextPath\)/);
+  assert.match(form, /const redirectTo = getAuthCallbackUrl\(nextPath\)/);
+});
