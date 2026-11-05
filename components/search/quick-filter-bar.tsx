@@ -2,7 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { Banknote, CarFront, Construction, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { Banknote, CarFront, Construction, Search, SlidersHorizontal } from "lucide-react";
+import { CountyTownFields } from "@/components/shared/county-town-fields";
+import { selectionFromLocation } from "@/lib/location/selection";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LOCATIONS, PRICE_RANGES } from "@/lib/constants/filters";
+import { PRICE_RANGES } from "@/lib/constants/filters";
 import { IconSearch } from "@/components/ui/icons";
 import { useCarModels } from "@/hooks/use-car-models";
 import type { ListingCategory } from "@/lib/constants/marketplace";
@@ -32,7 +34,9 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
   const currentCategory = searchParams.get("category") as ListingCategory | null;
   const currentMake = searchParams.get("make") || "";
   const currentModel = searchParams.get("model") || "";
-  const currentLocation = searchParams.get("location") || "";
+  const countyTown = searchParams.has("county") || searchParams.has("town")
+    ? { county: searchParams.get("county") || "", town: searchParams.get("town") || "" }
+    : selectionFromLocation(searchParams.get("location") || "");
   const currentTaxCategory = searchParams.get("taxCategory") || "";
   const currentMinPrice = searchParams.get("minPrice") || "";
   const currentMaxPrice = searchParams.get("maxPrice") || "";
@@ -135,27 +139,22 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
                 </SelectContent>
               </Select>
             </div>
-          ) : (
-            <div className="relative min-w-0">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-              <Select
-                value={currentLocation || "all"}
-                onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}
-              >
-                <SelectTrigger className={triggerClass}>
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {LOCATIONS.filter((l) => l !== "All Locations").map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          ) : null}
+
+          <CountyTownFields
+            {...countyTown}
+            search
+            onChange={({ county, town }) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("location");
+              params.set("page", "1");
+              if (county) params.set("county", county); else params.delete("county");
+              if (town) params.set("town", town); else params.delete("town");
+              startTransition(() => router.push(`/search?${params.toString()}`));
+            }}
+            className={triggerClass.replace("pl-8", "pl-3")}
+            labelClassName="mb-1 text-xs font-medium text-gray-600"
+          />
 
           {/* Make */}
           <div className="relative min-w-0">
@@ -189,18 +188,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
             )}
           </div>
 
-          {isEquipmentCategory ? (
-            <div className="relative min-w-0">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-              <Select value={currentLocation || "all"} onValueChange={(val) => updateFilter("location", val === "all" ? null : val)}>
-                <SelectTrigger className={triggerClass}><SelectValue placeholder="Location" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {LOCATIONS.filter((location) => location !== "All Locations").map((location) => <SelectItem key={location} value={location}>{location}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
+          {!isEquipmentCategory ? (
             <div className="relative min-w-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <Select value={currentModel || "all"} onValueChange={(val) => updateFilter("model", val === "all" ? null : val)} disabled={!currentMake || modelsLoading}>
@@ -211,7 +199,7 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
                 </SelectContent>
               </Select>
             </div>
-          )}
+          ) : null}
 
           {/* Price Range */}
           <div className="relative min-w-0">

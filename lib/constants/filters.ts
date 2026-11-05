@@ -1,3 +1,4 @@
+import { getCountyTowns } from "./kenya-towns";
 import { ALL_MAKES } from "./car-data";
 
 /**
@@ -202,7 +203,7 @@ const COUNTY_CITY_ALIASES: Record<string, readonly string[]> = {
 
 export function locationMatchesFilter(displayLocation: string, selectedLocation: string): boolean {
   const location = displayLocation.toLowerCase();
-  return [selectedLocation, ...(COUNTY_CITY_ALIASES[selectedLocation] ?? [])].some((term) =>
+  return [selectedLocation, ...getCountyTowns(selectedLocation), ...(COUNTY_CITY_ALIASES[selectedLocation] ?? [])].some((term) =>
     location.includes(term.toLowerCase())
   );
 }

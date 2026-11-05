@@ -1,6 +1,8 @@
 "use server";
 
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { KENYA_COUNTIES } from "@/lib/constants/filters";
+import { normalizeLocationText } from "@/lib/location/normalize";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { r2 } from "@/lib/r2";
@@ -228,9 +230,11 @@ export async function submitDealerVerification(formData: FormData) {
 
   try {
     const dealershipName = requiredString(formData, "dealershipName");
-    const dealershipAddress = requiredString(formData, "dealershipAddress");
-    const cityTown = requiredString(formData, "cityTown");
-    const locationArea = requiredString(formData, "locationArea");
+    const dealershipAddress = normalizeLocationText(requiredString(formData, "dealershipAddress"));
+    const county = requiredString(formData, "county");
+    if (county && !KENYA_COUNTIES.some((candidate) => candidate === county)) return { error: "Select a valid Kenyan county." };
+    const cityTown = normalizeLocationText(requiredString(formData, "cityTown"));
+    const locationArea = normalizeLocationText(requiredString(formData, "locationArea"));
     const mobileNumber = requiredString(formData, "mobileNumber");
     const officialEmail = requiredString(formData, "officialEmail");
     const whatsappNumber = requiredString(formData, "whatsappNumber");
@@ -324,6 +328,7 @@ export async function submitDealerVerification(formData: FormData) {
       address: dealershipAddress,
       city: cityTown,
       location: locationArea,
+      ...(county ? { county } : {}),
       mobile: normalizePhone(mobileNumber),
       email: officialEmail,
       whatsapp: normalizePhone(whatsappNumber),

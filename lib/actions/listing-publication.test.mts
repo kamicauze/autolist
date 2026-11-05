@@ -55,6 +55,17 @@ test("partial edits retain their contract while supplied condition/price are val
   assert.equal(updates.at(-1)?.price, 900000);
 });
 
+test("location edits preserve county and normalize supplied town/area without rewriting omitted metadata", async () => {
+  listing = { ...listing, metadata: { county: "Nakuru", cityTown: "Legacy TOWN", locationArea: "Existing Area" } };
+  assert.equal((await updateListing(listing.id, { description: "Keep existing location" })).success, true);
+  assert.equal((updates.at(-1)?.metadata as Record<string, unknown>).cityTown, "Legacy TOWN");
+  assert.equal((await updateListing(listing.id, { county: "Kiambu", cityTown: "  custom   town ", locationArea: "  plot 12B  ABC HQ ", country: "Kenya" })).success, true);
+  const metadata = updates.at(-1)?.metadata as Record<string, unknown>;
+  assert.equal(metadata.county, "Kiambu");
+  assert.equal(metadata.cityTown, "Custom Town");
+  assert.equal(metadata.locationArea, "Plot 12B ABC HQ");
+});
+
 test("ownership access checks remain ahead of editing and publication validation", async () => {
   userId = "unrelated-buyer";
   const before = updates.length;

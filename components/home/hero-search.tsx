@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { CountyTownFields } from "@/components/shared/county-town-fields";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import {
-  LOCATIONS,
   MILEAGE_FILTER_OPTIONS,
   OLDER_THAN_1990_YEAR_OPTION,
   PRICE_FILTER_OPTIONS,
@@ -45,7 +45,6 @@ import {
   CarFront,
   ChevronLeft,
   ChevronRight,
-  MapPin,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -172,7 +171,7 @@ export function HeroSearch({
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = React.useState(0);
   const [activeCategory, setActiveCategory] =
     React.useState<ListingCategory>("car");
-  const [location, setLocation] = React.useState("any");
+  const [countyTown, setCountyTown] = React.useState({ county: "", town: "" });
   const [make, setMake] = React.useState("any");
   const [model, setModel] = React.useState("");
   const [taxCategory, setTaxCategory] = React.useState("any");
@@ -269,7 +268,8 @@ export function HeroSearch({
     const params = new URLSearchParams();
     params.set("category", activeCategory);
 
-    if (location !== "any") params.set("location", location);
+    if (countyTown.county) params.set("county", countyTown.county);
+    if (countyTown.town) params.set("town", countyTown.town);
     if (priceFrom !== "any") params.set("minPrice", priceFrom);
     if (priceTo !== "any") params.set("maxPrice", priceTo);
     if (yearFrom !== "any") params.set("minYear", yearFrom);
@@ -304,7 +304,7 @@ export function HeroSearch({
   }, [
     activeCategory,
     taxCategory,
-    location,
+    countyTown,
     make,
     maxHours,
     mileageFrom,
@@ -396,7 +396,8 @@ export function HeroSearch({
       taxCategory: taxCategory !== "any" ? taxCategory : "",
       minPrice: priceFrom !== "any" ? priceFrom : "",
       maxPrice: priceTo !== "any" ? priceTo : "",
-      location: location !== "any" ? location : "",
+      county: countyTown.county,
+      town: countyTown.town,
       bodyTypes: [],
       minYear: yearFrom !== "any" ? yearFrom : "",
       maxYear: yearTo !== "any" ? yearTo : "",
@@ -405,7 +406,7 @@ export function HeroSearch({
       hoursMax: maxHours !== "any" ? maxHours : "",
     }),
     [
-      location,
+      countyTown,
       taxCategory,
       make,
       maxHours,
@@ -930,7 +931,7 @@ export function HeroSearch({
                       Browse all
                     </Link>
                     <button type="button" onClick={() => {
-                      setLocation("any"); setMake("any"); setModel(""); setTaxCategory("any");
+                      setCountyTown({ county: "", town: "" }); setMake("any"); setModel(""); setTaxCategory("any");
                       setYearFrom("any"); setYearTo("any"); setMileageFrom("any"); setMileageTo("any");
                       setMaxHours("any"); setPriceFrom("any"); setPriceTo("any");
                     }} className="px-3 py-1.5 text-[12px] font-semibold text-primary hover:underline">
@@ -945,34 +946,13 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "col-span-2",
-                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
-                    )}
-                  >
-                    <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      Location
-                    </label>
-                    <div className="relative">
-                      <MapPin className={PANEL_ICON_CLASS} />
-                      <select
-                        value={location}
-                        onChange={(event) => setLocation(event.target.value)}
-                        className={`${PANEL_INPUT_CLASS} appearance-none pl-10 pr-10`}
-                      >
-                        <option value="any">Any Location</option>
-                        {LOCATIONS.filter(
-                          (item) => item !== "All Locations",
-                        ).map((item) => (
-                          <option key={item} value={item}>
-                            {item}
-                          </option>
-                        ))}
-                      </select>
-                      <span className={PANEL_CHEVRON_CLASS}>▾</span>
-                    </div>
-                  </div>
+                  <CountyTownFields
+                    {...countyTown}
+                    onChange={setCountyTown}
+                    search
+                    className={`${PANEL_INPUT_CLASS} px-3`}
+                    labelClassName="mb-1.5 block text-[12px] font-semibold text-[#4d5568]"
+                  />
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">

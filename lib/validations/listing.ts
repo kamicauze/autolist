@@ -1,3 +1,4 @@
+import { normalizeLocationText } from "@/lib/location/normalize";
 
 import { z } from "zod";
 import { normalizePhoneInput, PHONE_REGEX } from "@/lib/utils/phone";
@@ -81,8 +82,9 @@ export const listingSchema = z.object({
   cabType: z.string().trim().optional(),
   category: z.enum(LISTING_CATEGORIES).optional(),
   country: z.string().trim().optional(),
-  cityTown: z.string().trim().optional(),
-  locationArea: z.string().trim().optional(),
+  county: z.string().trim().optional(),
+  cityTown: z.string().transform(normalizeLocationText).optional(),
+  locationArea: z.string().transform(normalizeLocationText).optional(),
   availability: z.enum(LISTING_AVAILABILITY).optional(),
   negotiable: z.boolean().optional(),
   tradeInAccepted: z.boolean().optional(),

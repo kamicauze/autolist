@@ -1,5 +1,7 @@
 "use client";
 
+import { inferCounty } from "@/lib/location/selection";
+
 import * as React from "react";
 import {
   LISTING_CATEGORY_OPTIONS,
@@ -84,6 +86,7 @@ export type ListingDraft = {
   negotiable: boolean;
   tradeInAccepted: boolean;
   country: string;
+  county: string;
   cityTown: string;
   locationArea: string;
   description: string;
@@ -116,6 +119,7 @@ export const DEFAULT_DRAFT: ListingDraft = {
   negotiable: true,
   tradeInAccepted: false,
   country: "Kenya",
+  county: "",
   cityTown: "",
   locationArea: "",
   description: "",
@@ -333,7 +337,7 @@ type SellerAccountDefaults = {
   phoneNumber: string;
   whatsappEnabled: boolean;
   whatsappNumber: string;
-  dealerLocation: { cityTown: string; locationArea: string } | null;
+  dealerLocation: { county: string; cityTown: string; locationArea: string } | null;
 };
 
 export type AssignableSalesRep = { id: string; name: string };
@@ -348,6 +352,7 @@ type SellerAccountProfile = {
 type SellerAccountDealer = {
   status: "PENDING" | "APPROVED" | "REJECTED" | null;
   city?: string | null;
+  county?: string | null;
   location?: string | null;
   address?: string | null;
   mobile: string | null;
@@ -457,7 +462,7 @@ export function buildSellerAccountDefaults({
     whatsappEnabled: Boolean(dealerWhatsapp),
     whatsappNumber: dealerWhatsapp,
     dealerLocation: dealerCity
-      ? { cityTown: dealerCity, locationArea: dealerArea || dealerCity }
+      ? { county: dealer?.county?.trim() || inferCounty(dealerCity), cityTown: dealerCity, locationArea: dealerArea || dealerCity }
       : null,
   };
 }
@@ -696,6 +701,7 @@ export function restoreSavedListingDraft(
     ...initialDraft,
     ...savedDraft,
     country: savedDraft.country?.trim() || initialDraft.country,
+    county: savedDraft.county ?? (savedDraft.cityTown ? inferCounty(savedDraft.cityTown) : initialDraft.county),
     details: { ...initialDraft.details, ...(savedDraft.details || {}) },
   };
   const existingKeys = getExistingImageKeyOrder(initialDraft);
@@ -835,6 +841,7 @@ function buildDraftFromListing(listing: Listing): ListingDraft {
     tradeInAccepted:
       getListingMetadataBoolean(listing, "tradeInAccepted") ?? DEFAULT_DRAFT.tradeInAccepted,
     country: getListingMetadataString(listing, "country") || DEFAULT_DRAFT.country,
+    county: getListingMetadataString(listing, "county") || inferCounty(cityTown),
     cityTown,
     locationArea,
     description: listing.description ?? "",
@@ -1165,7 +1172,7 @@ export function WizardProvider({
       // not only by profiles.role.
       const { data: dealerRow } = await supabase
         .from("dealers")
-        .select("status, city, location, address, mobile, whatsapp, contact_person")
+        .select("status, city, county, location, address, mobile, whatsapp, contact_person")
         .eq("profile_id", user.id)
         .maybeSingle<SellerAccountDealer>();
       dealer = dealerRow;
@@ -1448,6 +1455,8 @@ export function WizardProvider({
       setSubmitIssues([]);
     }
     setDraft((prev) => {
+      if (key === "county" && value !== prev.county) return { ...prev, county: String(value), cityTown: "" };
+      if (key === "country" && value !== prev.country) return { ...prev, country: String(value), county: "", cityTown: "" };
       if (key !== "category") {
         return { ...prev, [key]: value };
       }
@@ -1759,8 +1768,8 @@ export function WizardProvider({
   // skipped and the dealer profile location is submitted instead.
   const usesDealerLocation = Boolean(dealerLocation);
   const submissionLocation = dealerLocation
-    ? { country: "Kenya", cityTown: dealerLocation.cityTown, locationArea: dealerLocation.locationArea }
-    : { country: draft.country, cityTown: draft.cityTown, locationArea: draft.locationArea };
+    ? { country: "Kenya", county: dealerLocation.county, cityTown: dealerLocation.cityTown, locationArea: dealerLocation.locationArea }
+    : { country: draft.country, county: draft.county, cityTown: draft.cityTown, locationArea: draft.locationArea };
 
   const isVehicleStepComplete = Boolean(
     draft.category &&
@@ -1876,6 +1885,7 @@ export function WizardProvider({
         cabType: draft.details.cabType || undefined,
         category: draft.category || undefined,
         country: submissionLocation.country,
+        county: submissionLocation.county,
         cityTown: submissionLocation.cityTown,
         locationArea: submissionLocation.locationArea,
         availability: draft.availability,

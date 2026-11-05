@@ -80,3 +80,34 @@ test("used-car browsing includes foreign and locally used vehicles without broad
     assert.deepEqual(calls, [["condition", expected]]);
   }
 });
+
+test("county-wide results include mapped legacy towns and explicit custom towns; town refines exactly", () => {
+  const located = (id: string, metadata: Record<string, string>, dealerCity?: string) => ({
+    ...listing(id, false), metadata, dealer: dealerCity ? { id: "sample-dealer", city: dealerCity } : null,
+  }) as Listing;
+  const rows = [
+    located("thika", { cityTown: "Thika" }),
+    located("ruiru", { cityTown: "Ruiru" }),
+    located("custom", { county: "Kiambu", cityTown: "Custom Town" }),
+    located("dealer", {}, "Thika"),
+    located("nakuru", { county: "Nakuru", cityTown: "Nakuru", locationArea: "Near Kiambu Road" }),
+    located("foreign", { country: "Uganda", cityTown: "Thika" }),
+    located("override", { county: "Nakuru", cityTown: "Thika" }),
+    located("substring", { cityTown: "Thika Road" }),
+  ];
+  const ids = (filters: Parameters<typeof filterAndRankListings>[1]) => filterAndRankListings(rows, filters).map((row) => row.id);
+  assert.deepEqual(ids({ county: "Kiambu" }), ["thika", "ruiru", "custom", "dealer"]);
+  assert.deepEqual(ids({ county: "Kiambu", town: "Thika" }), ["thika", "dealer"]);
+  assert.deepEqual(ids({ county: "Kiambu", town: "Custom Town" }), ["custom"]);
+  assert.deepEqual(ids({ town: "Ruiru" }), ["ruiru"]);
+  assert.deepEqual(ids({ county: "kiambu" }), ["thika", "ruiru", "custom", "dealer"]);
+  // Existing single-location URLs retain their substring semantics.
+  assert.ok(ids({ location: "Thika" }).includes("substring"));
+});
+
+test("county search uses explicit dealer county for a custom dealer town when listing location is absent", () => {
+  const row = { ...listing("custom-dealer", false), metadata: {}, dealer: { id: "sample-dealer", city: "Custom Town", county: "Kiambu" } } as Listing;
+  assert.equal(filterAndRankListings([row], { county: "Kiambu" }).length, 1);
+  assert.equal(filterAndRankListings([row], { county: "Nakuru" }).length, 0);
+  assert.equal(filterAndRankListings([row], { county: "Kiambu", town: "Custom Town" }).length, 1);
+});

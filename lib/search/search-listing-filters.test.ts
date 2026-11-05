@@ -32,3 +32,14 @@ test("truck-only filters are dropped outside the truck category", () => {
 test("unknown category is ignored", () => {
   assert.equal(parseSearchListingFilters({ category: "spaceship" }).category, undefined);
 });
+
+test("explicit county/town filters reach both page and count parsing without rewriting legacy location", () => {
+  for (const params of [new URLSearchParams("county=Kiambu&town=Thika"), { county: "Kiambu", town: "Thika" }]) {
+    const filters = parseSearchListingFilters(params);
+    assert.equal(filters.county, "Kiambu");
+    assert.equal(filters.town, "Thika");
+    assert.equal(filters.location, undefined);
+  }
+  assert.equal(parseSearchListingFilters(new URLSearchParams("location=Eldoret")).location, "Eldoret");
+  assert.equal(parseSearchListingFilters(new URLSearchParams("county=Kiambu")).town, undefined);
+});

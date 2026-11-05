@@ -64,6 +64,7 @@ export interface Listing {
     name: string;
     logo_url: string | null;
     city: string | null;
+    county?: string | null;
     mobile?: string;
     whatsapp?: string;
     email?: string;
@@ -113,6 +114,8 @@ export interface ListingFilters {
   condition?: ListingCondition;
   city?: string;
   location?: string | string[];
+  county?: string;
+  town?: string;
   color?: string;
   seats?: number;
   doors?: number;

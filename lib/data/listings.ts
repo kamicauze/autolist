@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCountyTowns } from "@/lib/constants/kenya-towns";
 import { locationMatchesFilter } from "@/lib/constants/filters";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { Listing, ListingFilters, ListingSort } from "@/lib/types/listing";
@@ -292,8 +293,8 @@ function escapeLike(value: string) {
 
 function getListingSelect(includeDealerLocationFilter = false) {
   const dealerJoin = includeDealerLocationFilter
-    ? "dealer:dealers!inner(id, name, logo_url, city)"
-    : "dealer:dealers(id, name, logo_url, city)";
+    ? "dealer:dealers!inner(id, name, logo_url, city, county)"
+    : "dealer:dealers(id, name, logo_url, city, county)";
 
   return `
       *,
@@ -509,6 +510,22 @@ function listingMatchesRequestedLocation(listing: Listing, requestedLocations: s
   return requestedLocations.some((location) =>
     locationMatchesFilter(displayLocation, location)
   );
+}
+
+function listingMatchesCountyTown(listing: Listing, filters?: SearchListingFilters): boolean {
+  const requestedCounty = filters?.county?.trim().toLowerCase();
+  const requestedTown = filters?.town?.trim().toLowerCase();
+  if (!requestedCounty && !requestedTown) return true;
+  const country = getListingMetadataString(listing, "country");
+  if (country && country.toLowerCase() !== "kenya") return false;
+  const dealerTown = listing.dealer?.city?.trim().toLowerCase();
+  const town = (getListingMetadataString(listing, "cityTown") || dealerTown || "").trim().toLowerCase();
+  const county = (getListingMetadataString(listing, "county") || (town === dealerTown ? listing.dealer?.county : null))?.trim().toLowerCase();
+  if (requestedTown && town !== requestedTown) return false;
+  if (!requestedCounty) return true;
+  if (county) return county === requestedCounty;
+  // Older listings have no county. Infer only from their town, never street/address text.
+  return town === requestedCounty || getCountyTowns(filters?.county ?? "").some((candidate) => candidate.toLowerCase() === town);
 }
 
 // The search filter only offers 2WD/4WD, so those cover the finer-grained types.
@@ -880,6 +897,8 @@ function parseDerivedListingFilters(filters?: SearchListingFilters) {
     hasHoursRange ||
     hasTruckFilters ||
     Boolean(filters?.location) ||
+    Boolean(filters?.county) ||
+    Boolean(filters?.town) ||
     Boolean(filters?.category) ||
     Boolean(filters?.verifiedOnly) ||
     Boolean(filters?.featured);
@@ -940,6 +959,9 @@ export function filterAndRankListings(
     processedListings = processedListings.filter((listing) =>
       listingMatchesRequestedLocation(listing, derived.locations)
     );
+  }
+  if (filters?.county || filters?.town) {
+    processedListings = processedListings.filter((listing) => listingMatchesCountyTown(listing, filters));
   }
   if (derived.driveTypes.length > 0) {
     processedListings = processedListings.filter((listing) =>

@@ -331,3 +331,13 @@ test("starting a new listing retains registered private-seller contact and clear
   assert.deepEqual(fresh.details, DEFAULT_DRAFT.details);
   assert.notEqual(fresh.details, DEFAULT_DRAFT.details);
 });
+
+test("dealer defaults retain explicit county for a custom town and old saved drafts infer known counties", () => {
+  const defaults = buildSellerAccountDefaults({
+    profile: null,
+    dealer: { status: "APPROVED", county: "Kiambu", city: "Custom Town", location: "Market Area", mobile: null, whatsapp: null, contact_person: null },
+  });
+  assert.deepEqual(defaults.dealerLocation, { county: "Kiambu", cityTown: "Custom Town", locationArea: "Market Area" });
+  assert.equal(restoreSavedListingDraft(DEFAULT_DRAFT, { cityTown: "Thika" }).county, "Kiambu");
+  assert.equal(restoreSavedListingDraft(DEFAULT_DRAFT, { cityTown: "Legacy Town" }).cityTown, "Legacy Town");
+});

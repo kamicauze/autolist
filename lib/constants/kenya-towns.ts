@@ -1,0 +1,57 @@
+import type { KENYA_COUNTIES } from "./filters";
+
+// Suggestions, not an exhaustive gazetteer: onboarding also accepts custom towns.
+export const KENYA_TOWNS_BY_COUNTY: Record<(typeof KENYA_COUNTIES)[number], readonly string[]> = {
+  Baringo: ["Kabarnet", "Eldama Ravine", "Marigat"],
+  Bomet: ["Bomet", "Sotik"],
+  Bungoma: ["Bungoma", "Webuye", "Kimilili"],
+  Busia: ["Busia", "Malaba"],
+  "Elgeyo Marakwet": ["Iten", "Kapsowar"],
+  Embu: ["Embu", "Runyenjes", "Siakago"],
+  Garissa: ["Garissa", "Dadaab"],
+  "Homa Bay": ["Homa Bay", "Oyugis", "Kendu Bay"],
+  Isiolo: ["Isiolo", "Merti"],
+  Kajiado: ["Kajiado", "Kitengela", "Ongata Rongai", "Ngong", "Namanga"],
+  Kakamega: ["Kakamega", "Mumias", "Butere"],
+  Kericho: ["Kericho", "Litein", "Londiani"],
+  Kiambu: ["Kiambu", "Thika", "Ruiru", "Kikuyu", "Limuru", "Juja"],
+  Kilifi: ["Kilifi", "Malindi", "Watamu", "Mtwapa", "Mariakani"],
+  Kirinyaga: ["Kerugoya", "Kutus", "Kagio", "Sagana"],
+  Kisii: ["Kisii", "Ogembo", "Suneka", "Keroka"],
+  Kisumu: ["Kisumu", "Ahero", "Maseno"],
+  Kitui: ["Kitui", "Mwingi", "Mutomo"],
+  Kwale: ["Kwale", "Ukunda", "Msambweni", "Kinango"],
+  Laikipia: ["Nanyuki", "Nyahururu", "Rumuruti"],
+  Lamu: ["Lamu", "Mpeketoni", "Witu"],
+  Machakos: ["Machakos", "Athi River", "Mlolongo", "Kangundo", "Tala"],
+  Makueni: ["Wote", "Emali", "Makindu", "Kibwezi"],
+  Mandera: ["Mandera", "El Wak", "Rhamu"],
+  Marsabit: ["Marsabit", "Moyale", "Sololo"],
+  Meru: ["Meru", "Maua", "Nkubu", "Timau"],
+  Migori: ["Migori", "Rongo", "Awendo", "Isebania"],
+  Mombasa: ["Mombasa"],
+  "Murang'a": ["Murang'a", "Kenol", "Kangema", "Maragua"],
+  Nairobi: ["Nairobi"],
+  Nakuru: ["Nakuru", "Naivasha", "Gilgil", "Molo", "Njoro"],
+  Nandi: ["Kapsabet", "Nandi Hills", "Mosoriot"],
+  Narok: ["Narok", "Kilgoris", "Ololulunga"],
+  Nyamira: ["Nyamira", "Keroka", "Nyansiongo"],
+  Nyandarua: ["Ol Kalou", "Ol Joro Orok", "Engineer", "Njabini"],
+  Nyeri: ["Nyeri", "Karatina", "Othaya", "Mukurweini"],
+  Samburu: ["Maralal", "Baragoi", "Archers Post"],
+  Siaya: ["Siaya", "Bondo", "Ugunja", "Yala"],
+  "Taita Taveta": ["Voi", "Taveta", "Wundanyi", "Mwatate"],
+  "Tana River": ["Hola", "Garsen", "Bura"],
+  "Tharaka Nithi": ["Chuka", "Chogoria", "Marimanti"],
+  "Trans Nzoia": ["Kitale", "Kiminini", "Endebess"],
+  Turkana: ["Lodwar", "Kakuma", "Lokichogio"],
+  "Uasin Gishu": ["Eldoret", "Burnt Forest", "Turbo"],
+  Vihiga: ["Mbale", "Vihiga", "Chavakali", "Luanda"],
+  Wajir: ["Wajir", "Habaswein"],
+  "West Pokot": ["Kapenguria", "Makutano", "Chepareria"],
+};
+
+export function getCountyTowns(county: string): readonly string[] {
+  const key = Object.keys(KENYA_TOWNS_BY_COUNTY).find((name) => name.toLowerCase() === county.trim().toLowerCase());
+  return key ? KENYA_TOWNS_BY_COUNTY[key as keyof typeof KENYA_TOWNS_BY_COUNTY] : [];
+}

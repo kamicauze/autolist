@@ -26,6 +26,7 @@ export interface DealerProfile {
   status: "PENDING" | "APPROVED" | "REJECTED";
   address: string | null;
   city: string | null;
+  county?: string | null;
   location: string | null;
   mobile: string;
   email: string;

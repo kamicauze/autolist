@@ -1,5 +1,6 @@
 'use server'
 
+import { normalizeLocationText } from "@/lib/location/normalize";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/lib/admin/guard";
@@ -60,6 +61,7 @@ export type CreateListingInput = {
     details?: Record<string, string>;
     category?: "car" | "van" | "motorbike" | "truck" | "plant_construction" | "farm_agricultural";
     country?: string;
+    county?: string;
     cityTown?: string;
     locationArea?: string;
     availability?: "available" | "reserved" | "sold";
@@ -96,6 +98,7 @@ type UploadedListingDocument = {
 const STRING_METADATA_FIELDS = [
     "category",
     "country",
+    "county",
     "cityTown",
     "locationArea",
     "availability",
@@ -340,7 +343,7 @@ function applySupplementalListingMetadata(
             continue;
         }
 
-        const normalized = value.trim();
+        const normalized = field === "cityTown" || field === "locationArea" ? normalizeLocationText(value) : value.trim();
         if (normalized) {
             metadata[field] = normalized;
         } else {
@@ -421,6 +424,7 @@ export async function insertListingInternal(
         drive_type,
         category,
         country,
+        county,
         cityTown,
         locationArea,
         availability,
@@ -469,6 +473,7 @@ export async function insertListingInternal(
     }, {
         category,
         country,
+        county,
         cityTown,
         locationArea,
         availability,
@@ -603,6 +608,7 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
         drive_type,
         category,
         country,
+        county,
         cityTown,
         locationArea,
         availability,
@@ -708,6 +714,7 @@ export async function updateListing(id: string, input: Partial<CreateListingInpu
     applySupplementalListingMetadata(nextMetadata, {
         category,
         country,
+        county,
         cityTown,
         locationArea,
         availability,

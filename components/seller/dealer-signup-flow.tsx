@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CountyTownFields } from "@/components/shared/county-town-fields";
+import { normalizeLocationText } from "@/lib/location/normalize";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
@@ -15,6 +17,7 @@ type DealerSignupData = {
   dealershipName: string;
   registeredBusinessName: string;
   dealershipAddress: string;
+  county: string;
   cityTown: string;
   locationArea: string;
   mobileNumber: string;
@@ -77,6 +80,7 @@ const DEFAULT_DATA: DealerSignupData = {
   dealershipName: "",
   registeredBusinessName: "",
   dealershipAddress: "",
+  county: "",
   cityTown: "",
   locationArea: "",
   mobileNumber: "",
@@ -186,6 +190,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
     if (activeStep === 0) {
       if (!formData.dealershipName.trim()) errors.push("Dealership name is required.");
       if (!formData.dealershipAddress.trim()) errors.push("Dealership address is required.");
+      if (!formData.county) errors.push("County is required.");
       if (!formData.cityTown.trim()) errors.push("City / town is required.");
       if (!formData.locationArea.trim()) errors.push("Location / area is required.");
       if (!isValidPhone(formData.mobileNumber)) errors.push("Enter a valid mobile number.");
@@ -263,6 +268,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("dealershipName", formData.dealershipName);
       submission.set("registeredBusinessName", formData.registeredBusinessName);
       submission.set("dealershipAddress", formData.dealershipAddress);
+      submission.set("county", formData.county);
       submission.set("cityTown", formData.cityTown);
       submission.set("locationArea", formData.locationArea);
       submission.set("mobileNumber", formData.mobileNumber);
@@ -436,17 +442,18 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 data-testid="dealer-address"
                 value={formData.dealershipAddress}
                 onChange={(event) => updateField("dealershipAddress", event.target.value)}
+                onBlur={(event) => updateField("dealershipAddress", normalizeLocationText(event.target.value))}
               />
             </div>
-            <div>
-              <Label htmlFor="dealer-city">City / Town *</Label>
-              <Input
-                id="dealer-city"
-                data-testid="dealer-city-town"
-                value={formData.cityTown}
-                onChange={(event) => updateField("cityTown", event.target.value)}
-              />
-            </div>
+            <CountyTownFields
+              county={formData.county}
+              town={formData.cityTown}
+              onChange={({ county, town }) => {
+                setFormData((previous) => ({ ...previous, county, cityTown: town }));
+                setSubmitError(null);
+              }}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
             <div>
               <Label htmlFor="dealer-location">Location / Area *</Label>
               <Input
@@ -454,6 +461,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 data-testid="dealer-location-area"
                 value={formData.locationArea}
                 onChange={(event) => updateField("locationArea", event.target.value)}
+                onBlur={(event) => updateField("locationArea", normalizeLocationText(event.target.value))}
               />
             </div>
             <div>
@@ -746,7 +754,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
             <div>
               <p className="text-muted-foreground">City / Location</p>
               <p className="font-semibold text-foreground">
-                {formData.cityTown || "-"} / {formData.locationArea || "-"}
+                {formData.county || "-"} / {formData.cityTown || "-"} / {formData.locationArea || "-"}
               </p>
             </div>
             <div>

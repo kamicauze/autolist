@@ -1,5 +1,7 @@
 "use client";
 
+import { CountyTownFields } from "@/components/shared/county-town-fields";
+import { selectionFromLocation } from "@/lib/location/selection";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useCallback, useEffect, useDeferredValue } from "react";
@@ -43,7 +45,6 @@ import {
   DOORS_OPTIONS,
   DRIVE_TYPES,
   SELLER_TYPES,
-  LOCATIONS,
   MILEAGE_FILTER_OPTIONS,
   OLDER_THAN_1990_YEAR_OPTION,
   PRICE_FILTER_OPTIONS,
@@ -90,6 +91,8 @@ type FilterSheetState = {
   minPrice: string;
   maxPrice: string;
   location: string;
+  county: string;
+  town: string;
   condition: string;
   bodyTypes: string[];
   minYear: string;
@@ -126,6 +129,8 @@ function createEmptyFilterSheetState(): FilterSheetState {
     minPrice: "",
     maxPrice: "",
     location: "",
+    county: "",
+    town: "",
     condition: "",
     bodyTypes: [],
     minYear: "",
@@ -198,6 +203,8 @@ function buildFilterSheetState(
     minPrice: initialFilters?.minPrice || searchParams.get("minPrice") || emptyState.minPrice,
     maxPrice: initialFilters?.maxPrice || searchParams.get("maxPrice") || emptyState.maxPrice,
     location: initialFilters?.location || searchParams.get("location") || emptyState.location,
+    county: initialFilters?.county || searchParams.get("county") || "",
+    town: initialFilters?.town || searchParams.get("town") || "",
     condition: initialFilters?.condition || searchParams.get("condition") || emptyState.condition,
     bodyTypes: initialFilters?.bodyTypes || searchParams.get("bodyType")?.split(",").filter(Boolean) || emptyState.bodyTypes,
     minYear: initialFilters?.minYear || searchParams.get("minYear") || emptyState.minYear,
@@ -388,6 +395,10 @@ function FilterSheetPanel({
     else params.delete("model");
 
     // Location
+    for (const key of ["county", "town"] as const) {
+      if (localFilters[key]) params.set(key, localFilters[key]);
+      else params.delete(key);
+    }
     if (localFilters.location && localFilters.location !== "All Locations") {
       params.set("location", localFilters.location);
     } else {
@@ -686,24 +697,13 @@ function FilterSheetPanel({
             />
           </div> : null}
 
-          {/* Location */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Location</Label>
-            <Select
-              value={localFilters.location || "All Locations"}
-              onValueChange={(val) => setLocalFilters((p) => ({ ...p, location: val }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Locations" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOCATIONS.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CountyTownFields
+              {...(localFilters.county || localFilters.town ? { county: localFilters.county, town: localFilters.town } : selectionFromLocation(localFilters.location))}
+              search
+              onChange={({ county, town }) => setLocalFilters((previous) => ({ ...previous, county, town, location: "" }))}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
           </div>
 
           <Separator />

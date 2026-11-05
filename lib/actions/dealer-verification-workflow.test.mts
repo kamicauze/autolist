@@ -8,6 +8,7 @@ type Row = Record<string, unknown>;
 type Write = { table: string; operation: string; values: Row; privileged: boolean };
 type Options = {
   signedIn?: boolean;
+  allowUploads?: boolean;
   userId?: string;
   role?: string;
   profilePresent?: boolean;
@@ -21,6 +22,7 @@ type Options = {
 };
 type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
 type Actions = {
+  submitDealerVerification: (form: FormData) => Promise<ActionResult>;
   resubmitDealerVerificationDocuments: (form: FormData) => Promise<ActionResult>;
   approveDealer: (dealerId: string, note?: string) => Promise<ActionResult>;
   rejectDealer: (dealerId: string, reason: string) => Promise<ActionResult>;
@@ -54,7 +56,7 @@ function harness(options: Options = {}) {
   function client(privileged: boolean) {
     return {
       auth: { getUser: async () => ({ data: { user: options.signedIn === false ? null : { id: userId } }, error: null }) },
-      storage: { from: () => ({ remove: async () => ({ error: null }) }) },
+      storage: { from: () => ({ remove: async () => ({ error: null }), upload: async () => { assert.ok(options.allowUploads, "Unexpected KYC upload"); return { error: null }; } }) },
       from(table: string) {
         let operation = "select";
         let values: Row = {};
@@ -103,10 +105,12 @@ function harness(options: Options = {}) {
   }
   const dependencies: Record<string, unknown> = {
     "server-only": {},
+    "@/lib/constants/filters": { KENYA_COUNTIES: ["Kiambu", "Nairobi"] },
+    "@/lib/location/normalize": load("../location/normalize.ts", {}),
     "@aws-sdk/client-s3": { PutObjectCommand: class {} },
     nanoid: { nanoid: () => "sample-upload" },
     "next/cache": { revalidatePath() {} },
-    "@/lib/r2": { r2: { send: () => { throw new Error("Unexpected upload"); } } },
+    "@/lib/r2": { r2: { send: async () => { assert.ok(options.allowUploads, "Unexpected upload"); } } },
     "@/lib/admin/guard": { requireAdminAction: async () => options.staff ? { user: { id: "sample-staff" } } : { error: "Unauthorized" } },
     "@/lib/dealers/kyc-storage": { DEALER_KYC_BUCKET: "dealer-kyc", getDealerKycStoragePath: () => null, createDealerKycReference: (path: string) => `supabase://dealer-kyc/${path}` },
     "@/lib/data/dealer-verification-schema": load("../data/dealer-verification-schema.ts", {}),
@@ -270,4 +274,27 @@ test("audit insertion errors and exceptions warn without failing an already save
     assert.equal(sample.notifications.length, options.queueFails ? 0 : 1);
     if (options.queueFails) assert.match(String(result.warning), /email notification/i);
   }
+});
+
+test("onboarding persists selected county and normalizes location at the action boundary", async () => {
+  const sample = harness({ allowUploads: true });
+  const form = new FormData();
+  for (const [key, value] of Object.entries({
+    dealershipName: "Sample Motors", dealershipAddress: "  plot 12B   near ABC HQ ",
+    county: "Kiambu", cityTown: "  custom   town ", locationArea: "  market   area ",
+    mobileNumber: "+254700000001", officialEmail: "sample@example.test", whatsappNumber: "+254700000001",
+    contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001", contactEmail: "sample@example.test",
+    acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
+  })) form.set(key, value);
+  form.set("contactPhoto", new File(["sample"], "contact.jpg", { type: "image/jpeg" }));
+  form.set("incorporationCertificate", new File(["sample"], "certificate.pdf", { type: "application/pdf" }));
+  assert.equal((await sample.actions().submitDealerVerification(form)).success, true);
+  const dealer = sample.writes.find((write) => write.table === "dealers")!.values;
+  assert.equal(dealer.county, "Kiambu");
+  assert.equal(dealer.city, "Custom Town");
+  assert.equal(dealer.location, "Market Area");
+  assert.equal(dealer.address, "Plot 12B Near ABC HQ");
+  const profile = sample.writes.find((write) => write.table === "profiles")!.values;
+  assert.equal(profile.city, "Custom Town");
+  assert.equal(profile.address, "Plot 12B Near ABC HQ");
 });

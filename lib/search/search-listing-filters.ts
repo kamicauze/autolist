@@ -64,6 +64,8 @@ export function parseSearchListingFilters(input: RawSearchParams): SearchListing
     fuelType: array(params.fuelType),
     condition: scalar(params.condition) as SearchListingFilters["condition"],
     location: scalar(params.location),
+    county: scalar(params.county),
+    town: scalar(params.town),
     color: scalar(params.color),
     seats: number(params.seats),
     doors: number(params.doors),

@@ -1,8 +1,11 @@
 "use client";
 
 import { useDeferredValue } from "react";
+import { CountyTownFields } from "@/components/shared/county-town-fields";
+import { inferCounty } from "@/lib/location/selection";
+import { normalizeLocationText } from "@/lib/location/normalize";
 import { MapPin } from "lucide-react";
-import { LISTING_CONDITION_OPTIONS, KENYA_CITIES } from "@/lib/constants/marketplace";
+import { LISTING_CONDITION_OPTIONS } from "@/lib/constants/marketplace";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Icon3D } from "@/components/ui/icon-3d";
@@ -13,7 +16,7 @@ const COUNTRY_OPTIONS = ["Kenya", "Uganda", "Tanzania", "Rwanda"].map((country) 
   value: country,
   label: country,
 }));
-const CITY_OPTIONS = KENYA_CITIES.map((city) => ({ value: city, label: city }));
+
 const CONDITION_OPTIONS = LISTING_CONDITION_OPTIONS.map((item) => ({ value: item.value, label: item.label }));
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery } from "@/lib/google-maps";
@@ -150,24 +153,36 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             />
           </div>
 
-          <div>
-            <label className={sellerLabelClass}>City / Town</label>
-            <SearchableSelect
-              value={draft.cityTown}
-              onChange={(value) => updateField("cityTown", value)}
-              options={CITY_OPTIONS}
-              placeholder="Select city"
-              searchPlaceholder="Search city or town"
-              aria-label="City / Town"
-              className={cn(sellerSelectClass, showValidationErrors && !draft.cityTown && "border-[#f04438]")}
+          {draft.country === "Kenya" ? (
+            <CountyTownFields
+              county={draft.county || inferCounty(draft.cityTown)}
+              town={draft.cityTown}
+              onChange={({ county, town }) => {
+                updateField("county", county);
+                updateField("cityTown", town);
+              }}
+              className={sellerSelectClass}
+              labelClassName={sellerLabelClass}
             />
-          </div>
+          ) : (
+            <div>
+              <label className={sellerLabelClass}>City / Town</label>
+              <input
+                aria-label="City / Town"
+                value={draft.cityTown}
+                onChange={(event) => updateField("cityTown", event.target.value)}
+                onBlur={(event) => updateField("cityTown", normalizeLocationText(event.target.value))}
+                className={sellerInputClass}
+              />
+            </div>
+          )}
 
           <div className="md:col-span-2">
             <label className={sellerLabelClass}>Location / Area</label>
             <input
               value={draft.locationArea}
               onChange={(event) => updateField("locationArea", event.target.value)}
+              onBlur={(event) => updateField("locationArea", normalizeLocationText(event.target.value))}
               placeholder="Westlands"
               className={cn(
                 sellerInputClass,
