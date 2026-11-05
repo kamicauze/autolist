@@ -151,8 +151,9 @@ export function LoginForm() {
             <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa2ad]" />
             <Input
               id="login-email"
+              name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -172,6 +173,7 @@ export function LoginForm() {
             <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa2ad]" />
             <Input
               id="login-password"
+              name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required

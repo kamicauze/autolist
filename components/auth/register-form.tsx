@@ -16,7 +16,6 @@ import {
   Mail,
   ShieldCheck,
   Store,
-  User,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,7 +87,6 @@ export function RegisterForm() {
   const requestedRole = searchParams.get("role");
   const inferredRole = inferMarketplaceRoleFromNextPath(requestedNextPath);
   const initialRole = requestedRole ? resolveRole(requestedRole) : inferredRole || "buyer";
-  const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
@@ -164,7 +162,6 @@ export function RegisterForm() {
           options: {
             emailRedirectTo: getSignupVerificationUrl(nextPath),
             data: {
-              full_name: fullName.trim(),
               intended_role: selectedRole,
               terms_accepted_at: new Date().toISOString(),
               privacy_accepted_at: new Date().toISOString(),
@@ -189,7 +186,6 @@ export function RegisterForm() {
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
-            full_name: fullName.trim(),
             role: selectedRole,
           })
           .eq("id", data.user.id);
@@ -409,33 +405,15 @@ export function RegisterForm() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="register-name">
-            <span>User name</span>
-            <div className="relative">
-              <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
-              <Input
-                id="register-name"
-                required
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
-                placeholder="Your name"
-                data-testid="register-full-name"
-              />
-            </div>
-            <span className="block text-[12px] font-normal text-[#8a8a8a]">
-              Use your name or the business name buyers will recognize.
-            </span>
-          </label>
-
           <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="register-email">
             <span>Email address</span>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
               <Input
                 id="register-email"
+                name="email"
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -455,6 +433,7 @@ export function RegisterForm() {
               <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
               <Input
                 id="register-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
@@ -512,6 +491,7 @@ export function RegisterForm() {
               <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
               <Input
                 id="register-confirm-password"
+                name="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required

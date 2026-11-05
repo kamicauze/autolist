@@ -28,3 +28,8 @@ test("login renders Google while Facebook signup is deferred", () => {
   assert.doesNotMatch(form, /Continue with Facebook|login-facebook/);
   assert.doesNotMatch(form, /Continue with Apple/);
 });
+
+test("login identifies email as the saved credential", () => {
+  assert.match(form, /id="login-email"\s+name="email"\s+type="email"\s+autoComplete="username"/);
+  assert.match(form, /id="login-password"[\s\S]*?autoComplete="current-password"/);
+});

@@ -76,3 +76,10 @@ test("email signup uses the confirmation handoff while Google retains its sessio
   assert.match(form, /emailRedirectTo: getSignupVerificationUrl\(nextPath\)/);
   assert.match(form, /const redirectTo = getAuthCallbackUrl\(nextPath\)/);
 });
+
+test("registration uses email credentials without requesting a username", () => {
+  assert.doesNotMatch(form, /register-name|register-full-name|User name|fullName|full_name/);
+  assert.match(form, /id="register-email"\s+name="email"\s+type="email"\s+autoComplete="username"/);
+  assert.match(form, /id="register-password"[\s\S]*?autoComplete="new-password"/);
+  assert.match(form, /id="register-confirm-password"[\s\S]*?autoComplete="new-password"/);
+});
