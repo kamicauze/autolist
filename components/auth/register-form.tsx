@@ -25,7 +25,9 @@ import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
 import {
+  EMAIL_ALREADY_REGISTERED_MESSAGE,
   getRegistrationErrorMessage,
+  isExistingRegistration,
   RegistrationRequestTimeoutError,
   withRegistrationRequestTimeout,
 } from "@/lib/supabase/registration-request";
@@ -170,8 +172,15 @@ export function RegisterForm() {
         })
       );
 
+      setInfoMessage(null);
+
       if (error) {
         setErrorMessage(getRegistrationErrorMessage(error.message));
+        return;
+      }
+
+      if (!data.session && isExistingRegistration(data.user)) {
+        setErrorMessage(EMAIL_ALREADY_REGISTERED_MESSAGE);
         return;
       }
 

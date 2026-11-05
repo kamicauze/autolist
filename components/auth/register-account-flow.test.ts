@@ -71,3 +71,10 @@ test("registration uses email credentials without requesting a username", () => 
   assert.match(form, /id="register-password"[\s\S]*?autoComplete="new-password"/);
   assert.match(form, /id="register-confirm-password"[\s\S]*?autoComplete="new-password"/);
 });
+
+test("duplicate signup exits before success feedback", () => {
+  const duplicateCheck = form.indexOf("if (!data.session && isExistingRegistration(data.user))");
+  assert.ok(duplicateCheck > form.indexOf("supabase.auth.signUp"));
+  assert.ok(duplicateCheck < form.indexOf("Account created. Check your email"));
+  assert.match(form.slice(duplicateCheck), /setErrorMessage\(EMAIL_ALREADY_REGISTERED_MESSAGE\);\s*return;/);
+});
