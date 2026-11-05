@@ -107,6 +107,10 @@ const HERO_YEAR_TO_OPTIONS = [
   { label: "To", value: "any" },
   ...HERO_YEAR_OPTIONS,
 ];
+const HERO_PRICE_OPTIONS = PRICE_FILTER_OPTIONS.map((option) => ({
+  ...option,
+  label: option.value ? Number(option.value).toLocaleString("en-KE") : option.label,
+}));
 const HERO_HOURS_OPTIONS = [
   { label: "Any Hours", value: "any" },
   ...HOURS_USED_STEPS.filter((step) => step > 0).map((step) => ({
@@ -1077,7 +1081,7 @@ export function HeroSearch({
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      Price Range
+                      Price Range (KES)
                     </label>
                     {renderComboRangeField(
                       priceFrom,
@@ -1100,9 +1104,9 @@ export function HeroSearch({
                           setPriceFrom,
                           setPriceTo,
                         ),
-                      PRICE_FILTER_OPTIONS,
-                      "Min KES",
-                      "Max KES",
+                      HERO_PRICE_OPTIONS,
+                      "Min",
+                      "Max",
                       "Minimum price in KES, type or pick",
                       "Maximum price in KES, type or pick",
                     )}

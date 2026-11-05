@@ -26,7 +26,7 @@ test("registration uses the same account shell language and a deliberate replace
   assert.match(shell, /activeView="register"/);
   assert.match(shell, /Create your Autolist account/);
   assert.match(shell, /src=\{imageSrc\}/);
-  assert.match(shell, /imageSrc="\/auth\/login-bmw-x2-front\.jpg"/);
+  assert.match(shell, /activeView="register"[^>]*imageSrc="\/auth\/register-porsche-cayenne-sunset\.webp"/);
   assert.doesNotMatch(page, /sample-car-2\.jpg/);
   assert.match(shell, /min-h-\[100dvh\]/);
   assert.match(form, /data-testid="register-google"/);

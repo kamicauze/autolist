@@ -155,8 +155,8 @@ export function LoginAccountShell({
     <AccountAccessShell
       activeView="login"
       heading="Hello! Welcome back!"
-      imageAlt="Black performance sedan driving on an open road"
-      imageSrc="/hero-car.jpg"
+      imageAlt="Dark BMW sedan parked at a city overlook at sunset"
+      imageSrc="/auth/login-bmw-sunset.webp"
       loginHref="/login"
       registerHref={registerHref}
       sideTitle="Your advantages with an Autolist account"
@@ -179,8 +179,8 @@ export function RegisterAccountShell({
       activeView="register"
       heading="Create your Autolist account"
       description="First choose how you plan to use Autolist. We will then show the right account details and next steps."
-      imageAlt="Gold BMW ready for sale at a Kenyan dealership"
-      imageSrc="/auth/login-bmw-x2-front.jpg"
+      imageAlt="Dark Porsche Cayenne driving above the city at sunset"
+      imageSrc="/auth/register-porsche-cayenne-sunset.webp"
       loginHref={loginHref}
       registerHref="/register"
       sideTitle="Start with the account that fits"
