@@ -3,8 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Banknote, CarFront, Construction, Search, SlidersHorizontal } from "lucide-react";
-import { CountyTownFields } from "@/components/shared/county-town-fields";
-import { selectionFromLocation } from "@/lib/location/selection";
+import { countyOptions, selectCounty, selectionFromLocation } from "@/lib/location/selection";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,20 +140,26 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
             </div>
           ) : null}
 
-          <CountyTownFields
-            {...countyTown}
-            search
-            onChange={({ county, town }) => {
-              const params = new URLSearchParams(searchParams.toString());
-              params.delete("location");
-              params.set("page", "1");
-              if (county) params.set("county", county); else params.delete("county");
-              if (town) params.set("town", town); else params.delete("town");
-              startTransition(() => router.push(`/search?${params.toString()}`));
-            }}
-            className={triggerClass.replace("pl-8", "pl-3")}
-            labelClassName="mb-1 text-xs font-medium text-gray-600"
-          />
+          <div>
+            <p className="mb-1 text-xs font-medium text-gray-600">County</p>
+            <SearchableSelect
+              aria-label="County"
+              value={countyTown.county}
+              onChange={(county) => {
+                const selection = selectCounty(countyTown, county);
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("location");
+                params.set("page", "1");
+                if (selection.county) params.set("county", selection.county); else params.delete("county");
+                if (selection.town) params.set("town", selection.town); else params.delete("town");
+                startTransition(() => router.push(`/search?${params.toString()}`));
+              }}
+              options={[{ value: "", label: "All counties" }, ...countyOptions]}
+              placeholder="All counties"
+              searchPlaceholder="Search counties..."
+              className={triggerClass.replace("pl-8", "pl-3")}
+            />
+          </div>
 
           {/* Make */}
           <div className="relative min-w-0">
