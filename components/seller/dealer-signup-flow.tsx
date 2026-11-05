@@ -2,6 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { OpeningHoursEditor } from "@/components/dealers/opening-hours-editor";
+import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display";
+import { parseOpeningHours } from "@/lib/dealer-opening-hours";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +30,7 @@ type DealerSignupData = {
   websiteUrl: string;
   companyLogoName: string;
   aboutDealership: string;
+  openingHours: string;
   contactFullName: string;
   contactRole: string;
   contactMobile: string;
@@ -87,6 +92,7 @@ const DEFAULT_DATA: DealerSignupData = {
   websiteUrl: "",
   companyLogoName: "",
   aboutDealership: "",
+  openingHours: "",
   contactFullName: "",
   contactRole: "",
   contactMobile: "",
@@ -125,6 +131,23 @@ function isValidUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function DealershipPhotoPreview({ file }: { file: File | null }) {
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return previewUrl ? (
+    <Image src={previewUrl} alt="Dealership profile picture preview" width={96} height={96} unoptimized className="mb-3 h-24 w-24 rounded-xl border border-border object-contain bg-white" />
+  ) : null;
 }
 
 interface DealerSignupFlowProps {
@@ -198,6 +221,9 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
     }
 
     if (activeStep === 1) {
+      if (formData.openingHours && (formData.openingHours.length > 10000 || !parseOpeningHours(formData.openingHours))) {
+        errors.push("Enter valid opening hours, with closing times after opening times and unique holiday dates.");
+      }
       const socialUrls = [
         { value: formData.facebookUrl, label: "Facebook URL" },
         { value: formData.instagramUrl, label: "Instagram URL" },
@@ -266,6 +292,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("whatsappNumber", formData.whatsappNumber);
       submission.set("websiteUrl", formData.websiteUrl);
       submission.set("aboutDealership", formData.aboutDealership);
+      submission.set("openingHours", formData.openingHours);
       submission.set("contactFullName", formData.contactFullName);
       submission.set("contactRole", formData.contactRole);
       submission.set("contactMobile", formData.contactMobile);
@@ -505,7 +532,9 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
         <div className="space-y-4" data-testid="dealer-step-profile">
           <h2 className="text-lg font-semibold text-foreground">Branding & Public Profile</h2>
           <div>
-            <Label htmlFor="dealer-logo">Company Logo (Optional)</Label>
+            <Label htmlFor="dealer-logo">Dealership Profile Picture / Logo (Optional)</Label>
+            <p className="mb-3 mt-1 text-sm text-muted-foreground">Shown beside your dealership name on vehicle listings. Upload a JPG or PNG up to 10MB.</p>
+            <DealershipPhotoPreview file={companyLogoFile} />
               <Input
                 id="dealer-logo"
                 data-testid="dealer-company-logo"
@@ -522,6 +551,11 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
               value={formData.aboutDealership}
               onChange={(event) => updateField("aboutDealership", event.target.value)}
             />
+          </div>
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <h3 className="text-sm font-medium">Opening Hours (Optional)</h3>
+            <p className="text-sm text-muted-foreground">These hours appear on your dealership’s vehicle listings and, after approval, its public profile.</p>
+            <OpeningHoursEditor value={formData.openingHours} onChange={(value) => updateField("openingHours", value)} />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -764,6 +798,15 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                   : "Incomplete"}
               </p>
             </div>
+          </div>
+          <div className="rounded-xl border border-border bg-white p-4">
+            <h3 className="mb-3 text-sm font-medium">Dealership Profile Picture / Logo</h3>
+            <DealershipPhotoPreview file={companyLogoFile} />
+            <p className="text-sm text-muted-foreground">{formData.companyLogoName || "Not added"}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-white p-4">
+            <h3 className="mb-3 text-sm font-medium">Opening Hours</h3>
+            <OpeningHoursDisplay value={formData.openingHours} />
           </div>
           <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm" data-testid="dealer-confirmation-email">
             <p className="font-semibold text-foreground">Dealer review updates by email</p>

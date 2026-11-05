@@ -3,6 +3,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
 import { normalizeLocationText } from "@/lib/location/normalize";
+import { profileUpdateSchema } from "@/lib/profile/profile-update";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { r2 } from "@/lib/r2";
@@ -265,6 +266,9 @@ export async function submitDealerVerification(formData: FormData) {
       return { error: "Accept the dealer terms and privacy policy before submitting." as const };
     }
 
+    const openingHours = profileUpdateSchema.shape.openingHours.safeParse(optionalString(formData, "openingHours") ?? "");
+    if (!openingHours.success) return { error: openingHours.error.issues[0].message };
+
     const companyLogo = getFile(formData, "companyLogo");
     const contactPhoto = getFile(formData, "contactPhoto");
     const incorporationCertificate = getFile(formData, "incorporationCertificate");
@@ -297,6 +301,7 @@ export async function submitDealerVerification(formData: FormData) {
       ]);
 
     const socialLinks = {
+      opening_hours: openingHours.data || null,
       facebook: optionalString(formData, "facebookUrl"),
       instagram: optionalString(formData, "instagramUrl"),
       x: optionalString(formData, "xUrl"),

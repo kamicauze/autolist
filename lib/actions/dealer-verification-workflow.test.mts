@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { profileUpdateSchema } = require("../profile/profile-update.ts") as typeof import("../profile/profile-update");
+const { createOpeningHours } = require("../dealer-opening-hours.ts") as typeof import("../dealer-opening-hours");
 
 type Row = Record<string, unknown>;
 type Write = { table: string; operation: string; values: Row; privileged: boolean };
@@ -112,6 +117,7 @@ function harness(options: Options = {}) {
   }
   const dependencies: Record<string, unknown> = {
     "server-only": {},
+    "@/lib/profile/profile-update": { profileUpdateSchema },
     "@/lib/constants/filters": { KENYA_COUNTIES: ["Kiambu", "Nairobi"] },
     "@/lib/location/normalize": load("../location/normalize.ts", {}),
     "@aws-sdk/client-s3": { PutObjectCommand: class {} },
@@ -310,6 +316,12 @@ test(`onboarding saves locations and long About with contact photo ${includePhot
     acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
   })) form.set(key, value);
   form.set("aboutDealership", "a".repeat(3001));
+  const hours = createOpeningHours();
+  hours.week.Monday = { closed: false, opens: "09:00", closes: "18:00" };
+  if (includePhoto) {
+    form.set("openingHours", JSON.stringify(hours));
+    form.set("companyLogo", new File(["sample"], "dealership.jpg", { type: "image/jpeg" }));
+  }
   if (includePhoto) form.set("contactPhoto", new File(["sample"], "contact.jpg", { type: "image/jpeg" }));
   form.set("incorporationCertificate", new File(["sample"], "certificate.pdf", { type: "application/pdf" }));
   assert.equal((await sample.actions().submitDealerVerification(form)).success, true);
@@ -319,9 +331,31 @@ test(`onboarding saves locations and long About with contact photo ${includePhot
   assert.equal(dealer.location, "Market Area");
   assert.equal(dealer.address, "Plot 12B Near ABC HQ");
   assert.equal(dealer.about_text, "a".repeat(3001));
+  assert.equal(Boolean(dealer.logo_url), includePhoto);
+  assert.equal((dealer.social_links as Row | null)?.opening_hours, includePhoto ? JSON.stringify(hours) : undefined);
+  assert.equal(dealer.status, "PENDING");
   assert.equal(Boolean((dealer.contact_person as Row).photo_url), includePhoto);
   const profile = sample.writes.find((write) => write.table === "profiles")!.values;
   assert.equal(profile.city, "Custom Town");
   assert.equal(profile.address, "Plot 12B Near ABC HQ");
 });
 }
+
+
+test("invalid onboarding hours are rejected before uploads or writes", async () => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries({
+    dealershipName: "Sample Motors", dealershipAddress: "Sample Road", county: "Nairobi", cityTown: "Nairobi", locationArea: "Sample Area",
+    mobileNumber: "+254700000001", officialEmail: "sample@example.test", whatsappNumber: "+254700000001",
+    contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001", contactEmail: "sample@example.test",
+    acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
+  })) form.set(key, value);
+  const hours = createOpeningHours();
+  hours.week.Monday = { closed: false, opens: "18:00", closes: "09:00" };
+  for (const value of [JSON.stringify(hours), "{".repeat(10001)]) {
+    const sample = harness();
+    form.set("openingHours", value);
+    assert.ok((await sample.actions().submitDealerVerification(form)).error);
+    assert.equal(sample.writes.length, 0);
+  }
+});
