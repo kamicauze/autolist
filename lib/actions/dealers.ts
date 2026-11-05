@@ -271,7 +271,7 @@ export async function submitDealerVerification(formData: FormData) {
     const contactPersonId = getFile(formData, "contactPersonId");
 
     assertFile(companyLogo, IMAGE_ACCEPTED_TYPES, "Company logo", false);
-    assertFile(contactPhoto, IMAGE_ACCEPTED_TYPES, "Primary contact photo");
+    assertFile(contactPhoto, IMAGE_ACCEPTED_TYPES, "Primary contact photo", false);
     assertFile(
       incorporationCertificate,
       DOC_ACCEPTED_TYPES,
@@ -564,19 +564,15 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
       )
     );
 
-    const hasContactPhoto =
-      Boolean(contactPhoto) ||
-      existingDocumentTypes.has("contact_photo") ||
-      Boolean(dealer.contact_person?.photo_url);
     const hasIncorporationCertificate =
       Boolean(incorporationCertificate) ||
       existingDocumentTypes.has("incorporation_certificate") ||
       Boolean(dealer.doc_incorporation_key);
 
-    if (intent === "submit" && (!hasContactPhoto || !hasIncorporationCertificate)) {
+    if (intent === "submit" && !hasIncorporationCertificate) {
       return {
         error:
-          "Primary contact photo and certificate of incorporation are required before submitting.",
+          "Certificate of incorporation is required before submitting.",
       };
     }
 

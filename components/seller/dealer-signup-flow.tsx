@@ -73,8 +73,6 @@ const DEALER_SIGNUP_STEPS = [
 ] as const;
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
-const MIN_ABOUT_CHARS = 300;
-const MAX_ABOUT_CHARS = 500;
 
 const DEFAULT_DATA: DealerSignupData = {
   dealershipName: "",
@@ -200,13 +198,6 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
     }
 
     if (activeStep === 1) {
-      if (formData.aboutDealership.length > 0 && formData.aboutDealership.length < MIN_ABOUT_CHARS) {
-        errors.push(`About the dealership must be at least ${MIN_ABOUT_CHARS} characters.`);
-      }
-      if (formData.aboutDealership.length > MAX_ABOUT_CHARS) {
-        errors.push(`About the dealership cannot exceed ${MAX_ABOUT_CHARS} characters.`);
-      }
-
       const socialUrls = [
         { value: formData.facebookUrl, label: "Facebook URL" },
         { value: formData.instagramUrl, label: "Instagram URL" },
@@ -227,7 +218,6 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       if (!formData.contactRole.trim()) errors.push("Primary contact role/title is required.");
       if (!isValidPhone(formData.contactMobile)) errors.push("Enter a valid primary contact mobile number.");
       if (!isValidEmail(formData.contactEmail)) errors.push("Enter a valid primary contact email.");
-      if (!formData.contactPhotoName) errors.push("Primary contact photo is required.");
       if (formData.contactWhatsapp.trim() && !isValidPhone(formData.contactWhatsapp)) {
         errors.push("Primary contact WhatsApp number format is invalid.");
       }
@@ -522,17 +512,13 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
               />
           </div>
           <div>
-            <Label htmlFor="dealer-about">About the Dealership (300–500 chars)</Label>
+            <Label htmlFor="dealer-about">About the Dealership (Optional)</Label>
             <Textarea
               id="dealer-about"
               data-testid="dealer-about"
-              maxLength={MAX_ABOUT_CHARS}
               value={formData.aboutDealership}
               onChange={(event) => updateField("aboutDealership", event.target.value)}
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              {formData.aboutDealership.length}/{MAX_ABOUT_CHARS} characters
-            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -631,7 +617,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
               />
             </div>
             <div>
-              <Label htmlFor="dealer-contact-photo">Photo of Contact Person *</Label>
+              <Label htmlFor="dealer-contact-photo">Photo of Contact Person (Optional)</Label>
               <Input
                 id="dealer-contact-photo"
                 data-testid="dealer-contact-photo"

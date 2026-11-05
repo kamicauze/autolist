@@ -6,6 +6,7 @@ import {
   buildDealerPublicProfileUpdate,
   buildSellerProfileUpdate,
   canUpdateDealerPublicProfile,
+  dealerProfileUpdateSchema,
   profileUpdateSchema,
 } from "@/lib/profile/profile-update";
 
@@ -21,13 +22,6 @@ type OwnedDealerRow = {
 };
 
 export async function updateMyProfile(input: unknown) {
-  const parsed = profileUpdateSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message || "Check the profile details and try again.",
-    };
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -68,6 +62,13 @@ export async function updateMyProfile(input: unknown) {
     profileRole: profile.role,
     dealer: ownedDealer,
   });
+
+  const parsed = (mayUpdateDealer ? dealerProfileUpdateSchema : profileUpdateSchema).safeParse(input);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues[0]?.message || "Check the profile details and try again.",
+    };
+  }
 
   if (
     mayUpdateDealer &&

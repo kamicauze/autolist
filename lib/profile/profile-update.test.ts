@@ -5,6 +5,7 @@ import {
   buildDealerPublicProfileUpdate,
   buildSellerProfileUpdate,
   canUpdateDealerPublicProfile,
+  dealerProfileUpdateSchema,
   profileUpdateSchema,
 } from "./profile-update";
 
@@ -25,6 +26,14 @@ const input = profileUpdateSchema.parse({
   linkedin: "https://linkedin.com/company/ridgeway",
   tiktok: "",
   otherSocial: "",
+});
+
+test("dealer About accepts short, empty and long text while personal bios retain their limit", () => {
+  for (const bio of ["", "Local dealer", "a".repeat(3001)]) {
+    const parsed = dealerProfileUpdateSchema.parse({ ...input, bio });
+    assert.equal(buildDealerPublicProfileUpdate(parsed, null).about_text, bio || null);
+  }
+  assert.equal(profileUpdateSchema.safeParse({ ...input, bio: "a".repeat(3001) }).success, false);
 });
 
 test("accepts structured hours and rejects invalid dates and hours before saving", () => {

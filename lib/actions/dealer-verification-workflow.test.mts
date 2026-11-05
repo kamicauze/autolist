@@ -19,6 +19,8 @@ type Options = {
   workflowFails?: boolean;
   auditFails?: boolean;
   auditThrows?: boolean;
+  noContactPhoto?: boolean;
+  noCertificate?: boolean;
 };
 type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
 type Actions = {
@@ -53,6 +55,8 @@ function harness(options: Options = {}) {
   let adminClients = 0;
   const dealer: Row = { id: "sample-dealer", profile_id: "sample-owner", status: options.status ?? "PENDING", contact_person: { photo_url: "sample-photo" }, doc_incorporation_key: "sample-certificate" };
   const workflow: Row = { dealer_id: dealer.id, submitted_at: "2026-01-01T09:00:00Z", reviewed_by: "prior-reviewer", reviewed_at: "2026-01-02T09:00:00Z", review_notes: "Prior review", verification_notes: "Prior owner notes", preferred_confirmation_channel: "email" };
+  if (options.noContactPhoto) dealer.contact_person = {};
+  if (options.noCertificate) dealer.doc_incorporation_key = null;
   function client(privileged: boolean) {
     return {
       auth: { getUser: async () => ({ data: { user: options.signedIn === false ? null : { id: userId } }, error: null }) },
@@ -68,7 +72,10 @@ function harness(options: Options = {}) {
           else if (table === "dealer_verification_workflows") {
             assert.equal(privileged, true, "private workflow reads/writes require the service client");
             rows = [workflow];
-          } else if (table === "dealer_verification_documents") rows = [{ dealer_id: dealer.id, document_type: "contact_photo", r2_key: "sample-photo" }, { dealer_id: dealer.id, document_type: "incorporation_certificate", r2_key: "sample-certificate" }];
+          } else if (table === "dealer_verification_documents") rows = [
+            ...(!options.noContactPhoto ? [{ dealer_id: dealer.id, document_type: "contact_photo", r2_key: "sample-photo" }] : []),
+            ...(!options.noCertificate ? [{ dealer_id: dealer.id, document_type: "incorporation_certificate", r2_key: "sample-certificate" }] : []),
+          ];
           else if (table === "audit_logs") {
             assert.equal(privileged, true, "audit writes require the service client after authorization");
             if (options.auditThrows) throw new Error("Audit service unavailable");
@@ -276,7 +283,23 @@ test("audit insertion errors and exceptions warn without failing an already save
   }
 });
 
-test("onboarding persists selected county and normalizes location at the action boundary", async () => {
+test("dealer resubmission permits no contact photo but still requires incorporation evidence", async () => {
+  for (const noCertificate of [false, true]) {
+    const sample = harness({ status: "REJECTED", noContactPhoto: true, noCertificate });
+    const form = new FormData();
+    form.set("intent", "submit");
+    const result = await sample.actions().resubmitDealerVerificationDocuments(form);
+    if (noCertificate) {
+      assert.match(String(result.error), /Certificate of incorporation is required/);
+      assert.equal(sample.writes.length, 0);
+    } else {
+      assert.equal(result.success, true);
+    }
+  }
+});
+
+for (const includePhoto of [false, true]) {
+test(`onboarding saves locations and long About with contact photo ${includePhoto ? "provided" : "omitted"}`, async () => {
   const sample = harness({ allowUploads: true });
   const form = new FormData();
   for (const [key, value] of Object.entries({
@@ -286,7 +309,8 @@ test("onboarding persists selected county and normalizes location at the action 
     contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001", contactEmail: "sample@example.test",
     acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
   })) form.set(key, value);
-  form.set("contactPhoto", new File(["sample"], "contact.jpg", { type: "image/jpeg" }));
+  form.set("aboutDealership", "a".repeat(3001));
+  if (includePhoto) form.set("contactPhoto", new File(["sample"], "contact.jpg", { type: "image/jpeg" }));
   form.set("incorporationCertificate", new File(["sample"], "certificate.pdf", { type: "application/pdf" }));
   assert.equal((await sample.actions().submitDealerVerification(form)).success, true);
   const dealer = sample.writes.find((write) => write.table === "dealers")!.values;
@@ -294,7 +318,10 @@ test("onboarding persists selected county and normalizes location at the action 
   assert.equal(dealer.city, "Custom Town");
   assert.equal(dealer.location, "Market Area");
   assert.equal(dealer.address, "Plot 12B Near ABC HQ");
+  assert.equal(dealer.about_text, "a".repeat(3001));
+  assert.equal(Boolean((dealer.contact_person as Row).photo_url), includePhoto);
   const profile = sample.writes.find((write) => write.table === "profiles")!.values;
   assert.equal(profile.city, "Custom Town");
   assert.equal(profile.address, "Plot 12B Near ABC HQ");
 });
+}

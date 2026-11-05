@@ -41,7 +41,7 @@ const DOCUMENT_CARDS: Array<{
     inputName: "contactPhoto",
     title: "Primary contact photo",
     description: "Clear headshot for the person buyers and Autolist support will contact.",
-    required: true,
+    required: false,
     accept: "image/png,image/jpeg,image/webp",
   },
   {

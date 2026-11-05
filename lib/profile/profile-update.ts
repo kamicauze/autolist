@@ -60,6 +60,10 @@ export const profileUpdateSchema = z.object({
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
+export const dealerProfileUpdateSchema = profileUpdateSchema.extend({
+  bio: z.string().trim(),
+});
+
 type DealerOwnershipCandidate = {
   profile_id: string;
   status: string;
