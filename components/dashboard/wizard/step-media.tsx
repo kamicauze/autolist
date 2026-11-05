@@ -203,7 +203,8 @@ export function StepMedia() {
           {isEditing && !hasReplacementMedia ? (
             <div className="rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[12px] leading-5 text-primary">
               Current listing media is preserved as-is. Choose any existing photo as the new cover, or
-              upload a new photo set if you want to replace the existing photos.
+              upload a new photo set if you want to replace the existing photos. To retry an
+              interrupted replacement upload after reloading, select the new photo set again.
             </div>
           ) : null}
 

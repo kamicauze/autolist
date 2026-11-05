@@ -688,6 +688,38 @@ function getExistingImageKeyOrder(draft: ListingDraft) {
   ].filter((key): key is string => Boolean(key));
 }
 
+export function restoreSavedListingDraft(
+  initialDraft: ListingDraft,
+  savedDraft: Partial<ListingDraft>,
+): ListingDraft {
+  const restored = {
+    ...initialDraft,
+    ...savedDraft,
+    country: savedDraft.country?.trim() || initialDraft.country,
+    details: { ...initialDraft.details, ...(savedDraft.details || {}) },
+  };
+  const existingKeys = getExistingImageKeyOrder(initialDraft);
+  const savedKeys = getExistingImageKeyOrder(restored);
+  const canRestorePhotoOrder =
+    existingKeys.length > 0 &&
+    savedKeys.length === existingKeys.length &&
+    new Set(savedKeys).size === existingKeys.length &&
+    savedKeys.every((key) => existingKeys.includes(key));
+  // File objects do not survive reload. Keep only references to current saved
+  // photos, including an unfinished cover/order change within that same set.
+  const photos = canRestorePhotoOrder ? restored : initialDraft;
+
+  return {
+    ...restored,
+    title: buildAutoListingTitle(restored.details, restored.category),
+    coverImageName: photos.coverImageRef?.name ?? null,
+    coverImageRef: photos.coverImageRef,
+    galleryImageNames: photos.galleryImageRefs.map((image) => image.name),
+    galleryImageRefs: photos.galleryImageRefs,
+    coverFromGalleryIndex: null,
+  };
+}
+
 function didExistingImageOrderChange(current: string[], initial: string[]) {
   return (
     current.length > 0 &&
@@ -1068,6 +1100,7 @@ export function WizardProvider({
 
   const [savedDraft, setSavedDraft] = React.useState<ListingDraft | null>(null);
   const [draftReady, setDraftReady] = React.useState(false);
+  const restoredStorageKeyRef = React.useRef<string | null>(null);
 
   // Auto-save only after the seller has chosen whether to resume.
   React.useEffect(() => {
@@ -1078,21 +1111,15 @@ export function WizardProvider({
 
   // Restore draft
   React.useEffect(() => {
+    // Server-action refreshes must not discard files still selected in this page.
+    if (restoredStorageKeyRef.current === storageKey) return;
+    restoredStorageKeyRef.current = storageKey;
     const savedDraft = localStorage.getItem(storageKey);
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft) as Partial<ListingDraft>;
         if (parsed.category) {
-          const restoredDraft = {
-            ...initialDraft,
-            ...parsed,
-            country: parsed.country?.trim() || initialDraft.country,
-            details: { ...initialDraft.details, ...(parsed.details || {}) },
-          };
-          const restored = {
-            ...restoredDraft,
-            title: buildAutoListingTitle(restoredDraft.details, restoredDraft.category),
-          };
+          const restored = restoreSavedListingDraft(initialDraft, parsed);
           if (isEditing) setDraft(restored);
           else setSavedDraft(restored);
         }

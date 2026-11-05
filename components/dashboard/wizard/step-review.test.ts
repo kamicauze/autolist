@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import vm from "node:vm";
+import ts from "typescript";
 import { LISTING_WIZARD_STEPS } from "@/lib/constants/marketplace";
 import { TRUCK_CATEGORIES } from "@/lib/constants/vehicle-taxonomy";
 import {
@@ -10,6 +13,8 @@ import {
   DEFAULT_DRAFT,
   DETAIL_FIELDS_BY_CATEGORY,
   resolveSubmissionListingId,
+  restoreSavedListingDraft,
+  type ListingDraft,
 } from "./wizard-context";
 import { REVIEW_SECTION_STEPS } from "./step-review";
 
@@ -152,6 +157,134 @@ test("cover selection tracks the actual file when filenames are the same", () =>
 
   assert.equal(result.coverFromGalleryIndex, 0);
   assert.equal(reordered[result.coverFromGalleryIndex!], photos[1]);
+});
+
+const savedPhotos = ["front.jpg", "side.jpg", "rear.jpg"].map((name) => ({
+  name, r2_key: `listings/sample-listing/media/image/${name}`, alt_text: name,
+}));
+const savedPhotoDraft: ListingDraft = {
+  ...DEFAULT_DRAFT,
+  category: "car",
+  priceKes: "1000000",
+  coverImageName: savedPhotos[0].name,
+  coverImageRef: savedPhotos[0],
+  galleryImageNames: savedPhotos.slice(1).map((photo) => photo.name),
+  galleryImageRefs: savedPhotos.slice(1),
+};
+
+type MediaElement = { type: unknown; props: Record<string, unknown> };
+function renderMedia(draft: ListingDraft): MediaElement[] {
+  const componentModule = { exports: {} as { StepMedia: () => MediaElement } };
+  const dependencies: Record<string, unknown> = {
+    react: { useState: () => [null, () => {}], useMemo: (build: () => unknown) => build() },
+    "react/jsx-runtime": {
+      jsx: (type: unknown, props: MediaElement["props"]) => ({ type, props }),
+      jsxs: (type: unknown, props: MediaElement["props"]) => ({ type, props }),
+    },
+    "next/image": "img",
+    "@/components/ui/dropzone": { Dropzone: "dropzone" },
+    "../seller-dashboard-ui": {},
+    "@/lib/utils/listings": { getImageUrl: (key: string) => key },
+    "./wizard-context": { MIN_TOTAL_IMAGES: 3, useWizard: () => ({
+      isEditing: true, draft, galleryFiles: [], documentFiles: [], videoFile: null,
+    }) },
+  };
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("./step-media.tsx", import.meta.url), "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+  }).outputText, {
+    exports: componentModule.exports, module: componentModule,
+    require(name: string) {
+      if (!(name in dependencies)) throw new Error(`Unexpected media dependency: ${name}`);
+      return dependencies[name];
+    },
+  });
+  function elements(node: unknown): MediaElement[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!node || typeof node !== "object" || !("props" in node)) return [];
+    const element = node as MediaElement;
+    if (typeof element.type === "function") return elements(element.type(element.props));
+    return [element, ...elements(element.props.children)];
+  }
+  return elements(componentModule.exports.StepMedia());
+}
+
+function mediaText(node: unknown): string {
+  if (Array.isArray(node)) return node.map(mediaText).join("");
+  return typeof node === "string" || typeof node === "number" ? String(node) : "";
+}
+
+test("reloading a failed replacement restores the saved gallery and preserves vehicle edits", () => {
+  const interruptedDraft = {
+    ...savedPhotoDraft,
+    priceKes: "1060000",
+    description: "Edited vehicle details",
+    details: { ...DEFAULT_DRAFT.details, make: "Toyota", model: "Corolla", year: "2021" },
+    coverImageName: null,
+    coverImageRef: null,
+    galleryImageNames: ["replacement-front.jpg", "replacement-side.jpg", "replacement-rear.jpg"],
+    galleryImageRefs: [],
+    coverFromGalleryIndex: 1,
+  };
+  assert.equal(renderMedia(interruptedDraft).filter((node) => node.type === "img").length, 0);
+
+  const restored = restoreSavedListingDraft(savedPhotoDraft, interruptedDraft);
+  assert.equal(restored.priceKes, "1060000");
+  assert.equal(restored.description, "Edited vehicle details");
+  assert.equal(restored.details.year, "2021");
+  assert.equal(restored.coverFromGalleryIndex, null);
+  assert.equal(restored.coverImageName, "front.jpg");
+  assert.deepEqual(restored.galleryImageNames, ["side.jpg", "rear.jpg"]);
+  const rendered = renderMedia(restored);
+  assert.deepEqual(rendered.filter((node) => node.type === "img").map((node) => node.props.src), savedPhotos.map((photo) => photo.r2_key));
+  assert.equal(mediaText(rendered.find((node) => node.type === "h3")?.props.children), "Uploaded media files (3)");
+  assert.ok(rendered.some((node) => mediaText(node.props.children).includes("select the new photo set again")));
+});
+
+test("reloading keeps an existing-photo cover/order change only within the current saved gallery", () => {
+  const savedOrder = {
+    coverImageRef: savedPhotos[2],
+    galleryImageRefs: savedPhotos.slice(0, 2),
+    coverImageName: "stale-name.jpg",
+    galleryImageNames: ["stale-gallery-name.jpg"],
+  };
+  const restored = restoreSavedListingDraft(savedPhotoDraft, savedOrder);
+  assert.equal(restored.coverImageRef, savedPhotos[2]);
+  assert.equal(restored.coverImageName, "rear.jpg");
+  assert.deepEqual(restored.galleryImageNames, ["front.jpg", "side.jpg"]);
+  assert.equal(restored.coverFromGalleryIndex, null);
+});
+
+test("reloading uses current saved photos when the stored photo references are stale", () => {
+  const restored = restoreSavedListingDraft(savedPhotoDraft, {
+    description: "Keep this text edit",
+    coverImageRef: { ...savedPhotos[0], r2_key: "listings/sample-listing/media/image/old-cover.jpg" },
+    galleryImageRefs: savedPhotos.slice(1),
+  });
+  assert.equal(restored.description, "Keep this text edit");
+  assert.equal(restored.coverImageRef, savedPhotos[0]);
+  assert.deepEqual(restored.galleryImageRefs, savedPhotos.slice(1));
+});
+
+test("new-listing recovery retains its vehicle signature while requiring local photos to be selected again", () => {
+  const restored = restoreSavedListingDraft(DEFAULT_DRAFT, {
+    category: "car",
+    priceKes: "1060000",
+    description: "Continue the same saved vehicle draft",
+    details: { ...DEFAULT_DRAFT.details, make: "Toyota", model: "Corolla", year: "2021" },
+    coverImageName: "local-cover.jpg",
+    galleryImageNames: ["local-side.jpg", "local-rear.jpg"],
+    coverFromGalleryIndex: 0,
+  });
+  assert.equal(restored.priceKes, "1060000");
+  assert.equal(restored.details.make, "Toyota");
+  assert.equal(restored.details.model, "Corolla");
+  assert.equal(restored.details.year, "2021");
+  assert.equal(restored.description, "Continue the same saved vehicle draft");
+  assert.equal(restored.coverImageName, null);
+  assert.equal(restored.coverImageRef, null);
+  assert.deepEqual(restored.galleryImageNames, []);
+  assert.deepEqual(restored.galleryImageRefs, []);
+  assert.equal(restored.coverFromGalleryIndex, null);
 });
 
 test("dealer account defaults fall back to profile contact details", () => {
