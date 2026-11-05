@@ -1,3 +1,11 @@
+export const EMAIL_ALREADY_REGISTERED_MESSAGE =
+  "This email is already registered. Sign in instead, or reset your password if needed. If you registered with Google, use Continue with Google.";
+
+export function isExistingRegistration(user: { identities?: readonly unknown[] } | null) {
+  // Supabase obscures confirmed duplicate signups with an empty identities array.
+  return Array.isArray(user?.identities) && user.identities.length === 0;
+}
+
 export const REGISTRATION_REQUEST_TIMEOUT_MS = 20_000;
 
 export class RegistrationRequestTimeoutError extends Error {
@@ -19,7 +27,7 @@ export function getRegistrationErrorMessage(message: string | null | undefined) 
   }
 
   if (normalized.includes("already registered") || normalized.includes("already exists")) {
-    return "An account already uses this email. Sign in instead, or reset the password if needed.";
+    return EMAIL_ALREADY_REGISTERED_MESSAGE;
   }
 
   return message || "We could not create the account. Your details are still here, so you can try again.";

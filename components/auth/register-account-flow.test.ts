@@ -64,3 +64,10 @@ test("account creation requires readable Terms and Privacy consent", () => {
   assert.match(form, /terms_accepted_at: new Date\(\)\.toISOString\(\)/);
   assert.match(form, /privacy_accepted_at: new Date\(\)\.toISOString\(\)/);
 });
+
+test("duplicate signup exits before profile updates or success feedback", () => {
+  const duplicateCheck = form.indexOf("if (!data.session && isExistingRegistration(data.user))");
+  assert.ok(duplicateCheck > form.indexOf("supabase.auth.signUp"));
+  assert.ok(duplicateCheck < form.indexOf('.from("profiles")'));
+  assert.match(form.slice(duplicateCheck), /setErrorMessage\(EMAIL_ALREADY_REGISTERED_MESSAGE\);\s*return;/);
+});
