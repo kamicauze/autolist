@@ -132,8 +132,7 @@ async function getPinnedListingIds() {
 }
 
 export async function getFeaturedListingPinCandidates(
-  query = "",
-  limit = 12
+  query = ""
 ): Promise<FeaturedListingPinCandidate[]> {
   const normalizedQuery = query.trim();
   const [pinByListingId, listingResult] = await Promise.all([
@@ -142,7 +141,7 @@ export async function getFeaturedListingPinCandidates(
       filters: normalizedQuery ? { q: normalizedQuery } : undefined,
       sort: { field: "created_at", direction: "desc" },
       page: 1,
-      limit,
+      limit: normalizedQuery ? 16 : 8,
     }),
   ]);
 
@@ -230,7 +229,7 @@ export const getAdminFeaturedListingPinsData = cache(
     try {
       const [pinResult, candidates] = await Promise.all([
         getFeaturedListingPins(),
-        getFeaturedListingPinCandidates("", 12),
+        getFeaturedListingPinCandidates(),
       ]);
 
       return {

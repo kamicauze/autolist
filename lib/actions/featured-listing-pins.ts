@@ -113,7 +113,7 @@ export async function searchFeaturedListingPinCandidates(
   }
 
   try {
-    const candidates = await getFeaturedListingPinCandidates(query, 16);
+    const candidates = await getFeaturedListingPinCandidates(query);
     return { success: true, candidates };
   } catch (error) {
     return {
