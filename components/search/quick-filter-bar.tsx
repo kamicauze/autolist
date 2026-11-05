@@ -141,7 +141,6 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
           ) : null}
 
           <div className="min-w-0 max-md:order-first max-md:col-span-2">
-            <p className="mb-1 text-xs font-medium text-gray-600">County</p>
             <SearchableSelect
               aria-label="County"
               value={countyTown.county}

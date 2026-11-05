@@ -946,10 +946,7 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div className="min-w-0 max-md:col-span-2">
-                    <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      County
-                    </label>
+                  <div className="min-w-0 self-end max-md:col-span-2">
                     <SearchableSelect
                       aria-label="County"
                       value={countyTown.county}
