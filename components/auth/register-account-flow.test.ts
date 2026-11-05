@@ -64,3 +64,10 @@ test("account creation requires readable Terms and Privacy consent", () => {
   assert.match(form, /terms_accepted_at: new Date\(\)\.toISOString\(\)/);
   assert.match(form, /privacy_accepted_at: new Date\(\)\.toISOString\(\)/);
 });
+
+test("registration uses email credentials without requesting a username", () => {
+  assert.doesNotMatch(form, /register-name|register-full-name|User name|fullName|full_name/);
+  assert.match(form, /id="register-email"\s+name="email"\s+type="email"\s+autoComplete="username"/);
+  assert.match(form, /id="register-password"[\s\S]*?autoComplete="new-password"/);
+  assert.match(form, /id="register-confirm-password"[\s\S]*?autoComplete="new-password"/);
+});
