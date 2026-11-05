@@ -187,7 +187,7 @@ export async function getActiveFeaturedListingPins(limit = 8): Promise<FeaturedL
     .select(FEATURED_LISTING_PIN_SELECT)
     .eq("status", "active")
     .eq("listing.status", "active")
-    .eq("listing.is_featured", true)
+    .in("listing.sale_channel", ["standard", "dealer_public"])
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gt.${now}`)
     .order("sort_order", { ascending: true })
