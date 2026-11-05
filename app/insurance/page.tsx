@@ -67,8 +67,6 @@ const INITIAL_FORM: InsuranceRequestSubmissionInput = {
   startDate: "",
 };
 
-export const metadata = { title: "Car Insurance | Autolist" };
-
 export default function InsurancePage() {
   const [form, setForm] = React.useState<InsuranceRequestSubmissionInput>(INITIAL_FORM);
   const [error, setError] = React.useState<string | null>(null);

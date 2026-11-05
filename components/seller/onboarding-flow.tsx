@@ -304,7 +304,7 @@ export function OnboardingFlow({
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button asChild data-testid="onboarding-go-dashboard">
-                <Link href={destination}>{presentation.destinationLabel}</Link>
+                <Link href={destination}>{destination === "/sell/dealer" ? "Continue to dealer offers" : presentation.destinationLabel}</Link>
               </Button>
               {formData.role !== "buyer" ? (
                 <Button asChild variant="outline">
