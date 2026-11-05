@@ -84,10 +84,10 @@ test("pending and rejected dealers can render their verification page without re
   }
 });
 
-test("unapproved dealers remain redirected away from listing tools and verification lookalike routes", async () => {
+test("unverified dealers can use their dashboard and listing tools before approval", async () => {
   for (const status of ["PENDING", "REJECTED"] as const) {
     for (const path of ["/dashboard", "/dashboard/listings/new", "/dashboard/profile", "/dashboard/verification/history", "/dashboard/verification-copy"]) {
-      await expectRedirect({ path, status }, "/dashboard/verification");
+      assert.equal((await renderLayout({ path, status })).type, "dashboard-frame");
     }
   }
 });

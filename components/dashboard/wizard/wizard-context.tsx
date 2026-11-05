@@ -1111,10 +1111,14 @@ export function WizardProvider({
 
   // Auto-save only after the seller has chosen whether to resume.
   React.useEffect(() => {
+    if (submitted) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
     if (draftReady && !savedDraft && draft.category) {
       localStorage.setItem(storageKey, JSON.stringify(draft));
     }
-  }, [draft, storageKey, draftReady, savedDraft]);
+  }, [draft, storageKey, draftReady, savedDraft, submitted]);
 
   // Restore draft
   React.useEffect(() => {
@@ -2166,7 +2170,7 @@ export function WizardProvider({
         }
 
         if (!isEditing) {
-          setSubmissionStatus("Submitting listing for review...");
+          setSubmissionStatus(isDealerSeller ? "Publishing your listing..." : "Submitting listing for review...");
           const submitResult = await submitListingReviewWithRecovery(
             listingId,
             submitListingForReview

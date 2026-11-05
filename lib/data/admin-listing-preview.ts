@@ -16,7 +16,7 @@ export async function getAdminListingPreview(id: string): Promise<Listing | null
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:profiles!seller_id(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city)
+      dealer:dealers(status, id, name, logo_url, city)
     `)
     .eq("id", id)
     .maybeSingle();

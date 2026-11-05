@@ -20,7 +20,7 @@ const LISTING_SELECT = `
   *,
   images:listing_images(id, r2_key, alt_text, image_order),
   seller:public_profiles(id, full_name, avatar_url),
-  dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+  dealer:public_dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
 `;
 
 export async function getApprovedDealers(limit = 12): Promise<DealerProfile[]> {

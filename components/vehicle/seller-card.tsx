@@ -26,6 +26,7 @@ interface SellerCardProps {
   listingId: string;
   listingTitle: string;
   dealer?: {
+    status?: "PENDING" | "APPROVED" | "REJECTED";
     id: string;
     name: string;
     logo_url: string | null;
@@ -172,6 +173,7 @@ export function SellerCard({
   const [revealedContact, setRevealedContact] = useState<string | null>(null);
   const phoneLinkRef = useRef<HTMLAnchorElement>(null);
   const isDealer = !!dealer;
+  const isVerifiedDealer = dealer?.status === "APPROVED";
   const name = dealer?.name || seller?.full_name || "Private Seller";
   const avatarUrl = dealer?.logo_url || seller?.avatar_url;
   const dealerHours = getDealerHoursPresentation(dealer?.social_links);
@@ -210,7 +212,7 @@ export function SellerCard({
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-gray-900">
-              {dealer?.id ? (
+              {isVerifiedDealer && dealer?.id ? (
                 <Link href={`/dealers/${dealer.id}#about`} className="hover:text-primary">
                   {name}
                 </Link>
@@ -241,7 +243,7 @@ export function SellerCard({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {isDealer && (
+          {isVerifiedDealer && (
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-primary">
               <Icon3D icon={BadgeCheck} size="xs" variant="glyph" />
               Verified dealer
@@ -292,7 +294,7 @@ export function SellerCard({
           </p>
         ) : null}
 
-        {dealer ? (
+        {isVerifiedDealer && dealer ? (
           <Button asChild variant="outline" className="mt-4 w-full">
             <Link href={`/dealers/${dealer.id}`}>View Dealer&apos;s Profile</Link>
           </Button>

@@ -341,3 +341,45 @@ test("dealer defaults retain explicit county for a custom town and old saved dra
   assert.equal(restoreSavedListingDraft(DEFAULT_DRAFT, { cityTown: "Thika" }).county, "Kiambu");
   assert.equal(restoreSavedListingDraft(DEFAULT_DRAFT, { cityTown: "Legacy Town" }).cityTown, "Legacy Town");
 });
+
+
+test("completed listings stay cleared when draft autosave runs again", () => {
+  const source = readFileSync(new URL("./wizard-context.tsx", import.meta.url), "utf8");
+  const effect = source.match(/React\.useEffect\(\(\) => \{([\s\S]*?)\}, \[draft, storageKey, draftReady, savedDraft, submitted\]\);/);
+  assert.ok(effect);
+  const storage = new Map<string, string>();
+  const context = {
+    submitted: false, draftReady: true, savedDraft: null,
+    draft: { category: "car", title: "Submitted vehicle" }, storageKey: "listing-draft",
+    localStorage: {
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+  };
+  const run = () => vm.runInNewContext(`(() => {${effect[1]}})()`, context);
+  run();
+  assert.equal(storage.has(context.storageKey), true);
+  context.submitted = true;
+  run();
+  assert.equal(storage.has(context.storageKey), false);
+  context.draft.title = "Late draft update";
+  run();
+  assert.equal(storage.has(context.storageKey), false);
+});
+
+test("submission confirmation scrolls into view and receives focus only after success", () => {
+  const source = readFileSync(new URL("./listing-wizard-v2.tsx", import.meta.url), "utf8");
+  const effect = source.match(/useEffect\(\(\) => \{\s*if \(submitted\) \{([\s\S]*?)\}\s*\}, \[submitted\]\);/);
+  assert.ok(effect);
+  assert.match(source, /<section ref=\{successRef\} tabIndex=\{-1\}/);
+  const calls: string[] = [];
+  const context = { submitted: false, successRef: { current: {
+    scrollIntoView: () => calls.push("scroll"), focus: () => calls.push("focus"),
+  } } };
+  const run = () => vm.runInNewContext(`if (submitted) {${effect[1]}}`, context);
+  run();
+  assert.deepEqual(calls, []);
+  context.submitted = true;
+  run();
+  assert.deepEqual(calls, ["scroll", "focus"]);
+});

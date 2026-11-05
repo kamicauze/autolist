@@ -83,7 +83,7 @@ export function resolveDealerRegistrationPath(
     return null;
   }
 
-  return dealerStatus === "APPROVED" ? "/dashboard" : "/dashboard/verification";
+  return "/dashboard";
 }
 
 export async function resolvePostAuthPath(

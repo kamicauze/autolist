@@ -81,6 +81,7 @@ function WizardContent({
   const isAdminMode = mode === "admin";
 
   const errorRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLElement>(null);
   const previousStepRef = useRef(activeStep);
   useEffect(() => {
     if (previousStepRef.current !== activeStep) {
@@ -94,6 +95,13 @@ function WizardContent({
       errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [submitError]);
+
+  useEffect(() => {
+    if (submitted) {
+      successRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+      successRef.current?.focus({ preventScroll: true });
+    }
+  }, [submitted]);
 
   const footerMeta =
       activeStep === WIZARD_STEP.features
@@ -192,7 +200,7 @@ function WizardContent({
 
   if (submitted) {
     return (
-      <section className="space-y-6">
+      <section ref={successRef} tabIndex={-1} aria-label="Listing confirmation" className="space-y-6">
         <div className="rounded-[28px] border border-brand-muted-border bg-white p-8 text-center shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
           <Illustration3D
             asset="success-check"

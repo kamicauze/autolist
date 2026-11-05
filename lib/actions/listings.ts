@@ -1465,7 +1465,7 @@ export async function reorderListingImages(formData: FormData) {
 
 /**
  * Owner submits their draft listing for review.
- * Verified dealers (dealers.status = 'APPROVED') are auto-approved → active.
+ * Registered dealers publish immediately; business verification only controls the badge.
  * Everyone else goes to → pending for admin review.
  */
 export async function submitListingForReview(listingId: string) {
@@ -1509,16 +1509,18 @@ export async function submitListingForReview(listingId: string) {
         return { error: "Minimum 3 listing images are required before submission." };
     }
 
-    // Check if linked dealer is verified → auto-approve
+    // Verify the dealership belongs to the seller; verification status does not gate publication.
     let autoApproved = false;
     if (listing.dealer_id) {
-        const { data: dealer } = await supabase
+        const { data: dealer, error: dealerError } = await supabase
             .from('dealers')
-            .select('status')
+            .select('id')
             .eq('id', listing.dealer_id)
-            .single();
+            .eq('profile_id', listing.seller_id)
+            .maybeSingle();
 
-        if (dealer?.status === 'APPROVED') {
+        if (dealerError) return { error: dealerError.message };
+        if (dealer) {
             autoApproved = true;
         }
     }
@@ -1732,7 +1734,7 @@ export async function getMyListings() {
             *,
             images:listing_images(id, r2_key, alt_text, image_order),
             seller:public_profiles(id, full_name, avatar_url),
-            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+            dealer:dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .order('created_at', { ascending: false });
 
@@ -1777,7 +1779,7 @@ export async function getMyListingById(id: string) {
             *,
             images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
             seller:profiles!seller_id(id, full_name, avatar_url, email),
-            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+            dealer:dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .eq('id', id)
         .eq('seller_id', user.id)
@@ -1801,7 +1803,7 @@ export async function getAdminListingById(id: string) {
             *,
             images:listing_images(id, r2_key, alt_text, image_order, image_hash, perceptual_hash),
             seller:profiles!seller_id(id, full_name, avatar_url, email),
-            dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+            dealer:dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
         `)
         .eq('id', id)
         .single();

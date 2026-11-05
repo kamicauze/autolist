@@ -115,3 +115,17 @@ test("dealer contacts retain assigned rep preference, dealer fallback, and unava
     assert.equal(revealButton(tree)?.props.disabled, true);
   }
 });
+
+
+test("dealer badge and public profile links require explicit business approval", () => {
+  for (const status of ["PENDING", "REJECTED", undefined, "APPROVED"]) {
+    const tree = sellerHarness({ dealer: {
+      id: "sample-dealer", name: "Sample Motors", status, mobile: "+254700000002",
+    } }).render();
+    const nodes = elements(tree);
+    const badge = nodes.some((node) => Array.isArray(node.props.children) && node.props.children.includes("Verified dealer"));
+    assert.equal(badge, status === "APPROVED");
+    assert.equal(nodes.some((node) => String(node.props.href).startsWith("/dealers/")), status === "APPROVED");
+    assert.ok(revealButton(tree));
+  }
+});

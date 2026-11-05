@@ -20,7 +20,7 @@ function buildListing(overrides: Partial<Listing> = {}): Listing {
 test("dealer listings show the dealership name and a call action", () => {
   const props = getListingCardProps(
     buildListing({
-      dealer: { id: "dealer-1", name: "Westlands Motors", logo_url: "/logo.png", city: " Nairobi " },
+      dealer: { status: "APPROVED", id: "dealer-1", name: "Westlands Motors", logo_url: "/logo.png", city: " Nairobi " },
     } as Partial<Listing>),
   );
 
@@ -30,6 +30,7 @@ test("dealer listings show the dealership name and a call action", () => {
   assert.equal(props.seller.avatarUrl, "/logo.png");
   assert.deepEqual(props.dealer, {
     name: "Westlands Motors",
+    isVerified: true,
     href: "/dealers/dealer-1",
     city: "Nairobi",
     logoUrl: "/logo.png",
@@ -64,4 +65,16 @@ test("farm cards show stored category, zero hours, and optional fuel without car
   assert.equal(props.equipmentCategory, "Tractors");
   assert.equal(props.hoursUsed, "0 hrs");
   assert.equal(props.fuelType, "Diesel");
+});
+
+
+test("unapproved and unknown dealer status never produces a verified badge or approved-only profile link", () => {
+  for (const status of ["PENDING", "REJECTED", undefined] as const) {
+    const props = getListingCardProps(buildListing({ dealer: {
+      id: "sample-dealer", name: "Pending Motors", status, city: "Nairobi", logo_url: null,
+    } }));
+    assert.equal(props.dealer?.isVerified, false);
+    assert.equal(props.dealer?.href, undefined);
+    assert.equal(props.sellerLabel, "Dealer: Pending Motors");
+  }
 });

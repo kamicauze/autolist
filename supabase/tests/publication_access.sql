@@ -44,11 +44,33 @@ do $$ begin
   exception when insufficient_privilege then null; end;
   update public.dealers set city='Nairobi' where profile_id=auth.uid();
   assert found, 'Normal business profile editing failed.';
-  begin
-    update public.listings set status='active' where id='68735e98-2198-450a-b004-651000000024';
-    raise exception 'Pending dealership published directly.';
-  exception when insufficient_privilege then null; end;
+  update public.listings set status='active' where id='68735e98-2198-450a-b004-651000000024';
+  assert found, 'Registered pending dealer could not publish.';
+  assert (select status='PENDING' from public.dealers where profile_id=auth.uid()), 'Publication changed business verification.';
 end; $$;
+
+-- Public dealer contact stays available without granting access to the full record.
+reset role;
+set local role anon;
+set local request.jwt.claim.sub='';
+do $$ begin
+  assert not exists(select from public.dealers where id='68735e98-2198-450a-b004-651000000011'), 'Pending dealer private record became public.';
+  assert (select status='PENDING' and name='Publication pending dealer' from public.public_dealers where id='68735e98-2198-450a-b004-651000000011'), 'Pending public contact card missing.';
+  assert (select d.status='PENDING' from public.listings l cross join lateral public.public_dealers(l) d where l.id='68735e98-2198-450a-b004-651000000024'), 'Public dealer relationship failed.';
+  assert not has_table_privilege('anon','public.public_dealers','INSERT') and not has_table_privilege('authenticated','public.public_dealers','UPDATE'), 'Public dealer card grants writes.';
+  assert not exists(select from information_schema.columns where table_schema='public' and table_name='public_dealers' and column_name in ('contact_person','doc_incorporation_key','doc_id_key','review_notes','rejection_reason','profile_id')), 'Public dealer card exposes private fields.';
+end; $$;
+reset role;
+-- A dealer with only a dealer-only request has no public contact card.
+update public.listings set sale_channel='dealer_only' where id='68735e98-2198-450a-b004-651000000024';
+set local role anon;
+set local request.jwt.claim.sub='';
+do $$ begin
+  assert not exists(select from public.public_dealers where id='68735e98-2198-450a-b004-651000000011'), 'Dealer-only request exposed a pending dealer.';
+end; $$;
+reset role;
+update public.listings set sale_channel='standard' where id='68735e98-2198-450a-b004-651000000024';
+set local role authenticated;
 
 set local request.jwt.claim.sub='68735e98-2198-450a-b004-651000000003';
 do $$ begin
@@ -109,12 +131,17 @@ do $$ begin
   update public.listings set status='draft',is_featured=false where id='68735e98-2198-450a-b004-651000000022';
 end; $$;
 
+reset role;
+update public.dealers set status='PENDING' where id='68735e98-2198-450a-b004-651000000012';
+set local role authenticated;
 set local request.jwt.claim.sub='68735e98-2198-450a-b004-651000000004';
 do $$ begin
   assert not exists(select from public.seller_package_entitlements
     where user_id='68735e98-2198-450a-b004-651000000002'), 'Fixture must lack billing.view.';
   update public.listings set status='active',is_featured=true where id='68735e98-2198-450a-b004-651000000022';
-  assert found, 'Assigned rep cannot publish without billing.view.';
+  assert found, 'Assigned rep cannot publish before dealership approval without billing.view.';
+  update public.listings set description='Outside assignment scope' where id='68735e98-2198-450a-b004-651000000023';
+  assert not found, 'Assigned rep changed an unassigned listing.';
 end; $$;
 
 set local request.jwt.claim.sub='68735e98-2198-450a-b004-651000000005';
@@ -137,6 +164,13 @@ do $$ begin
     raise exception 'Deactivated account edited a listing.';
   exception when insufficient_privilege then null; end;
   assert not has_function_privilege('anon','public.reorder_listing_images(uuid,text[])','EXECUTE'), 'Anonymous reorder RPC access remains.';
+end; $$;
+reset role;
+update public.profiles set deactivated_at=now() where id='68735e98-2198-450a-b004-651000000001';
+set local role anon;
+set local request.jwt.claim.sub='';
+do $$ begin
+  assert not exists(select from public.public_dealers where id='68735e98-2198-450a-b004-651000000011'), 'Deactivated dealer has a public contact card.';
 end; $$;
 reset role;
 rollback;

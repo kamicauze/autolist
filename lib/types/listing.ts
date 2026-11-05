@@ -60,6 +60,7 @@ export interface Listing {
     avatar_url: string | null;
   };
   dealer?: {
+    status?: "PENDING" | "APPROVED" | "REJECTED";
     id: string;
     name: string;
     logo_url: string | null;

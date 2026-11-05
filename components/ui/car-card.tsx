@@ -56,7 +56,8 @@ export interface CarCardProps {
   };
   dealer?: {
     name: string;
-    href: string;
+    isVerified?: boolean;
+    href?: string;
     city?: string;
     logoUrl?: string;
   };
@@ -532,10 +533,12 @@ export function CarCard({
                 <span className="min-w-0 truncate font-semibold text-card-foreground">{dealer.name}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 text-primary">
-                  <Icon3D icon={BadgeCheck} size="xs" variant="glyph" />
-                  Verified dealer
-                </span>
+                {dealer.isVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 text-primary">
+                    <Icon3D icon={BadgeCheck} size="xs" variant="glyph" />
+                    Verified dealer
+                  </span>
+                ) : null}
                 {dealer.city ? (
                   <span className="inline-flex min-w-0 items-center gap-1">
                     <Image
@@ -549,13 +552,15 @@ export function CarCard({
                   </span>
                 ) : null}
               </div>
-              <Link
-                href={dealer.href}
-                className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
-              >
-                View dealer
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
+              {dealer.href ? (
+                <Link
+                  href={dealer.href}
+                  className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
+                >
+                  View dealer
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
             </div>
           ) : null}
         </div>

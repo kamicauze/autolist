@@ -111,3 +111,13 @@ test("county search uses explicit dealer county for a custom dealer town when li
   assert.equal(filterAndRankListings([row], { county: "Nakuru" }).length, 0);
   assert.equal(filterAndRankListings([row], { county: "Kiambu", town: "Custom Town" }).length, 1);
 });
+
+
+test("verified-only results require explicit dealer approval even for owner sessions", () => {
+  const rows = ["PENDING", "REJECTED", "APPROVED", undefined].map((status, index) => ({
+    ...listing(`dealer-${index}`, false), dealer: { id: `sample-dealer-${index}`, status },
+  } as Listing));
+  rows.push(listing("private-seller", false));
+  assert.deepEqual(filterAndRankListings(rows, { verifiedOnly: true }).map((row) => row.id), ["dealer-2"]);
+  assert.equal(filterAndRankListings(rows).length, rows.length);
+});

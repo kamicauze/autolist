@@ -323,15 +323,15 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
           Dealer application submitted
         </h2>
         <p className="text-sm text-muted-foreground">
-          Your dealer profile is now pending manual verification. Dealer listings stay hidden until
-          status changes to <span className="font-semibold text-foreground">Approved</span>.
+          Your dealer profile is now pending manual verification. You can publish vehicle listings now.
+          The verified dealer badge appears after your dealership is approved.
         </p>
 
         <div className="rounded-xl border border-border bg-white p-4 text-sm">
           <p className="font-semibold text-foreground">System statuses</p>
           <p className="mt-2 text-muted-foreground">Pending Verification • Approved • Rejected</p>
           <p className="mt-2 text-muted-foreground">
-            Dealer accounts can only publish listings and appear in search results after approval.
+            Your listings can appear in search before verification. Approval adds the verified dealer badge and your public dealership profile.
           </p>
         </div>
 
@@ -339,8 +339,11 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
           <p className="font-semibold text-foreground">Dealer review updates</p>
           <p className="mt-1 text-muted-foreground">
             We will email the review result to the email address on your Autolist account.
-            Sign in to check your verification status. Once approved, you can access your dealer dashboard.
+            You can access your dealer dashboard now and check your verification status there.
           </p>
+          <Link href="/dashboard/listings/new" className="mt-3 mr-5 inline-block font-semibold text-primary hover:underline">
+            Create a listing
+          </Link>
           <Link href="/dashboard/verification" className="mt-3 inline-block font-semibold text-primary hover:underline">
             View verification status
           </Link>

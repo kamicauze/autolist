@@ -293,8 +293,8 @@ function escapeLike(value: string) {
 
 function getListingSelect(includeDealerLocationFilter = false) {
   const dealerJoin = includeDealerLocationFilter
-    ? "dealer:dealers!inner(id, name, logo_url, city, county)"
-    : "dealer:dealers(id, name, logo_url, city, county)";
+    ? "dealer:public_dealers!inner(status, id, name, logo_url, city, county)"
+    : "dealer:public_dealers(status, id, name, logo_url, city, county)";
 
   return `
       *,
@@ -498,9 +498,7 @@ function listingMatchesRequestedEquipmentTypes(
 function listingMatchesVerifiedOnly(listing: Listing, verifiedOnly?: boolean) {
   if (!verifiedOnly) return true;
 
-  // Public dealer joins only resolve for approved/verified dealers, so a joined dealer row
-  // is the current trust signal for a verified marketplace listing.
-  return Boolean(listing.dealer?.id);
+  return listing.dealer?.status === "APPROVED";
 }
 
 function listingMatchesRequestedLocation(listing: Listing, requestedLocations: string[]) {
@@ -768,7 +766,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:public_profiles(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city)
+      dealer:public_dealers(status, id, name, logo_url, city)
     `)
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])
@@ -801,7 +799,7 @@ export async function getNewestListings(limit = 8): Promise<Listing[]> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:public_profiles(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city)
+      dealer:public_dealers(status, id, name, logo_url, city)
     `)
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])
@@ -825,7 +823,7 @@ export async function getListingById(id: string): Promise<Listing | null> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:public_profiles(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
+      dealer:public_dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("id", id)
     .eq("status", "active")
@@ -855,7 +853,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
       seller:public_profiles(id, full_name, avatar_url),
-      dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
+      dealer:public_dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text, social_links)
     `)
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])

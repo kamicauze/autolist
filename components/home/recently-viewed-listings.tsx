@@ -30,7 +30,7 @@ export function RecentlyViewedListings({ limit = 4 }: { limit?: number }) {
           *,
           images:listing_images(id, r2_key, alt_text, image_order),
           seller:profiles!seller_id(id, full_name, avatar_url),
-          dealer:dealers(id, name, logo_url, city)
+          dealer:public_dealers(status, id, name, logo_url, city)
         `
         )
         .in("id", ids)

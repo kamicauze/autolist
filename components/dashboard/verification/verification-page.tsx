@@ -190,7 +190,7 @@ export async function VerificationPage() {
           icon={Clock3}
           asset="clock-pending"
           title="Verification in progress"
-          description="Your seller documents are with the review team. We’ll notify you as soon as the verification process is complete."
+          description="Your business documents are with the review team. You can publish listings now; the verified dealer badge appears after approval. We’ll notify you when the review is complete."
           tone="blue"
         />
       )}

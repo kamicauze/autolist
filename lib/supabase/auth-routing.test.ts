@@ -12,11 +12,11 @@ import {
 assert.equal(resolveDealerRegistrationPath(null), null);
 assert.equal(
   resolveDealerRegistrationPath("PENDING"),
-  "/dashboard/verification",
+  "/dashboard",
 );
 assert.equal(
   resolveDealerRegistrationPath("REJECTED"),
-  "/dashboard/verification",
+  "/dashboard",
 );
 assert.equal(resolveDealerRegistrationPath("APPROVED"), "/dashboard");
 

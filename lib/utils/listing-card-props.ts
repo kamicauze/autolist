@@ -49,7 +49,8 @@ export function getListingCardProps(listing: Listing): CarCardProps {
     dealer: listing.dealer
       ? {
           name: listing.dealer.name,
-          href: `/dealers/${listing.dealer.id}`,
+          isVerified: listing.dealer.status === "APPROVED",
+          href: listing.dealer.status === "APPROVED" ? `/dealers/${listing.dealer.id}` : undefined,
           city: listing.dealer.city?.trim() || undefined,
           logoUrl: listing.dealer.logo_url || undefined,
         }
