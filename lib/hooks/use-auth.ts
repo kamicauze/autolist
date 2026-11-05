@@ -25,6 +25,8 @@ export function useAuth(): AuthState {
     // Get initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setState({ user, loading: false });
+    }).catch(() => {
+      setState((current) => current.loading ? { user: null, loading: false } : current);
     });
 
     // Listen for auth changes

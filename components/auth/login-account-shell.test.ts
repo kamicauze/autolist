@@ -33,3 +33,12 @@ test("login identifies email as the saved credential", () => {
   assert.match(form, /id="login-email"\s+name="email"\s+type="email"\s+autoComplete="username"/);
   assert.match(form, /id="login-password"[\s\S]*?autoComplete="current-password"/);
 });
+
+
+test("password sign-in hands the saved session to the server login route", () => {
+  const handler = form.slice(form.indexOf("const handleLogin"), form.indexOf("const handleSocialLogin"));
+  assert.match(handler, /signInWithPassword/);
+  assert.match(handler, /window\.location\.replace/);
+  assert.doesNotMatch(handler, /auth\.getUser|resolvePostAuthPath/);
+  assert.match(handler, /finally\s*\{\s*setIsLoading\(false\)/);
+});

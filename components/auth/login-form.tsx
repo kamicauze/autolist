@@ -9,10 +9,7 @@ import { Input } from "@/components/ui/input";
 import { normalizeAuthEmail } from "@/lib/supabase/auth-email";
 import { getAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
-import {
-  resolvePostAuthPath,
-  sanitizeNextPath,
-} from "@/lib/supabase/auth-routing";
+import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
 import {
   GoogleIcon,
   SocialAuthButton,
@@ -33,7 +30,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const requestedNextPath = searchParams.get("next");
-  const safeNextPathForOAuth = requestedNextPath
+  const safeNextPath = requestedNextPath
     ? sanitizeNextPath(requestedNextPath, "")
     : "";
   React.useEffect(() => {
@@ -78,22 +75,10 @@ export function LoginForm() {
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setErrorMessage("Unable to establish your session. Please try again.");
-        return;
-      }
-
-      const destination = await resolvePostAuthPath(
-        supabase,
-        user.id,
-        requestedNextPath,
-      );
-      router.replace(destination);
-      router.refresh();
+      // The login route resolves the signed-in destination from the session cookie.
+      // Avoid reacquiring the browser auth lock after the password is accepted.
+      const next = safeNextPath ? `?next=${encodeURIComponent(safeNextPath)}` : "";
+      window.location.replace(`/login${next}`);
     } catch {
       setErrorMessage("Unable to sign in right now. Please try again.");
     } finally {
@@ -106,7 +91,7 @@ export function LoginForm() {
     setSocialLoading(provider);
 
     const supabase = createClient();
-    const redirectTo = getAuthCallbackUrl(safeNextPathForOAuth);
+    const redirectTo = getAuthCallbackUrl(safeNextPath);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
@@ -232,7 +217,7 @@ export function LoginForm() {
       >
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
-      <ResendVerification email={email} nextPath={safeNextPathForOAuth} disabled={isLoading || !!socialLoading} />
+      <ResendVerification email={email} nextPath={safeNextPath} disabled={isLoading || !!socialLoading} />
     </form>
   );
 }
