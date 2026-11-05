@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 import { BackToTopButton } from "@/components/layout/back-to-top-button";
 import { CorporateInquiryForm } from "@/components/shared/corporate-inquiry-form";
+import { CookiePreferencesLink } from "@/components/analytics/google-analytics";
 
 const footerLinks = {
   Buying: [
@@ -57,6 +58,11 @@ export function Footer() {
                       </Link>
                     </li>
                   ))}
+                  {title === "About" && (
+                    <li>
+                      <CookiePreferencesLink className="text-sm text-[#92929D] transition-colors hover:text-white" />
+                    </li>
+                  )}
                 </ul>
               </div>
             ))}

@@ -22,6 +22,7 @@ declare global {
 }
 
 const CONSENT_EVENT = "autolist-analytics-consent-change";
+const OPEN_PREFERENCES_EVENT = "autolist-open-cookie-preferences";
 let sessionConsent: AnalyticsConsent = null;
 let storageUnavailable = false;
 
@@ -56,6 +57,22 @@ function clearAnalyticsCookies(measurementId: string) {
   }
 }
 
+export function CookiePreferencesLink({ className }: { className?: string }) {
+  return (
+    <Link
+      href="/cookies"
+      className={className}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const request = new Event(OPEN_PREFERENCES_EVENT, { cancelable: true });
+        if (!window.dispatchEvent(request)) event.preventDefault();
+      }}
+    >
+      Cookie preferences
+    </Link>
+  );
+}
+
 export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
   const pathname = usePathname();
   const consent = useSyncExternalStore(subscribeConsent, readConsent, serverConsent);
@@ -67,6 +84,16 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
   const previousConsent = useRef<AnalyticsConsent>(null);
   const eligible = hostname !== null && isAnalyticsPageAllowed(pathname, hostname);
   const enabled = eligible && consent === "accepted";
+
+  useEffect(() => {
+    if (!eligible) return;
+    function openPreferences(event: Event) {
+      event.preventDefault();
+      setPreferencesOpen(true);
+    }
+    window.addEventListener(OPEN_PREFERENCES_EVENT, openPreferences);
+    return () => window.removeEventListener(OPEN_PREFERENCES_EVENT, openPreferences);
+  }, [eligible]);
 
   useEffect(() => {
     const analytics = window;
@@ -144,34 +171,24 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
           onReady={() => setScriptReady(true)}
         />
       )}
-      {eligible && (
-        !consent || preferencesOpen ? (
-          <section
-            aria-label="Analytics cookie preferences"
-            className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-2xl rounded-xl border border-border bg-background p-5 text-foreground shadow-lg"
-          >
-            <h2 className="text-base font-semibold">Your cookie preferences</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We use essential cookies to run Autolist. With your permission, Google Analytics helps us
-              understand visits to public pages. You can change your choice at any time.{' '}
-              <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button type="button" variant="outline" onClick={() => chooseConsent("declined")}>
-                Decline analytics
-              </Button>
-              <Button type="button" onClick={() => chooseConsent("accepted")}>Allow analytics</Button>
-            </div>
-          </section>
-        ) : (
-          <button
-            type="button"
-            className="fixed bottom-3 left-3 z-40 rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-            onClick={() => setPreferencesOpen(true)}
-          >
-            Cookie preferences
-          </button>
-        )
+      {eligible && (!consent || preferencesOpen) && (
+        <section
+          aria-label="Analytics cookie preferences"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-2xl rounded-xl border border-border bg-background p-5 text-foreground shadow-lg"
+        >
+          <h2 className="text-base font-semibold">Your cookie preferences</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We use essential cookies to run Autolist. With your permission, Google Analytics helps us
+            understand visits to public pages. You can change your choice at any time.{' '}
+            <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button type="button" variant="outline" onClick={() => chooseConsent("declined")}>
+              Decline analytics
+            </Button>
+            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow analytics</Button>
+          </div>
+        </section>
       )}
     </>
   );
