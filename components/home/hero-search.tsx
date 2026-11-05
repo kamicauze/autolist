@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CountyTownFields } from "@/components/shared/county-town-fields";
+import { countyOptions } from "@/lib/location/selection";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -946,13 +946,20 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <CountyTownFields
-                    {...countyTown}
-                    onChange={setCountyTown}
-                    search
-                    className={`${PANEL_INPUT_CLASS} px-3`}
-                    labelClassName="mb-1.5 block text-[12px] font-semibold text-[#4d5568]"
-                  />
+                  <div>
+                    <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
+                      County
+                    </label>
+                    <SearchableSelect
+                      aria-label="County"
+                      value={countyTown.county}
+                      onChange={(county) => setCountyTown({ county, town: "" })}
+                      options={[{ value: "", label: "All counties" }, ...countyOptions]}
+                      placeholder="All counties"
+                      searchPlaceholder="Search counties..."
+                      className={`${PANEL_INPUT_CLASS} px-3`}
+                    />
+                  </div>
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
