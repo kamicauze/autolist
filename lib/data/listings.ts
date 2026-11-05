@@ -1090,7 +1090,8 @@ export async function getSimilarListings(
     .select(`
       *,
       images:listing_images(id, r2_key, alt_text, image_order),
-      seller:public_profiles(id, full_name, avatar_url)
+      seller:public_profiles(id, full_name, avatar_url),
+      dealer:public_dealers(status, id, name, logo_url, city)
     `)
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])

@@ -5,15 +5,19 @@ const inventory = [
   { id: "public-standard", sale_channel: "standard", status: "active", category: "car", seller_id: "seller", dealer_id: "dealer", is_featured: true, make: "Toyota", body_type: "SUV", created_at: "2026-10-15T10:00:00Z", metadata: {}, images: [] },
   { id: "public-dealer", sale_channel: "dealer_public", status: "active", category: "car", seller_id: "seller", dealer_id: "dealer", is_featured: true, make: "Toyota", body_type: "SUV", created_at: "2026-10-15T09:00:00Z", metadata: {}, images: [] },
   { id: "private-request", sale_channel: "dealer_only", status: "active", category: "car", seller_id: "seller", dealer_id: "dealer", is_featured: true, make: "Toyota", body_type: "SUV", created_at: "2026-10-15T08:00:00Z", metadata: {}, images: [] },
-];
+].map((row) => ({ ...row, dealer: { id: "dealer", name: "Sample Motors", logo_url: null, city: "Nairobi", status: row.id === "public-standard" ? "PENDING" : "APPROVED" } }));
 const queryTables: string[] = [];
 function query(table: string) {
   queryTables.push(table);
   let items = table === "listings" ? [...inventory] : [];
   let single = false;
-  const result = () => ({ data: single ? items[0] || null : items, error: null, count: items.length });
+  let selectedColumns = "";
+  const result = () => {
+    const rows = items.map((row) => ({ ...row, dealer: selectedColumns.includes("dealer:public_dealers(") ? row.dealer : undefined }));
+    return { data: single ? rows[0] || null : rows, error: null, count: rows.length };
+  };
   const chain = {
-    select() { return chain; },
+    select(columns: string) { selectedColumns = columns; return chain; },
     eq(field: string, value: unknown) { items = items.filter(row => row[field as keyof typeof row] === value); return chain; },
     neq(field: string, value: unknown) { items = items.filter(row => row[field as keyof typeof row] !== value); return chain; },
     in(field: string, values: unknown[]) { items = items.filter(row => values.includes(row[field as keyof typeof row])); return chain; },
@@ -46,4 +50,18 @@ test("public marketplace reads exclude dealer-only rows even when session RLS pe
   assert.equal(await listings.getListingById("private-request"), null);
   assert.equal((await listings.getListingById("public-standard"))?.id, "public-standard");
   assert.ok(queryTables.every(table => table === "listings"));
+});
+
+
+test("recommended listings retain dealer identity independently of verification", async () => {
+  const { getListingCardProps } = await import("../utils/listing-card-props");
+  const recommendations = await listings.getSimilarListings({ ...inventory[0], id: "source" } as never);
+  assert.equal(recommendations.length, 2);
+  for (const row of recommendations) {
+    const card = getListingCardProps(row);
+    assert.equal(card.sellerLabel, "Dealer: Sample Motors");
+    assert.equal(card.contactKind, "call");
+    assert.equal(card.dealer?.isVerified, row.id === "public-dealer");
+    assert.equal(Boolean(card.dealer?.href), row.id === "public-dealer");
+  }
 });
