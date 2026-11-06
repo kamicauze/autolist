@@ -8,7 +8,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fetchVehicleReferenceOptionsAction } from "@/lib/actions/car-data";
 import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import type { VehicleReferenceOptions } from "@/lib/data/vehicle-reference-catalog";
-import { formatDetailSummaryValue, useWizard } from "./wizard-context";
+import { formatDetailSummaryValue, unformatPrice, useWizard } from "./wizard-context";
 import {
   sellerInputClass,
   sellerLabelClass,
@@ -307,7 +307,6 @@ export function StepVehicleDetails() {
       return (
         <>
           <input
-            list={`detail-trim-options-${draft.category || "car"}`}
             value={draft.details.trim}
             onChange={(event) => updateDetailField("trim", event.target.value)}
             placeholder="Type one or more trims/variants, e.g. AMG Line, M Sport, TX"
@@ -316,13 +315,21 @@ export function StepVehicleDetails() {
               hasError && "border-[#f04438]"
             )}
           />
-          <datalist id={`detail-trim-options-${draft.category || "car"}`}>
-            {referenceOptions.trimOptions.map((trim) => (
-              <option key={`${trim.source}-${trim.value}`} value={trim.value}>
-                {trim.label}
-              </option>
-            ))}
-          </datalist>
+          {referenceOptions.trimOptions.length > 0 ? (
+            <SearchableSelect
+              value=""
+              onChange={(value) => {
+                if (!selectedTrimSet.has(value.toLowerCase())) {
+                  setTrimTokens([...selectedTrimTokens, value]);
+                }
+              }}
+              options={referenceOptions.trimOptions}
+              placeholder="Add a suggested trim"
+              searchPlaceholder="Search trims"
+              aria-label="Suggested trims"
+              className={cn("mt-2", sellerSelectClass)}
+            />
+          ) : null}
           {draft.details.model && referenceOptions.trimOptions.length > 0 ? (
             <div className="mt-3 space-y-2">
               <p className="text-[12px] text-[#767676]">
@@ -520,9 +527,17 @@ export function StepVehicleDetails() {
                   />
                 ) : (
                   <input
-                    type={field.type}
-                    value={draft.details[field.key]}
-                    onChange={(event) => updateDetailField(field.key, event.target.value)}
+                    type={field.key === "mileage" ? "text" : field.type}
+                    inputMode={field.key === "mileage" ? "numeric" : undefined}
+                    min={field.key === "seats" ? 1 : undefined}
+                    value={field.key === "mileage" && draft.details.mileage
+                      ? Number(draft.details.mileage.replace(/,/g, "")).toLocaleString("en-KE")
+                      : draft.details[field.key]}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (field.key === "seats" && value && Number(value) < 1) return;
+                      updateDetailField(field.key, field.key === "mileage" ? unformatPrice(value) : value);
+                    }}
                     placeholder={field.placeholder}
                     className={cn(sellerInputClass, hasError && "border-[#f04438]")}
                   />

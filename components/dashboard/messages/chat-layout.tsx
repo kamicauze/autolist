@@ -348,7 +348,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
         <div
           className={`grid min-h-[740px] ${
             canUseSellerAgent && isAgentOpen
-              ? "xl:grid-cols-[340px_minmax(0,1fr)_360px]"
+              ? "xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_320px]"
               : "xl:grid-cols-[340px_minmax(0,1fr)]"
           }`}
         >
@@ -600,7 +600,7 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
           </div>
 
           {canUseSellerAgent && isAgentOpen ? (
-          <div className="bg-[#fcfdff] p-5">
+          <div className="border-t border-[#ededed] bg-[#fcfdff] p-5 xl:col-span-2 2xl:col-span-1 2xl:border-t-0">
             <div className="rounded-[22px] border border-[#e4e9f2] bg-white p-5">
               <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                 <Icon3D icon={Sparkles} variant="glyph" />
@@ -634,14 +634,24 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                 </Button>
 
                 {agentResult ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 rounded-[14px]"
-                    onClick={applyReplyDraft}
-                  >
-                    Use Reply Draft
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-[14px]"
+                      onClick={applyReplyDraft}
+                    >
+                      Use Reply Draft
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setAgentResult(null)}
+                      disabled={isAgentLoading}
+                    >
+                      Clear suggestion
+                    </Button>
+                  </>
                 ) : null}
               </div>
 

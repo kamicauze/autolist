@@ -151,7 +151,12 @@ export function scoreDuplicateCandidate(listing: Listing, candidate: Listing): D
     reasons.push("same make");
   }
 
-  if (normalize(listing.model) === normalize(candidate.model)) {
+  const sameModel = normalize(listing.model) === normalize(candidate.model);
+  if (!sameModel && !photoSimilarity.exactHashMatch &&
+      !(photoSimilarity.bestDistance != null && photoSimilarity.bestDistance <= 6)) {
+    return null;
+  }
+  if (sameModel) {
     score += 20;
     reasons.push("same model");
   }

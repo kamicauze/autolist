@@ -269,6 +269,7 @@ export function applyPowertrainFields(fields: DetailField[], isElectric: boolean
 export function formatDetailSummaryValue(field: DetailField, value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
+  if (field.key === "mileage" && Number.isFinite(Number(trimmed))) return `${Number(trimmed).toLocaleString("en-KE")} km`;
   const optionLabel = field.options?.find((option) => option.value === trimmed)?.label;
   if (optionLabel) return optionLabel;
   return trimmed.replace(/(^|\s)(\p{Ll})/gu, (_, space: string, letter: string) => space + letter.toUpperCase());
@@ -1078,6 +1079,7 @@ export function WizardProvider({
   const [submitted, setSubmitted] = React.useState(false);
   const [autoApproved, setAutoApproved] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const submissionInProgress = React.useRef(false);
   const [submissionStatus, setSubmissionStatus] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [submitIssues, setSubmitIssues] = React.useState<WizardIssue[]>([]);
@@ -1832,6 +1834,7 @@ export function WizardProvider({
   );
 
   const handleContinue = async () => {
+    if (submissionInProgress.current) return;
     if (!canContinue) { setShowValidationErrors(true); return; }
     setShowValidationErrors(false);
 
@@ -1907,6 +1910,7 @@ export function WizardProvider({
         hidePhoneNumber: draft.hidePhoneNumber,
       };
 
+      submissionInProgress.current = true;
       setIsSubmitting(true);
       setSubmissionStatus(isEditing ? "Saving listing changes..." : "Saving your listing draft...");
       setSubmitError(null);
@@ -2199,6 +2203,7 @@ export function WizardProvider({
         setSubmitError("An unexpected error occurred. Please try again.");
         setSubmitIssues([]);
       } finally {
+        submissionInProgress.current = false;
         setIsSubmitting(false);
         setSubmissionStatus(null);
       }

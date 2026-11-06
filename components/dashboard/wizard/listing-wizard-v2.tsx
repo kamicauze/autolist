@@ -26,8 +26,8 @@ function StepVehicleAndPrice({ googleMapsApiKey }: { googleMapsApiKey: string })
       {draft.category ? (
         <>
           <StepVehicleDetails />
-          <StepPriceIntelligence />
           <StepBasicInfo googleMapsApiKey={googleMapsApiKey} />
+          {Number(draft.priceKes.replace(/,/g, "")) > 0 ? <StepPriceIntelligence /> : null}
         </>
       ) : null}
     </div>
