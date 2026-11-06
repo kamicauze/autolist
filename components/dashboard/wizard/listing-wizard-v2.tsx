@@ -199,6 +199,7 @@ function WizardContent({
   }
 
   if (submitted) {
+    const secondaryLinkClassName = "inline-flex h-12 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[14px] font-semibold text-[#202224] transition hover:border-primary hover:text-primary";
     return (
       <section ref={successRef} tabIndex={-1} aria-label="Listing confirmation" className="space-y-6">
         <div className="rounded-[28px] border border-brand-muted-border bg-white p-8 text-center shadow-[0_14px_44px_rgba(15,23,42,0.05)]">
@@ -230,10 +231,15 @@ function WizardContent({
             </Link>
             <Link
               href={isAdminMode && editingListingId ? `/vehicle/${editingListingId}` : "/dashboard"}
-              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#d9d9d9] bg-white px-5 text-[14px] font-semibold text-[#202224] transition hover:border-primary hover:text-primary"
+              className={secondaryLinkClassName}
             >
               {isAdminMode ? "View Listing" : "Back to Dashboard"}
             </Link>
+            {!isAdminMode && !isEditing ? (
+              <Link href="/" className={secondaryLinkClassName}>
+                Go to homepage
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>

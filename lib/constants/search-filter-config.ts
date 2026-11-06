@@ -64,9 +64,11 @@ const CAR_VAN_FILTERS: readonly SearchFilterId[] = [
   "verifiedOnly",
 ];
 
+const CAR_FILTERS: readonly SearchFilterId[] = [...CAR_VAN_FILTERS, "engineCc"];
+
 export const SEARCH_FILTER_CONFIG: Record<ListingCategory, SearchFilterCategoryConfig> = {
   car: {
-    visible: CAR_VAN_FILTERS,
+    visible: CAR_FILTERS,
   },
   van: {
     visible: CAR_VAN_FILTERS,
@@ -170,7 +172,7 @@ export function getSearchFilterConfig(
     return SEARCH_FILTER_CONFIG[category as ListingCategory];
   }
   // No category selected: show the full (car-style) filter set.
-  return { visible: CAR_VAN_FILTERS };
+  return { visible: CAR_FILTERS };
 }
 
 export function isSearchFilterVisible(
@@ -205,4 +207,14 @@ export const ENGINE_CC_OPTIONS = [
   { label: "1000 - 1100cc", value: "1000-1100" },
   { label: "1100 - 1200cc", value: "1100-1200" },
   { label: "1200cc +", value: "1200-" },
+] as const;
+
+export const CAR_ENGINE_CC_OPTIONS = [
+  { label: "Up to 1,000 cc", value: "0-1000" },
+  { label: "1,001–1,500 cc", value: "1001-1500" },
+  { label: "1,501–2,000 cc", value: "1501-2000" },
+  { label: "2,001–2,500 cc", value: "2001-2500" },
+  { label: "2,501–3,000 cc", value: "2501-3000" },
+  { label: "3,001–4,000 cc", value: "3001-4000" },
+  { label: "Over 4,000 cc", value: "4001-" },
 ] as const;

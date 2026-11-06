@@ -25,6 +25,10 @@ assert.equal(
 assert.equal(truckParams.has("seats"), false);
 assert.equal(truckParams.has("engineCc"), false);
 
+const carParams = new URLSearchParams("category=car&engineCc=1001-1500");
+clearHiddenSearchFilterParams(carParams, "car");
+assert.equal(carParams.get("engineCc"), "1001-1500");
+
 const farmParams = new URLSearchParams(
   "category=farm_agricultural&axleConfig=8x4&cabType=Day+Cab&gvmMin=12000&enginePowerMax=400&hoursMax=3000"
 );

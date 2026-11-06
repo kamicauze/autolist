@@ -99,12 +99,12 @@ const HERO_YEAR_OPTIONS = LANDING_YEAR_OPTIONS.filter(
   (option) => option.value !== "any",
 );
 const HERO_YEAR_FROM_OPTIONS = [
-  { label: "From", value: "any" },
+  { label: "Any", value: "any" },
   ...HERO_YEAR_OPTIONS,
   OLDER_THAN_1990_YEAR_OPTION,
 ];
 const HERO_YEAR_TO_OPTIONS = [
-  { label: "To", value: "any" },
+  { label: "Any", value: "any" },
   ...HERO_YEAR_OPTIONS,
 ];
 const HERO_PRICE_OPTIONS = PRICE_FILTER_OPTIONS.map((option) => ({

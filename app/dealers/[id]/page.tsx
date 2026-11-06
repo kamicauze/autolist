@@ -8,15 +8,20 @@ import { DealerPageClient } from "@/components/dealers/dealer-page-client";
 import {
   getDealerById,
   getDealerInventory,
-  getDealerPublicLinks,
 } from "@/lib/data/dealers";
+import {
+  DEALER_INVENTORY_PAGE_SIZE,
+  getDealerInventoryHref,
+  parseDealerInventorySort,
+} from "@/lib/dealers/inventory";
+import { buildDealerPublicLinks } from "@/lib/dealers/public-links";
 import { getNewestListings } from "@/lib/data/listings";
 import { getPublicSellerReviewsData } from "@/lib/data/reviews";
 import { getGoogleMapsApiKey } from "@/lib/server/google-maps";
 
 interface DealerDetailPageProps {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ page?: string }>;
+  searchParams?: Promise<{ page?: string; sortBy?: string | string[] }>;
 }
 
 const getPublicDealer = cache(getDealerById);
@@ -24,13 +29,15 @@ const getPublicDealer = cache(getDealerById);
 export async function generateMetadata({ params, searchParams }: DealerDetailPageProps) {
   const dealer = await getPublicDealer((await params).id);
   if (!dealer) notFound();
-  const page = Number((await searchParams)?.page);
+  const query = await searchParams;
+  const page = Number(query?.page);
+  const sorted = parseDealerInventorySort(query?.sortBy) !== "newest";
   const suffix = Number.isSafeInteger(page) && page > 1 ? `?page=${page}` : "";
   const location = dealer.city || "Kenya";
   return publicPageMetadata({
     title: `${dealer.name} — Vehicles for Sale in ${location}${suffix ? `, Page ${page}` : ""}`,
     description: dealer.about_text || `Browse available vehicles from ${dealer.name} in ${location}. View dealership details and contact this approved Autolist dealer.`,
-    path: `/dealers/${dealer.id}${suffix}`, image: dealer.logo_url,
+    path: sorted ? null : `/dealers/${dealer.id}${suffix}`, noIndex: sorted, image: dealer.logo_url,
   });
 }
 
@@ -39,11 +46,12 @@ export default async function DealerDetailPage({ params, searchParams }: DealerD
   const query = await searchParams;
   const requestedPage = Number(query?.page);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const sortBy = parseDealerInventorySort(query?.sortBy);
   const googleMapsApiKey = getGoogleMapsApiKey();
 
   const [dealer, inventory, newestListings] = await Promise.all([
     getPublicDealer(id),
-    getDealerInventory(id, page),
+    getDealerInventory(id, page, sortBy),
     getNewestListings(12),
   ]);
 
@@ -51,17 +59,16 @@ export default async function DealerDetailPage({ params, searchParams }: DealerD
     notFound();
   }
 
-  if (page > Math.max(1, Math.ceil(inventory.total / 12))) {
-    redirect(`/dealers/${id}?page=${Math.max(1, Math.ceil(inventory.total / 12))}#inventory`);
+  const totalPages = Math.max(1, Math.ceil(inventory.total / DEALER_INVENTORY_PAGE_SIZE));
+  if (page > totalPages) {
+    redirect(getDealerInventoryHref(id, totalPages, sortBy));
   }
 
   // Dealer listings are owned by the dealer's profile, so reviews key off it.
-  const [reviewsData, publicLinks] = await Promise.all([
-    getPublicSellerReviewsData(dealer.profile_id),
-    getDealerPublicLinks(dealer),
-  ]);
+  const reviewsData = await getPublicSellerReviewsData(dealer.profile_id);
+  const publicLinks = buildDealerPublicLinks(dealer);
 
-  // Public URLs are supplied only through the entitlement-checked links above.
+  // The client receives validated public links instead of raw link fields.
   const publicDealer = {
     ...dealer,
     website: null,
@@ -98,6 +105,7 @@ export default async function DealerDetailPage({ params, searchParams }: DealerD
             inventory={inventory.listings}
             inventoryTotal={inventory.total}
             inventoryPage={page}
+            inventorySort={sortBy}
             recommendedListings={recommendedListings}
             googleMapsApiKey={googleMapsApiKey}
             reviewsData={reviewsData}

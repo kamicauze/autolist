@@ -51,7 +51,7 @@ type ActiveEntitlementPriorityRow = {
 };
 
 export interface SearchListingFilters extends ListingFilters {
-  /** Engine size bucket for motorbikes, formatted "min-max" (max optional), e.g. "150-500" or "1000-". */
+  /** Engine size bucket in cc, formatted "min-max" with an optional upper bound. */
   engineCc?: string;
   /** Taxonomy category label (matched against metadata.taxonomyCategory), e.g. "Tractors". */
   taxonomyCategory?: string;
@@ -156,10 +156,11 @@ function getListingEngineCc(listing: Listing): number | null {
     getListingMetadataString(listing, "engineDisplacement") ??
     getListingMetadataString(listing, "engine_displacement") ??
     getListingMetadataString(listing, "engineSize") ??
-    getListingMetadataString(listing, "engine_size");
+    getListingMetadataString(listing, "engine_size") ??
+    getListingMetadataString(listing, "engine_cc");
   if (!raw) return null;
 
-  const match = raw.toLowerCase().match(/(\d+(?:\.\d+)?)/);
+  const match = raw.replace(/(\d),(?=\d{3}(?!\d))/g, "$1").match(/(\d+(?:\.\d+)?)/);
   if (!match) return null;
 
   let value = Number(match[1]);

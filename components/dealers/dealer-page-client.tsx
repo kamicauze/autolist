@@ -4,6 +4,7 @@ import type { DealerPublicLink } from "@/lib/dealers/public-links";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
   Flag,
@@ -14,6 +15,13 @@ import {
 import type { Listing } from "@/lib/types/listing";
 import type { DealerProfile } from "@/lib/types/dealer";
 import type { SellerReviewDashboardData } from "@/lib/types/listing-review";
+import { SORT_OPTIONS } from "@/lib/constants/filters";
+import {
+  DEALER_INVENTORY_PAGE_SIZE,
+  getDealerInventoryHref,
+  parseDealerInventorySort,
+  type DealerInventorySort,
+} from "@/lib/dealers/inventory";
 import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { RecommendedCars } from "@/components/vehicle/recommended-cars";
@@ -35,6 +43,7 @@ interface DealerPageClientProps {
   inventory: Listing[];
   inventoryTotal?: number;
   inventoryPage?: number;
+  inventorySort?: DealerInventorySort;
   recommendedListings: Listing[];
   googleMapsApiKey: string;
   reviewsData: SellerReviewDashboardData;
@@ -267,11 +276,14 @@ export function DealerPageClient({
   inventory,
   inventoryTotal = inventory.length,
   inventoryPage = 1,
+  inventorySort = "newest",
   recommendedListings,
   googleMapsApiKey,
   reviewsData,
 }: DealerPageClientProps) {
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const router = useRouter();
+  const totalPages = Math.ceil(inventoryTotal / DEALER_INVENTORY_PAGE_SIZE);
 
   return (
     <>
@@ -288,16 +300,32 @@ export function DealerPageClient({
           </section>
 
           <section id="inventory" className="scroll-mt-24">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Dealership inventory ({inventoryTotal})
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Dealership inventory ({inventoryTotal})
+              </h2>
+              {inventoryTotal > 0 && (
+                <label className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-700">
+                  Sort inventory
+                  <select
+                    className="min-h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900"
+                    value={inventorySort}
+                    onChange={(event) => router.push(getDealerInventoryHref(dealer.id, 1, parseDealerInventorySort(event.target.value)))}
+                  >
+                    {SORT_OPTIONS.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
             <div className="mt-4">
               <DealerInventory inventory={inventory} />
-              {inventoryTotal > 12 && (
+              {totalPages > 1 && (
                 <nav aria-label="Dealer inventory pages" className="mt-5 flex items-center justify-between gap-4 text-sm">
-                  {inventoryPage > 1 ? <Link className="text-primary hover:underline" href={`/dealers/${dealer.id}?page=${inventoryPage - 1}#inventory`}>Previous</Link> : <span />}
-                  <span>Page {inventoryPage} of {Math.ceil(inventoryTotal / 12)}</span>
-                  {inventoryPage * 12 < inventoryTotal ? <Link className="text-primary hover:underline" href={`/dealers/${dealer.id}?page=${inventoryPage + 1}#inventory`}>Next</Link> : <span />}
+                  {inventoryPage > 1 ? <Link className="text-primary hover:underline" href={getDealerInventoryHref(dealer.id, inventoryPage - 1, inventorySort)}>Previous</Link> : <span />}
+                  <span>Page {inventoryPage} of {totalPages}</span>
+                  {inventoryPage < totalPages ? <Link className="text-primary hover:underline" href={getDealerInventoryHref(dealer.id, inventoryPage + 1, inventorySort)}>Next</Link> : <span />}
                 </nav>
               )}
             </div>

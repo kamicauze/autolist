@@ -3,10 +3,10 @@ import type { DealerProfile } from "@/lib/types/dealer";
 export type DealerPublicLink = { label: string; href: string };
 
 export function buildDealerPublicLinks(
-  dealer: Pick<DealerProfile, "website" | "social_links">,
-  planId: string | null | undefined,
+  dealer: Pick<DealerProfile, "status" | "website" | "social_links">,
 ): DealerPublicLink[] {
-  if (planId !== "professional" && planId !== "enterprise") return [];
+  // Approved dealers can show their links while paid packages are paused.
+  if (dealer.status !== "APPROVED") return [];
   const candidates = [
     ["Website", dealer.website],
     ["Facebook", dealer.social_links?.facebook],
@@ -20,7 +20,7 @@ export function buildDealerPublicLinks(
     if (!value) return [];
     try {
       const url = new URL(value.trim());
-      return url.protocol === "https:" || url.protocol === "http:"
+      return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password
         ? [{ label: label!, href: url.href }] : [];
     } catch { return []; }
   });
