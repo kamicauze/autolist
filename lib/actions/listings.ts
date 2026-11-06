@@ -227,27 +227,27 @@ async function emitListingStatusNotification(input: {
     const statusLabel = formatListingStatusLabel(input.status);
     const reasonText = input.reason?.trim();
 
+    const delivery = {
+        recipientId: input.listing.seller_id,
+        title: `${title} status updated`,
+        body: reasonText
+            ? `Your listing is now ${statusLabel}. Reason: ${reasonText}`
+            : `Your listing is now ${statusLabel}.`,
+        href: `/dashboard/listings/${input.listing.id}/edit`,
+        metadata: { status: input.status, reason: reasonText || null },
+    };
+    const canQueueEmail = process.env.VERCEL_ENV === "production" || process.env.EMAIL_PROVIDER === "mailtrap";
+
     await emitNotificationEvent({
         eventType: "listing_status_changed",
         actorId: input.actorId,
         listingId: input.listing.id,
-        payload: {
-            status: input.status,
-            reason: reasonText || null,
-        },
+        payload: delivery.metadata,
         deliveries: [
-            {
-                recipientId: input.listing.seller_id,
-                title: `${title} status updated`,
-                body: reasonText
-                    ? `Your listing is now ${statusLabel}. Reason: ${reasonText}`
-                    : `Your listing is now ${statusLabel}.`,
-                href: `/dashboard/listings/${input.listing.id}/edit`,
-                metadata: {
-                    status: input.status,
-                    reason: reasonText || null,
-                },
-            },
+            delivery,
+            ...(canQueueEmail && (input.status === "active" || input.status === "rejected")
+                ? [{ ...delivery, channel: "email" as const }]
+                : []),
         ],
     });
 }
@@ -1077,26 +1077,17 @@ async function replaceListingImageRows(
     listingId: string,
     uploads: PreparedListingImage[],
 ) {
-    const { error: deleteError } = await supabase
-        .from("listing_images")
-        .delete()
-        .eq("listing_id", listingId);
-
-    if (deleteError) return deleteError.message;
-
-    const { error: insertError } = await supabase
-        .from("listing_images")
-        .insert(uploads.map((upload) => ({
-            listing_id: listingId,
+    const { error } = await supabase.rpc("replace_listing_gallery", {
+        target_listing_id: listingId,
+        images: uploads.map((upload) => ({
             r2_key: upload.key,
             alt_text: upload.altText,
             image_order: upload.imageOrder,
             image_hash: upload.hash,
             perceptual_hash: upload.perceptualHash,
-            is_watermarked: true,
-        })));
-
-    return insertError?.message ?? null;
+        })),
+    });
+    return error?.message ?? null;
 }
 
 export async function prepareListingMediaUploads(
