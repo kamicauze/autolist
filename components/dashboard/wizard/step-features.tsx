@@ -129,7 +129,7 @@ export function StepFeatures() {
                 type="button"
                 onClick={() => toggleFeatureGroupExpansion(group.key)}
                 aria-expanded={isSearching || Boolean(expandedFeatureGroups[group.key])}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                className="flex w-full min-w-0 items-center gap-2 text-left sm:w-auto sm:flex-1"
               >
                 <ChevronDown
                   className={cn(
@@ -142,7 +142,7 @@ export function StepFeatures() {
                   {group.label}
                 </h3>
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFeatureSelection(group.features.map((feature) => feature.id), "add")}
