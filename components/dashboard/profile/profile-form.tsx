@@ -766,7 +766,7 @@ export function ProfileForm({
                     </h2>
                     <p className="text-[13px] text-[#7b7b7b]">
                       {isApprovedDealerOwner
-                        ? "Website and social links appear on your public dealer page with an active Professional or Enterprise package."
+                        ? "Website and social links appear on your public dealer page during the free pilot."
                         : "Attach public pages used by buyers."}
                     </p>
                   </div>

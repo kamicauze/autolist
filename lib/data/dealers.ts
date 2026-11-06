@@ -13,7 +13,11 @@ import type {
   DealerVerificationRecord,
 } from "@/lib/types/dealer";
 
-import { buildDealerPublicLinks } from "@/lib/dealers/public-links";
+import {
+  DEALER_INVENTORY_PAGE_SIZE,
+  DEALER_INVENTORY_SORTS,
+  type DealerInventorySort,
+} from "@/lib/dealers/inventory";
 import { getDealerVerificationWorkflows } from "@/lib/data/dealer-verification-workflows";
 
 const LISTING_SELECT = `
@@ -59,33 +63,14 @@ export async function getDealerById(id: string): Promise<DealerProfile | null> {
   return data as DealerProfile;
 }
 
-// Membership rows remain private. Only eligible public URLs cross the RSC boundary.
-export async function getDealerPublicLinks(dealer: DealerProfile) {
-  if (dealer.status !== "APPROVED") return [];
-  const now = new Date().toISOString();
-  const { data, error } = await createAdminClient()
-    .from("seller_package_entitlements")
-    .select("plan_id")
-    .eq("user_id", dealer.profile_id)
-    .eq("status", "active")
-    .lte("starts_at", now)
-    .gt("ends_at", now)
-    .order("starts_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) {
-    console.error("Error checking public dealership link access:", error);
-    return [];
-  }
-  return buildDealerPublicLinks(dealer, data?.plan_id);
-}
-
 export async function getDealerInventory(
   dealerId: string,
   page = 1,
-  pageSize = 12
+  sortBy: DealerInventorySort = "newest"
 ): Promise<{ listings: Listing[]; total: number }> {
   const supabase = await createClient();
+  const { field, direction } = DEALER_INVENTORY_SORTS[sortBy];
+  const pageSize = DEALER_INVENTORY_PAGE_SIZE;
 
   const { data, error, count } = await supabase
     .from("listings")
@@ -93,7 +78,7 @@ export async function getDealerInventory(
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])
     .eq("dealer_id", dealerId)
-    .order("created_at", { ascending: false })
+    .order(field, { ascending: direction === "asc", nullsFirst: false })
     .order("id", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
 

@@ -51,6 +51,7 @@ import {
   SORT_OPTIONS,
 } from "@/lib/constants/filters";
 import {
+  CAR_ENGINE_CC_OPTIONS,
   ENGINE_CC_OPTIONS,
   getSearchFilterLabel,
   isSearchFilterVisible,
@@ -280,6 +281,7 @@ function FilterSheetPanel({
   const category =
     categoryOverride ?? new URLSearchParams(searchParamsString).get("category");
   const showFilter = (id: SearchFilterId) => isSearchFilterVisible(category, id);
+  const engineCcOptions = category === "motorbike" ? ENGINE_CC_OPTIONS : CAR_ENGINE_CC_OPTIONS;
   const taxonomyNodes = getTaxonomyForCategory(category);
   const taxonomySubcategories = getSubcategoriesForTaxonomyCategory(
     category,
@@ -460,7 +462,7 @@ function FilterSheetPanel({
     if (localFilters.driveType) params.set("driveType", localFilters.driveType);
     else params.delete("driveType");
 
-    // Engine size (motorbikes)
+    // Engine size
     if (localFilters.engineCc) params.set("engineCc", localFilters.engineCc);
     else params.delete("engineCc");
 
@@ -745,11 +747,11 @@ function FilterSheetPanel({
                 }
                 onValueChange={(val) => setBoundedRangeFilter("Year", "min", val)}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Min year">
                   <SelectValue placeholder="Min Year" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Min</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   {YEARS.map((year) => (
                     <SelectItem key={`min-${year}`} value={year.toString()}>
                       {year}
@@ -764,11 +766,11 @@ function FilterSheetPanel({
                 value={isOlderThan1990 ? "any" : localFilters.maxYear || "any"}
                 onValueChange={(val) => setBoundedRangeFilter("Year", "max", val)}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Max year">
                   <SelectValue placeholder="Max Year" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Max</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   {YEARS.map((year) => (
                     <SelectItem key={`max-${year}`} value={year.toString()}>
                       {year}
@@ -1046,12 +1048,12 @@ function FilterSheetPanel({
             </div>
           ) : null}
 
-          {/* Engine size (motorbikes) */}
+          {/* Engine size */}
           {showFilter("engineCc") ? (
             <div className="space-y-3">
               <Label className="text-sm font-medium">Engine Size</Label>
               <div className="flex flex-wrap gap-2">
-                {ENGINE_CC_OPTIONS.map((option) => (
+                {engineCcOptions.map((option) => (
                   <FilterChip
                     key={option.value}
                     selected={localFilters.engineCc === option.value}

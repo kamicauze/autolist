@@ -19,6 +19,7 @@ import { refreshMessagingCenter } from "@/lib/actions/messaging-refresh";
 import { useVisiblePolling } from "@/lib/hooks/use-visible-polling";
 import type { CommsAgentResult } from "@/lib/types/comms-agent";
 import type { MessageCursors, MessagingCenterData, ThreadListItem, ThreadMessageItem } from "@/lib/types/messaging";
+import { PHONE_REGEX } from "@/lib/utils/phone";
 import { SellerPageHeader, SellerSurface, getInitials } from "../seller-dashboard-ui";
 
 type ChatLayoutProps = {
@@ -183,6 +184,9 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
     conversations[0] ||
     null;
   const activeMessages = activeConversation ? messagesByThread[activeConversation.id] || [] : [];
+  const guestDialNumber = activeConversation?.isGuest && (canUseSellerAgent || viewer?.role === "sales_agent")
+    ? activeConversation.counterpartPhone?.trim().replace(/[\s().-]/g, "")
+    : undefined;
 
   React.useEffect(() => {
     if (!activeConversationId && threads[0]?.id) {
@@ -512,7 +516,17 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
                           <p className="truncate">{activeConversation.counterpartEmail}</p>
                         ) : null}
                         {activeConversation.counterpartPhone ? (
-                          <p>{activeConversation.counterpartPhone}</p>
+                          <p>
+                            {guestDialNumber && PHONE_REGEX.test(guestDialNumber) ? (
+                              <a
+                                href={`tel:${guestDialNumber}`}
+                                aria-label={`Call ${activeConversation.counterpartPhone}`}
+                                className="text-primary underline underline-offset-2 hover:text-brand-hover"
+                              >
+                                {activeConversation.counterpartPhone}
+                              </a>
+                            ) : activeConversation.counterpartPhone}
+                          </p>
                         ) : null}
                         {activeConversation.counterpartWhatsapp ? (
                           <p>WhatsApp: {activeConversation.counterpartWhatsapp}</p>

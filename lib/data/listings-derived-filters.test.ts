@@ -29,6 +29,23 @@ test("derived search filters drop non-featured listings for featured searches", 
   );
 });
 
+test("car engine search matches numeric, litre and legacy capacity metadata at range boundaries", () => {
+  const listings = [
+    { ...listing("lower", false), metadata: { details: { engineCapacity: "1001" } } },
+    { ...listing("upper", false), metadata: { engineCapacity: 1500 } },
+    { ...listing("litres", false), metadata: { engine_displacement: "1.5L" } },
+    { ...listing("legacy", false), metadata: { engine_cc: "1,500cc" } },
+    { ...listing("too-small", false), metadata: { engineCapacity: 1000 } },
+    { ...listing("too-large", false), metadata: { engineCapacity: 1501 } },
+    { ...listing("unspecified", false), metadata: {} },
+  ];
+
+  assert.deepEqual(
+    filterAndRankListings(listings, { engineCc: "1001-1500" }).map((item) => item.id),
+    ["lower", "upper", "litres", "legacy"],
+  );
+});
+
 function driveListing(id: string, make: string, model: string, driveType: string | null) {
   return {
     ...listing(id, false),
