@@ -109,7 +109,7 @@ export function StepPriceIntelligence() {
       <div>
         <h2 className="font-heading text-[22px] font-semibold text-[#202224]">Price Intelligence</h2>
         <p className="mt-1 text-[13px] leading-5 text-[#767676]">
-          Market range for similar listings by make, model, year and mileage. Use it to set your price below.
+          See how your asking price compares with similar listings by make, model, year and mileage.
         </p>
       </div>
 

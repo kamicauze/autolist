@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
 import {
   BadgeCheck,
+  Bell,
   CalendarDays,
   Gavel,
   KeyRound,
@@ -71,6 +72,7 @@ const dealerOnlyNav = [
 ];
 
 const accountNav = [
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Change password", href: "/dashboard/change-password", icon: KeyRound },
 ];
 

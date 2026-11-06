@@ -69,7 +69,7 @@ ${input.messages
 Requirements:
 - The summary must be concise and factual.
 - The buyerIntent must explain what the buyer is trying to achieve now.
-- The suggestedReply must sound like a competent seller, stay grounded in the transcript, and end with a concrete next step.
+- Draft a reply to the latest buyer message. Use seller messages as context and avoid repeating answers already sent. Stay grounded in the transcript and end with a concrete next step.
 - The checklist must tell the seller what to verify before sending.
 - The support handoff must be suitable for an internal help ticket if the conversation needs escalation.
 - Do not invent facts not supported by the transcript.

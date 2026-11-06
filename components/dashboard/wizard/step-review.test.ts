@@ -9,6 +9,7 @@ import {
   buildSellerAccountDefaults,
   DEFAULT_DRAFT,
   DETAIL_FIELDS_BY_CATEGORY,
+  formatDetailSummaryValue,
   resolveSubmissionListingId,
 } from "./wizard-context";
 import { REVIEW_SECTION_STEPS } from "./step-review";
@@ -197,4 +198,21 @@ test("starting a new listing retains registered private-seller contact and clear
   assert.deepEqual(fresh.galleryImageNames, []);
   assert.deepEqual(fresh.details, DEFAULT_DRAFT.details);
   assert.notEqual(fresh.details, DEFAULT_DRAFT.details);
+});
+
+test("car and van engine suggestions include every 100 cc from 3000 to 7000", () => {
+  const expected = Array.from({ length: 41 }, (_, index) => 3000 + index * 100);
+  for (const category of ["car", "van"] as const) {
+    const field = DETAIL_FIELDS_BY_CATEGORY[category].find(({ key }) => key === "engineCapacity");
+    const inRange = field?.options?.map(({ value }) => Number(value))
+      .filter((value) => value >= 3000 && value <= 7000);
+    assert.deepEqual(inRange, expected);
+  }
+});
+
+test("mileage summary includes separators and units", () => {
+  const field = DETAIL_FIELDS_BY_CATEGORY.car.find(({ key }) => key === "mileage");
+  assert.ok(field);
+  assert.equal(formatDetailSummaryValue(field, "21000"), "21,000 km");
+  assert.equal(formatDetailSummaryValue(field, "0"), "0 km");
 });
