@@ -228,7 +228,7 @@ export async function renderListingImageVariants(originalKey: string, bytes: Buf
     rendered.push({
       key: buildListingImageVariantKey(originalKey, variant),
       bytes: await (await addWatermark(resized))
-        .webp({ quality: config.quality })
+        .webp({ quality: config.quality, effort: 2 })
         .toBuffer(),
     });
   }
