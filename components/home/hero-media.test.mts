@@ -13,7 +13,14 @@ mock.module("next/link", { defaultExport: ({ href, children }: { href: string; c
 mock.module("next/navigation", { namedExports: { useRouter: () => ({ push: () => {} }), notFound: () => { throw new Error("Not found"); } } });
 mock.module("@/hooks/use-car-models", { namedExports: { useCarModels: () => ({ models: [], isLoading: false }) } });
 mock.module("@/components/ui/searchable-select", { namedExports: { SearchableSelect: () => null } });
-mock.module("@/components/ui/numeric-combo-input", { namedExports: { NumericComboInput: () => null } });
+mock.module("@/components/ui/numeric-combo-input", { namedExports: {
+  NumericComboInput: ({ "aria-label": label, placeholder, options }: {
+    "aria-label": string;
+    placeholder: string;
+    options: Array<{ label: string; value: string }>;
+  }) => createElement("select", { "aria-label": label, "data-placeholder": placeholder },
+    options.map((option) => createElement("option", { key: option.value, value: option.value }, option.label))),
+} });
 mock.module("@/components/search/filter-sheet", { namedExports: { FilterSheet: () => null } });
 mock.module("./quick-search-dialog", { namedExports: { QuickSearchDialog: () => null } });
 mock.module("@/components/cms/cms-tracking", { namedExports: { trackCmsBannerClick: () => {}, useCmsBannerImpressions: () => null } });
@@ -74,6 +81,17 @@ test("ordinary homepage carousel keeps its first image, priority and navigation 
   assert.match(html, /Show next hero image/);
   assert.match(html, /Show hero image 2/);
   assert.doesNotMatch(html, /<source /);
+});
+
+test("homepage price presets display full amounts under one KES heading", () => {
+  const html = renderToStaticMarkup(createElement(HeroSearch, { makes: [], totalCount: 0 }));
+  assert.match(html, />Price Range \(KES\)<\/label>/);
+  for (const [bound, placeholder] of [["Minimum", "Min"], ["Maximum", "Max"]]) {
+    const select = html.match(new RegExp(`<select aria-label="${bound} price in KES, type or pick" data-placeholder="${placeholder}">.*?</select>`))?.[0];
+    assert.ok(select);
+    assert.match(select, /<option value="100000">100,000<\/option>/);
+    assert.match(select, /<option value="1500000">1,500,000<\/option>/);
+  }
 });
 
 test("ad detail renders its mobile creative with desktop fallback when configured", async () => {

@@ -108,6 +108,10 @@ const HERO_YEAR_TO_OPTIONS = [
   { label: "To", value: "any" },
   ...HERO_YEAR_OPTIONS,
 ];
+const HERO_PRICE_OPTIONS = PRICE_FILTER_OPTIONS.map((option) => ({
+  ...option,
+  label: option.value ? Number(option.value).toLocaleString("en-KE") : option.label,
+}));
 const HERO_HOURS_OPTIONS = [
   { label: "Any Hours", value: "any" },
   ...HOURS_USED_STEPS.filter((step) => step > 0).map((step) => ({
@@ -945,12 +949,7 @@ export function HeroSearch({
                     hasSponsoredHero && "gap-3 xl:grid-cols-2",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "col-span-2",
-                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
-                    )}
-                  >
+                  <div className="col-span-2 min-w-0 md:col-span-1">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Location
                     </label>
@@ -974,6 +973,10 @@ export function HeroSearch({
                     </div>
                   </div>
 
+                  <div className="col-span-2 flex items-center gap-2 border-t border-[#e8ebf0] pt-3 text-sm font-semibold text-[#202224] md:hidden">
+                    <CarFront aria-hidden="true" className="h-4 w-4 text-primary" />
+                    Vehicle details
+                  </div>
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       {isEquipmentCategory ? "Category" : activeConfig.brandLabel}
@@ -996,12 +999,7 @@ export function HeroSearch({
                     {isEquipmentCategory ? renderMakeField() : renderModelField()}
                   </div>
 
-                  <div
-                    className={cn(
-                      "col-span-2",
-                      hasSponsoredHero ? "sm:col-span-1" : "md:col-span-1",
-                    )}
-                  >
+                  <div className="col-span-2 min-w-0 md:col-span-1">
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
                       Choose Year
                     </label>
@@ -1095,7 +1093,7 @@ export function HeroSearch({
 
                   <div>
                     <label className="mb-1.5 block text-[12px] font-semibold text-[#4d5568]">
-                      Price Range
+                      Price Range (KES)
                     </label>
                     {renderComboRangeField(
                       priceFrom,
@@ -1118,9 +1116,9 @@ export function HeroSearch({
                           setPriceFrom,
                           setPriceTo,
                         ),
-                      PRICE_FILTER_OPTIONS,
-                      "Min KES",
-                      "Max KES",
+                      HERO_PRICE_OPTIONS,
+                      "Min",
+                      "Max",
                       "Minimum price in KES, type or pick",
                       "Maximum price in KES, type or pick",
                     )}
