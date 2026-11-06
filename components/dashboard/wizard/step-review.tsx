@@ -145,15 +145,6 @@ function formatOptionLabel(
   return options.find((option) => option.value === value)?.label || value || "-";
 }
 
-function formatDetailValue(label: string, value: string) {
-  if (!value.trim()) return "-";
-  if (label.toLowerCase().includes("year")) return value;
-  if (label.toLowerCase().includes("(km)")) {
-    return new Intl.NumberFormat("en-KE").format(Number(value));
-  }
-  return value;
-}
-
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-2 py-2.5 md:grid-cols-[190px_minmax(0,1fr)] md:gap-3">
@@ -229,7 +220,7 @@ export function StepReview() {
     value:
       field.type === "select" && field.options
         ? formatOptionLabel(draft.details[field.key], field.options)
-        : formatDetailValue(field.label, formatDetailSummaryValue(field, draft.details[field.key])),
+        : formatDetailSummaryValue(field, draft.details[field.key]) || "-",
   }));
   const editSection = (stepIndex: number) => {
     goToStep(stepIndex, { showValidationErrors: false });
