@@ -120,15 +120,18 @@ test("a notification queue failure still reports the saved financing request tru
   assert.doesNotMatch(JSON.stringify(result.body), /Queue unavailable/);
 });
 
-test("normal guest and signed-in enquiries retain their existing notification and message behavior", async () => {
+test("normal guest and signed-in enquiries queue a seller email alongside the existing inbox notification", async () => {
   for (const viewer of [null, { id: "sample-buyer" }]) {
     user = viewer;
     events.length = 0; writes.length = 0;
     const result = await submit({ contactName: "Sample buyer", contactEmail: "sample@example.com", message: "Is this available?" });
     assert.equal(result.body.success, true);
     assert.equal(result.body.emailQueued, undefined);
-    assert.equal(events[0].deliveries.length, 1);
+    assert.equal(events[0].deliveries.length, 2);
     assert.equal(events[0].deliveries[0].channel, undefined);
+    assert.equal(events[0].deliveries[1].channel, "email");
+    assert.equal(events[0].deliveries[1].recipientId, "sample-owner");
+    assert.doesNotMatch(events[0].deliveries[1].body, /Is this available/);
     assert.equal(events[0].payload.kind, viewer ? "buyer_enquiry" : "public_listing_enquiry");
     assert.equal(writes.find((write) => write.table === "conversation_messages")?.values.body, "Is this available?");
   }

@@ -74,7 +74,7 @@ export async function POST(
       financingDetails.message ? `Additional details: ${financingDetails.message}` : null,
     ].filter((line) => line !== null).join("\n") : inputString("message");
     // Staging and local submissions must never enter a live email delivery path.
-    const canQueueFinancingEmail = process.env.VERCEL_ENV === "production" || process.env.EMAIL_PROVIDER === "mailtrap";
+    const canQueueEmail = process.env.VERCEL_ENV === "production" || process.env.EMAIL_PROVIDER === "mailtrap";
     let financingEmailQueued = false;
 
     if (!message) {
@@ -235,17 +235,17 @@ export async function POST(
                 contactPhone,
               },
             },
-            ...(isFinancingRequest && canQueueFinancingEmail ? [{
+            ...(canQueueEmail ? [{
               recipientId: listing.seller_id,
               channel: "email" as const,
-              title: `New financing request on ${listingTitle}`,
-              body: message,
+              title: `${isFinancingRequest ? "New financing request" : "New enquiry"} on ${listingTitle}`,
+              body: isFinancingRequest ? message : "Open Autolist Messages to read and reply to your new enquiry.",
               href: getMessagingHref("seller", guestThreadId),
               metadata: { threadId: guestThreadId, listingId: listing.id },
             }] : []),
           ],
         });
-        financingEmailQueued = isFinancingRequest && canQueueFinancingEmail && Boolean(eventId);
+        financingEmailQueued = isFinancingRequest && canQueueEmail && Boolean(eventId);
       } catch (notificationError) {
         console.error("Failed to emit guest enquiry notification", notificationError);
       }
@@ -360,17 +360,17 @@ export async function POST(
               listingTitle,
             },
           },
-          ...(isFinancingRequest && canQueueFinancingEmail ? [{
+          ...(canQueueEmail ? [{
             recipientId: listing.seller_id,
             channel: "email" as const,
-            title: `New financing request on ${listingTitle}`,
-            body: message,
+            title: `${isFinancingRequest ? "New financing request" : "New enquiry"} on ${listingTitle}`,
+            body: isFinancingRequest ? message : "Open Autolist Messages to read and reply to your new enquiry.",
             href: getMessagingHref("seller", thread.id),
             metadata: { threadId: thread.id, listingId: listing.id },
           }] : []),
         ],
       });
-      financingEmailQueued = isFinancingRequest && canQueueFinancingEmail && Boolean(eventId);
+      financingEmailQueued = isFinancingRequest && canQueueEmail && Boolean(eventId);
     } catch (notificationError) {
       console.error("Failed to emit enquiry notification", notificationError);
     }
