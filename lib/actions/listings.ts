@@ -312,27 +312,6 @@ function buildModerationMetadata(
     return nextMetadata;
 }
 
-function hammingDistance(left: string, right: string) {
-    if (!left || !right || left.length !== right.length) {
-        return Number.POSITIVE_INFINITY;
-    }
-
-    let distance = 0;
-    for (let index = 0; index < left.length; index += 1) {
-        const xor = Number.parseInt(left[index], 16) ^ Number.parseInt(right[index], 16);
-        distance += xor.toString(2).replace(/0/g, "").length;
-    }
-
-    return distance;
-}
-
-function parsePerceptualHashes(value: string | null | undefined) {
-    return (value || "")
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean);
-}
-
 function applySupplementalListingMetadata(
     metadata: Record<string, unknown>,
     input: Partial<CreateListingInput>,
@@ -1027,7 +1006,6 @@ type PreparedListingImage = {
 
 type SellerImageHashes = {
     imageHashes: Set<string>;
-    perceptualHashes: string[][];
 };
 
 async function getSellerImageHashes(
@@ -1037,20 +1015,17 @@ async function getSellerImageHashes(
 ) {
     const duplicateCheck = await supabase
         .from('listing_images')
-        .select('id, image_hash, perceptual_hash, listings!inner(seller_id, id)')
+        .select('image_hash, listings!inner(seller_id, id)')
         .eq('listings.seller_id', listing.seller_id)
         .neq('listing_id', listingId);
 
     if (duplicateCheck.error) return { error: duplicateCheck.error.message };
 
     const duplicateRows = (duplicateCheck.data ?? []) as Array<{
-        id: string;
         image_hash: string | null;
-        perceptual_hash: string | null;
     }>;
     return {
         imageHashes: new Set(duplicateRows.flatMap((row) => row.image_hash ? [row.image_hash] : [])),
-        perceptualHashes: duplicateRows.map((row) => parsePerceptualHashes(row.perceptual_hash)),
     } satisfies SellerImageHashes;
 }
 
@@ -1058,16 +1033,10 @@ function getDuplicateListingImageError(
     sellerHashes: SellerImageHashes,
     fileName: string,
     hash: string,
-    perceptualHash: string,
 ) {
-    const nextHashes = parsePerceptualHashes(perceptualHash);
-    const hasPerceptualDuplicate = sellerHashes.perceptualHashes.some((existingHashes) =>
-        existingHashes.some((existingHash) =>
-            nextHashes.some((candidateHash) => hammingDistance(existingHash, candidateHash) <= 8)
-        )
-    );
-
-    return sellerHashes.imageHashes.has(hash) || hasPerceptualDuplicate
+    // Perceptual similarity is not proof of reuse: different cars and interiors
+    // can share a dHash. Only identical file bytes should block submission.
+    return sellerHashes.imageHashes.has(hash)
         ? `Duplicate image detected for "${fileName}".`
         : null;
 }
@@ -1166,7 +1135,6 @@ export async function finalizeListingImageUploads(
                     sellerHashes,
                     upload.name,
                     hash,
-                    perceptualHash,
                 );
                 if (duplicateError) throw new Error(duplicateError);
 
