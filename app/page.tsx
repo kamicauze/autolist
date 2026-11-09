@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { publicPageMetadata, SITE_DESCRIPTION } from "@/lib/seo";
+import { publicPageMetadata, SITE_DESCRIPTION, websiteJsonLd } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroSearch } from "@/components/home/hero-search";
@@ -127,6 +127,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: websiteJsonLd() }} />
       <Header />
 
       <main className="flex-1">

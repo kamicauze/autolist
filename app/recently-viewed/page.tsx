@@ -1,6 +1,14 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { RecentlyViewedPageClient } from "@/components/home/recently-viewed-page-client";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata({
+  title: "Recently Viewed Vehicles",
+  description: "Vehicles you have recently viewed on Autolist.",
+  path: "/recently-viewed",
+  noIndex: true,
+});
 
 export default function RecentlyViewedPage() {
   return (

@@ -5,6 +5,13 @@ import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getBrandInitials, getBrandLogo } from "@/lib/constants/brand-logos";
 import { ALL_MAKES } from "@/lib/constants/car-data";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata({
+  title: "Browse Vehicles by Make",
+  description: "Browse cars and vehicles for sale in Kenya by make. Pick a brand to see matching listings, then filter by price, year, body type and seller.",
+  path: "/brands",
+});
 
 export default function BrandsPage() {
   return (

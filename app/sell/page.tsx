@@ -11,6 +11,13 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata({
+  title: "Sell Your Car in Kenya",
+  description: "Sell your car on Autolist. Apply to the free dealer pilot or review the private seller requirements. Vehicle transactions remain between buyer and seller.",
+  path: "/sell",
+});
 
 const sellingOptions = [
   {

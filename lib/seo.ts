@@ -4,6 +4,17 @@ export const SITE_URL = "https://autolist.co.ke";
 export const SITE_DESCRIPTION =
   "Find new and used cars, vans, motorbikes and commercial vehicles for sale in Kenya. Compare listings and connect with approved dealers on Autolist.";
 
+// Google reads the site name shown above search results from WebSite structured data on the homepage.
+export function websiteJsonLd() {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Autolist",
+    alternateName: ["Autolist Kenya", "autolist.co.ke"],
+    url: `${SITE_URL}/`,
+  }).replace(/</g, "\\u003c");
+}
+
 export const PRIVATE_SEARCH_PATHS = [
   "/admin", "/dashboard", "/support", "/api", "/auth", "/login",
   "/register", "/forgot-password", "/reset-password", "/notifications",
@@ -34,7 +45,7 @@ export function publicPageMetadata({
 }): Metadata {
   const url = path ? new URL(path, SITE_URL).toString() : undefined;
   const summary = seoDescription(description);
-  const pageTitle = path === "/" ? "Autolist" : `${title} | Autolist`;
+  const pageTitle = path === "/" ? `Autolist | ${title}` : `${title} | Autolist`;
   return {
     title: pageTitle,
     description: summary,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { isPrivateSearchPath, publicPageMetadata, SITE_URL } from "./seo";
+import { isPrivateSearchPath, publicPageMetadata, SITE_URL, websiteJsonLd } from "./seo";
 import robots from "../app/robots";
 
 const originalEnvironment = process.env.VERCEL_ENV;
@@ -27,6 +27,18 @@ test("filter pages remain followable without advertising a misleading canonical"
   const metadata = publicPageMetadata({ title: "Vehicle search", description: "Filtered results", path: null, noIndex: true });
   assert.deepEqual(metadata.robots, { index: false, follow: true });
   assert.equal(metadata.alternates, undefined);
+});
+
+test("homepage structured data names the site Autolist at the canonical origin", () => {
+  const data = JSON.parse(websiteJsonLd());
+  assert.equal(data["@type"], "WebSite");
+  assert.equal(data.name, "Autolist");
+  assert.equal(data.url, `${SITE_URL}/`);
+  assert.equal(
+    publicPageMetadata({ title: "Cars & Vehicles for Sale in Kenya", description: "Home", path: "/" }).title,
+    `${data.name} | Cars & Vehicles for Sale in Kenya`,
+  );
+  assert.equal(publicPageMetadata({ title: "Compare Vehicles", description: "Compare", path: "/compare" }).title, "Compare Vehicles | Autolist");
 });
 
 test("account and internal route boundaries do not accidentally match public route names", () => {
