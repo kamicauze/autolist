@@ -197,6 +197,9 @@ async function sendWhatsAppMessage(input: WhatsAppInput | { to: string; code: st
 
   const externalId = payload?.messages?.[0]?.id;
   if (!externalId) return { success: false, error: "WhatsApp did not acknowledge the message." };
+  if (otp && process.env.WHATSAPP_WEBHOOK_ACCOUNT_ID) {
+    console.info("WhatsApp OTP accepted", { messageId: externalId });
+  }
   return { success: true, externalId };
 }
 
