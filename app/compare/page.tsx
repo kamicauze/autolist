@@ -3,6 +3,13 @@ import { Footer } from "@/components/layout/footer";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ComparePageClient } from "@/components/compare/compare-page-client";
 import { parseCompareIds } from "@/lib/utils/compare";
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata({
+  title: "Compare Vehicles",
+  description: "Compare vehicles listed for sale in Kenya on Autolist side by side before you contact a seller.",
+  path: "/compare",
+});
 
 interface ComparePageProps {
   searchParams: Promise<{ ids?: string | string[] }>;

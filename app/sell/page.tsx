@@ -11,6 +11,7 @@ import {
   Check,
   ArrowRight,
 } from "lucide-react";
+import { publicPageMetadata } from "@/lib/seo";
 
 const sellingOptions = [
   {
@@ -67,7 +68,11 @@ const benefits = [
   },
 ] as const;
 
-export const metadata = { title: "Sell Your Vehicle | Autolist" };
+export const metadata = publicPageMetadata({
+  title: "Sell Your Car in Kenya",
+  description: "Sell your car on Autolist. Apply to the free dealer pilot or review the private seller requirements. Vehicle transactions remain between buyer and seller.",
+  path: "/sell",
+});
 
 export default function SellPage() {
   return (
