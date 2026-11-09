@@ -182,6 +182,13 @@ async function sendWhatsAppMessage(input: WhatsAppInput | { to: string; code: st
     | null;
 
   if (!response.ok) {
+    if (otp && process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF === "staging") {
+      const error = JSON.stringify(payload?.error ?? null)
+        .replaceAll(accessToken, "[redacted token]")
+        .replaceAll(to, "[redacted phone]")
+        .replaceAll(otp, "[redacted code]");
+      console.warn("Staging WhatsApp OTP diagnostic", response.status, error);
+    }
     return {
       success: false,
       error: payload?.error?.message || `WhatsApp provider returned ${response.status}.`,
