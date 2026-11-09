@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { refreshMessagingCenter } from "@/lib/actions/messaging-refresh";
 import { useVisiblePolling } from "@/lib/hooks/use-visible-polling";
-import type { CommsAgentResult } from "@/lib/types/comms-agent";
+import type { CommsAgentRequest, CommsAgentResult } from "@/lib/types/comms-agent";
 import type { MessageCursors, MessagingCenterData, ThreadListItem, ThreadMessageItem } from "@/lib/types/messaging";
 import { PHONE_REGEX } from "@/lib/utils/phone";
 import { SellerPageHeader, SellerSurface, getInitials } from "../seller-dashboard-ui";
@@ -215,16 +215,9 @@ export function ChatLayout({ initialData }: ChatLayoutProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyerName: activeConversation.counterpartName,
-          listingTitle: activeConversation.listingTitle,
           conversationId: activeConversation.id,
           latestDraft: message,
-          messages: activeMessages.map((item) => ({
-            sender: item.senderRole === "me" ? "me" : "them",
-            text: item.body,
-            time: formatClockTime(item.createdAt),
-          })),
-        }),
+        } satisfies CommsAgentRequest),
       });
 
       if (!response.ok) {

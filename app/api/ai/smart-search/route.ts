@@ -10,6 +10,7 @@ import {
 import type { Listing } from "@/lib/types/listing";
 import type { SmartSearchClarification, SmartSearchResult } from "@/lib/types/smart-search";
 import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
+import { getMakeModelCatalog } from "@/lib/data/car-data";
 
 function getPrimaryBodyType(bodyType?: string) {
   return bodyType?.split(",").map((value) => value.trim()).find(Boolean)?.toLowerCase() || "car";
@@ -273,7 +274,7 @@ export async function POST(request: NextRequest) {
     currentParams?: SmartSearchResult["params"];
   };
   const turnQuery = payload.query || "";
-  const baseResult = await evaluateSmartSearch(turnQuery);
+  const baseResult = await evaluateSmartSearch(turnQuery, { loadCatalog: getMakeModelCatalog });
   const mergedParams = applyAssistantSearchTurn(
     sanitizeSmartSearchParams(payload.currentParams || {}),
     turnQuery,
