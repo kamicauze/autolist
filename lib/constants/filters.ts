@@ -15,6 +15,7 @@ export const BODY_TYPES = [
   "Convertible",
   "Wagon",
   "Pickup",
+  "Minivan",
 ] as const;
 
 export const BODY_TYPE_OPTIONS = BODY_TYPES.map((value) => ({
