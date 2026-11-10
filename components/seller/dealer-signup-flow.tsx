@@ -168,6 +168,14 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
   const [contactPersonIdFile, setContactPersonIdFile] = React.useState<File | null>(null);
 
   const isLastStep = activeStep === DEALER_SIGNUP_STEPS.length - 1;
+  const previousStepRef = React.useRef(activeStep);
+
+  React.useEffect(() => {
+    if (previousStepRef.current === activeStep && !submitted && !submitError) return;
+
+    previousStepRef.current = activeStep;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [activeStep, submitted, submitError]);
 
   const updateField = <Key extends keyof DealerSignupData>(
     key: Key,
@@ -270,7 +278,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
   const canContinue = stepErrors.length === 0;
 
   const handleContinue = async () => {
-    if (!canContinue) return;
+    if (!canContinue || isSubmitting) return;
     if (isLastStep) {
       if (previewMode) {
         setSubmitted(true);
@@ -315,19 +323,22 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       }
       if (contactPersonIdFile) submission.set("contactPersonId", contactPersonIdFile);
 
-      const result = await submitDealerVerification(submission);
-
-      if (result.error) {
-        if (result.error === "Unauthorized") {
-          router.replace("/login?next=/register/dealer");
+      try {
+        const result = await submitDealerVerification(submission);
+        if (result.error) {
+          if (result.error === "Unauthorized") {
+            router.replace("/login?next=/register/dealer");
+          }
+          setSubmitError(result.error);
+          return;
         }
-        setSubmitError(result.error);
-        setIsSubmitting(false);
-        return;
-      }
 
-      setSubmitted(true);
-      setIsSubmitting(false);
+        setSubmitted(true);
+      } catch {
+        setSubmitError("We couldn't confirm your submission. Check your verification status before trying again.");
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
     setActiveStep((prev) => Math.min(prev + 1, DEALER_SIGNUP_STEPS.length - 1));
@@ -397,7 +408,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
             type="button"
             variant="ghost"
             onClick={handleBack}
-            disabled={activeStep === 0}
+            disabled={activeStep === 0 || isSubmitting}
             data-testid="dealer-signup-back"
           >
             Back
@@ -414,7 +425,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       }
     >
       {submitError && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {submitError}
         </div>
       )}
