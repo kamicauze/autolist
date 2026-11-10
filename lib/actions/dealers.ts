@@ -109,10 +109,91 @@ function assertFile(file: File | null, allowedTypes: Set<string>, label: string,
   }
 }
 
+const onboardingAttachments = {
+  companyLogo: { type: "company_logo", label: "Company logo", folder: "branding" },
+  contactPhoto: { type: "contact_photo", label: "Primary contact photo", folder: "contact" },
+  incorporationCertificate: { type: "incorporation_certificate", label: "Certificate of incorporation", folder: null },
+  contactPersonId: { type: "contact_id", label: "Primary contact ID", folder: null },
+} as const;
+
+type OnboardingAttachment = keyof typeof onboardingAttachments;
+
+export async function createDealerOnboardingUpload(
+  field: OnboardingAttachment,
+  file: { name: string; type: string; size: number },
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  if (!Object.hasOwn(onboardingAttachments, field)) return { error: "Invalid attachment." };
+  const attachment = onboardingAttachments[field];
+  const allowedTypes = attachment.folder ? IMAGE_ACCEPTED_TYPES : DOC_ACCEPTED_TYPES;
+  if (!allowedTypes.has(file?.type)) return { error: `${attachment.label} has an unsupported file type.` };
+  if (!Number.isInteger(file.size) || file.size <= 0 || file.size > MAX_UPLOAD_SIZE_BYTES) {
+    return { error: `${attachment.label} must be between 1 byte and 10 MB.` };
+  }
+  if (typeof file.name !== "string" || !file.name.trim()) return { error: "Invalid file name." };
+
+  const name = sanitizeFileName(file.name).slice(-150) || "attachment";
+  const path = `${user.id}/onboarding-${attachment.type}/${nanoid(20)}-${name}`;
+  const { data, error } = await createAdminClient().storage
+    .from(DEALER_KYC_BUCKET)
+    .createSignedUploadUrl(path);
+  if (error || !data?.token) return { error: `Couldn't prepare the upload for ${attachment.label}.` };
+  return { path, token: data.token, bucket: DEALER_KYC_BUCKET };
+}
+
+async function resolveOnboardingAttachment(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  formData: FormData,
+  field: OnboardingAttachment,
+) {
+  const attachment = onboardingAttachments[field];
+  const allowedTypes = attachment.folder ? IMAGE_ACCEPTED_TYPES : DOC_ACCEPTED_TYPES;
+  const path = optionalString(formData, `${field}UploadPath`);
+  if (!path) {
+    const file = getFile(formData, field);
+    if (!file) return null;
+    return attachment.folder
+      ? uploadDealerPublicFile(userId, file, attachment.folder)
+      : uploadDealerKycFile(admin, userId, file, field === "incorporationCertificate" ? "incorporation_certificate" : "contact_id");
+  }
+
+  const folder = `${userId}/onboarding-${attachment.type}`;
+  const name = path.slice(folder.length + 1);
+  if (!path.startsWith(`${folder}/`) || !/^[a-zA-Z0-9_-]{20}-[a-z0-9._-]{1,150}$/.test(name)) {
+    throw new Error(`The uploaded ${attachment.label} does not belong to this application.`);
+  }
+  const bucket = admin.storage.from(DEALER_KYC_BUCKET);
+  const { data: objects, error } = await bucket.list(folder, { search: name });
+  const object = objects?.find((item) => item.name === name);
+  const sizeBytes = Number(object?.metadata?.size);
+  const mimeType = object?.metadata?.mimetype;
+  if (error || !object || !Number.isInteger(sizeBytes) || sizeBytes <= 0 ||
+      sizeBytes > MAX_UPLOAD_SIZE_BYTES || typeof mimeType !== "string" || !allowedTypes.has(mimeType)) {
+    throw new Error(`Couldn't verify ${attachment.label}. Select the file again and retry.`);
+  }
+
+  const displayName = optionalString(formData, `${field}UploadName`)?.slice(0, 255) || name.slice(21);
+  if (!attachment.folder) {
+    return { displayName, mimeType, sizeBytes, r2Key: createDealerKycReference(path), publicUrl: null };
+  }
+
+  const { data: blob, error: downloadError } = await bucket.download(path);
+  if (downloadError || !blob || blob.size !== sizeBytes) {
+    throw new Error(`Couldn't read the uploaded ${attachment.label}. Please retry.`);
+  }
+  const file = new File([blob], displayName, { type: mimeType });
+  return uploadDealerPublicFile(userId, file, attachment.folder, name);
+}
+
 async function uploadDealerPublicFile(
   userId: string,
   file: File,
-  folder: "branding" | "contact"
+  folder: "branding" | "contact",
+  objectName?: string,
 ) {
   if (!R2_BUCKET_NAME) {
     throw new Error("R2 bucket configuration is missing.");
@@ -122,9 +203,7 @@ async function uploadDealerPublicFile(
     ? file.name.slice(file.name.lastIndexOf("."))
     : "";
   const baseName = extension ? file.name.slice(0, -extension.length) : file.name;
-  const r2Key = `dealers/${userId}/${folder}/${Date.now()}-${nanoid(10)}-${sanitizeFileName(
-    `${baseName}${extension}`
-  )}`;
+  const r2Key = `dealers/${userId}/${folder}/${objectName ?? `${Date.now()}-${nanoid(10)}-${sanitizeFileName(`${baseName}${extension}`)}`}`;
 
   await r2.send(
     new PutObjectCommand({
@@ -261,35 +340,23 @@ export async function submitDealerVerification(formData: FormData) {
       return { error: "Accept the dealer terms and privacy policy before submitting." as const };
     }
 
-    const companyLogo = getFile(formData, "companyLogo");
-    const contactPhoto = getFile(formData, "contactPhoto");
-    const incorporationCertificate = getFile(formData, "incorporationCertificate");
-    const contactPersonId = getFile(formData, "contactPersonId");
-
-    assertFile(companyLogo, IMAGE_ACCEPTED_TYPES, "Company logo", false);
-    assertFile(contactPhoto, IMAGE_ACCEPTED_TYPES, "Primary contact photo");
-    assertFile(
-      incorporationCertificate,
-      DOC_ACCEPTED_TYPES,
-      "Certificate of incorporation"
-    );
-    assertFile(contactPersonId, DOC_ACCEPTED_TYPES, "Primary contact ID", false);
+    for (const field of Object.keys(onboardingAttachments) as OnboardingAttachment[]) {
+      if (optionalString(formData, `${field}UploadPath`)) continue;
+      const attachment = onboardingAttachments[field];
+      assertFile(
+        getFile(formData, field),
+        attachment.folder ? IMAGE_ACCEPTED_TYPES : DOC_ACCEPTED_TYPES,
+        attachment.label,
+        field === "incorporationCertificate",
+      );
+    }
 
     const [logoUpload, contactPhotoUpload, incorporationUpload, idUpload] =
       await Promise.all([
-        companyLogo ? uploadDealerPublicFile(user.id, companyLogo, "branding") : Promise.resolve(null),
-        contactPhoto ? uploadDealerPublicFile(user.id, contactPhoto, "contact") : Promise.resolve(null),
-        incorporationCertificate
-          ? uploadDealerKycFile(
-              adminSupabase,
-              user.id,
-              incorporationCertificate,
-              "incorporation_certificate",
-            )
-          : Promise.resolve(null),
-        contactPersonId
-          ? uploadDealerKycFile(adminSupabase, user.id, contactPersonId, "contact_id")
-          : Promise.resolve(null),
+        resolveOnboardingAttachment(adminSupabase, user.id, formData, "companyLogo"),
+        resolveOnboardingAttachment(adminSupabase, user.id, formData, "contactPhoto"),
+        resolveOnboardingAttachment(adminSupabase, user.id, formData, "incorporationCertificate"),
+        resolveOnboardingAttachment(adminSupabase, user.id, formData, "contactPersonId"),
       ]);
 
     const socialLinks = {
@@ -355,8 +422,8 @@ export async function submitDealerVerification(formData: FormData) {
 
     if (dealerError || !dealer) {
       await removeDealerKycReferences(adminSupabase, [
-        incorporationUpload?.r2Key,
-        idUpload?.r2Key,
+        optionalString(formData, "incorporationCertificateUploadPath") ? null : incorporationUpload?.r2Key,
+        optionalString(formData, "contactPersonIdUploadPath") ? null : idUpload?.r2Key,
       ]);
       return { error: dealerError?.message || "Unable to save the dealer profile." };
     }
@@ -457,6 +524,18 @@ export async function submitDealerVerification(formData: FormData) {
 
     if (roleError) {
       return { error: roleError.message };
+    }
+
+    const stagedPhotoPaths = ["companyLogo", "contactPhoto"]
+      .map((field) => optionalString(formData, `${field}UploadPath`))
+      .filter((path): path is string => Boolean(path));
+    if (stagedPhotoPaths.length > 0) {
+      try {
+        const { error } = await adminSupabase.storage.from(DEALER_KYC_BUCKET).remove(stagedPhotoPaths);
+        if (error) console.warn("Unable to remove staged dealer photos:", error.message);
+      } catch (error) {
+        console.warn("Unable to remove staged dealer photos:", error);
+      }
     }
 
     const warning = await logAudit(user.id, "dealer_verification_submitted", "dealer", dealer.id, {

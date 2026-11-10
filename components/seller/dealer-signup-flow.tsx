@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
-import { submitDealerVerification } from "@/lib/actions/dealers";
+import { createDealerOnboardingUpload, submitDealerVerification } from "@/lib/actions/dealers";
+import { createClient } from "@/lib/supabase/client";
 
 type DealerSignupData = {
   dealershipName: string;
@@ -141,6 +142,9 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
   const [contactPhotoFile, setContactPhotoFile] = React.useState<File | null>(null);
   const [incorporationCertificateFile, setIncorporationCertificateFile] = React.useState<File | null>(null);
   const [contactPersonIdFile, setContactPersonIdFile] = React.useState<File | null>(null);
+
+  const uploadedAttachments = React.useRef(new Map<string, { file: File; path: string }>());
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const isLastStep = activeStep === DEALER_SIGNUP_STEPS.length - 1;
   const previousStepRef = React.useRef(activeStep);
@@ -293,14 +297,42 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("verificationNotes", formData.verificationNotes);
       submission.set("preferredConfirmationChannel", "email");
 
-      if (companyLogoFile) submission.set("companyLogo", companyLogoFile);
-      if (contactPhotoFile) submission.set("contactPhoto", contactPhotoFile);
-      if (incorporationCertificateFile) {
-        submission.set("incorporationCertificate", incorporationCertificateFile);
-      }
-      if (contactPersonIdFile) submission.set("contactPersonId", contactPersonIdFile);
+      const attachments = [
+        ["companyLogo", companyLogoFile],
+        ["contactPhoto", contactPhotoFile],
+        ["incorporationCertificate", incorporationCertificateFile],
+        ["contactPersonId", contactPersonIdFile],
+      ] as const;
 
       try {
+        const storage = createClient().storage;
+        setIsUploading(true);
+        const uploads = await Promise.allSettled(attachments.map(async ([field, file]) => {
+          if (!file) return;
+          let uploaded = uploadedAttachments.current.get(field);
+          if (uploaded?.file !== file) {
+            const ticket = await createDealerOnboardingUpload(field, {
+              name: file.name, size: file.size, type: file.type,
+            });
+            if ("error" in ticket) throw new Error(ticket.error);
+            const { error } = await storage.from(ticket.bucket)
+              .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+            if (error) throw new Error(`Couldn't upload ${file.name}. Please retry.`);
+            uploaded = { file, path: ticket.path };
+            uploadedAttachments.current.set(field, uploaded);
+          }
+          submission.set(`${field}UploadPath`, uploaded.path);
+          submission.set(`${field}UploadName`, file.name);
+        }));
+        setIsUploading(false);
+        const failure = uploads.find((upload) => upload.status === "rejected");
+        if (failure) {
+          if (failure.reason instanceof Error && failure.reason.message === "Unauthorized") {
+            router.replace("/login?next=/register/dealer");
+          }
+          setSubmitError(failure.reason instanceof Error ? failure.reason.message : "An attachment couldn't be uploaded. Please retry.");
+          return;
+        }
         const result = await submitDealerVerification(submission);
         if (result.error) {
           if (result.error === "Unauthorized") {
@@ -314,6 +346,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       } catch {
         setSubmitError("We couldn't confirm your submission. Check your verification status before trying again.");
       } finally {
+        setIsUploading(false);
         setIsSubmitting(false);
       }
       return;
@@ -393,7 +426,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
             disabled={!canContinue || isSubmitting}
             data-testid="dealer-signup-next"
           >
-            {isLastStep ? (isSubmitting ? "Submitting..." : "Submit for Verification") : "Continue"}
+            {isLastStep ? (isUploading ? "Uploading attachments..." : isSubmitting ? "Submitting..." : "Submit for Verification") : "Continue"}
           </Button>
         </>
       }
