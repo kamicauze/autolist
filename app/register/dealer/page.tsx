@@ -33,7 +33,9 @@ export default async function RegisterDealerPage() {
         </Container>
       </main>
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   );
 }
