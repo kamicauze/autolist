@@ -61,30 +61,109 @@ test("uploads file bytes directly to each presigned target with bounded concurre
   );
 });
 
-test("surfaces a safe filename-specific error when R2 rejects an upload", async () => {
+const noWait = {
+  sleep: async () => {},
+  waitForForeground: async () => {},
+};
+
+function jpeg(name: string) {
+  return new File([new Uint8Array([1, 2, 3])], name, { type: "image/jpeg" });
+}
+
+test("surfaces a safe filename-specific error when R2 rejects an upload without retrying", async () => {
   const rejectedTicket = ticket("image-0", "front.jpg");
-  const file = new File([new Uint8Array([1, 2, 3])], "front.jpg", {
-    type: "image/jpeg",
-  });
-  const fetchImpl = (async () => new Response(null, { status: 403 })) as typeof fetch;
+  let calls = 0;
+  const fetchImpl = (async () => {
+    calls += 1;
+    return new Response(null, { status: 403 });
+  }) as typeof fetch;
 
   await assert.rejects(
-    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file }], { fetchImpl }),
+    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file: jpeg("front.jpg") }], {
+      fetchImpl,
+      ...noWait,
+    }),
     /Unable to upload "front.jpg"/
   );
+  assert.equal(calls, 1);
 });
 
-test("surfaces a stable-origin hint when the browser upload is blocked", async () => {
-  const rejectedTicket = ticket("image-0", "front.jpg");
-  const file = new File([new Uint8Array([1, 2, 3])], "front.jpg", {
-    type: "image/jpeg",
+test("retries a dropped upload connection and continues once it succeeds", async () => {
+  const uploads = ["front.jpg", "side.jpg"].map((name, index) => ({
+    ticket: ticket(`image-${index}`, name),
+    file: jpeg(name),
+  }));
+  const callsByUrl = new Map<string, number>();
+  const delays: number[] = [];
+  let foregroundWaits = 0;
+  const fetchImpl = (async (input: URL | RequestInfo) => {
+    const url = String(input);
+    const count = (callsByUrl.get(url) ?? 0) + 1;
+    callsByUrl.set(url, count);
+    if (url.endsWith("image-0") && count === 1) throw new TypeError("Load failed");
+    if (url.endsWith("image-1") && count === 1) return new Response(null, { status: 503 });
+    return new Response(null, { status: 200 });
+  }) as typeof fetch;
+  const progress: Array<[number, number]> = [];
+
+  await uploadFilesToPresignedTargets(uploads, {
+    concurrency: 1,
+    fetchImpl,
+    retryDelayMs: 100,
+    sleep: async (delayMs) => {
+      delays.push(delayMs);
+    },
+    waitForForeground: async () => {
+      foregroundWaits += 1;
+    },
+    onProgress: (completed, total) => progress.push([completed, total]),
   });
+
+  assert.deepEqual(Object.fromEntries(callsByUrl), {
+    "https://uploads.example.invalid/image-0": 2,
+    "https://uploads.example.invalid/image-1": 2,
+  });
+  assert.deepEqual(delays, [100, 100]);
+  assert.equal(foregroundWaits, 2);
+  assert.deepEqual(progress, [[1, 2], [2, 2]]);
+});
+
+test("asks the seller to keep the page open when the connection keeps dropping on the stable site", async () => {
+  const rejectedTicket = ticket("image-0", "front.jpg");
+  let calls = 0;
+  const fetchImpl = (async () => {
+    calls += 1;
+    throw new TypeError("Load failed");
+  }) as typeof fetch;
+
+  await assert.rejects(
+    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file: jpeg("front.jpg") }], {
+      fetchImpl,
+      currentHost: "autolist.co.ke",
+      ...noWait,
+    }),
+    (error: Error) => {
+      assert.match(error.message, /Unable to upload "front.jpg"\. The connection dropped/);
+      assert.match(error.message, /keep this page open/);
+      assert.doesNotMatch(error.message, /preview URL/);
+      return true;
+    }
+  );
+  assert.equal(calls, 3);
+});
+
+test("surfaces a stable-origin hint when the upload is blocked on a one-off preview URL", async () => {
+  const rejectedTicket = ticket("image-0", "front.jpg");
   const fetchImpl = (async () => {
     throw new TypeError("Failed to fetch");
   }) as typeof fetch;
 
   await assert.rejects(
-    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file }], { fetchImpl }),
+    uploadFilesToPresignedTargets([{ ticket: rejectedTicket, file: jpeg("front.jpg") }], {
+      fetchImpl,
+      currentHost: "autolist-abc123-autolist-kes-projects.vercel.app",
+      ...noWait,
+    }),
     /stable Autolist site link/
   );
 });
