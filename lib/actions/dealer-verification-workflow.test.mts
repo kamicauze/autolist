@@ -7,6 +7,7 @@ import ts from "typescript";
 type Row = Record<string, unknown>;
 type Write = { table: string; operation: string; values: Row; privileged: boolean };
 type Options = {
+  storedCertificateSize?: number;
   signedIn?: boolean;
   userId?: string;
   role?: string;
@@ -21,6 +22,8 @@ type Options = {
 };
 type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
 type Actions = {
+  createDealerOnboardingUpload: (field: string, file: { name: string; type: string; size: number }) => Promise<{ error?: string; path?: string }>;
+  submitDealerVerification: (form: FormData) => Promise<ActionResult>;
   resubmitDealerVerificationDocuments: (form: FormData) => Promise<ActionResult>;
   approveDealer: (dealerId: string, note?: string) => Promise<ActionResult>;
   rejectDealer: (dealerId: string, reason: string) => Promise<ActionResult>;
@@ -54,7 +57,16 @@ function harness(options: Options = {}) {
   function client(privileged: boolean) {
     return {
       auth: { getUser: async () => ({ data: { user: options.signedIn === false ? null : { id: userId } }, error: null }) },
-      storage: { from: () => ({ remove: async () => ({ error: null }) }) },
+      storage: { from: () => ({
+        remove: async () => ({ error: null }),
+        createSignedUploadUrl: async () => ({ data: { token: "sample-token" }, error: null }),
+        list: async (_folder: string, { search }: { search: string }) => ({
+          data: options.storedCertificateSize ? [{
+            name: search, metadata: { size: options.storedCertificateSize, mimetype: "application/pdf" },
+          }] : [],
+          error: null,
+        }),
+      }) },
       from(table: string) {
         let operation = "select";
         let values: Row = {};
@@ -104,7 +116,7 @@ function harness(options: Options = {}) {
   const dependencies: Record<string, unknown> = {
     "server-only": {},
     "@aws-sdk/client-s3": { PutObjectCommand: class {} },
-    nanoid: { nanoid: () => "sample-upload" },
+    nanoid: { nanoid: (size: number) => "a".repeat(size) },
     "next/cache": { revalidatePath() {} },
     "@/lib/r2": { r2: { send: () => { throw new Error("Unexpected upload"); } } },
     "@/lib/admin/guard": { requireAdminAction: async () => options.staff ? { user: { id: "sample-staff" } } : { error: "Unauthorized" } },
@@ -269,5 +281,43 @@ test("audit insertion errors and exceptions warn without failing an already save
     assert.equal(sample.writes.filter(write => write.table === "audit_logs").length, 0);
     assert.equal(sample.notifications.length, options.queueFails ? 0 : 1);
     if (options.queueFails) assert.match(String(result.warning), /email notification/i);
+  }
+});
+
+test("onboarding only signs valid attachments for the signed-in applicant", async () => {
+  const file = { name: "Certificate.pdf", type: "application/pdf", size: 10 * 1024 * 1024 };
+  const sample = harness();
+  const { path } = await sample.actions().createDealerOnboardingUpload("incorporationCertificate", file);
+  assert.equal(path, "sample-owner/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf");
+  assert.ok((await sample.actions().createDealerOnboardingUpload("companyLogo", file)).error);
+  assert.ok((await sample.actions().createDealerOnboardingUpload("incorporationCertificate", { ...file, size: file.size + 1 })).error);
+  assert.ok((await harness({ signedIn: false }).actions().createDealerOnboardingUpload("incorporationCertificate", file)).error);
+});
+
+test("onboarding accepts a verified 10 MB private certificate reference and rejects foreign or oversized objects", async () => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries({
+    dealershipName: "Sample Motors", dealershipAddress: "Sample Road", county: "Nairobi",
+    cityTown: "Nairobi", locationArea: "Sample Area", mobileNumber: "+254700000001",
+    officialEmail: "sample@example.test", whatsappNumber: "+254700000001",
+    contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001",
+    contactEmail: "sample@example.test", acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
+  })) form.set(key, value);
+  const suffix = "/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf";
+  for (const [owner, size, accepted] of [
+    ["sample-owner", 10 * 1024 * 1024, true],
+    ["sample-owner", 10 * 1024 * 1024 + 1, false],
+    ["another-owner", 10 * 1024 * 1024, false],
+  ] as const) {
+    const sample = harness({ storedCertificateSize: size });
+    form.set("incorporationCertificateUploadPath", owner + suffix);
+    const result = await sample.actions().submitDealerVerification(form);
+    if (accepted) {
+      assert.equal(result.success, true, result.error);
+      assert.equal(sample.dealer.doc_incorporation_key, "supabase://dealer-kyc/" + owner + suffix);
+    } else {
+      assert.ok(result.error);
+      assert.equal(sample.writes.length, 0);
+    }
   }
 });
