@@ -12,7 +12,42 @@ type UploadOptions = {
   concurrency?: number;
   fetchImpl?: typeof fetch;
   onProgress?: (completed: number, total: number) => void;
+  maxAttempts?: number;
+  retryDelayMs?: number;
+  sleep?: (delayMs: number) => Promise<void>;
+  waitForForeground?: () => Promise<void>;
+  currentHost?: string;
 };
+
+const DEFAULT_UPLOAD_ATTEMPTS = 3;
+const DEFAULT_UPLOAD_RETRY_DELAY_MS = 1_500;
+const STABLE_VERCEL_HOSTS = new Set(["autolist-git-staging-autolist-kes-projects.vercel.app"]);
+
+function isOneOffPreviewHost(host: string | undefined) {
+  if (!host) return false;
+  const normalizedHost = host.toLowerCase();
+  return normalizedHost.endsWith(".vercel.app") && !STABLE_VERCEL_HOSTS.has(normalizedHost);
+}
+
+function isRetryableUploadStatus(status: number) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+// iOS Safari suspends network requests while the tab is in the background, so
+// a retry only has a chance once the seller is back on the page.
+function waitForPageInForeground() {
+  if (typeof document === "undefined" || document.visibilityState !== "hidden") {
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") return;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  });
+}
 
 export const LISTING_IMAGE_FINALIZATION_RECOVERY_ERROR =
   "Your draft and uploaded photos were saved, but we could not finish posting the listing. Try posting again; it will continue the same draft.";
@@ -54,15 +89,18 @@ export async function uploadFilesToPresignedTargets(
 ) {
   const concurrency = Math.max(1, Math.min(options.concurrency ?? 3, uploads.length || 1));
   const fetchImpl = options.fetchImpl ?? fetch;
+  const maxAttempts = Math.max(1, Math.floor(options.maxAttempts ?? DEFAULT_UPLOAD_ATTEMPTS));
+  const retryDelayMs = Math.max(0, options.retryDelayMs ?? DEFAULT_UPLOAD_RETRY_DELAY_MS);
+  const sleep = options.sleep ?? wait;
+  const waitForForeground = options.waitForForeground ?? waitForPageInForeground;
+  const currentHost =
+    options.currentHost ?? (typeof window === "undefined" ? undefined : window.location.host);
   let nextIndex = 0;
   let completed = 0;
 
-  const worker = async () => {
-    while (nextIndex < uploads.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      const { ticket, file } = uploads[currentIndex];
-      let response: Response;
+  const uploadOne = async ({ ticket, file }: PresignedUploadFile) => {
+    for (let attempt = 1; ; attempt += 1) {
+      let response: Response | null = null;
       try {
         response = await fetchImpl(ticket.uploadUrl, {
           method: "PUT",
@@ -70,14 +108,35 @@ export async function uploadFilesToPresignedTargets(
           body: file,
         });
       } catch {
+        // The connection dropped or the browser blocked the request.
+      }
+
+      if (response?.ok) return;
+      if (response && !isRetryableUploadStatus(response.status)) {
+        throw new Error(`Unable to upload "${ticket.name}". Please try again.`);
+      }
+
+      if (attempt >= maxAttempts) {
+        if (response) {
+          throw new Error(`Unable to upload "${ticket.name}". Please try again.`);
+        }
         throw new Error(
-          `Unable to upload "${ticket.name}". The upload connection was blocked or interrupted. Please open the stable Autolist site link, not a one-off preview URL, and try again.`
+          isOneOffPreviewHost(currentHost)
+            ? `Unable to upload "${ticket.name}". The upload connection was blocked or interrupted. Please open the stable Autolist site link, not a one-off preview URL, and try again.`
+            : `Unable to upload "${ticket.name}". The connection dropped while uploading. Check your internet connection, keep this page open until all photos finish uploading, and try again.`
         );
       }
 
-      if (!response.ok) {
-        throw new Error(`Unable to upload "${ticket.name}". Please try again.`);
-      }
+      await waitForForeground();
+      await sleep(retryDelayMs * attempt);
+    }
+  };
+
+  const worker = async () => {
+    while (nextIndex < uploads.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      await uploadOne(uploads[currentIndex]);
 
       completed += 1;
       options.onProgress?.(completed, uploads.length);
