@@ -1,6 +1,9 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { InquiryAssistanceForm } from "@/components/inquiries-assistance/inquiry-assistance-form";
+import { Button } from "@/components/ui/button";
+import { IconWhatsapp } from "@/components/ui/icons";
+import { SUPPORT_WHATSAPP_NUMBER, SUPPORT_WHATSAPP_URL } from "@/lib/constants/support-contact";
 
 export const metadata = {
   title: "Inquiries & Assistance | Autolist",
@@ -30,6 +33,12 @@ export default function InquiriesAssistancePage() {
 
         <section id="inquiry-form" className="scroll-mt-24 py-10 sm:py-12">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+            <Button asChild variant="outline" className="mb-6">
+              <a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                <IconWhatsapp aria-hidden="true" />
+                WhatsApp {SUPPORT_WHATSAPP_NUMBER}
+              </a>
+            </Button>
             <InquiryAssistanceForm />
           </div>
         </section>

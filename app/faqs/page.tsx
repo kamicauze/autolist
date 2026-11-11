@@ -4,6 +4,7 @@ import { ArrowRight, Clock, Mail, PlusCircle, ShieldAlert } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
+import { IconWhatsapp } from "@/components/ui/icons";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { SectionNav, type GuideSectionLink } from "@/components/finance/section-nav";
 import { DataTable, FaqItem, GuideSection, Prose } from "@/components/finance/guide-elements";
@@ -17,6 +18,7 @@ import {
   SUPPORT_HOURS,
   faqAnswerToText,
 } from "@/lib/constants/faqs";
+import { SUPPORT_WHATSAPP_NUMBER, SUPPORT_WHATSAPP_URL } from "@/lib/constants/support-contact";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions | Autolist",
@@ -108,8 +110,7 @@ export default function FAQsPage() {
                 Still need help?
               </p>
               <p className="mt-2 text-sm leading-6 text-foreground/80">
-                Our team answers by email. Include your listing link or account email so we can help
-                faster.
+                Include your listing link or account email so we can help faster.
               </p>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex gap-3">
@@ -122,6 +123,22 @@ export default function FAQsPage() {
                         className="text-primary underline-offset-2 hover:underline"
                       >
                         {SUPPORT_EMAIL}
+                      </a>
+                    </dd>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <IconWhatsapp className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <div>
+                    <dt className="font-semibold text-foreground">WhatsApp</dt>
+                    <dd>
+                      <a
+                        href={SUPPORT_WHATSAPP_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        {SUPPORT_WHATSAPP_NUMBER}
                       </a>
                     </dd>
                   </div>
