@@ -156,10 +156,10 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
             <Button asChild className="h-12 rounded-lg font-bold sm:col-span-2">
               <Link href="/dashboard/listings/new">Add a listing</Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 rounded-lg font-bold">
+            <Button asChild variant="outline" className="h-11 rounded-lg border border-border text-foreground font-bold hover:border-primary">
               <Link href="/dashboard">Go to dashboard</Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 rounded-lg font-bold">
+            <Button asChild variant="outline" className="h-11 rounded-lg border border-border text-foreground font-bold hover:border-primary">
               <Link href="/dashboard/verification">Finish verification</Link>
             </Button>
           </div>
@@ -177,7 +177,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
       <div className="grid gap-6 lg:grid-cols-[minmax(0,760px)_minmax(280px,1fr)]">
         <form onSubmit={save} className="min-w-0 rounded-2xl border border-border bg-white px-4 lg:px-6">
           <fieldset disabled={saving} className="min-w-0 divide-y divide-border">
-            <section className="space-y-3 py-4 lg:pt-6">
+            <section className="space-y-2 py-4 sm:space-y-3 lg:pt-6">
               <SectionHeading icon={Store} title="Dealership details" />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -193,7 +193,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 </div>
               </div>
             </section>
-            <section className="space-y-3 py-4">
+            <section className="space-y-2 py-4 sm:space-y-3">
               <SectionHeading icon={MapPin} title="Dealership location" />
               {!selected && !manual && (
                 <>
@@ -294,16 +294,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                   <div className="md:hidden">
                     <p id="dealer-document-type-label" className="mb-1.5 text-sm font-medium">Document type</p>
                     <DialogTrigger asChild>
-                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" className="h-11 w-full justify-between rounded-lg font-normal">
+                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" className="h-11 w-full justify-between rounded-lg border border-border px-3 text-sm font-normal text-[#14213d] hover:border-primary">
                         <span id="dealer-document-type-value">{typeLabel}</span>
                         <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
                       </Button>
                     </DialogTrigger>
                   </div>
-                  <DialogContent aria-describedby={undefined} className="bottom-0 top-auto z-[70] translate-y-0 gap-1 rounded-t-2xl p-4 pt-6 text-[#14213d] [&>button:last-child]:grid [&>button:last-child]:size-11 [&>button:last-child]:place-items-center [&>button:last-child]:rounded-lg [&>button:last-child]:bg-muted">
+                  <DialogContent aria-describedby={undefined} overlayClassName="bg-[#14213d]/35" className="bottom-0 top-auto z-[70] translate-y-0 gap-1 rounded-t-2xl p-4 pt-6 text-[#14213d] [&>button:last-child]:grid [&>button:last-child]:size-11 [&>button:last-child]:place-items-center [&>button:last-child]:rounded-lg [&>button:last-child]:bg-muted">
                     <DialogTitle className="mb-3 pr-14 text-lg font-bold">Select document type</DialogTitle>
                     {documentTypes.map(([type, label]) => (
-                      <Button key={type} type="button" variant="ghost" aria-pressed={documentType === type} className={cn("h-11 justify-start rounded-lg", documentType === type && "bg-brand-tint")} onClick={() => { setDocumentType(type); setPickerOpen(false); }}>
+                      <Button key={type} type="button" variant="ghost" aria-pressed={documentType === type} className={cn("h-11 justify-start gap-3 rounded-lg px-2 text-sm font-semibold text-[#14213d] hover:bg-brand-tint hover:text-[#14213d] focus-visible:bg-brand-tint", documentType === type && "bg-brand-tint")} onClick={() => { setDocumentType(type); setPickerOpen(false); }}>
                         <FileText aria-hidden className="size-4 text-primary" /> {label}
                       </Button>
                     ))}

@@ -24,7 +24,7 @@ export function DealerRegistrationReminder({ showAction = true }: { showAction?:
         </div>
       </div>
       {showAction && (
-        <Button asChild variant="outline" className="h-11 shrink-0 rounded-lg bg-white font-bold">
+        <Button asChild variant="outline" className="h-11 shrink-0 rounded-lg border border-border bg-white font-bold text-foreground hover:border-primary">
           <Link href="/dashboard/verification">Finish verification</Link>
         </Button>
       )}
