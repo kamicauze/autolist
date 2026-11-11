@@ -7,12 +7,10 @@
  * - bare email addresses
  */
 
-import { SUPPORT_WHATSAPP_NUMBER, SUPPORT_WHATSAPP_URL } from "./support-contact";
+import { SAFETY_EMAIL, SUPPORT_EMAIL, SUPPORT_WHATSAPP_NUMBER, SUPPORT_WHATSAPP_URL } from "./support-contact";
 
 export const FAQ_LAST_UPDATED = "24 August 2026";
 
-export const SUPPORT_EMAIL = "support@autolist.co.ke";
-export const SAFETY_EMAIL = "safety@autolist.co.ke";
 export const SUPPORT_HOURS = "Monday to Friday, 9:00 AM – 6:00 PM";
 
 export type FaqBlock = { p: string } | { ul: string[] };

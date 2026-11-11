@@ -38,11 +38,11 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
       <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="forgot-email">
         <span>Email address</span>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B6B6B6]" />
+          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <Input
             id="forgot-email"
             type="email"
@@ -50,7 +50,7 @@ export function ForgotPasswordForm() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="h-12 rounded-[14px] border-[#EDEDED] pl-11"
+            className="h-12 rounded-[14px] border-slate-200 bg-white pl-11 text-slate-950 ring-offset-white placeholder:text-slate-500 sm:h-14"
             placeholder="you@example.com"
             data-testid="forgot-password-email"
           />
@@ -58,27 +58,27 @@ export function ForgotPasswordForm() {
       </label>
 
       {errorMessage && (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errorMessage}
         </p>
       )}
 
       {infoMessage && (
-        <p className="rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-sm text-success">
+        <p role="status" className="rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-sm text-success">
           {infoMessage}
         </p>
       )}
 
       <Button
         type="submit"
-        className="h-12 w-full rounded-[14px] text-base"
+        className="h-12 w-full rounded-[14px] text-base sm:h-14"
         disabled={isLoading}
         data-testid="forgot-password-submit"
       >
         {isLoading ? "Sending..." : "Send Reset Link"}
       </Button>
 
-      <p className="text-center text-sm text-[#24272C]">
+      <p className="text-center text-sm text-slate-600 sm:text-base">
         Back to{" "}
         <Link href="/login" className="text-primary hover:underline">
           Login

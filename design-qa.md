@@ -64,3 +64,60 @@ P3 follow-up: generated people/vehicles differ from the illustration, and respon
 Implementation checklist: scoped controls, four assets, CMS preservation, real CTA navigation, desktop/mobile coverage, post-fix combined comparison and browser-error review complete.
 
 final result: passed
+
+---
+
+# WhatsApp page redesigns — 11 November 2026
+
+The four original Autolist Dev Team downloads are in the private, ignored
+`output/design-references/` directory. Browser captures and paired evidence
+are in `output/playwright/page-designs/` in the same staging checkout.
+
+| Page and state | Original | Matched browser viewport | Final paired capture |
+| --- | --- | --- | --- |
+| Forgot Password, signed out | `forgot-password.jpeg` | 1600 × 774 CSS px | `final-comparison-forgot-password.jpg` |
+| Compare, empty | `compare.jpeg` | 1600 × 761 CSS px | `final-comparison-compare.jpg` |
+| Contact, default inquiry form | `contact.jpeg` | 1536 × 1024 CSS px | `final-comparison-contact.jpg` |
+| FAQs, General open | `faqs.jpeg` | 1536 × 1024 CSS px | `final-comparison-faqs.jpg` |
+
+The originals have the same raster dimensions as the listed CSS viewports.
+The in-app browser reported 1.1× density; it added a trailing white margin to
+its output at this density. Cropped that margin and normalized each capture
+to the corresponding source dimensions, then downscaled both sides equally
+to 720 px wide. The `final-normalized-*.jpg` captures allow close inspection of
+the individual controls; separate region pairs were unnecessary because the
+full views contain the four complete design states. Mobile captures are at
+390 × 844 CSS px, with an additional tablet check at 768 × 1024.
+
+- Initial P2: Compare and FAQ art cropped the top of the blue marks at desktop
+  widths. Narrowed and repositioned the art, blended the bottom of Compare
+  into its panel, and reviewed the `final-comparison-*.jpg` captures against
+  the `first-comparison-*.jpg` pairs.
+- Initial P2: FAQ categories were too short and the first section sat too
+  close to them. Adjusted tab and section spacing, widened the search field,
+  and verified the seller tab lands on its visible, focused section.
+- Mobile: the artwork and form panels stack without page overflow. Contact
+  has a direct link to the verified WhatsApp line; FAQs has a jump to its
+  support card. Reset retains its real vector logo and full form at 390 px.
+- Typography, colors and spacing: Satoshi, existing Autolist controls and
+  palette, readable focus states, light blue hero surfaces, legible images
+  and compact cards. The shared site header remains unchanged.
+- Assets and content: five optimized WebPs recreate the reference subjects
+  and crops. Existing comparison icons, approved FAQ answers, real support
+  contacts, inquiry subject input and 2,000-character message limit take
+  precedence over mock copy, placeholder phone details and sample controls.
+
+Browser interactions: the empty comparison shows three slots and a disabled
+Clear all; a retained staging listing loads, switches to Features and clears.
+FAQ search for VAT receipt yields one open answer; a nonsense search has an
+empty state, clear restores categories, and the password popular topic opens
+the correct answer. Contact rejects a short message and retains the draft,
+and the WhatsApp destinations in both pages match the connected line. Reset
+validates malformed email and retains the login and home destinations. No
+browser errors or layout overflow in the checked states. No valid contact
+submission, password email or external WhatsApp message was sent.
+
+P3: recreated photography and illustrations vary in exact subject placement
+from the static mockups. Mobile layouts are adaptations of desktop originals.
+
+final result: passed

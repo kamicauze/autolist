@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface GuideSectionLink {
   id: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 const FALLBACK_HEADER_HEIGHT = 64;
@@ -19,7 +20,15 @@ function measureSiteHeader() {
  * Sticky in-page section tabs. Sits directly under the site header, highlights the
  * section currently in view and scrolls horizontally on small screens.
  */
-export function SectionNav({ sections }: { sections: GuideSectionLink[] }) {
+export function SectionNav({
+  sections,
+  ariaLabel = "Guide sections",
+  containerClassName = "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8",
+}: {
+  sections: GuideSectionLink[];
+  ariaLabel?: string;
+  containerClassName?: string;
+}) {
   const [activeId, setActiveId] = React.useState(sections[0]?.id ?? "");
   const [headerHeight, setHeaderHeight] = React.useState<number | null>(null);
   const navRef = React.useRef<HTMLElement>(null);
@@ -79,11 +88,11 @@ export function SectionNav({ sections }: { sections: GuideSectionLink[] }) {
   return (
     <nav
       ref={navRef}
-      aria-label="Guide sections"
+      aria-label={ariaLabel}
       className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur"
       style={headerHeight === null ? undefined : { top: headerHeight }}
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className={containerClassName}>
         <ul
           ref={listRef}
           className="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
@@ -98,12 +107,14 @@ export function SectionNav({ sections }: { sections: GuideSectionLink[] }) {
                   aria-current={isActive ? "location" : undefined}
                   onClick={(event) => handleClick(event, section.id)}
                   className={cn(
-                    "block whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    "flex items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    section.icon ? "py-[17px]" : "py-3",
                     isActive
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
+                  {section.icon}
                   {section.label}
                 </a>
               </li>

@@ -739,18 +739,18 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
+      <section aria-labelledby="your-comparison" className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Compare Vehicles</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h2 id="your-comparison" className="text-2xl font-bold tracking-tight text-card-foreground">Your Comparison</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               Add up to {maxItems} vehicles to compare key specs side by side.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/search">Add vehicles</Link>
+            <Button asChild variant="outline" size="sm" className="border-primary/35 text-primary hover:bg-brand-tint hover:text-primary">
+              <Link href="/search"><Plus aria-hidden="true" />Add vehicles</Link>
             </Button>
             <Button
               type="button"
@@ -766,7 +766,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           {Array.from({ length: maxItems }).map((_, index) => {
             const listing = selectedListings[index];
 
@@ -775,16 +775,16 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
                 <Link
                   key={`slot-${index}`}
                   href="/search"
-                  className="flex h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-center transition-colors hover:border-primary hover:bg-brand-tint"
+                  className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-primary/30 bg-brand-soft-surface px-3 py-4 text-center transition-colors hover:border-primary hover:bg-brand-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-40"
                 >
                   <Illustration3D
                     asset="add-to-compare"
                     fallbackIcon={Plus}
                     size="lg"
-                    className="mb-3 h-12 w-12"
+                    className="mb-2 h-12 w-12"
                   />
-                  <p className="text-sm font-medium text-gray-700">Add vehicle to compare</p>
-                  <p className="mt-1 text-xs text-gray-500">Slot {index + 1} of {COMPARE_MAX_ITEMS}</p>
+                  <p className="text-sm font-semibold text-card-foreground">Add vehicle to compare</p>
+                  <p className="mt-2 rounded-full bg-brand-tint px-2.5 py-1 text-xs text-muted-foreground">Slot {index + 1} of {maxItems}</p>
                 </Link>
               );
             }
@@ -797,7 +797,7 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
                     alt={listingTitle(listing)}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 1024px) 100vw, 33vw"
+                    sizes="(max-width: 639px) 100vw, 33vw"
                   />
                   <button
                     type="button"
@@ -829,7 +829,19 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
             );
           })}
         </div>
-      </div>
+
+        {!isFetching && !fetchError && selectedListings.length === 0 && (
+          <div className="mt-4 flex items-center justify-center gap-3 rounded-xl border border-border bg-brand-soft-surface px-4 py-3 sm:gap-4">
+            <Illustration3D asset="compare-vehicles" fallbackIcon={Plus} size="lg" className="h-12 w-12 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-card-foreground">No vehicles selected for comparison yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                <Link href="/search" className="font-semibold text-primary hover:underline">Browse vehicles</Link> and add them from the listing cards or vehicle details page.
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       {fetchError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -840,16 +852,6 @@ export function ComparePageClient({ initialIds }: ComparePageClientProps) {
       {isFetching && (
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-600">
           Loading selected vehicles...
-        </div>
-      )}
-
-      {!isFetching && selectedListings.length === 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-10 text-center">
-          <p className="text-base font-medium text-gray-900">No vehicles selected for comparison yet.</p>
-          <p className="mt-2 text-sm text-gray-600">Add vehicles from listing cards or the vehicle details page.</p>
-          <Button asChild className="mt-4">
-            <Link href="/search">Browse vehicles</Link>
-          </Button>
         </div>
       )}
 
