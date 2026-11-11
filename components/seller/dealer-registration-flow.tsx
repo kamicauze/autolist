@@ -260,11 +260,11 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="dealership-town">Town / city</Label>
-                    <Input id="dealership-town" autoComplete="address-level2" value={location.town} onChange={(event) => setLocation({ ...location, town: event.target.value })} maxLength={120} className={inputClass} required />
+                    <Input id="dealership-town" autoComplete="address-level2" value={location.town} onChange={(event) => setLocation({ ...location, town: event.target.value, area: "" })} maxLength={120} className={inputClass} required />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="dealership-county">County</Label>
-                    <select id="dealership-county" autoComplete="address-level1" value={location.county} onChange={(event) => setLocation({ ...location, county: event.target.value })} className={selectClass} required>
+                    <select id="dealership-county" autoComplete="address-level1" value={location.county} onChange={(event) => setLocation({ ...location, county: event.target.value, area: "" })} className={selectClass} required>
                       <option value="">Select county</option>
                       {KENYA_COUNTIES.map((county) => <option key={county}>{county}</option>)}
                     </select>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants/marketplace";
 import { createClient } from "@/lib/supabase/client";
 import { MANUFACTURE_YEAR_OPTIONS, CAR_VAN_ENGINE_CC_OPTIONS, LISTING_DOOR_OPTIONS } from "@/lib/constants/listing-specifications";
+import type { DealerStatus } from "@/lib/types/dealer";
 import type { Listing } from "@/lib/types/listing";
 import type { ListingFeatureSuggestionResult } from "@/lib/types/listing-feature-suggestions";
 import {
@@ -347,7 +348,8 @@ type SellerAccountProfile = {
 };
 
 type SellerAccountDealer = {
-  status: import("@/lib/types/dealer").DealerStatus | null;
+  status: DealerStatus | null;
+  name?: string | null;
   city?: string | null;
   location?: string | null;
   address?: string | null;
@@ -422,8 +424,10 @@ export function buildSellerAccountDefaults({
   const fallbackPhone = profilePhone || normalizedAuthPhone;
   const fallbackWhatsapp = profileWhatsapp || fallbackPhone;
 
+  const isIncompleteDealer = dealer?.status === "INCOMPLETE";
   const isDealerAccount =
-    profile?.role === "dealer" || dealer?.status === "PENDING" || dealer?.status === "APPROVED";
+    isIncompleteDealer || profile?.role === "dealer" ||
+    dealer?.status === "PENDING" || dealer?.status === "APPROVED";
 
   if (!isDealerAccount) {
     return {
@@ -447,13 +451,12 @@ export function buildSellerAccountDefaults({
   const dealerWhatsapp =
     normalizePhoneInput(dealer?.contact_person?.whatsapp ?? "") ||
     normalizePhoneInput(dealer?.whatsapp ?? "") ||
-    profileWhatsapp ||
-    dealerPhone;
+    (isIncompleteDealer ? "" : profileWhatsapp || dealerPhone);
 
   return {
     sellerType: "dealer",
     useDealerAutoFill: true,
-    contactName: dealer?.contact_person?.name?.trim() || contactName,
+    contactName: dealer?.contact_person?.name?.trim() || (isIncompleteDealer && dealer.name?.trim()) || contactName,
     phoneNumber: dealerPhone,
     whatsappEnabled: Boolean(dealerWhatsapp),
     whatsappNumber: dealerWhatsapp,
@@ -1140,7 +1143,7 @@ export function WizardProvider({
       // not only by profiles.role.
       const { data: dealerRow } = await supabase
         .from("dealers")
-        .select("status, city, location, address, mobile, whatsapp, contact_person")
+        .select("name, status, city, location, address, mobile, whatsapp, contact_person")
         .eq("profile_id", user.id)
         .maybeSingle<SellerAccountDealer>();
       dealer = dealerRow;

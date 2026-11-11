@@ -374,7 +374,7 @@ export async function createDealerRegistration(input: DealerRegistration) {
 
     const { data, error } = await admin.rpc("save_dealer_registration", {
       applicant_id: applicant.user.id,
-      dealership: { name, mobile: phone, address, city: town, county, location: area || town },
+      dealership: { name, mobile: phone, address, city: town, county, location: area || address },
       profile_details: { phone, city: town, address },
       evidence,
       submit_for_review: false,
