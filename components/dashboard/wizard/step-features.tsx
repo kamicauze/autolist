@@ -13,7 +13,6 @@ export function StepFeatures() {
     featureQuery,
     setFeatureQuery,
     selectedFeatureIdSet,
-    featureSuggestion,
     toggleFeature,
     clearFeatureSelection,
     setFeatureSelection,
@@ -58,8 +57,7 @@ export function StepFeatures() {
             Features & Specifications
           </h2>
           <p className="mt-1 text-[13px] leading-5 text-[#767676]">
-            Pick the exact equipment and options included in this listing package before it is
-            reviewed.
+            Select at least one feature you can confirm on this vehicle.
           </p>
         </div>
       </div>
@@ -91,26 +89,6 @@ export function StepFeatures() {
             </button>
           </div>
         </div>
-
-        {featureSuggestion.status !== "idle" ? (
-          <div className="mt-3 rounded-[10px] border border-brand-muted-border bg-brand-soft-surface px-3 py-2 text-[13px] leading-5 text-[#344054]">
-            {featureSuggestion.status === "loading" ? (
-              <span>Checking likely features for this make and model...</span>
-            ) : featureSuggestion.status === "applied" ? (
-              <span>
-                {featureSuggestion.provider === "openai"
-                  ? "AI"
-                  : featureSuggestion.provider === "local_llm"
-                    ? "Local AI"
-                    : "Autolist"}{" "}
-                preselected {featureSuggestion.count} likely feature
-                {featureSuggestion.count === 1 ? "" : "s"}. Confirm only the equipment this vehicle actually has.
-              </span>
-            ) : (
-              <span>{featureSuggestion.reason}</span>
-            )}
-          </div>
-        ) : null}
       </div>
 
       <div className="space-y-3">
