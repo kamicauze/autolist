@@ -17,6 +17,7 @@ import type {
   DealerVerificationDocument,
   DealerVerificationRecord,
 } from "@/lib/types/dealer";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
 import { cn } from "@/lib/utils";
 import { Icon3D } from "@/components/ui/icon-3d";
 import {
@@ -134,6 +135,18 @@ export function VerificationUploadPanel({
 
   return (
     <form ref={formRef} className="space-y-5">
+      {dealer?.documents.map((document) => {
+        const label = getDealerRegistrationDocumentLabel(document.document_type);
+        if (!label) return null;
+        return (
+          <div key={document.id} className="rounded-xl border border-border bg-muted p-3 text-sm">
+            <p className="font-semibold">{label} saved during registration</p>
+            {document.review_url ? (
+              <a href={document.review_url} target="_blank" rel="noreferrer" className="break-words text-primary underline">{document.display_name}</a>
+            ) : <p className="break-words">{document.display_name}</p>}
+          </div>
+        );
+      })}
       <div className="grid gap-4 md:grid-cols-2">
         {DOCUMENT_CARDS.map((card) => {
           const currentDocument = dealer

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { DealerStatus } from "@/lib/types/dealer";
 import type { UserRole } from "@/lib/constants/marketplace";
 
 type ProfileRole =
@@ -9,7 +10,6 @@ type ProfileRole =
   | "admin"
   | "super_admin"
   | "support";
-type DealerStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 const AUTH_PATHS = new Set([
   "/login",
@@ -35,6 +35,10 @@ export function inferMarketplaceRoleFromNextPath(
   nextPath: string,
 ): UserRole | null {
   if (nextPath.startsWith("/register/dealer")) return "dealer";
+  const [path, query] = nextPath.split("?");
+  if (path === "/register/onboarding" && new URLSearchParams(query).get("role") === "seller") {
+    return "seller";
+  }
   if (
     nextPath.startsWith("/dashboard/listings") ||
     nextPath.startsWith("/sell/dealer")
@@ -42,6 +46,19 @@ export function inferMarketplaceRoleFromNextPath(
     return "seller";
   }
   return null;
+}
+
+export function privateSellerSetupDestination(nextPath?: string | null) {
+  const safePath = sanitizeNextPath(nextPath, "");
+  return inferMarketplaceRoleFromNextPath(safePath) === "seller" &&
+    !safePath.startsWith("/register/") ? safePath : "/dashboard/listings/new";
+}
+
+export function privateSellerSetupPath(nextPath?: string | null) {
+  const params = new URLSearchParams({ role: "seller" });
+  const destination = privateSellerSetupDestination(nextPath);
+  if (destination !== "/dashboard/listings/new") params.set("next", destination);
+  return "/register/onboarding?" + params.toString();
 }
 
 export function isPrivateSellerRole(
@@ -83,7 +100,7 @@ export function resolveDealerRegistrationPath(
     return null;
   }
 
-  return dealerStatus === "APPROVED" ? "/dashboard" : "/dashboard/verification";
+  return "/dashboard";
 }
 
 export async function resolvePostAuthPath(

@@ -48,7 +48,7 @@ test("Private seller remains presentation copy over the existing seller role val
 
   assert.equal(privateSeller?.label, "Private seller");
   assert.match(form, /intended_role: selectedRole/);
-  assert.match(form, /role: selectedRole/);
+  assert.match(form, /privateSellerSetupPath\(requestedNextPath\)/);
   assert.match(form, /Private seller onboarding/);
   assert.match(onboarding, /title: "Private seller"/);
   assert.match(onboarding, /Private seller profile saved/);

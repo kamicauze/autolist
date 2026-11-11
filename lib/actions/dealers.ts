@@ -1,5 +1,6 @@
 "use server";
 
+import type { User } from "@supabase/supabase-js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
@@ -19,11 +20,24 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/utils/listings";
 import { emitNotificationEvent } from "@/lib/server/notifications";
+import { findDealerAddresses } from "@/lib/location/dealer-address";
+import type { DealerStatus } from "@/lib/types/dealer";
+import {
+  dealerRegistrationDocumentLabels,
+  dealerRegistrationSchema,
+  type DealerRegistration,
+  type DealerRegistrationDocumentType,
+} from "@/lib/validations/registration";
 
 type DealerVerificationInsertRow = {
   dealer_id: string;
   uploaded_by: string;
-  document_type: "company_logo" | "contact_photo" | "incorporation_certificate" | "contact_id";
+  document_type:
+    | "company_logo"
+    | "contact_photo"
+    | "incorporation_certificate"
+    | "contact_id"
+    | DealerRegistrationDocumentType;
   display_name: string;
   r2_key: string;
   mime_type: string;
@@ -35,7 +49,7 @@ type DealerVerificationDocumentType = DealerVerificationInsertRow["document_type
 type DealerVerificationResubmissionRow = {
   id: string;
   profile_id: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: DealerStatus;
   contact_person: { photo_url?: string | null; [key: string]: unknown } | null;
   doc_incorporation_key?: string | null;
   doc_id_key?: string | null;
@@ -114,17 +128,36 @@ const onboardingAttachments = {
   contactPhoto: { type: "contact_photo", label: "Primary contact photo", folder: "contact" },
   incorporationCertificate: { type: "incorporation_certificate", label: "Certificate of incorporation", folder: null },
   contactPersonId: { type: "contact_id", label: "Primary contact ID", folder: null },
+  cr12: { type: "cr12", label: dealerRegistrationDocumentLabels.cr12, folder: null },
+  national_id: { type: "national_id", label: dealerRegistrationDocumentLabels.national_id, folder: null },
+  passport: { type: "passport", label: dealerRegistrationDocumentLabels.passport, folder: null },
 } as const;
 
 type OnboardingAttachment = keyof typeof onboardingAttachments;
+const verificationFields = [
+  "companyLogo", "contactPhoto", "incorporationCertificate", "contactPersonId",
+] as const;
+
+async function requireDealerApplicant(): Promise<{ user: User } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "Unauthorized" } as const;
+
+  const { data: profile, error } = await supabase.from("profiles")
+    .select("role, deactivated_at").eq("id", user.id).maybeSingle();
+  if (error || !profile || profile.deactivated_at || !["buyer", "seller", "dealer"].includes(profile.role)) {
+    return { error: "An active marketplace account is required." } as const;
+  }
+  return { user } as const;
+}
 
 export async function createDealerOnboardingUpload(
   field: OnboardingAttachment,
   file: { name: string; type: string; size: number },
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error };
+  const { user } = applicant;
 
   if (!Object.hasOwn(onboardingAttachments, field)) return { error: "Invalid attachment." };
   const attachment = onboardingAttachments[field];
@@ -148,19 +181,32 @@ async function resolveOnboardingAttachment(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   formData: FormData,
+  field: typeof verificationFields[number],
+) {
+  const path = optionalString(formData, field + "UploadPath");
+  if (path) {
+    return resolveDirectDealerAttachment(
+      admin, userId, field, path, optionalString(formData, field + "UploadName"),
+    );
+  }
+
+  const file = getFile(formData, field);
+  if (!file) return null;
+  const attachment = onboardingAttachments[field];
+  return attachment.folder
+    ? uploadDealerPublicFile(userId, file, attachment.folder)
+    : uploadDealerKycFile(admin, userId, file, field === "incorporationCertificate" ? "incorporation_certificate" : "contact_id");
+}
+
+async function resolveDirectDealerAttachment(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
   field: OnboardingAttachment,
+  path: string,
+  uploadName: string | null,
 ) {
   const attachment = onboardingAttachments[field];
   const allowedTypes = attachment.folder ? IMAGE_ACCEPTED_TYPES : DOC_ACCEPTED_TYPES;
-  const path = optionalString(formData, `${field}UploadPath`);
-  if (!path) {
-    const file = getFile(formData, field);
-    if (!file) return null;
-    return attachment.folder
-      ? uploadDealerPublicFile(userId, file, attachment.folder)
-      : uploadDealerKycFile(admin, userId, file, field === "incorporationCertificate" ? "incorporation_certificate" : "contact_id");
-  }
-
   const folder = `${userId}/onboarding-${attachment.type}`;
   const name = path.slice(folder.length + 1);
   if (!path.startsWith(`${folder}/`) || !/^[a-zA-Z0-9_-]{20}-[a-z0-9._-]{1,150}$/.test(name)) {
@@ -176,7 +222,7 @@ async function resolveOnboardingAttachment(
     throw new Error(`Couldn't verify ${attachment.label}. Select the file again and retry.`);
   }
 
-  const displayName = optionalString(formData, `${field}UploadName`)?.slice(0, 255) || name.slice(21);
+  const displayName = uploadName?.slice(0, 255) || name.slice(21);
   if (!attachment.folder) {
     return { displayName, mimeType, sizeBytes, r2Key: createDealerKycReference(path), publicUrl: null };
   }
@@ -293,22 +339,69 @@ async function logAudit(
   }
 }
 
-export async function submitDealerVerification(formData: FormData) {
-  const supabase = await createClient();
-  const adminSupabase = createAdminClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: "Unauthorized" as const };
+export async function searchDealerAddresses(rawQuery: string) {
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error };
+  const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
+  if (query.length < 3 || query.length > 160) return { error: "Enter a building or street name." };
+  try {
+    return { results: await findDealerAddresses(query) };
+  } catch {
+    return { error: "Address search is unavailable. You can enter the address manually." };
   }
+}
+
+export async function createDealerRegistration(input: DealerRegistration) {
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error };
+
+  const parsed = dealerRegistrationSchema.safeParse(input);
+  if (!parsed.success) return { error: "Enter a dealership name, valid listing phone, address, town, and county. Select a type for any attached document." };
+  const { name, phone, address, town, county, area, document } = parsed.data;
+  const admin = createAdminClient();
+
+  try {
+    const uploaded = document
+      ? await resolveDirectDealerAttachment(admin, applicant.user.id, document.type, document.path, document.name)
+      : null;
+    const evidence = document && uploaded ? [{
+      document_type: document.type,
+      display_name: uploaded.displayName,
+      r2_key: uploaded.r2Key,
+      mime_type: uploaded.mimeType,
+      size_bytes: uploaded.sizeBytes,
+    }] : [];
+
+    const { data, error } = await admin.rpc("save_dealer_registration", {
+      applicant_id: applicant.user.id,
+      dealership: { name, mobile: phone, address, city: town, county, location: area || town },
+      profile_details: { phone, city: town, address },
+      evidence,
+      submit_for_review: false,
+      review_notes: null,
+    });
+    if (error || !data) return { error: error?.message || "Unable to save your dealership. Please retry." };
+    revalidatePath("/dashboard");
+    return { success: true as const, dealershipName: data.name as string };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Unable to create your dealership. Please retry." };
+  }
+}
+
+export async function submitDealerVerification(formData: FormData) {
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error };
+  const { user } = applicant;
+  const adminSupabase = createAdminClient();
 
   try {
     const dealershipName = requiredString(formData, "dealershipName");
     const dealershipAddress = requiredString(formData, "dealershipAddress");
     const cityTown = requiredString(formData, "cityTown");
+    const county = optionalString(formData, "county");
+    if (county && !dealerRegistrationSchema.shape.county.safeParse(county).success) {
+      return { error: "Choose a valid county." };
+    }
     const locationArea = requiredString(formData, "locationArea");
     const mobileNumber = requiredString(formData, "mobileNumber");
     const officialEmail = requiredString(formData, "officialEmail");
@@ -340,7 +433,14 @@ export async function submitDealerVerification(formData: FormData) {
       return { error: "Accept the dealer terms and privacy policy before submitting." as const };
     }
 
-    for (const field of Object.keys(onboardingAttachments) as OnboardingAttachment[]) {
+    const existing = await adminSupabase.from("dealers").select("status")
+      .eq("profile_id", user.id).maybeSingle();
+    if (existing.error) return { error: existing.error.message };
+    if (existing.data && existing.data.status !== "INCOMPLETE") {
+      return { error: "This dealership already has a verification request." };
+    }
+
+    for (const field of verificationFields) {
       if (optionalString(formData, `${field}UploadPath`)) continue;
       const attachment = onboardingAttachments[field];
       assertFile(
@@ -371,7 +471,6 @@ export async function submitDealerVerification(formData: FormData) {
       Object.entries(socialLinks).filter(([, value]) => Boolean(value))
     );
     const profilePayload = {
-      role: "dealer",
       phone: normalizePhone(mobileNumber),
       whatsapp: normalizePhone(whatsappNumber),
       bio: optionalString(formData, "aboutDealership"),
@@ -384,12 +483,11 @@ export async function submitDealerVerification(formData: FormData) {
     };
 
     const baseDealerPayload = {
-      profile_id: user.id,
       name: dealershipName,
       business_name: optionalString(formData, "registeredBusinessName"),
-      status: "PENDING",
       address: dealershipAddress,
       city: cityTown,
+      county,
       location: locationArea,
       mobile: normalizePhone(mobileNumber),
       email: officialEmail,
@@ -409,121 +507,31 @@ export async function submitDealerVerification(formData: FormData) {
       },
       doc_incorporation_key: incorporationUpload?.r2Key || null,
       doc_id_key: idUpload?.r2Key || null,
-      verified_by: null,
-      verified_at: null,
-      rejection_reason: null,
     };
 
-    const { data: dealer, error: dealerError } = await adminSupabase
-      .from("dealers")
-      .upsert(baseDealerPayload, { onConflict: "profile_id" })
-      .select("id")
-      .single();
-
+    const uploads = [
+      ["company_logo", logoUpload],
+      ["contact_photo", contactPhotoUpload],
+      ["incorporation_certificate", incorporationUpload],
+      ["contact_id", idUpload],
+    ] as const;
+    const evidence = uploads.flatMap(([type, upload]) => upload ? [{
+      document_type: type,
+      display_name: upload.displayName,
+      r2_key: upload.r2Key,
+      mime_type: upload.mimeType,
+      size_bytes: upload.sizeBytes,
+    }] : []);
+    const { data: dealer, error: dealerError } = await adminSupabase.rpc("save_dealer_registration", {
+      applicant_id: user.id,
+      dealership: baseDealerPayload,
+      profile_details: profilePayload,
+      evidence,
+      submit_for_review: true,
+      review_notes: optionalString(formData, "verificationNotes"),
+    });
     if (dealerError || !dealer) {
-      await removeDealerKycReferences(adminSupabase, [
-        optionalString(formData, "incorporationCertificateUploadPath") ? null : incorporationUpload?.r2Key,
-        optionalString(formData, "contactPersonIdUploadPath") ? null : idUpload?.r2Key,
-      ]);
-      return { error: dealerError?.message || "Unable to save the dealer profile." };
-    }
-
-    const { error: workflowError } = await adminSupabase
-      .from("dealer_verification_workflows")
-      .upsert({
-        dealer_id: dealer.id,
-        submitted_at: new Date().toISOString(),
-        reviewed_by: null,
-        reviewed_at: null,
-        review_notes: null,
-        verification_notes: optionalString(formData, "verificationNotes"),
-        preferred_confirmation_channel: "email",
-      }, { onConflict: "dealer_id" });
-    if (workflowError) {
-      return { error: "Your dealer profile was saved, but verification details could not be saved. Please retry." };
-    }
-
-    const documentRows = [
-      logoUpload
-        ? {
-            dealer_id: dealer.id,
-            uploaded_by: user.id,
-            document_type: "company_logo",
-            display_name: logoUpload.displayName,
-            r2_key: logoUpload.r2Key,
-            mime_type: logoUpload.mimeType,
-            size_bytes: logoUpload.sizeBytes,
-          }
-        : null,
-      contactPhotoUpload
-        ? {
-            dealer_id: dealer.id,
-            uploaded_by: user.id,
-            document_type: "contact_photo",
-            display_name: contactPhotoUpload.displayName,
-            r2_key: contactPhotoUpload.r2Key,
-            mime_type: contactPhotoUpload.mimeType,
-            size_bytes: contactPhotoUpload.sizeBytes,
-          }
-        : null,
-      incorporationUpload
-        ? {
-            dealer_id: dealer.id,
-            uploaded_by: user.id,
-            document_type: "incorporation_certificate",
-            display_name: incorporationUpload.displayName,
-            r2_key: incorporationUpload.r2Key,
-            mime_type: incorporationUpload.mimeType,
-            size_bytes: incorporationUpload.sizeBytes,
-          }
-        : null,
-      idUpload
-        ? {
-            dealer_id: dealer.id,
-            uploaded_by: user.id,
-            document_type: "contact_id",
-            display_name: idUpload.displayName,
-            r2_key: idUpload.r2Key,
-            mime_type: idUpload.mimeType,
-            size_bytes: idUpload.sizeBytes,
-          }
-        : null,
-    ].filter(
-      (value): value is DealerVerificationInsertRow => Boolean(value)
-    );
-
-    const { error: deleteDocumentError } = await adminSupabase
-      .from("dealer_verification_documents")
-      .delete()
-      .eq("dealer_id", dealer.id)
-      .in("document_type", [
-        "company_logo",
-        "contact_photo",
-        "incorporation_certificate",
-        "contact_id",
-      ]);
-
-    if (deleteDocumentError && !isMissingDealerVerificationDocumentsTable(deleteDocumentError)) {
-      return { error: deleteDocumentError.message };
-    }
-
-    if (documentRows.length > 0) {
-      const { error: documentError } = await adminSupabase
-        .from("dealer_verification_documents")
-        .insert(documentRows);
-      
-      if (documentError && !isMissingDealerVerificationDocumentsTable(documentError)) {
-        return { error: documentError.message };
-      }
-    }
-
-    const { error: roleError } = await adminSupabase
-      .from("profiles")
-      .update(profilePayload)
-      .eq("id", user.id);
-
-    if (roleError) {
-      return { error: roleError.message };
+      return { error: dealerError?.message || "Unable to submit dealer verification. Please retry." };
     }
 
     const stagedPhotoPaths = ["companyLogo", "contactPhoto"]
@@ -556,16 +564,10 @@ export async function submitDealerVerification(formData: FormData) {
 }
 
 export async function resubmitDealerVerificationDocuments(formData: FormData) {
-  const supabase = await createClient();
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error };
+  const { user } = applicant;
   const adminSupabase = createAdminClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: "Unauthorized" as const };
-  }
 
   try {
     const intent = requiredString(formData, "intent") === "draft" ? "draft" : "submit";
@@ -610,6 +612,13 @@ export async function resubmitDealerVerificationDocuments(formData: FormData) {
 
     if (!dealer) {
       return { error: "Create a dealer verification request before uploading documents." };
+    }
+
+    if (dealer.status === "INCOMPLETE") {
+      return { error: "Complete the dealership details before submitting verification." };
+    }
+    if (dealer.status === "APPROVED") {
+      return { error: "This dealership is already verified." };
     }
 
     const hasSelectedFiles = Boolean(
@@ -902,13 +911,16 @@ export async function approveDealer(dealerId: string, note?: string) {
     })
     .eq("id", dealerId)
     .neq("status", "APPROVED")
+    .neq("status", "INCOMPLETE")
     .select("id, profile_id")
     .maybeSingle();
 
   if (dealerError) return { error: dealerError.message };
   if (!dealer) {
-    const { data: existing, error } = await adminSupabase.from("dealers").select("id").eq("id", dealerId).maybeSingle();
-    return error || !existing ? { error: error?.message || "Dealer not found." } : { success: true };
+    const { data: existing, error } = await adminSupabase.from("dealers").select("status").eq("id", dealerId).maybeSingle();
+    if (error || !existing) return { error: error?.message || "Dealer not found." };
+    if (existing.status === "INCOMPLETE") return { error: "This dealership has not submitted verification." };
+    return { success: true };
   }
 
   await adminSupabase.from("profiles").update({ role: "dealer" }).eq("id", dealer.profile_id);
@@ -945,13 +957,16 @@ export async function rejectDealer(dealerId: string, reason: string) {
     })
     .eq("id", dealerId)
     .neq("status", "REJECTED")
+    .neq("status", "INCOMPLETE")
     .select("id, profile_id")
     .maybeSingle();
 
   if (dealerError) return { error: dealerError.message };
   if (!dealer) {
-    const { data: existing, error } = await adminSupabase.from("dealers").select("id").eq("id", dealerId).maybeSingle();
-    return error || !existing ? { error: error?.message || "Dealer not found." } : { success: true };
+    const { data: existing, error } = await adminSupabase.from("dealers").select("status").eq("id", dealerId).maybeSingle();
+    if (error || !existing) return { error: error?.message || "Dealer not found." };
+    if (existing.status === "INCOMPLETE") return { error: "This dealership has not submitted verification." };
+    return { success: true };
   }
 
   const auditWarning = await logAudit(user.id, "dealer_rejected", "dealer", dealer.id, {

@@ -2,7 +2,7 @@ export type SellerVerificationStatus =
   "draft" | "pending" | "approved" | "rejected";
 
 export type SellerVerificationDocumentType =
-  "national_id_front" | "national_id_back";
+  "national_id_front" | "national_id_back" | "passport";
 
 export type SellerVerificationDocument = {
   id: string;

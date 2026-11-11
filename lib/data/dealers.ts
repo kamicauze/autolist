@@ -18,13 +18,14 @@ import {
   DEALER_INVENTORY_SORTS,
   type DealerInventorySort,
 } from "@/lib/dealers/inventory";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
 import { getDealerVerificationWorkflows } from "@/lib/data/dealer-verification-workflows";
 
 const LISTING_SELECT = `
   *,
   images:listing_images(id, r2_key, alt_text, image_order),
   seller:public_profiles(id, full_name, avatar_url),
-  dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+  dealer:public_dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
 `;
 
 export async function getApprovedDealers(limit = 12): Promise<DealerProfile[]> {
@@ -191,7 +192,8 @@ function normalizeDealerVerificationRecord(record: DealerVerificationRecord | nu
 function isPrivateDealerDocument(document: DealerVerificationDocument) {
   return (
     document.document_type === "incorporation_certificate" ||
-    document.document_type === "contact_id"
+    document.document_type === "contact_id" ||
+    Boolean(getDealerRegistrationDocumentLabel(document.document_type))
   );
 }
 

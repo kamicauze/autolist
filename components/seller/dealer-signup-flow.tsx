@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { createDealerOnboardingUpload, submitDealerVerification } from "@/lib/actions/dealers";
+import { KENYA_COUNTIES } from "@/lib/constants/filters";
+import type { DealerVerificationRecord } from "@/lib/types/dealer";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
 import { createClient } from "@/lib/supabase/client";
 
 type DealerSignupData = {
@@ -17,6 +20,7 @@ type DealerSignupData = {
   registeredBusinessName: string;
   dealershipAddress: string;
   cityTown: string;
+  county: string;
   locationArea: string;
   mobileNumber: string;
   officialEmail: string;
@@ -79,6 +83,7 @@ const DEFAULT_DATA: DealerSignupData = {
   registeredBusinessName: "",
   dealershipAddress: "",
   cityTown: "",
+  county: "",
   locationArea: "",
   mobileNumber: "",
   officialEmail: "",
@@ -128,16 +133,31 @@ function isValidUrl(value: string) {
 
 interface DealerSignupFlowProps {
   previewMode?: boolean;
+  initialDealer?: Pick<DealerVerificationRecord, "name" | "address" | "city" | "county" | "location" | "mobile" | "email" | "whatsapp" | "documents">;
 }
 
-export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps) {
+export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerSignupFlowProps) {
   const router = useRouter();
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [formData, setFormData] = React.useState<DealerSignupData>(DEFAULT_DATA);
+  const [formData, setFormData] = React.useState<DealerSignupData>(() => ({
+    ...DEFAULT_DATA,
+    dealershipName: initialDealer?.name || "",
+    dealershipAddress: initialDealer?.address || "",
+    cityTown: initialDealer?.city || "",
+    county: initialDealer?.county || "",
+    locationArea: initialDealer?.location || "",
+    mobileNumber: initialDealer?.mobile || "",
+    officialEmail: initialDealer?.email || "",
+    whatsappNumber: initialDealer?.whatsapp || "",
+  }));
+  const savedDocuments = initialDealer?.documents.flatMap((document) => {
+    const label = getDealerRegistrationDocumentLabel(document.document_type);
+    return label ? [{ ...document, label }] : [];
+  }) || [];
   const [companyLogoFile, setCompanyLogoFile] = React.useState<File | null>(null);
   const [contactPhotoFile, setContactPhotoFile] = React.useState<File | null>(null);
   const [incorporationCertificateFile, setIncorporationCertificateFile] = React.useState<File | null>(null);
@@ -276,6 +296,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("registeredBusinessName", formData.registeredBusinessName);
       submission.set("dealershipAddress", formData.dealershipAddress);
       submission.set("cityTown", formData.cityTown);
+      submission.set("county", formData.county);
       submission.set("locationArea", formData.locationArea);
       submission.set("mobileNumber", formData.mobileNumber);
       submission.set("officialEmail", formData.officialEmail);
@@ -371,23 +392,14 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
           Dealer application submitted
         </h2>
         <p className="text-sm text-muted-foreground">
-          Your dealer profile is now pending manual verification. Dealer listings stay hidden until
-          status changes to <span className="font-semibold text-foreground">Approved</span>.
+          Autolist is reviewing your documents. You can continue publishing listings while you wait.
         </p>
-
-        <div className="rounded-xl border border-border bg-white p-4 text-sm">
-          <p className="font-semibold text-foreground">System statuses</p>
-          <p className="mt-2 text-muted-foreground">Pending Verification • Approved • Rejected</p>
-          <p className="mt-2 text-muted-foreground">
-            Dealer accounts can only publish listings and appear in search results after approval.
-          </p>
-        </div>
 
         <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm">
           <p className="font-semibold text-foreground">Dealer review updates</p>
           <p className="mt-1 text-muted-foreground">
             We will email the review result to the email address on your Autolist account.
-            Sign in to check your verification status. Once approved, you can access your dealer dashboard.
+            Your verified dealer badge appears after approval.
           </p>
           <Link href="/dashboard/verification" className="mt-3 inline-block font-semibold text-primary hover:underline">
             View verification status
@@ -399,8 +411,8 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
 
   return (
     <WizardShell
-      title="Dealer Sign-Up & Verification"
-      description="MVP onboarding for verified dealerships with required documentation and consent capture."
+      title="Finish dealer verification"
+      description="Review your saved details and add the remaining information for Autolist to verify your dealership."
       steps={DEALER_SIGNUP_STEPS}
       activeStep={activeStep}
       testId="dealer-signup-flow"
@@ -499,6 +511,13 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
                 value={formData.locationArea}
                 onChange={(event) => updateField("locationArea", event.target.value)}
               />
+            </div>
+            <div>
+              <Label htmlFor="dealer-county">County</Label>
+              <select id="dealer-county" value={formData.county} onChange={(event) => updateField("county", event.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Select county</option>
+                {KENYA_COUNTIES.map((county) => <option key={county}>{county}</option>)}
+              </select>
             </div>
             <div>
               <Label htmlFor="dealer-mobile">Mobile Number *</Label>
@@ -683,6 +702,17 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       {activeStep === 3 && (
         <div className="space-y-4" data-testid="dealer-step-verification">
           <h2 className="text-lg font-semibold text-foreground">Verification Requirements</h2>
+          {savedDocuments.map((document) => (
+            <div key={document.id} className="rounded-lg border border-border bg-muted p-3 text-sm">
+              <p className="font-semibold">{document.label} saved during registration</p>
+              {document.review_url ? (
+                <a href={document.review_url} target="_blank" rel="noreferrer" className="break-words text-primary underline">{document.display_name}</a>
+              ) : (
+                <p className="break-words">{document.display_name}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">This document will be included with your verification submission.</p>
+            </div>
+          ))}
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="dealer-incorporation">Certificate of Incorporation *</Label>

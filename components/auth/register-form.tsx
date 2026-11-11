@@ -31,6 +31,7 @@ import {
 } from "@/lib/supabase/registration-request";
 import {
   inferMarketplaceRoleFromNextPath,
+  privateSellerSetupPath,
   sanitizeNextPath,
 } from "@/lib/supabase/auth-routing";
 import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
@@ -106,6 +107,7 @@ export function RegisterForm() {
   const nextPath =
     selectedRole === "dealer"
       ? "/register/dealer"
+      : selectedRole === "seller" ? privateSellerSetupPath(requestedNextPath)
       : requestedNextPath || `/register/onboarding?role=${selectedRole}`;
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const selectedRoleOption = USER_ROLE_OPTIONS.find((option) => option.value === selectedRole);
@@ -171,20 +173,6 @@ export function RegisterForm() {
       if (error) {
         setErrorMessage(getRegistrationErrorMessage(error.message));
         return;
-      }
-
-      if (data.user && data.session) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            role: selectedRole,
-          })
-          .eq("id", data.user.id);
-
-        if (profileError) {
-          setErrorMessage(profileError.message);
-          return;
-        }
       }
 
       if (data.session) {
@@ -395,7 +383,7 @@ export function RegisterForm() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <label className="block space-y-2 text-sm font-medium text-[#24272C]" htmlFor="register-email">
             <span>Email address</span>
             <div className="relative">

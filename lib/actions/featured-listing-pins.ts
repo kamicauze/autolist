@@ -43,7 +43,7 @@ const FEATURED_LISTING_PIN_ACTION_SELECT = `
     *,
     images:listing_images(id, listing_id, r2_key, alt_text, image_order, is_watermarked, created_at),
     seller:profiles!seller_id(id, full_name, avatar_url),
-    dealer:dealers(id, name, logo_url, city)
+    dealer:dealers(status, id, name, logo_url, city)
   )
 `;
 

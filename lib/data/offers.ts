@@ -12,13 +12,13 @@ const OFFER_LISTING_SELECT = `
   *,
   images:listing_images(id, r2_key, alt_text, image_order),
   seller:public_profiles(id, full_name, avatar_url),
-  dealer:dealers(id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
+  dealer:dealers(status, id, name, logo_url, city, mobile, whatsapp, email, address, about_text)
 `;
 
 const OFFER_SELECT = `
   *,
   listing:listings(${OFFER_LISTING_SELECT}, offer_settings:listing_offer_settings(*)),
-  dealer:dealers(id, profile_id, name, business_name, logo_url, city, mobile, email, whatsapp)
+  dealer:dealers(status, id, profile_id, name, business_name, logo_url, city, mobile, email, whatsapp)
 `;
 
 type OfferSettingsWithListingRow = ListingOfferSettings & {

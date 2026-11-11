@@ -347,7 +347,7 @@ type SellerAccountProfile = {
 };
 
 type SellerAccountDealer = {
-  status: "PENDING" | "APPROVED" | "REJECTED" | null;
+  status: import("@/lib/types/dealer").DealerStatus | null;
   city?: string | null;
   location?: string | null;
   address?: string | null;

@@ -26,6 +26,7 @@ import type {
   SellerVerificationDocumentType,
   SellerVerificationView,
 } from "@/lib/types/seller-verification";
+import { hasCompleteSellerIdentity } from "@/lib/validations/registration";
 import { cn } from "@/lib/utils";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import { SellerStatusPill, SellerSurface } from "../seller-dashboard-ui";
@@ -48,6 +49,12 @@ const DOCUMENTS: Array<{
     title: "National ID back",
     description:
       "Upload a clear image or PDF of the back of your national ID.",
+    required: true,
+  },
+  {
+    type: "passport",
+    title: "Passport photo page",
+    description: "Upload the page with your photograph and passport details.",
     required: true,
   },
 ];
@@ -114,20 +121,13 @@ export function SellerVerificationPanel({
   const [error, setError] = React.useState<string | null>(null);
 
   const meta = statusMeta(record?.status || "draft");
-  const hasIdFront = Boolean(
-    record?.documents.some(
-      (document) => document.document_type === "national_id_front",
-    ),
-  );
-  const hasIdBack = Boolean(
-    record?.documents.some(
-      (document) => document.document_type === "national_id_back",
-    ),
-  );
+  const documentTypes = record?.documents.map((document) => document.document_type) || [];
+  const hasIdentity = hasCompleteSellerIdentity(documentTypes);
+  const [identity, setIdentity] = React.useState(documentTypes.includes("passport") ? "passport" : "national_id");
   const phoneVerified = Boolean(record?.phone && record.phone_verified_at);
   const locked = record?.status === "pending" || record?.status === "approved";
   const canSubmit =
-    verification.setupAvailable && hasIdFront && hasIdBack && phoneVerified && !locked;
+    verification.setupAvailable && hasIdentity && phoneVerified && !locked;
 
   function clearFeedback() {
     setMessage(null);
@@ -297,8 +297,8 @@ export function SellerVerificationPanel({
           </div>
           <div className="flex shrink-0 gap-2">
             <SellerStatusPill
-              label={hasIdFront && hasIdBack ? "ID uploaded" : "ID sides required"}
-              tone={hasIdFront && hasIdBack ? "green" : "amber"}
+              label={hasIdentity ? "ID uploaded" : "ID required"}
+              tone={hasIdentity ? "green" : "amber"}
             />
             <SellerStatusPill
               label={phoneVerified ? "Phone verified" : "Phone required"}
@@ -336,7 +336,16 @@ export function SellerVerificationPanel({
           </div>
 
           <div className="mt-5 space-y-4">
-            {DOCUMENTS.map((item) => {
+            {!locked && (
+              <label className="block space-y-1.5 text-sm font-medium">
+                <span>Identity document type</span>
+                <select value={identity} onChange={(event) => setIdentity(event.target.value)} className="h-11 w-full rounded-lg border border-input bg-background px-3">
+                  <option value="national_id">National ID</option>
+                  <option value="passport">Passport</option>
+                </select>
+              </label>
+            )}
+            {DOCUMENTS.filter((item) => (item.type === "passport") === (identity === "passport")).map((item) => {
               const current = record?.documents.find(
                 (document) => document.document_type === item.type,
               );

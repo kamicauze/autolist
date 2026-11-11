@@ -2,19 +2,23 @@ import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 
 let userId = "listing-owner";
-let listing = { id: "listing-sample", seller_id: "listing-owner", dealer_id: null, assigned_agent_id: null, status: "draft", make: "Toyota", model: "Corolla", year: 2020, price: 0, condition: null as string | null, metadata: {} };
+let listing = { id: "listing-sample", seller_id: "listing-owner", dealer_id: null as string | null, assigned_agent_id: null, status: "draft", make: "Toyota", model: "Corolla", year: 2020, price: 0, condition: null as string | null, metadata: {} };
 const updates: Array<Record<string, unknown>> = [];
 let imageReads = 0;
+let imageCount = 3;
+let dealerError: { message: string } | null = null;
+let dealer: { id: string; profile_id: string; status: string } | null = null;
 const client = {
   auth: { getUser: async () => ({ data: { user: { id: userId } } }) },
   from(table: string) {
     let update: Record<string, unknown> | null = null;
+    const filters: Record<string, unknown> = {};
     if (table === "listing_images") imageReads++;
     const chain = {
-      select() { return chain; }, eq() { return chain; },
+      select() { return chain; }, eq(field: string, value: unknown) { filters[field] = value; return chain; },
       update(value: Record<string, unknown>) { update = value; updates.push(value); return chain; },
-      maybeSingle: async () => ({ data: table === "profiles" ? { role: "buyer" } : update ? { status: update.status } : listing, error: null }),
-      then(resolve: (result: unknown) => unknown) { return Promise.resolve({ data: null, count: 3, error: null }).then(resolve); },
+      maybeSingle: async () => ({ data: table === "profiles" ? { role: "buyer" } : table === "dealers" ? (dealer && Object.entries(filters).every(([field, value]) => dealer?.[field as keyof typeof dealer] === value) ? dealer : null) : update ? { status: update.status } : listing, error: table === "dealers" ? dealerError : null }),
+      then(resolve: (result: unknown) => unknown) { return Promise.resolve({ data: null, count: imageCount, error: null }).then(resolve); },
     };
     return chain;
   },
@@ -61,4 +65,41 @@ test("ownership access checks remain ahead of editing and publication validation
   assert.match(String((await updateListing(listing.id, { price: 0 })).error), /not editable/);
   assert.match(failure(await submitListingForReview(listing.id)), /not editable/);
   assert.equal(updates.length, before);
+});
+
+
+test("registered dealers publish before approval without changing verification status", async () => {
+  userId = "listing-owner";
+  listing = { ...listing, status: "draft", price: 1000000, condition: "locally_used", dealer_id: "sample-dealer" };
+  for (const status of ["PENDING", "APPROVED", "REJECTED"]) {
+    dealer = { id: "sample-dealer", profile_id: listing.seller_id, status };
+    const result = await submitListingForReview(listing.id);
+    assert.equal(result.success, true);
+    assert.equal(result.autoApproved, true);
+    assert.equal(updates.at(-1)?.status, "active");
+    assert.equal(dealer.status, status);
+  }
+  imageCount = 2;
+  const before = updates.length;
+  assert.match(failure(await submitListingForReview(listing.id)), /Minimum 3/);
+  assert.equal(updates.length, before);
+  imageCount = 3;
+});
+
+test("missing or unrelated dealership records cannot auto-publish a listing", async () => {
+  userId = "listing-owner";
+  for (const candidate of [null, { id: "sample-dealer", profile_id: "another-owner", status: "APPROVED" }]) {
+    dealer = candidate;
+    assert.equal((await submitListingForReview(listing.id)).autoApproved, false);
+    assert.equal(updates.at(-1)?.status, "pending");
+  }
+});
+
+
+test("a dealership lookup failure preserves the draft for retry", async () => {
+  dealerError = { message: "Dealership lookup unavailable" };
+  const before = updates.length;
+  assert.equal(failure(await submitListingForReview(listing.id)), dealerError.message);
+  assert.equal(updates.length, before);
+  dealerError = null;
 });
