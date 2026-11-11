@@ -26,6 +26,7 @@ import {
 } from "@/lib/constants/marketplace";
 import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
 import { WizardShell } from "@/components/seller/wizard-shell";
+import { privateSellerSetupPath } from "@/lib/supabase/auth-routing";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -257,6 +258,11 @@ export function OnboardingFlow({
     if (!isLastStep) {
       if (!canContinue) {
         setSubmitError("Complete the required fields before continuing.");
+        return;
+      }
+
+      if (!previewMode && activeStep === 1 && formData.role !== "buyer") {
+        router.replace(formData.role === "dealer" ? "/register/dealer" : privateSellerSetupPath(searchParams.get("next")));
         return;
       }
 

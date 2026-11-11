@@ -4,12 +4,15 @@ import {
   canRenderBuyerAccountPage,
   inferMarketplaceRoleFromNextPath,
   isPrivateSellerRole,
+  privateSellerSetupPath,
+  privateSellerSetupDestination,
   resolveDealerRegistrationPath,
   resolveSelfServiceRoleTransition,
   sanitizeNextPath,
 } from "./auth-routing";
 
 assert.equal(resolveDealerRegistrationPath(null), null);
+assert.equal(resolveDealerRegistrationPath("INCOMPLETE"), "/dashboard");
 assert.equal(
   resolveDealerRegistrationPath("PENDING"),
   "/dashboard",
@@ -106,4 +109,14 @@ test("buyer account pages preserve account-state redirects and other roles' rout
       assert.equal(canRenderBuyerAccountPage(role, "/", path), false);
     }
   }
+});
+
+test("seller setup keeps listing and dealer-offer destinations on Autolist", () => {
+  assert.equal(privateSellerSetupPath(), "/register/onboarding?role=seller");
+  assert.equal(
+    privateSellerSetupPath("/sell/dealer?source=header"),
+    "/register/onboarding?role=seller&next=%2Fsell%2Fdealer%3Fsource%3Dheader",
+  );
+  assert.equal(privateSellerSetupDestination("//external.test"), "/dashboard/listings/new");
+  assert.equal(privateSellerSetupDestination("/admin"), "/dashboard/listings/new");
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import type { DealerStatus } from "@/lib/types/dealer";
 import Image from "next/image";
 import { recordListingInteraction } from "@/lib/actions/listing-interactions";
 import Link from "next/link";
@@ -26,7 +27,7 @@ interface SellerCardProps {
   listingId: string;
   listingTitle: string;
   dealer?: {
-    status?: "PENDING" | "APPROVED" | "REJECTED";
+    status?: DealerStatus;
     id: string;
     name: string;
     logo_url: string | null;

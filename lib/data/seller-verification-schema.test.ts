@@ -35,7 +35,13 @@ test("seller KYC storage stays private and metadata is protected by RLS", () => 
 });
 
 test("phone OTPs are digested, bounded, and restricted to stored private sellers", () => {
-  assert.match(actions, /profile\?\.role !== "seller"/);
+  assert.match(actions, /function requirePrivateSeller\(registration = false\)/);
+  assert.match(actions, /profile\.role !== "seller" && !\(registration && profile\.role === "buyer"\)/);
+  for (const actionName of ["requestSellerPhoneOtp", "verifySellerPhoneOtp"]) {
+    const start = actions.indexOf("export async function " + actionName);
+    const next = actions.indexOf("export async function ", start + 1);
+    assert.match(actions.slice(start, next), /await requirePrivateSeller\(\)/);
+  }
   assert.match(actions, /createHmac\("sha256", getOtpSecret\(\)\)/);
   assert.match(actions, /const OTP_TTL_MS = 10 \* 60 \* 1000/);
   assert.match(actions, /const OTP_MAX_ATTEMPTS = 5/);
@@ -49,9 +55,13 @@ test("pending and approved verification records are immutable to the seller", ()
   assert.match(actions, /ensureEditableSellerVerification/);
 });
 
-test("seller submission and approval require both national ID sides", () => {
-  const requiredSides = actions.match(/!documentTypes\.has\("national_id_(front|back)"\)/g);
-  assert.equal(requiredSides?.length, 4);
-  assert.match(actions, /Upload both sides of your national ID before submitting KYC/);
-  assert.match(actions, /Both sides of the seller national ID are required/);
+test("seller submission and approval require either both national ID sides or a passport", () => {
+  for (const actionName of ["submitSellerVerification", "approveSellerVerification"]) {
+    const start = actions.indexOf("export async function " + actionName);
+    const next = actions.indexOf("export async function ", start + 1);
+    const action = actions.slice(start, next);
+    assert.match(action, /if \(!hasCompleteSellerIdentity\(/);
+    assert.match(action, /phone_verified_at/);
+    assert.match(action, /passport photo page/);
+  }
 });

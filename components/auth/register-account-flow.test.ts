@@ -48,7 +48,7 @@ test("Private seller remains presentation copy over the existing seller role val
 
   assert.equal(privateSeller?.label, "Private seller");
   assert.match(form, /intended_role: selectedRole/);
-  assert.match(form, /role: selectedRole/);
+  assert.match(form, /privateSellerSetupPath\(requestedNextPath\)/);
   assert.match(form, /Private seller onboarding/);
   assert.match(onboarding, /title: "Private seller"/);
   assert.match(onboarding, /Private seller profile saved/);
@@ -65,10 +65,11 @@ test("account creation requires readable Terms and Privacy consent", () => {
   assert.match(form, /privacy_accepted_at: new Date\(\)\.toISOString\(\)/);
 });
 
-test("duplicate signup exits before profile updates or success feedback", () => {
+test("duplicate signup exits before navigation or success feedback", () => {
   const duplicateCheck = form.indexOf("if (!data.session && isExistingRegistration(data.user))");
   assert.ok(duplicateCheck > form.indexOf("supabase.auth.signUp"));
-  assert.ok(duplicateCheck < form.indexOf('.from("profiles")'));
+  assert.ok(duplicateCheck < form.indexOf("router.replace(nextPath)", duplicateCheck));
+  assert.doesNotMatch(form, /\.from\("profiles"\)/);
   assert.match(form.slice(duplicateCheck), /setErrorMessage\(EMAIL_ALREADY_REGISTERED_MESSAGE\);\s*return;/);
 });
 

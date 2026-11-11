@@ -9,6 +9,7 @@ import { sendProviderPhoneOtp } from "@/lib/server/delivery-providers";
 import { isWhatsAppEnabled } from "@/lib/server/whatsapp-availability";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { hasCompleteSellerIdentity, listingPhoneSchema, sellerIdentityDocuments } from "@/lib/validations/registration";
 import type { SellerVerificationDocumentType } from "@/lib/types/seller-verification";
 import {
   isValidPhoneNumber,
@@ -39,6 +40,8 @@ type UploadDescriptor = {
   sizeBytes: number;
 };
 
+type UploadedSellerDocument = UploadDescriptor & { storagePath: string };
+
 type SellerContext = Awaited<ReturnType<typeof requirePrivateSeller>>;
 
 function sanitizeFileName(fileName: string) {
@@ -51,14 +54,11 @@ function sanitizeFileName(fileName: string) {
 }
 
 function assertUploadDescriptor(input: UploadDescriptor) {
-  if (
-    input.documentType !== "national_id_front" &&
-    input.documentType !== "national_id_back"
-  ) {
+  if (!input || !Object.hasOwn(sellerIdentityDocuments, input.documentType)) {
     throw new Error("Choose a supported ID document type.");
   }
 
-  if (!input.fileName.trim()) throw new Error("Choose an ID document.");
+  if (typeof input.fileName !== "string" || !input.fileName.trim() || input.fileName.length > 255) throw new Error("Choose an ID document.");
   if (!ACCEPTED_KYC_MIME_TYPES.has(input.contentType)) {
     throw new Error("Upload a PDF, JPG, PNG, or WEBP document.");
   }
@@ -99,7 +99,7 @@ function maskPhone(phone: string) {
     : `${phone.slice(0, 4)}••••${phone.slice(-3)}`;
 }
 
-async function requirePrivateSeller() {
+async function requirePrivateSeller(registration = false) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -110,11 +110,12 @@ async function requirePrivateSeller() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, deactivated_at")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError || profile?.role !== "seller") {
+  if (profileError || !profile || profile.deactivated_at ||
+      (profile.role !== "seller" && !(registration && profile.role === "buyer"))) {
     return {
       error:
         "Private seller verification is only available to individual sellers." as const,
@@ -178,14 +179,16 @@ async function logSellerVerificationAudit(
   });
 }
 
-export async function createSellerKycUploadTicket(input: UploadDescriptor) {
-  const context = await requirePrivateSeller();
+export async function createSellerKycUploadTicket(input: UploadDescriptor, registration = false) {
+  const context = await requirePrivateSeller(registration);
   if (isSellerContextError(context)) return context;
-  if (!isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
+  if (!registration && !isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
 
   try {
     assertUploadDescriptor(input);
-    const admin = await ensureEditableSellerVerification(context.user.id);
+    const admin = registration
+      ? createAdminClient()
+      : await ensureEditableSellerVerification(context.user.id);
     const safeName = sanitizeFileName(input.fileName) || "identity-document";
     const storagePath = `${context.user.id}/${input.documentType}/${Date.now()}-${nanoid(10)}-${safeName}`;
     const { data, error } = await admin.storage
@@ -223,59 +226,83 @@ export async function createSellerKycUploadTicket(input: UploadDescriptor) {
   }
 }
 
-export async function finalizeSellerKycDocument(
-  input: UploadDescriptor & { storagePath: string },
+async function readSellerKycUpload(
+  admin: ReturnType<typeof createAdminClient>, userId: string, input: UploadedSellerDocument,
 ) {
+  assertUploadDescriptor(input);
+  const folder = [userId, input.documentType].join("/");
+  const expectedPrefix = folder + "/";
+  const objectName = input.storagePath?.slice(expectedPrefix.length);
+  if (!input.storagePath?.startsWith(expectedPrefix) || !objectName ||
+      !/^\d+-[\w-]{10}-[a-z0-9._-]{1,120}$/.test(objectName)) {
+    throw new Error("The uploaded document does not belong to this verification request.");
+  }
+
+  const { data: objects, error } = await admin.storage.from(SELLER_KYC_BUCKET)
+    .list(folder, { limit: 10, search: objectName });
+  const stored = objects?.find((object) => object.name === objectName);
+  const sizeBytes = Number(stored?.metadata?.size);
+  const mimeType = stored?.metadata?.mimetype;
+  if (error || sizeBytes !== input.sizeBytes || typeof mimeType !== "string" ||
+      mimeType !== input.contentType || !ACCEPTED_KYC_MIME_TYPES.has(mimeType)) {
+    throw new Error("The secure upload could not be verified. Select the file again and retry.");
+  }
+  return {
+    document_type: input.documentType,
+    storage_path: input.storagePath,
+    display_name: input.fileName.trim(),
+    mime_type: mimeType,
+    size_bytes: sizeBytes,
+  };
+}
+
+export async function savePrivateSellerRegistration(rawPhone: string, documents: UploadedSellerDocument[]) {
+  const context = await requirePrivateSeller(true);
+  if (isSellerContextError(context)) return context;
+  const phone = listingPhoneSchema.safeParse(rawPhone);
+  if (!phone.success) return { error: "Enter a valid phone number." };
+  if (!Array.isArray(documents) || documents.length < 1 || documents.length > 2) {
+    return { error: "Upload both sides of your national ID or your passport photo page." };
+  }
+  const types = documents.map((document) => document?.documentType);
+  if (!hasCompleteSellerIdentity(types) || (types.includes("passport") && types.length !== 1)) {
+    return { error: "Upload both sides of your national ID or your passport photo page." };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const evidence = await Promise.all(documents.map((document) => readSellerKycUpload(admin, context.user.id, document)));
+    const { data, error } = await admin.rpc("save_private_seller_registration", {
+      applicant_id: context.user.id,
+      listing_phone: phone.data,
+      evidence,
+    });
+    if (error) return { error: error.message };
+
+    const currentPaths = new Set(evidence.map((document) => document.storage_path));
+    const replaced = (data as string[] | null)?.filter(
+      (path) => path.startsWith(context.user.id + "/") && !currentPaths.has(path),
+    );
+    if (replaced?.length) {
+      const { error: cleanupError } = await admin.storage.from(SELLER_KYC_BUCKET).remove(replaced);
+      if (cleanupError) console.warn("Unable to remove replaced private seller documents:", cleanupError.message);
+    }
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/verification");
+    return { success: true as const };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Unable to save your seller setup. Please retry." };
+  }
+}
+
+export async function finalizeSellerKycDocument(input: UploadedSellerDocument) {
   const context = await requirePrivateSeller();
   if (isSellerContextError(context)) return context;
   if (!isWhatsAppEnabled()) return { error: PRIVATE_VERIFICATION_UNAVAILABLE };
 
   try {
-    assertUploadDescriptor(input);
-    const expectedPrefix = `${context.user.id}/${input.documentType}/`;
-    if (!input.storagePath.startsWith(expectedPrefix)) {
-      return {
-        error:
-          "The uploaded document does not belong to this verification request.",
-      };
-    }
-
     const admin = await ensureEditableSellerVerification(context.user.id);
-    const pathParts = input.storagePath.split("/");
-    const objectName = pathParts.pop();
-    const folder = pathParts.join("/");
-    if (!objectName) return { error: "The uploaded document path is invalid." };
-
-    const { data: objects, error: listError } = await admin.storage
-      .from(SELLER_KYC_BUCKET)
-      .list(folder, { limit: 10, search: objectName });
-    const storedObject = objects?.find((object) => object.name === objectName);
-
-    if (listError || !storedObject) {
-      return {
-        error: listError?.message || "The secure upload could not be verified.",
-      };
-    }
-
-    const metadata = (storedObject.metadata || {}) as Record<string, unknown>;
-    const storedSize = Number(metadata.size || input.sizeBytes);
-    const storedMimeType =
-      typeof metadata.mimetype === "string"
-        ? metadata.mimetype
-        : input.contentType;
-
-    if (storedSize !== input.sizeBytes || storedSize > MAX_KYC_FILE_BYTES) {
-      await admin.storage.from(SELLER_KYC_BUCKET).remove([input.storagePath]);
-      return {
-        error: "The uploaded document size did not match the selected file.",
-      };
-    }
-
-    if (!ACCEPTED_KYC_MIME_TYPES.has(storedMimeType)) {
-      await admin.storage.from(SELLER_KYC_BUCKET).remove([input.storagePath]);
-      return { error: "The uploaded document type is not supported." };
-    }
-
+    const document = await readSellerKycUpload(admin, context.user.id, input);
     const { data: existingDocument } = await admin
       .from("seller_verification_documents")
       .select("storage_path")
@@ -288,11 +315,7 @@ export async function finalizeSellerKycDocument(
       .upsert(
         {
           profile_id: context.user.id,
-          document_type: input.documentType,
-          storage_path: input.storagePath,
-          display_name: input.fileName.trim(),
-          mime_type: storedMimeType,
-          size_bytes: storedSize,
+          ...document,
           created_at: new Date().toISOString(),
         },
         { onConflict: "profile_id,document_type" },
@@ -600,16 +623,8 @@ export async function submitSellerVerification() {
     if (!verification?.phone || !verification.phone_verified_at) {
       return { error: "Verify your phone number before submitting KYC." };
     }
-    const documentTypes = new Set(
-      (documents || []).map((document) => document.document_type),
-    );
-    if (
-      !documentTypes.has("national_id_front") ||
-      !documentTypes.has("national_id_back")
-    ) {
-      return {
-        error: "Upload both sides of your national ID before submitting KYC.",
-      };
+    if (!hasCompleteSellerIdentity((documents || []).map((document) => document.document_type))) {
+      return { error: "Upload both sides of your national ID or your passport photo page before submitting." };
     }
     if (verification.status === "approved") {
       return { error: "This seller account is already verified." };
@@ -683,14 +698,8 @@ export async function approveSellerVerification(
   if (!verification.phone_verified_at) {
     return { error: "The seller phone number is not verified." };
   }
-  const documentTypes = new Set(
-    (documents || []).map((document) => document.document_type),
-  );
-  if (
-    !documentTypes.has("national_id_front") ||
-    !documentTypes.has("national_id_back")
-  ) {
-    return { error: "Both sides of the seller national ID are required." };
+  if (!hasCompleteSellerIdentity((documents || []).map((document) => document.document_type))) {
+    return { error: "Both sides of the seller national ID or the passport photo page are required." };
   }
 
   const reviewedAt = new Date().toISOString();

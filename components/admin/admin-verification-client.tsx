@@ -16,6 +16,7 @@ import {
   rejectSellerVerification,
 } from "@/lib/actions/seller-verification";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
+import { sellerIdentityDocuments } from "@/lib/validations/registration";
 import type { SellerVerificationRecord } from "@/lib/types/seller-verification";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,7 +193,7 @@ function SellerReviewQueue({
                                 {document.display_name}
                               </p>
                               <p className="mt-1 text-xs text-slate-500">
-                                {document.document_type.replace(/_/g, " ")} ·{" "}
+                                {sellerIdentityDocuments[document.document_type]} ·{" "}
                                 {formatFileSize(document.size_bytes)}
                               </p>
                             </div>

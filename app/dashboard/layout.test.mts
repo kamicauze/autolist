@@ -8,7 +8,7 @@ type Element = { type: unknown; props: Record<string, unknown> };
 type Account = {
   path: string;
   role?: string;
-  status?: "PENDING" | "REJECTED" | "APPROVED";
+  status?: "INCOMPLETE" | "PENDING" | "REJECTED" | "APPROVED";
   signedIn?: boolean;
   deactivatedAt?: string | null;
 };
@@ -74,7 +74,7 @@ async function expectRedirect(account: Account, destination: string) {
 }
 
 test("pending and rejected dealers can render their verification page without redirecting to itself", async () => {
-  for (const status of ["PENDING", "REJECTED"] as const) {
+  for (const status of ["INCOMPLETE", "PENDING", "REJECTED"] as const) {
     for (const path of ["/dashboard/verification", "/dashboard/verification?source=login"]) {
       const element = await renderLayout({ path, status });
       assert.equal(element.type, "dashboard-frame");
@@ -85,7 +85,7 @@ test("pending and rejected dealers can render their verification page without re
 });
 
 test("unverified dealers can use their dashboard and listing tools before approval", async () => {
-  for (const status of ["PENDING", "REJECTED"] as const) {
+  for (const status of ["INCOMPLETE", "PENDING", "REJECTED"] as const) {
     for (const path of ["/dashboard", "/dashboard/listings/new", "/dashboard/profile", "/dashboard/verification/history", "/dashboard/verification-copy"]) {
       assert.equal((await renderLayout({ path, status })).type, "dashboard-frame");
     }

@@ -2,18 +2,23 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
-import ts from "typescript";
 import { createRequire } from "node:module";
+import ts from "typescript";
+import type { DealerRegistration } from "../validations/registration";
 
 const require = createRequire(import.meta.url);
+const registration = require("../validations/registration.ts");
 const { profileUpdateSchema } = require("../profile/profile-update.ts") as typeof import("../profile/profile-update");
 const { createOpeningHours } = require("../dealer-opening-hours.ts") as typeof import("../dealer-opening-hours");
 
 type Row = Record<string, unknown>;
 type Write = { table: string; operation: string; values: Row; privileged: boolean };
 type Options = {
-  signedIn?: boolean;
+  storedCertificateSize?: number;
   allowUploads?: boolean;
+  noContactPhoto?: boolean;
+  noCertificate?: boolean;
+  signedIn?: boolean;
   userId?: string;
   role?: string;
   profilePresent?: boolean;
@@ -24,11 +29,11 @@ type Options = {
   workflowFails?: boolean;
   auditFails?: boolean;
   auditThrows?: boolean;
-  noContactPhoto?: boolean;
-  noCertificate?: boolean;
 };
 type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
 type Actions = {
+  createDealerRegistration: (input: DealerRegistration) => Promise<ActionResult>;
+  createDealerOnboardingUpload: (field: string, file: { name: string; type: string; size: number }) => Promise<{ error?: string; path?: string }>;
   submitDealerVerification: (form: FormData) => Promise<ActionResult>;
   resubmitDealerVerificationDocuments: (form: FormData) => Promise<ActionResult>;
   approveDealer: (dealerId: string, note?: string) => Promise<ActionResult>;
@@ -64,8 +69,28 @@ function harness(options: Options = {}) {
   if (options.noCertificate) dealer.doc_incorporation_key = null;
   function client(privileged: boolean) {
     return {
+      async rpc(name: string, values: Row) {
+        assert.equal(privileged, true);
+        assert.equal(name, "save_dealer_registration");
+        writes.push({ table: name, operation: "rpc", values, privileged });
+        Object.assign(dealer, values.dealership);
+        return { data: { id: dealer.id, name: dealer.name }, error: null };
+      },
       auth: { getUser: async () => ({ data: { user: options.signedIn === false ? null : { id: userId } }, error: null }) },
-      storage: { from: () => ({ remove: async () => ({ error: null }), upload: async () => { assert.ok(options.allowUploads, "Unexpected KYC upload"); return { error: null }; } }) },
+      storage: { from: () => ({
+        remove: async () => ({ error: null }),
+        upload: async () => {
+          assert.ok(options.allowUploads, "Unexpected KYC upload");
+          return { error: null };
+        },
+        createSignedUploadUrl: async () => ({ data: { token: "sample-token" }, error: null }),
+        list: async (_folder: string, { search }: { search: string }) => ({
+          data: options.storedCertificateSize ? [{
+            name: search, metadata: { size: options.storedCertificateSize, mimetype: "application/pdf" },
+          }] : [],
+          error: null,
+        }),
+      }) },
       from(table: string) {
         let operation = "select";
         let values: Row = {};
@@ -117,12 +142,14 @@ function harness(options: Options = {}) {
   }
   const dependencies: Record<string, unknown> = {
     "server-only": {},
+    "@aws-sdk/client-s3": { PutObjectCommand: class {} },
+    nanoid: { nanoid: (size: number) => "a".repeat(size) },
+    "next/cache": { revalidatePath() {} },
     "@/lib/profile/profile-update": { profileUpdateSchema },
     "@/lib/constants/filters": { KENYA_COUNTIES: ["Kiambu", "Nairobi"] },
     "@/lib/location/normalize": load("../location/normalize.ts", {}),
-    "@aws-sdk/client-s3": { PutObjectCommand: class {} },
-    nanoid: { nanoid: () => "sample-upload" },
-    "next/cache": { revalidatePath() {} },
+    "@/lib/validations/registration": registration,
+    "@/lib/location/dealer-address": {},
     "@/lib/r2": { r2: { send: async () => { assert.ok(options.allowUploads, "Unexpected upload"); } } },
     "@/lib/admin/guard": { requireAdminAction: async () => options.staff ? { user: { id: "sample-staff" } } : { error: "Unauthorized" } },
     "@/lib/dealers/kyc-storage": { DEALER_KYC_BUCKET: "dealer-kyc", getDealerKycStoragePath: () => null, createDealerKycReference: (path: string) => `supabase://dealer-kyc/${path}` },
@@ -289,6 +316,88 @@ test("audit insertion errors and exceptions warn without failing an already save
   }
 });
 
+test("onboarding only signs valid attachments for the signed-in applicant", async () => {
+  const file = { name: "Certificate.pdf", type: "application/pdf", size: 10 * 1024 * 1024 };
+  const sample = harness();
+  const { path } = await sample.actions().createDealerOnboardingUpload("incorporationCertificate", file);
+  assert.equal(path, "sample-owner/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf");
+  assert.ok((await sample.actions().createDealerOnboardingUpload("companyLogo", file)).error);
+  assert.ok((await sample.actions().createDealerOnboardingUpload("incorporationCertificate", { ...file, size: file.size + 1 })).error);
+  assert.ok((await harness({ signedIn: false }).actions().createDealerOnboardingUpload("incorporationCertificate", file)).error);
+});
+
+test("onboarding accepts a verified 10 MB private certificate reference and rejects foreign or oversized objects", async () => {
+  const form = new FormData();
+  for (const [key, value] of Object.entries({
+    dealershipName: "Sample Motors", dealershipAddress: "Sample Road", county: "Nairobi",
+    cityTown: "Nairobi", locationArea: "Sample Area", mobileNumber: "+254700000001",
+    officialEmail: "sample@example.test", whatsappNumber: "+254700000001",
+    contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001",
+    contactEmail: "sample@example.test", acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
+  })) form.set(key, value);
+  const suffix = "/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf";
+  for (const [owner, size, accepted] of [
+    ["sample-owner", 10 * 1024 * 1024, true],
+    ["sample-owner", 10 * 1024 * 1024 + 1, false],
+    ["another-owner", 10 * 1024 * 1024, false],
+  ] as const) {
+    const sample = harness({ storedCertificateSize: size, status: "INCOMPLETE" });
+    form.set("incorporationCertificateUploadPath", owner + suffix);
+    const result = await sample.actions().submitDealerVerification(form);
+    if (accepted) {
+      assert.equal(result.success, true, result.error);
+      assert.equal(sample.dealer.doc_incorporation_key, "supabase://dealer-kyc/" + owner + suffix);
+    } else {
+      assert.ok(result.error);
+      assert.equal(sample.writes.length, 0);
+    }
+  }
+});
+
+test("registration saves typed evidence without submitting the dealership for review", async () => {
+  const details = {
+    name: "Sample Motors", phone: "0700 000 001", address: "Sample Road",
+    town: "Nairobi", county: "Nairobi", area: "",
+  };
+  for (const type of ["cr12", "national_id", "passport"] as const) {
+    const sample = harness({ role: "buyer", storedCertificateSize: 512, status: "INCOMPLETE" });
+    const path = "sample-owner/onboarding-" + type + "/aaaaaaaaaaaaaaaaaaaa-sample.pdf";
+    const result = await sample.actions().createDealerRegistration({
+      ...details, document: { type, path, name: "Sample evidence.pdf" },
+    });
+    assert.equal(result.success, true, result.error);
+    const save = sample.writes[0].values;
+    assert.equal(save.submit_for_review, false);
+    assert.equal((save.dealership as Row).mobile, "+254700000001");
+    assert.equal((save.dealership as Row).email, undefined);
+    const [document] = save.evidence as Row[];
+    assert.equal(document.document_type, type);
+    assert.equal(document.r2_key, "supabase://dealer-kyc/" + path);
+  }
+
+  for (const options of [{ role: "support" }, { deactivated: true }, { signedIn: false }]) {
+    const sample = harness(options);
+    assert.ok((await sample.actions().createDealerRegistration(details)).error);
+    assert.equal(sample.adminClients, 0);
+  }
+  const sample = harness({ storedCertificateSize: 512 });
+  const invalid = await sample.actions().createDealerRegistration({
+    ...details,
+    document: { type: "passport", name: "Sample.pdf", path: "sample-owner/onboarding-national_id/aaaaaaaaaaaaaaaaaaaa-sample.pdf" },
+  });
+  assert.match(invalid.error || "", /does not belong/);
+  assert.equal(sample.writes.length, 0);
+});
+
+test("incomplete dealer registrations cannot enter the review queue through document resubmission or staff review", async () => {
+  const sample = harness({ status: "INCOMPLETE", staff: true });
+  const actions = sample.actions();
+  assert.match((await actions.resubmitDealerVerificationDocuments(new FormData())).error || "", /Complete the dealership details/);
+  assert.match((await actions.approveDealer("sample-dealer")).error || "", /has not submitted/);
+  assert.match((await actions.rejectDealer("sample-dealer", "Needs evidence")).error || "", /has not submitted/);
+  assert.equal(sample.writes.length, 0);
+});
+
 test("dealer resubmission permits no contact photo but still requires incorporation evidence", async () => {
   for (const noCertificate of [false, true]) {
     const sample = harness({ status: "REJECTED", noContactPhoto: true, noCertificate });
@@ -306,7 +415,7 @@ test("dealer resubmission permits no contact photo but still requires incorporat
 
 for (const includePhoto of [false, true]) {
 test(`onboarding saves locations and long About with contact photo ${includePhoto ? "provided" : "omitted"}`, async () => {
-  const sample = harness({ allowUploads: true });
+  const sample = harness({ allowUploads: true, status: "INCOMPLETE" });
   const form = new FormData();
   for (const [key, value] of Object.entries({
     dealershipName: "Sample Motors", dealershipAddress: "  plot 12B   near ABC HQ ",
@@ -325,7 +434,10 @@ test(`onboarding saves locations and long About with contact photo ${includePhot
   if (includePhoto) form.set("contactPhoto", new File(["sample"], "contact.jpg", { type: "image/jpeg" }));
   form.set("incorporationCertificate", new File(["sample"], "certificate.pdf", { type: "application/pdf" }));
   assert.equal((await sample.actions().submitDealerVerification(form)).success, true);
-  const dealer = sample.writes.find((write) => write.table === "dealers")!.values;
+  const write = sample.writes.find((entry) => entry.table === "save_dealer_registration");
+  assert.ok(write);
+  assert.equal(write.values.submit_for_review, true);
+  const dealer = write.values.dealership as Row;
   assert.equal(dealer.county, "Kiambu");
   assert.equal(dealer.city, "Custom Town");
   assert.equal(dealer.location, "Market Area");
@@ -333,9 +445,8 @@ test(`onboarding saves locations and long About with contact photo ${includePhot
   assert.equal(dealer.about_text, "a".repeat(3001));
   assert.equal(Boolean(dealer.logo_url), includePhoto);
   assert.equal((dealer.social_links as Row | null)?.opening_hours, includePhoto ? JSON.stringify(hours) : undefined);
-  assert.equal(dealer.status, "PENDING");
   assert.equal(Boolean((dealer.contact_person as Row).photo_url), includePhoto);
-  const profile = sample.writes.find((write) => write.table === "profiles")!.values;
+  const profile = write.values.profile_details as Row;
   assert.equal(profile.city, "Custom Town");
   assert.equal(profile.address, "Plot 12B Near ABC HQ");
 });

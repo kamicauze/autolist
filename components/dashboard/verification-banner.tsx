@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "luci
 import { getDashboardAccountContext } from "@/lib/data/dashboard-account";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import { createClient } from "@/lib/supabase/server";
+import { DealerRegistrationReminder } from "@/components/seller/dealer-registration-reminder";
 import { Illustration3D } from "@/components/ui/icon-3d";
 import { SellerSurface } from "./seller-dashboard-ui";
 
@@ -52,6 +53,8 @@ export async function VerificationBanner() {
       </SellerSurface>
     );
   }
+
+  if (dealer.status === "INCOMPLETE") return <DealerRegistrationReminder />;
 
   if (dealer.status === "APPROVED") {
     return (

@@ -15,7 +15,10 @@ import { normalizeLocationText } from "@/lib/location/normalize";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
-import { submitDealerVerification } from "@/lib/actions/dealers";
+import { createDealerOnboardingUpload, submitDealerVerification } from "@/lib/actions/dealers";
+import type { DealerVerificationRecord } from "@/lib/types/dealer";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
+import { createClient } from "@/lib/supabase/client";
 
 type DealerSignupData = {
   dealershipName: string;
@@ -152,20 +155,38 @@ function DealershipPhotoPreview({ file }: { file: File | null }) {
 
 interface DealerSignupFlowProps {
   previewMode?: boolean;
+  initialDealer?: Pick<DealerVerificationRecord, "name" | "address" | "city" | "county" | "location" | "mobile" | "email" | "whatsapp" | "documents">;
 }
 
-export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps) {
+export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerSignupFlowProps) {
   const router = useRouter();
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [formData, setFormData] = React.useState<DealerSignupData>(DEFAULT_DATA);
+  const [formData, setFormData] = React.useState<DealerSignupData>(() => ({
+    ...DEFAULT_DATA,
+    dealershipName: initialDealer?.name || "",
+    dealershipAddress: initialDealer?.address || "",
+    cityTown: initialDealer?.city || "",
+    county: initialDealer?.county || "",
+    locationArea: initialDealer?.location || "",
+    mobileNumber: initialDealer?.mobile || "",
+    officialEmail: initialDealer?.email || "",
+    whatsappNumber: initialDealer?.whatsapp || "",
+  }));
+  const savedDocuments = initialDealer?.documents.flatMap((document) => {
+    const label = getDealerRegistrationDocumentLabel(document.document_type);
+    return label ? [{ ...document, label }] : [];
+  }) || [];
   const [companyLogoFile, setCompanyLogoFile] = React.useState<File | null>(null);
   const [contactPhotoFile, setContactPhotoFile] = React.useState<File | null>(null);
   const [incorporationCertificateFile, setIncorporationCertificateFile] = React.useState<File | null>(null);
   const [contactPersonIdFile, setContactPersonIdFile] = React.useState<File | null>(null);
+
+  const uploadedAttachments = React.useRef(new Map<string, { file: File; path: string }>());
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const isLastStep = activeStep === DEALER_SIGNUP_STEPS.length - 1;
   const previousStepRef = React.useRef(activeStep);
@@ -316,14 +337,42 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       submission.set("verificationNotes", formData.verificationNotes);
       submission.set("preferredConfirmationChannel", "email");
 
-      if (companyLogoFile) submission.set("companyLogo", companyLogoFile);
-      if (contactPhotoFile) submission.set("contactPhoto", contactPhotoFile);
-      if (incorporationCertificateFile) {
-        submission.set("incorporationCertificate", incorporationCertificateFile);
-      }
-      if (contactPersonIdFile) submission.set("contactPersonId", contactPersonIdFile);
+      const attachments = [
+        ["companyLogo", companyLogoFile],
+        ["contactPhoto", contactPhotoFile],
+        ["incorporationCertificate", incorporationCertificateFile],
+        ["contactPersonId", contactPersonIdFile],
+      ] as const;
 
       try {
+        const storage = createClient().storage;
+        setIsUploading(true);
+        const uploads = await Promise.allSettled(attachments.map(async ([field, file]) => {
+          if (!file) return;
+          let uploaded = uploadedAttachments.current.get(field);
+          if (uploaded?.file !== file) {
+            const ticket = await createDealerOnboardingUpload(field, {
+              name: file.name, size: file.size, type: file.type,
+            });
+            if ("error" in ticket) throw new Error(ticket.error);
+            const { error } = await storage.from(ticket.bucket)
+              .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+            if (error) throw new Error(`Couldn't upload ${file.name}. Please retry.`);
+            uploaded = { file, path: ticket.path };
+            uploadedAttachments.current.set(field, uploaded);
+          }
+          submission.set(`${field}UploadPath`, uploaded.path);
+          submission.set(`${field}UploadName`, file.name);
+        }));
+        setIsUploading(false);
+        const failure = uploads.find((upload) => upload.status === "rejected");
+        if (failure) {
+          if (failure.reason instanceof Error && failure.reason.message === "Unauthorized") {
+            router.replace("/login?next=/register/dealer");
+          }
+          setSubmitError(failure.reason instanceof Error ? failure.reason.message : "An attachment couldn't be uploaded. Please retry.");
+          return;
+        }
         const result = await submitDealerVerification(submission);
         if (result.error) {
           if (result.error === "Unauthorized") {
@@ -337,6 +386,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       } catch {
         setSubmitError("We couldn't confirm your submission. Check your verification status before trying again.");
       } finally {
+        setIsUploading(false);
         setIsSubmitting(false);
       }
       return;
@@ -361,23 +411,14 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
           Dealer application submitted
         </h2>
         <p className="text-sm text-muted-foreground">
-          Your dealer profile is now pending manual verification. You can publish vehicle listings now.
-          The verified dealer badge appears after your dealership is approved.
+          Autolist is reviewing your documents. You can continue publishing listings while you wait.
         </p>
-
-        <div className="rounded-xl border border-border bg-white p-4 text-sm">
-          <p className="font-semibold text-foreground">System statuses</p>
-          <p className="mt-2 text-muted-foreground">Pending Verification • Approved • Rejected</p>
-          <p className="mt-2 text-muted-foreground">
-            Your listings can appear in search before verification. Approval adds the verified dealer badge and your public dealership profile.
-          </p>
-        </div>
 
         <div className="rounded-xl border border-info/20 bg-info/5 p-4 text-sm">
           <p className="font-semibold text-foreground">Dealer review updates</p>
           <p className="mt-1 text-muted-foreground">
             We will email the review result to the email address on your Autolist account.
-            You can access your dealer dashboard now and check your verification status there.
+            Your verified dealer badge appears after approval.
           </p>
           <Link href="/dashboard/listings/new" className="mt-3 mr-5 inline-block font-semibold text-primary hover:underline">
             Create a listing
@@ -392,8 +433,8 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
 
   return (
     <WizardShell
-      title="Dealer Sign-Up & Verification"
-      description="MVP onboarding for verified dealerships with required documentation and consent capture."
+      title="Finish dealer verification"
+      description="Review your saved details and add the remaining information for Autolist to verify your dealership."
       steps={DEALER_SIGNUP_STEPS}
       activeStep={activeStep}
       testId="dealer-signup-flow"
@@ -419,7 +460,7 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
             disabled={!canContinue || isSubmitting}
             data-testid="dealer-signup-next"
           >
-            {isLastStep ? (isSubmitting ? "Submitting..." : "Submit for Verification") : "Continue"}
+            {isLastStep ? (isUploading ? "Uploading attachments..." : isSubmitting ? "Submitting..." : "Submit for Verification") : "Continue"}
           </Button>
         </>
       }
@@ -681,6 +722,17 @@ export function DealerSignupFlow({ previewMode = false }: DealerSignupFlowProps)
       {activeStep === 3 && (
         <div className="space-y-4" data-testid="dealer-step-verification">
           <h2 className="text-lg font-semibold text-foreground">Verification Requirements</h2>
+          {savedDocuments.map((document) => (
+            <div key={document.id} className="rounded-lg border border-border bg-muted p-3 text-sm">
+              <p className="font-semibold">{document.label} saved during registration</p>
+              {document.review_url ? (
+                <a href={document.review_url} target="_blank" rel="noreferrer" className="break-words text-primary underline">{document.display_name}</a>
+              ) : (
+                <p className="break-words">{document.display_name}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">This document will be included with your verification submission.</p>
+            </div>
+          ))}
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="dealer-incorporation">Certificate of Incorporation *</Label>

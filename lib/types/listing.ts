@@ -1,3 +1,4 @@
+import type { DealerStatus } from "@/lib/types/dealer";
 import type {
   ListingCategory,
   ListingStatus,
@@ -60,7 +61,7 @@ export interface Listing {
     avatar_url: string | null;
   };
   dealer?: {
-    status?: "PENDING" | "APPROVED" | "REJECTED";
+    status?: DealerStatus;
     id: string;
     name: string;
     logo_url: string | null;

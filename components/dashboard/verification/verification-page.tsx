@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { Icon3D, Illustration3D } from "@/components/ui/icon-3d";
 import type { Icon3DAssetKey } from "@/lib/constants/icon-3d-assets";
+import { DealerSignupFlow } from "@/components/seller/dealer-signup-flow";
 import { getMyDealerVerification } from "@/lib/data/dealers";
 import {
   SellerPageHeader,
@@ -142,6 +143,8 @@ export async function VerificationPage() {
       </div>
     );
   }
+
+  if (dealer?.status === "INCOMPLETE") return <DealerSignupFlow initialDealer={dealer} />;
 
   const statusTone = !dealer
     ? ("amber" as const)

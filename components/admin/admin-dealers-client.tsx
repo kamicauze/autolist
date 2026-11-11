@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { approveDealer, rejectDealer } from "@/lib/actions/dealers";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -294,7 +295,7 @@ export function AdminDealersClient({
                                   {document.display_name}
                                 </p>
                                 <p className="mt-1 text-xs text-slate-500">
-                                  {document.document_type.replace(/_/g, " ")}
+                                  {getDealerRegistrationDocumentLabel(document.document_type) || document.document_type.replace(/_/g, " ")}
                                 </p>
                               </div>
                               {isImageDocument(document.mime_type) ? (

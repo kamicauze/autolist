@@ -18,6 +18,7 @@ import {
   DEALER_INVENTORY_SORTS,
   type DealerInventorySort,
 } from "@/lib/dealers/inventory";
+import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
 import { getDealerVerificationWorkflows } from "@/lib/data/dealer-verification-workflows";
 
 const LISTING_SELECT = `
@@ -191,7 +192,8 @@ function normalizeDealerVerificationRecord(record: DealerVerificationRecord | nu
 function isPrivateDealerDocument(document: DealerVerificationDocument) {
   return (
     document.document_type === "incorporation_certificate" ||
-    document.document_type === "contact_id"
+    document.document_type === "contact_id" ||
+    Boolean(getDealerRegistrationDocumentLabel(document.document_type))
   );
 }
 

@@ -1,3 +1,7 @@
+import type { DealerRegistrationDocumentType } from "@/lib/validations/registration";
+
+export type DealerStatus = "INCOMPLETE" | "PENDING" | "APPROVED" | "REJECTED";
+
 export interface DealerContactPerson {
   name?: string;
   role?: string;
@@ -23,7 +27,7 @@ export interface DealerProfile {
   profile_id: string;
   name: string;
   business_name: string | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: DealerStatus;
   address: string | null;
   city: string | null;
   county?: string | null;
@@ -60,7 +64,8 @@ export interface DealerVerificationDocument {
     | "company_logo"
     | "contact_photo"
     | "incorporation_certificate"
-    | "contact_id";
+    | "contact_id"
+    | DealerRegistrationDocumentType;
   display_name: string;
   r2_key: string;
   mime_type: string | null;

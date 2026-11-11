@@ -401,3 +401,18 @@ test("mileage summary includes separators and units", () => {
   assert.equal(formatDetailSummaryValue(field, "21000"), "21,000 km");
   assert.equal(formatDetailSummaryValue(field, "0"), "0 km");
 });
+
+test("an incomplete dealership can use its registered name and phone for a listing", () => {
+  const defaults = buildSellerAccountDefaults({
+    profile: { full_name: null, role: "dealer", phone: "+254700000001", whatsapp: null },
+    dealer: {
+      status: "INCOMPLETE", name: "Sample Motors", city: "Thika", county: "Kiambu", address: "Sample Road",
+      mobile: "+254700000001", whatsapp: null, contact_person: null,
+    },
+  });
+
+  assert.equal(defaults.contactName, "Sample Motors");
+  assert.equal(defaults.phoneNumber, "+254700000001");
+  assert.equal(defaults.whatsappEnabled, false);
+  assert.deepEqual(defaults.dealerLocation, { county: "Kiambu", cityTown: "Thika", locationArea: "Sample Road" });
+});
