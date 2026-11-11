@@ -1,4 +1,5 @@
 import type { DealerProfile } from "@/lib/types/dealer";
+import { normalizeWhatsAppPhone, PHONE_REGEX } from "@/lib/utils/phone";
 
 export type DealerPublicLink = { label: string; href: string };
 
@@ -24,4 +25,19 @@ export function buildDealerPublicLinks(
         ? [{ label: label!, href: url.href }] : [];
     } catch { return []; }
   });
+}
+
+function getInternationalNumber(value?: string | null) {
+  const number = normalizeWhatsAppPhone(value);
+  return number && !number.startsWith("0") && PHONE_REGEX.test(number) ? number : null;
+}
+
+export function buildDealerContactLinks(dealer: Pick<DealerProfile, "mobile" | "whatsapp">) {
+  const callNumber = getInternationalNumber(dealer.mobile);
+  const whatsappNumber = getInternationalNumber(dealer.whatsapp?.trim() || dealer.mobile);
+
+  return {
+    callHref: callNumber ? `tel:+${callNumber}` : null,
+    whatsappHref: whatsappNumber ? `https://wa.me/${whatsappNumber}` : null,
+  };
 }

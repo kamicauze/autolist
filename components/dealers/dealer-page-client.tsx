@@ -1,6 +1,6 @@
 "use client";
 
-import type { DealerPublicLink } from "@/lib/dealers/public-links";
+import { buildDealerContactLinks, type DealerPublicLink } from "@/lib/dealers/public-links";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,13 +23,20 @@ import {
   type DealerInventorySort,
 } from "@/lib/dealers/inventory";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { RecommendedCars } from "@/components/vehicle/recommended-cars";
 import { ReviewsSection } from "@/components/vehicle/reviews-section";
 import { ReplyForm } from "@/components/vehicle/reply-form";
 import { getImageUrl } from "@/lib/utils/listings";
 import { IconWhatsapp } from "@/components/ui/icons";
-import { getListingDisplayLocation } from "@/lib/utils/vehicle-display";
+import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/vehicle-display";
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
@@ -124,6 +131,7 @@ function DealerSidebar({
   recommendedListings,
   googleMapsApiKey,
   reviewSummary,
+  onChat,
   onReportDealer,
 }: {
   dealer: DealerProfile;
@@ -131,6 +139,7 @@ function DealerSidebar({
   recommendedListings: Listing[];
   googleMapsApiKey: string;
   reviewSummary: SellerReviewDashboardData["summary"];
+  onChat?: () => void;
   onReportDealer: () => void;
 }) {
   const locationLabel =
@@ -138,6 +147,7 @@ function DealerSidebar({
     "Nairobi, Kenya";
   const mapUrl = getGoogleMapsSearchUrl(locationLabel);
   const businessHours = getDealerHoursPresentation(dealer.social_links);
+  const { callHref, whatsappHref } = buildDealerContactLinks(dealer);
 
   return (
     <aside className="space-y-5">
@@ -201,23 +211,32 @@ function DealerSidebar({
           </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button size="sm" className="gap-2">
-            <Phone className="h-4 w-4" />
-            Call
+        {callHref || onChat ? (
+          <div className="mt-4 flex gap-2">
+            {callHref ? (
+              <Button asChild size="sm" className="flex-1 gap-2">
+                <a href={callHref}>
+                  <Phone className="h-4 w-4" />
+                  Call
+                </a>
+              </Button>
+            ) : null}
+            {onChat ? (
+              <Button type="button" size="sm" variant="outline" className="flex-1 gap-2 border-gray-300" onClick={onChat}>
+                <MessageCircle className="h-4 w-4" />
+                Chat
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {whatsappHref ? (
+          <Button asChild size="sm" className="mt-2 w-full gap-2 bg-[#25D366] text-white hover:bg-[#1fa857]">
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+              <IconWhatsapp className="h-4 w-4" />
+              WhatsApp
+            </a>
           </Button>
-          <Button size="sm" variant="outline" className="gap-2 border-gray-300">
-            <MessageCircle className="h-4 w-4" />
-            Chat
-          </Button>
-        </div>
-        <Button
-          size="sm"
-          className="mt-2 w-full gap-2 bg-[#25D366] text-white hover:bg-[#1fa857]"
-        >
-          <IconWhatsapp className="h-4 w-4" />
-          WhatsApp
-        </Button>
+        ) : null}
         <Button
           type="button"
           size="sm"
@@ -282,6 +301,7 @@ export function DealerPageClient({
   reviewsData,
 }: DealerPageClientProps) {
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const router = useRouter();
   const totalPages = Math.ceil(inventoryTotal / DEALER_INVENTORY_PAGE_SIZE);
 
@@ -347,9 +367,31 @@ export function DealerPageClient({
           recommendedListings={recommendedListings}
           googleMapsApiKey={googleMapsApiKey}
           reviewSummary={reviewsData.summary}
+          onChat={inventory.length ? () => setIsChatOpen(true) : undefined}
           onReportDealer={() => setIsReportDialogOpen(true)}
         />
       </div>
+      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chat with {dealer.name}</DialogTitle>
+            <DialogDescription>Choose a vehicle to open its message form.</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-[50dvh] space-y-2 overflow-y-auto">
+            {inventory.map((listing) => (
+              <li key={listing.id}>
+                <Link
+                  href={`/vehicle/${listing.id}#message-seller`}
+                  prefetch={false}
+                  className="block rounded-lg border border-gray-200 p-3 text-sm font-medium text-primary hover:bg-gray-50"
+                >
+                  {getListingDisplayTitle(listing)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
       <ReportAdDialog
         open={isReportDialogOpen}
         onOpenChange={setIsReportDialogOpen}

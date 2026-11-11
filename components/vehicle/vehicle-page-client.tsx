@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -372,6 +372,7 @@ export function VehiclePageClient({
   );
   const [isLiked, setIsLiked] = useState(initialIsFavorited);
   const [isWishlistPending, setIsWishlistPending] = useState(false);
+  const messageSellerRef = useRef<HTMLDivElement>(null);
   const {
     feedback: enquiryFeedback,
     isSubmitting: isEnquirySubmitting,
@@ -390,6 +391,13 @@ export function VehiclePageClient({
   });
 
   useEffect(() => {
+    const messageForm = messageSellerRef.current;
+    if (messageForm && window.location.hash === `#${messageForm.id}`) {
+      messageForm.focus({ preventScroll: true });
+      messageForm.scrollIntoView({ block: "start" });
+      return;
+    }
+
     // Streaming swaps the tall loading/Suspense placeholder for the real
     // content after Next has already applied its navigation scroll, which can
     // leave the viewport stranded mid-page. Land on the hero gallery instead.
@@ -855,7 +863,12 @@ export function VehiclePageClient({
                 privateContact={privateContact}
               />
 
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div
+                id="message-seller"
+                ref={messageSellerRef}
+                tabIndex={-1}
+                className="scroll-mt-24 rounded-xl border border-gray-200 bg-white p-5"
+              >
                 <h3 className="text-base font-semibold text-gray-900">Message the Seller</h3>
                 <div className="mt-3 grid gap-2">
                   <input
