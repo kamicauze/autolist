@@ -152,7 +152,7 @@ function harness(options: Options = {}) {
     "@/lib/location/dealer-address": {},
     "@/lib/r2": { r2: { send: async () => { assert.ok(options.allowUploads, "Unexpected upload"); } } },
     "@/lib/admin/guard": { requireAdminAction: async () => options.staff ? { user: { id: "sample-staff" } } : { error: "Unauthorized" } },
-    "@/lib/dealers/kyc-storage": { DEALER_KYC_BUCKET: "dealer-kyc", getDealerKycStoragePath: () => null, createDealerKycReference: (path: string) => `supabase://dealer-kyc/${path}` },
+    "@/lib/dealers/kyc-storage": load("../dealers/kyc-storage.ts", { "@/lib/supabase/admin": {} }),
     "@/lib/data/dealer-verification-schema": load("../data/dealer-verification-schema.ts", {}),
     "@/lib/supabase/admin": { createAdminClient: () => { adminClients++; return client(true); } },
     "@/lib/supabase/server": { createClient: async () => client(false) },
@@ -326,7 +326,7 @@ test("onboarding only signs valid attachments for the signed-in applicant", asyn
   assert.ok((await harness({ signedIn: false }).actions().createDealerOnboardingUpload("incorporationCertificate", file)).error);
 });
 
-test("onboarding accepts a verified 10 MB private certificate reference and rejects foreign or oversized objects", async () => {
+function completedVerificationForm() {
   const form = new FormData();
   for (const [key, value] of Object.entries({
     dealershipName: "Sample Motors", dealershipAddress: "Sample Road", county: "Nairobi",
@@ -335,6 +335,11 @@ test("onboarding accepts a verified 10 MB private certificate reference and reje
     contactFullName: "Sample Owner", contactRole: "Owner", contactMobile: "+254700000001",
     contactEmail: "sample@example.test", acceptDealerTerms: "true", acceptPrivacyPolicy: "true",
   })) form.set(key, value);
+  return form;
+}
+
+test("onboarding accepts a verified 10 MB private certificate reference and rejects foreign or oversized objects", async () => {
+  const form = completedVerificationForm();
   const suffix = "/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf";
   for (const [owner, size, accepted] of [
     ["sample-owner", 10 * 1024 * 1024, true],
@@ -351,6 +356,41 @@ test("onboarding accepts a verified 10 MB private certificate reference and reje
       assert.ok(result.error);
       assert.equal(sample.writes.length, 0);
     }
+  }
+});
+
+test("a certificate saved during registration satisfies deferred verification without a duplicate attachment", async () => {
+  const file = { name: "Certificate.pdf", type: "application/pdf", size: 512 };
+  const sample = harness({ storedCertificateSize: file.size, status: "INCOMPLETE" });
+  const actions = sample.actions();
+  const { path } = await actions.createDealerOnboardingUpload("incorporation_certificate", file);
+  assert.ok(path);
+  assert.equal(path, "sample-owner/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf");
+  const result = await actions.createDealerRegistration({
+    name: "Sample Motors", phone: "0700000001", address: "Sample Road", town: "Nairobi",
+    county: "Nairobi", area: "", document: { type: "incorporation_certificate", name: file.name, path },
+  });
+  assert.equal(result.success, true, result.error);
+  const registration = sample.writes[0].values;
+  const key = "supabase://dealer-kyc/" + path;
+  assert.equal(registration.submit_for_review, false);
+  assert.equal((registration.dealership as Row).doc_incorporation_key, key);
+  const [certificate] = registration.evidence as Row[];
+  assert.equal(certificate.document_type, "incorporation_certificate");
+  assert.equal(certificate.r2_key, key);
+
+  const submission = await actions.submitDealerVerification(completedVerificationForm());
+  assert.equal(submission.success, true, submission.error);
+  const review = sample.writes[1].values;
+  assert.equal(review.submit_for_review, true);
+  assert.equal((review.dealership as Row).doc_incorporation_key, key);
+  assert.equal((review.evidence as Row[]).length, 0);
+
+  for (const invalidKey of [null, key.replace("sample-owner", "another-owner"), key.replace("incorporation_certificate", "cr12")]) {
+    const invalid = harness({ storedCertificateSize: file.size, status: "INCOMPLETE" });
+    invalid.dealer.doc_incorporation_key = invalidKey;
+    assert.match((await invalid.actions().submitDealerVerification(completedVerificationForm())).error || "", /required|does not belong/i);
+    assert.equal(invalid.writes.length, 0);
   }
 });
 

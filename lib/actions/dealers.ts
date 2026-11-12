@@ -126,10 +126,17 @@ function assertFile(file: File | null, allowedTypes: Set<string>, label: string,
   }
 }
 
+const incorporationCertificateAttachment = {
+  type: "incorporation_certificate",
+  label: dealerRegistrationDocumentLabels.incorporation_certificate,
+  folder: null,
+} as const;
+
 const onboardingAttachments = {
   companyLogo: { type: "company_logo", label: "Company logo", folder: "branding" },
   contactPhoto: { type: "contact_photo", label: "Primary contact photo", folder: "contact" },
-  incorporationCertificate: { type: "incorporation_certificate", label: "Certificate of incorporation", folder: null },
+  incorporationCertificate: incorporationCertificateAttachment,
+  incorporation_certificate: incorporationCertificateAttachment,
   contactPersonId: { type: "contact_id", label: "Primary contact ID", folder: null },
   cr12: { type: "cr12", label: dealerRegistrationDocumentLabels.cr12, folder: null },
   national_id: { type: "national_id", label: dealerRegistrationDocumentLabels.national_id, folder: null },
@@ -377,7 +384,10 @@ export async function createDealerRegistration(input: DealerRegistration) {
 
     const { data, error } = await admin.rpc("save_dealer_registration", {
       applicant_id: applicant.user.id,
-      dealership: { name, mobile: phone, address, city: town, county, location: area || address },
+      dealership: {
+        name, mobile: phone, address, city: town, county, location: area || address,
+        doc_incorporation_key: document?.type === "incorporation_certificate" ? uploaded?.r2Key : null,
+      },
       profile_details: { phone, city: town, address },
       evidence,
       submit_for_review: false,
@@ -437,18 +447,27 @@ export async function submitDealerVerification(formData: FormData) {
     const openingHours = profileUpdateSchema.shape.openingHours.safeParse(optionalString(formData, "openingHours") ?? "");
     if (!openingHours.success) return { error: openingHours.error.issues[0].message };
 
-    const existing = await adminSupabase.from("dealers").select("status")
+    const existing = await adminSupabase.from("dealers").select("status, doc_incorporation_key")
       .eq("profile_id", user.id).maybeSingle();
     if (existing.error) return { error: existing.error.message };
     if (existing.data && existing.data.status !== "INCOMPLETE") {
       return { error: "This dealership already has a verification request." };
     }
 
+    const storedCertificateKey = existing.data?.doc_incorporation_key;
+    const storedCertificatePath = storedCertificateKey ? getDealerKycStoragePath(storedCertificateKey) : null;
+    let verifiedCertificateKey: string | null = null;
     for (const field of verificationFields) {
       if (optionalString(formData, `${field}UploadPath`)) continue;
       const attachment = onboardingAttachments[field];
+      const file = getFile(formData, field);
+      if (field === "incorporationCertificate" && !file && storedCertificatePath) {
+        const certificate = await resolveDirectDealerAttachment(adminSupabase, user.id, field, storedCertificatePath, null);
+        verifiedCertificateKey = certificate.r2Key;
+        continue;
+      }
       assertFile(
-        getFile(formData, field),
+        file,
         attachment.folder ? IMAGE_ACCEPTED_TYPES : DOC_ACCEPTED_TYPES,
         attachment.label,
         field === "incorporationCertificate",
@@ -510,7 +529,7 @@ export async function submitDealerVerification(formData: FormData) {
         whatsapp: optionalString(formData, "contactWhatsapp"),
         photo_url: contactPhotoUpload?.publicUrl || null,
       },
-      doc_incorporation_key: incorporationUpload?.r2Key || null,
+      doc_incorporation_key: incorporationUpload?.r2Key || verifiedCertificateKey,
       doc_id_key: idUpload?.r2Key || null,
     };
 
