@@ -305,7 +305,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               <div className="space-y-1.5">
                 <Label htmlFor="dealership-document-type" className="hidden md:block">Document type</Label>
                 <select id="dealership-document-type" className={cn(selectClass, "hidden md:block")} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
-                  <option value="">Select document type</option>
+                  <option value="" disabled={Boolean(file)}>Select document type</option>
                   {documentTypes.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
                 </select>
                 <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -332,16 +332,22 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 <Upload aria-hidden className="size-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold" title={file?.name}>{file?.name || "Verification file"}</p>
-                  <p className="text-xs text-muted-foreground">{file && documentType ? typeLabel : "PDF, JPG or PNG · 10 MB max"}</p>
+                  <p id="dealer-verification-file-help" className="text-xs text-muted-foreground">
+                    {file ? typeLabel : documentType ? "PDF, JPG or PNG · 10 MB max" : "Select a document type to choose a file."}
+                  </p>
                 </div>
                 <input
                   ref={fileInput}
                   id="dealership-document"
-                  aria-label="Choose verification file"
                   type="file"
                   accept={acceptedFiles}
-                  className="peer sr-only"
+                  disabled={!documentType}
+                  hidden
                   onChange={(event) => {
+                    if (!documentType) {
+                      event.target.value = "";
+                      return;
+                    }
                     const next = event.target.files?.[0];
                     upload.current = null;
                     setFile(next);
@@ -350,13 +356,19 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       : "");
                   }}
                 />
-                <label htmlFor="dealership-document" className="cursor-pointer whitespace-nowrap rounded-lg border border-border bg-white px-2.5 py-2 text-xs font-bold text-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-primary">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!documentType}
+                  aria-describedby="dealer-verification-file-help"
+                  className="h-auto shrink-0 border border-border bg-white px-2.5 py-2 text-xs font-bold text-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => fileInput.current?.click()}
+                >
                   {file ? "Replace" : "Choose file"}
-                </label>
+                </Button>
                 {file && <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" aria-label="Remove verification file" onClick={removeFile}><X className="size-4" /></Button>}
               </div>
               {uploadError && <p role="alert" className="text-xs text-destructive">{uploadError}</p>}
-              {file && !documentType && <p role="status" className="text-xs text-muted-foreground">Select a document type or remove this file to continue.</p>}
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <LockKeyhole aria-hidden className="size-3.5 shrink-0" /> Only you and authorised Autolist reviewers can access this file.
               </p>
