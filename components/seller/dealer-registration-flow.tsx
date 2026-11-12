@@ -103,14 +103,14 @@ export function DealerSetupAccountBar({ email, canLeave }: { email?: string; can
   );
 }
 
-function SectionHeading({ icon: Icon, title, optional }: { icon: LucideIcon; title: string; optional?: boolean }) {
+function SectionHeading({ icon: Icon, title, required }: { icon: LucideIcon; title: string; required?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-tint text-primary">
         <Icon aria-hidden className="size-5" />
       </span>
       <h2 className="text-lg font-bold leading-tight">{title}</h2>
-      {optional && <span className="ml-auto shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Optional</span>}
+      {required && <span className="ml-auto shrink-0 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-semibold text-primary">Required</span>}
     </div>
   );
 }
@@ -145,7 +145,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     address: manual && !location.address.trim() ? "Enter the address." : "",
     town: manual && !location.town.trim() ? "Enter the town or city." : "",
     county: manual && !location.county ? "Select a county." : "",
-    document: uploadError || (file && !documentType ? "Select a document type or remove the file." : ""),
+    document: uploadError || (!documentType ? "Select a document type, then choose the file." : !file ? "Choose the file to upload." : ""),
   };
   const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
   const shown = showValidation
@@ -153,6 +153,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     : { name: "", phone: "", search: "", address: "", town: "", county: "", document: uploadError };
   const feedback = error || (showValidation && hasFieldErrors ? "Fix the highlighted fields." : "");
   const typeLabel = documentType ? dealerRegistrationDocumentLabels[documentType] : "Select document type";
+  const typeMissing = Boolean(shown.document) && !documentType;
 
   useEffect(() => {
     if (createdName) {
@@ -219,18 +220,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     setShowValidation(false);
     setSaving(true);
     try {
-      let document;
-      if (file && documentType) {
-        if (upload.current?.file !== file || upload.current.type !== documentType) {
-          const target = await createDealerOnboardingUpload(documentType, file);
-          if (!target.path || !target.token) return fail(target);
-          const { error: putError } = await createClient().storage.from(target.bucket)
-            .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-          if (putError) return fail({ error: "Unable to upload the document. Please retry." });
-          upload.current = { file, type: documentType, path: target.path };
-        }
-        document = { name: file.name, type: documentType, path: upload.current.path };
+      if (!file || !documentType) return;
+      if (upload.current?.file !== file || upload.current.type !== documentType) {
+        const target = await createDealerOnboardingUpload(documentType, file);
+        if (!target.path || !target.token) return fail(target);
+        const { error: putError } = await createClient().storage.from(target.bucket)
+          .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+        if (putError) return fail({ error: "Unable to upload the document. Please retry." });
+        upload.current = { file, type: documentType, path: target.path };
       }
+      const document = { name: file.name, type: documentType, path: upload.current.path };
       const result = await createDealerRegistration({ name, phone, ...location, document });
       if (!result.success) return fail(result);
       setCreatedName(result.dealershipName);
@@ -391,11 +390,11 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               )}
             </section>
             <section className="space-y-2 py-4">
-              <SectionHeading icon={ShieldCheck} title="Verification document" optional />
-              <p className="text-sm text-muted-foreground">Attach one document now or leave this section empty and add it during verification.</p>
+              <SectionHeading icon={ShieldCheck} title="Verification document" required />
+              <p className="text-sm text-muted-foreground">Upload one document to confirm your dealership. Choose its type first: Certificate of Incorporation, CR12, National ID or Passport.</p>
               <div className="space-y-1.5">
                 <Label htmlFor="dealership-document-type" className="hidden md:block">Document type</Label>
-                <select id="dealership-document-type" className={cn(selectClass, "hidden md:block")} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
+                <select id="dealership-document-type" className={cn(selectClass, "hidden md:block", typeMissing && invalidClass)} aria-invalid={typeMissing || undefined} aria-describedby={typeMissing ? "dealership-document-error" : undefined} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
                   <option value="" disabled={Boolean(file)}>Select document type</option>
                   {documentTypes.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
                 </select>
@@ -403,7 +402,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                   <div className="md:hidden">
                     <p id="dealer-document-type-label" className="mb-1.5 text-sm font-medium">Document type</p>
                     <DialogTrigger asChild>
-                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" className="h-11 w-full justify-between rounded-lg border border-border px-3 text-sm font-normal text-[#14213d] hover:border-primary">
+                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" aria-invalid={typeMissing || undefined} aria-describedby={typeMissing ? "dealership-document-error" : undefined} className={cn("h-11 w-full justify-between rounded-lg border border-border px-3 text-sm font-normal text-[#14213d] hover:border-primary", typeMissing && invalidClass)}>
                         <span id="dealer-document-type-value">{typeLabel}</span>
                         <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
                       </Button>

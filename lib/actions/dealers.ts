@@ -373,7 +373,7 @@ export async function createDealerRegistration(input: DealerRegistration) {
   if ("error" in applicant) return { error: applicant.error, code: applicant.code };
 
   const parsed = dealerRegistrationSchema.safeParse(input);
-  if (!parsed.success) return { error: "Enter a dealership name, valid listing phone, address, town, and county. Select a type for any attached document." };
+  if (!parsed.success) return { error: "Enter a dealership name, valid listing phone, address, town, and county, and attach one verification document with its type." };
   const { name, phone, address, town, county, area, document } = parsed.data;
   const admin = createAdminClient();
 

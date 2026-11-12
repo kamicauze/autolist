@@ -32,7 +32,7 @@ export const dealerRegistrationSchema = z.object({
     type: z.enum(["cr12", "incorporation_certificate", "national_id", "passport"]),
     path: z.string().min(1).max(512),
     name: z.string().trim().min(1).max(255),
-  }).optional(),
+  }),
 });
 
 export const dealerRegistrationDocumentLabels = {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { KENYA_COUNTIES } from "@/lib/constants/filters";
 import { toDealerAddress } from "@/lib/location/dealer-address";
 import { LISTING_PHONE_ERROR } from "@/lib/utils/phone";
 import {
@@ -65,4 +66,13 @@ test("dealership names reject markup, control characters and emoji but keep busi
   assert.equal(name.parse("Société Générale Motors 2024"), "Société Générale Motors 2024");
   assert.equal(name.parse("Sample Motors® Kenya™"), "Sample Motors® Kenya™");
   assert.deepEqual(name.safeParse("   ").error?.issues.map((issue) => issue.message), ["Dealership name is required."]);
+});
+
+test("dealer registration requires one verification document of any listed type", () => {
+  const base = { name: "Sample Motors", phone: "0712345678", address: "Moi Avenue", town: "Nairobi", county: KENYA_COUNTIES[0], area: "" };
+  assert.equal(dealerRegistrationSchema.safeParse(base).success, false);
+  assert.equal(dealerRegistrationSchema.safeParse({ ...base, document: { path: "u/doc.pdf", name: "doc.pdf" } }).success, false);
+  for (const type of ["cr12", "incorporation_certificate", "national_id", "passport"]) {
+    assert.equal(dealerRegistrationSchema.safeParse({ ...base, document: { type, path: "u/doc.pdf", name: "doc.pdf" } }).success, true, type);
+  }
 });
