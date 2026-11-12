@@ -28,6 +28,9 @@ test("validation marks each field and links it to its own message", () => {
   assert.match(flow, /aria-invalid=\{Boolean\(shown\.document\) \|\| undefined\}/);
   assert.match(flow, /"dealer-verification-file-help dealership-document-error"/);
   assert.match(flow, /<p id="dealership-document-error" role="alert"/);
+  assert.match(flow, /title="Verification document" required \/>/);
+  assert.match(flow, /!documentType \? "Select a document type, then choose the file\." : !file \? "Choose the file to upload\."/);
+  assert.equal((flow.match(/aria-invalid=\{typeMissing \|\| undefined\}/g) ?? []).length, 2);
   assert.match(flow, /"Fix the highlighted fields\."/);
   assert.match(flow, /fieldMessage\(dealerRegistrationSchema\.shape\.name, name, "Enter the dealership name\."\)/);
   assert.match(flow, /fieldMessage\(dealerRegistrationSchema\.shape\.phone, phone, "Enter a valid listing phone number\."\)/);
