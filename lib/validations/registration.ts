@@ -1,15 +1,28 @@
 import { z } from "zod";
 import type { SellerVerificationDocumentType } from "@/lib/types/seller-verification";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
-import { normalizePhoneForVerification, PHONE_REGEX } from "@/lib/utils/phone";
+import { LISTING_PHONE_ERROR, normalizeListingPhone } from "@/lib/utils/phone";
 
-export const listingPhoneSchema = z.string().trim().max(32)
-  .regex(/^\+?[\d\s()-]+$/, "Enter a valid phone number.")
-  .transform((phone) => normalizePhoneForVerification(phone.replace(/[\s()-]/g, "")))
-  .refine((phone) => PHONE_REGEX.test(phone), "Enter a valid phone number.");
+export const listingPhoneSchema = z.string().trim().max(32, LISTING_PHONE_ERROR)
+  .transform((phone, ctx) => {
+    const normalized = normalizeListingPhone(phone);
+    if (normalized) return normalized;
+    ctx.addIssue({ code: "custom", message: LISTING_PHONE_ERROR });
+    return z.NEVER;
+  });
+
+export const DEALERSHIP_NAME_ERROR =
+  "Dealership name can't include emoji, < or > characters, or control characters.";
+// Extended_Pictographic also covers the ©, ® and ™ signs, which stay allowed;
+// flags are regional-indicator pairs that it misses.
+const DISALLOWED_DEALERSHIP_NAME_CHARACTERS =
+  /(?![©®™])[<>\p{Cc}\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
 
 export const dealerRegistrationSchema = z.object({
-  name: z.string().trim().min(1).max(160),
+  name: z.string().trim()
+    .min(1, "Dealership name is required.")
+    .max(160, "Dealership name must be 160 characters or fewer.")
+    .refine((name) => !DISALLOWED_DEALERSHIP_NAME_CHARACTERS.test(name), DEALERSHIP_NAME_ERROR),
   phone: listingPhoneSchema,
   address: z.string().trim().min(1).max(250),
   town: z.string().trim().min(1).max(120),

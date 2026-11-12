@@ -17,7 +17,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { WizardShell } from "@/components/seller/wizard-shell";
 import { createDealerOnboardingUpload, submitDealerVerification } from "@/lib/actions/dealers";
 import type { DealerVerificationRecord } from "@/lib/types/dealer";
-import { getDealerRegistrationDocumentLabel } from "@/lib/validations/registration";
+import {
+  dealerRegistrationSchema,
+  getDealerRegistrationDocumentLabel,
+  listingPhoneSchema,
+} from "@/lib/validations/registration";
 import { createClient } from "@/lib/supabase/client";
 
 type DealerSignupData = {
@@ -82,7 +86,7 @@ const DEALER_SIGNUP_STEPS = [
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
-const DEFAULT_DATA: DealerSignupData = {
+export const DEFAULT_DATA: DealerSignupData = {
   dealershipName: "",
   registeredBusinessName: "",
   dealershipAddress: "",
@@ -115,14 +119,22 @@ const DEFAULT_DATA: DealerSignupData = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\+?[0-9]{8,15}$/;
 
 function isValidEmail(value: string) {
   return EMAIL_REGEX.test(value.trim());
 }
 
 function isValidPhone(value: string) {
-  return PHONE_REGEX.test(value.replace(/\s+/g, ""));
+  return listingPhoneSchema.safeParse(value).success;
+}
+
+function phoneError(label: string) {
+  return `Enter a valid ${label}, e.g. 0712 345 678 or +254 712 345 678.`;
+}
+
+function toSubmittedPhone(value: string) {
+  const parsed = listingPhoneSchema.safeParse(value);
+  return parsed.success ? parsed.data : value.trim();
 }
 
 function isValidUrl(value: string) {
@@ -134,6 +146,91 @@ function isValidUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+export type DealerStepError = { field?: keyof DealerSignupData; message: string };
+
+export function getDealerStepErrors(
+  step: number,
+  data: DealerSignupData,
+  { hasSavedCertificate, uploadError }: { hasSavedCertificate: boolean; uploadError: string | null },
+) {
+  const errors: DealerStepError[] = [];
+  const add = (field: keyof DealerSignupData | undefined, message: string) => {
+    errors.push({ field, message });
+  };
+
+  if (step === 0) {
+    const name = dealerRegistrationSchema.shape.name.safeParse(data.dealershipName);
+    if (!name.success) add("dealershipName", name.error.issues[0].message);
+    if (!data.dealershipAddress.trim()) add("dealershipAddress", "Dealership address is required.");
+    if (!data.county) add("county", "County is required.");
+    if (!data.cityTown.trim()) add("cityTown", "City / town is required.");
+    if (!data.locationArea.trim()) add("locationArea", "Location / area is required.");
+    if (!isValidPhone(data.mobileNumber)) add("mobileNumber", phoneError("mobile number"));
+    if (!isValidEmail(data.officialEmail)) add("officialEmail", "Enter a valid official email address.");
+    if (!isValidPhone(data.whatsappNumber)) add("whatsappNumber", phoneError("WhatsApp contact number"));
+    if (!isValidUrl(data.websiteUrl)) add("websiteUrl", "Website URL must start with http:// or https://.");
+  }
+
+  if (step === 1) {
+    if (data.openingHours && (data.openingHours.length > 10000 || !parseOpeningHours(data.openingHours))) {
+      add("openingHours", "Enter valid opening hours, with closing times after opening times and unique holiday dates.");
+    }
+
+    const socialUrls = [
+      { field: "facebookUrl", label: "Facebook URL" },
+      { field: "instagramUrl", label: "Instagram URL" },
+      { field: "xUrl", label: "X (Twitter) URL" },
+      { field: "tiktokUrl", label: "TikTok URL" },
+      { field: "otherSocialUrl", label: "Other social URL" },
+    ] as const;
+
+    socialUrls.forEach(({ field, label }) => {
+      if (!isValidUrl(data[field])) {
+        add(field, `${label} must start with http:// or https://.`);
+      }
+    });
+  }
+
+  if (step === 2) {
+    if (!data.contactFullName.trim()) add("contactFullName", "Primary contact full name is required.");
+    if (!data.contactRole.trim()) add("contactRole", "Primary contact role/title is required.");
+    if (!isValidPhone(data.contactMobile)) add("contactMobile", phoneError("primary contact mobile number"));
+    if (!isValidEmail(data.contactEmail)) add("contactEmail", "Enter a valid primary contact email.");
+    if (data.contactWhatsapp.trim() && !isValidPhone(data.contactWhatsapp)) {
+      add("contactWhatsapp", phoneError("primary contact WhatsApp number"));
+    }
+  }
+
+  if (step === 3) {
+    if (!data.incorporationCertificateName && !hasSavedCertificate) {
+      add("incorporationCertificateName", "Certificate of incorporation is required.");
+    }
+    if (!data.acceptDealerTerms) {
+      add("acceptDealerTerms", "Dealer Terms & Conditions must be accepted.");
+    }
+    if (!data.acceptPrivacyPolicy) {
+      add("acceptPrivacyPolicy", "Data & Privacy Policy must be accepted.");
+    }
+    if (uploadError) {
+      add(undefined, uploadError);
+    }
+  }
+
+  return errors;
+}
+
+// A step's errors stay hidden until Continue is tried on it; before that, only
+// fields the user edited and then left show their error.
+export function getVisibleStepErrors(
+  errors: DealerStepError[],
+  attempted: boolean,
+  revealedFields: ReadonlySet<keyof DealerSignupData>,
+) {
+  return attempted
+    ? errors
+    : errors.filter(({ field }) => field !== undefined && revealedFields.has(field));
 }
 
 function DealershipPhotoPreview({ file }: { file: File | null }) {
@@ -165,6 +262,10 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [attemptedSteps, setAttemptedSteps] = React.useState<ReadonlySet<number>>(() => new Set());
+  const [revealedFields, setRevealedFields] = React.useState<ReadonlySet<keyof DealerSignupData>>(() => new Set());
+  const editedFields = React.useRef(new Set<keyof DealerSignupData>());
+  const errorSummaryRef = React.useRef<HTMLDivElement>(null);
   const [formData, setFormData] = React.useState<DealerSignupData>(() => ({
     ...DEFAULT_DATA,
     dealershipName: initialDealer?.name || "",
@@ -207,8 +308,13 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     key: Key,
     value: DealerSignupData[Key]
   ) => {
+    editedFields.current.add(key);
     setFormData((prev) => ({ ...prev, [key]: value }));
     setSubmitError(null);
+  };
+
+  const revealEditedFields = () => {
+    setRevealedFields(new Set(editedFields.current));
   };
 
   const handleUpload = (
@@ -239,72 +345,24 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     updateField(key, file.name);
   };
 
-  const stepErrors = React.useMemo(() => {
-    const errors: string[] = [];
+  const stepErrors = React.useMemo(
+    () => getDealerStepErrors(activeStep, formData, { hasSavedCertificate, uploadError }),
+    [activeStep, formData, hasSavedCertificate, uploadError]
+  );
+  const visibleStepErrors = getVisibleStepErrors(
+    stepErrors,
+    attemptedSteps.has(activeStep),
+    revealedFields
+  );
 
-    if (activeStep === 0) {
-      if (!formData.dealershipName.trim()) errors.push("Dealership name is required.");
-      if (!formData.dealershipAddress.trim()) errors.push("Dealership address is required.");
-      if (!formData.county) errors.push("County is required.");
-      if (!formData.cityTown.trim()) errors.push("City / town is required.");
-      if (!formData.locationArea.trim()) errors.push("Location / area is required.");
-      if (!isValidPhone(formData.mobileNumber)) errors.push("Enter a valid mobile number.");
-      if (!isValidEmail(formData.officialEmail)) errors.push("Enter a valid official email address.");
-      if (!isValidPhone(formData.whatsappNumber)) errors.push("Enter a valid WhatsApp contact number.");
-      if (!isValidUrl(formData.websiteUrl)) errors.push("Website URL must start with http:// or https://.");
-    }
-
-    if (activeStep === 1) {
-      if (formData.openingHours && (formData.openingHours.length > 10000 || !parseOpeningHours(formData.openingHours))) {
-        errors.push("Enter valid opening hours, with closing times after opening times and unique holiday dates.");
-      }
-      const socialUrls = [
-        { value: formData.facebookUrl, label: "Facebook URL" },
-        { value: formData.instagramUrl, label: "Instagram URL" },
-        { value: formData.xUrl, label: "X (Twitter) URL" },
-        { value: formData.tiktokUrl, label: "TikTok URL" },
-        { value: formData.otherSocialUrl, label: "Other social URL" },
-      ];
-
-      socialUrls.forEach(({ value, label }) => {
-        if (!isValidUrl(value)) {
-          errors.push(`${label} must start with http:// or https://.`);
-        }
-      });
-    }
-
-    if (activeStep === 2) {
-      if (!formData.contactFullName.trim()) errors.push("Primary contact full name is required.");
-      if (!formData.contactRole.trim()) errors.push("Primary contact role/title is required.");
-      if (!isValidPhone(formData.contactMobile)) errors.push("Enter a valid primary contact mobile number.");
-      if (!isValidEmail(formData.contactEmail)) errors.push("Enter a valid primary contact email.");
-      if (formData.contactWhatsapp.trim() && !isValidPhone(formData.contactWhatsapp)) {
-        errors.push("Primary contact WhatsApp number format is invalid.");
-      }
-    }
-
-    if (activeStep === 3) {
-      if (!formData.incorporationCertificateName && !hasSavedCertificate) {
-        errors.push("Certificate of incorporation is required.");
-      }
-      if (!formData.acceptDealerTerms) {
-        errors.push("Dealer Terms & Conditions must be accepted.");
-      }
-      if (!formData.acceptPrivacyPolicy) {
-        errors.push("Data & Privacy Policy must be accepted.");
-      }
-      if (uploadError) {
-        errors.push(uploadError);
-      }
-    }
-
-    return errors;
-  }, [activeStep, formData, hasSavedCertificate, uploadError]);
-
-  const canContinue = stepErrors.length === 0;
 
   const handleContinue = async () => {
-    if (!canContinue || isSubmitting) return;
+    if (isSubmitting) return;
+    if (stepErrors.length > 0) {
+      setAttemptedSteps((prev) => new Set(prev).add(activeStep));
+      requestAnimationFrame(() => errorSummaryRef.current?.focus());
+      return;
+    }
     if (isLastStep) {
       if (previewMode) {
         setSubmitted(true);
@@ -321,17 +379,17 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
       submission.set("county", formData.county);
       submission.set("cityTown", formData.cityTown);
       submission.set("locationArea", formData.locationArea);
-      submission.set("mobileNumber", formData.mobileNumber);
+      submission.set("mobileNumber", toSubmittedPhone(formData.mobileNumber));
       submission.set("officialEmail", formData.officialEmail);
-      submission.set("whatsappNumber", formData.whatsappNumber);
+      submission.set("whatsappNumber", toSubmittedPhone(formData.whatsappNumber));
       submission.set("websiteUrl", formData.websiteUrl);
       submission.set("aboutDealership", formData.aboutDealership);
       submission.set("openingHours", formData.openingHours);
       submission.set("contactFullName", formData.contactFullName);
       submission.set("contactRole", formData.contactRole);
-      submission.set("contactMobile", formData.contactMobile);
+      submission.set("contactMobile", toSubmittedPhone(formData.contactMobile));
       submission.set("contactEmail", formData.contactEmail);
-      submission.set("contactWhatsapp", formData.contactWhatsapp);
+      submission.set("contactWhatsapp", toSubmittedPhone(formData.contactWhatsapp));
       submission.set("facebookUrl", formData.facebookUrl);
       submission.set("instagramUrl", formData.instagramUrl);
       submission.set("xUrl", formData.xUrl);
@@ -444,8 +502,8 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
       activeStep={activeStep}
       testId="dealer-signup-flow"
       footerMeta={
-        stepErrors.length > 0
-          ? `${stepErrors.length} issue${stepErrors.length === 1 ? "" : "s"} to fix on this step`
+        visibleStepErrors.length > 0
+          ? `${visibleStepErrors.length} issue${visibleStepErrors.length === 1 ? "" : "s"} to fix on this step`
           : `Step ${activeStep + 1} of ${DEALER_SIGNUP_STEPS.length}`
       }
       footer={
@@ -462,7 +520,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
           <Button
             type="button"
             onClick={handleContinue}
-            disabled={!canContinue || isSubmitting}
+            disabled={isSubmitting}
             data-testid="dealer-signup-next"
           >
             {isLastStep ? (isUploading ? "Uploading attachments..." : isSubmitting ? "Submitting..." : "Submit for Verification") : "Continue"}
@@ -476,22 +534,24 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
         </div>
       )}
 
-      {stepErrors.length > 0 && (
+      {visibleStepErrors.length > 0 && (
         <div
-          className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+          ref={errorSummaryRef}
+          tabIndex={-1}
+          className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive outline-none"
           data-testid="dealer-validation-errors"
         >
           <p className="font-semibold">Fix the following before continuing:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            {stepErrors.map((error) => (
-              <li key={error}>{error}</li>
+            {visibleStepErrors.map(({ message }) => (
+              <li key={message}>{message}</li>
             ))}
           </ul>
         </div>
       )}
 
       {activeStep === 0 && (
-        <div className="space-y-4" data-testid="dealer-step-dealership">
+        <div className="space-y-4" data-testid="dealer-step-dealership" onBlur={revealEditedFields}>
           <h2 className="text-lg font-semibold text-foreground">Dealership Information</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -586,7 +646,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
       )}
 
       {activeStep === 1 && (
-        <div className="space-y-4" data-testid="dealer-step-profile">
+        <div className="space-y-4" data-testid="dealer-step-profile" onBlur={revealEditedFields}>
           <h2 className="text-lg font-semibold text-foreground">Branding & Public Profile</h2>
           <div>
             <Label htmlFor="dealer-logo">Dealership Profile Picture / Logo (Optional)</Label>
@@ -660,7 +720,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
       )}
 
       {activeStep === 2 && (
-        <div className="space-y-4" data-testid="dealer-step-contact">
+        <div className="space-y-4" data-testid="dealer-step-contact" onBlur={revealEditedFields}>
           <h2 className="text-lg font-semibold text-foreground">Primary Contact Person</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -725,7 +785,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
       )}
 
       {activeStep === 3 && (
-        <div className="space-y-4" data-testid="dealer-step-verification">
+        <div className="space-y-4" data-testid="dealer-step-verification" onBlur={revealEditedFields}>
           <h2 className="text-lg font-semibold text-foreground">Verification Requirements</h2>
           {savedDocuments.map((document) => (
             <div key={document.id} className="rounded-lg border border-border bg-muted p-3 text-sm">
