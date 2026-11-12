@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -237,11 +236,11 @@ interface DealerSignupFlowProps {
 }
 
 export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerSignupFlowProps) {
-  const router = useRouter();
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [sessionEnded, setSessionEnded] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [attemptedSteps, setAttemptedSteps] = React.useState<ReadonlySet<number>>(() => new Set());
   const [revealedFields, setRevealedFields] = React.useState<ReadonlySet<keyof DealerSignupData>>(() => new Set());
@@ -397,7 +396,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
             const ticket = await createDealerOnboardingUpload(field, {
               name: file.name, size: file.size, type: file.type,
             });
-            if ("error" in ticket) throw new Error(ticket.error);
+            if ("error" in ticket) throw Object.assign(new Error(ticket.error), { code: ticket.code });
             const { error } = await storage.from(ticket.bucket)
               .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
             if (error) throw new Error(`Couldn't upload ${file.name}. Please retry.`);
@@ -410,17 +409,13 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
         setIsUploading(false);
         const failure = uploads.find((upload) => upload.status === "rejected");
         if (failure) {
-          if (failure.reason instanceof Error && failure.reason.message === "Unauthorized") {
-            router.replace("/login?next=/register/dealer");
-          }
+          setSessionEnded((failure.reason as { code?: string } | undefined)?.code === "session_expired");
           setSubmitError(failure.reason instanceof Error ? failure.reason.message : "An attachment couldn't be uploaded. Please retry.");
           return;
         }
         const result = await submitDealerVerification(submission);
         if (result.error) {
-          if (result.error === "Unauthorized") {
-            router.replace("/login?next=/register/dealer");
-          }
+          setSessionEnded(result.code === "session_expired");
           setSubmitError(result.error);
           return;
         }
@@ -507,7 +502,13 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     >
       {submitError && (
         <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-          {submitError}
+          <p>{submitError}</p>
+          {sessionEnded && (
+            <p className="mt-1 text-foreground">
+              <Link href="/login?next=/dashboard/verification" target="_blank" rel="noopener noreferrer" className="font-bold text-primary underline">Sign in</Link>
+              {" "}in a new tab, then come back to this tab and submit again. Your details are kept.
+            </p>
+          )}
         </div>
       )}
 
