@@ -16,7 +16,7 @@ function loadFileProblem() {
 test("an ended session keeps the form and offers sign-in in a new tab", () => {
   assert.match(flow, /setSessionEnded\(result\.code === "session_expired"\)/);
   assert.match(flow, /<Link href="\/login\?next=\/register\/dealer" target="_blank" rel="noopener noreferrer"/);
-  assert.match(flow, /come back to this tab and press Create dealer account again\. Your details are kept\./);
+  assert.match(flow, /\(opens in a new tab\), then come back here and press Create dealer account again\. Your details are kept\./);
 });
 
 test("validation marks each field and links it to its own message", () => {

@@ -469,7 +469,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 {sessionEnded && (
                   <p className="font-normal text-foreground">
                     <Link href="/login?next=/register/dealer" target="_blank" rel="noopener noreferrer" className="font-bold text-primary underline">Sign in</Link>
-                    {" "}in a new tab, then come back to this tab and press Create dealer account again. Your details are kept.
+                    {" "}(opens in a new tab), then come back here and press Create dealer account again. Your details are kept.
                   </p>
                 )}
               </div>
