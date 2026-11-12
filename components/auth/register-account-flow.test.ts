@@ -110,3 +110,7 @@ test("email signup uses the confirmation handoff while Google retains its sessio
   assert.match(form, /emailRedirectTo: getSignupVerificationUrl\(nextPath\)/);
   assert.match(form, /const redirectTo = getAuthCallbackUrl\(nextPath\)/);
 });
+
+test("editing credentials clears a stale registration error", () => {
+  assert.match(form, /const clearCreatedAccount = \(\) => \{\s*setErrorMessage\(null\);/);
+});

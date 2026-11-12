@@ -146,6 +146,7 @@ export function RegisterForm() {
   };
 
   const clearCreatedAccount = () => {
+    setErrorMessage(null);
     if (!accountCreated) return;
     setAccountCreated(false);
     setInfoMessage(null);

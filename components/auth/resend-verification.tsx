@@ -8,6 +8,11 @@ export function ResendVerification({ email, nextPath = "", disabled = false }: {
   const [message, setMessage] = React.useState<string | null>(null);
   const [failed, setFailed] = React.useState(false);
   const [cooldown, setCooldown] = React.useState(false);
+  const [messageEmail, setMessageEmail] = React.useState(email);
+  if (messageEmail !== email) {
+    setMessageEmail(email);
+    setMessage(null);
+  }
   React.useEffect(() => {
     if (!cooldown) return;
     const timer = window.setTimeout(() => setCooldown(false), 60_000);

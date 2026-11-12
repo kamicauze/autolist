@@ -13,3 +13,7 @@ test("resend success copy stays neutral and tells confirmed users to sign in", (
   assert.match(resend, /If you've already confirmed it, just sign in with your password\./);
   assert.doesNotMatch(resend, /a new link has been sent/);
 });
+
+test("resend feedback is cleared when the email changes", () => {
+  assert.match(resend, /if \(messageEmail !== email\) \{\s*setMessageEmail\(email\);\s*setMessage\(null\);/);
+});
