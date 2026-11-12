@@ -122,9 +122,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
   const [manual, setManual] = useState(false);
-  const [results, setResults] = useState<DealerAddress[] | null>(null);
-  const [searchError, setSearchError] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState<{ query: string; results?: DealerAddress[]; error?: string }>();
   const [documentType, setDocumentType] = useState<DealerRegistrationDocumentType | "">("");
   const [file, setFile] = useState<File>();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -154,6 +152,24 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const feedback = error || (showValidation && hasFieldErrors ? "Fix the highlighted fields." : "");
   const typeLabel = documentType ? dealerRegistrationDocumentLabels[documentType] : "Select document type";
   const typeMissing = Boolean(shown.document) && !documentType;
+  const text = query.trim();
+  const searchable = !manual && !selected && text.length >= 3;
+  const searching = searchable && found?.query !== text;
+  const results = searchable ? found?.results : undefined;
+  const searchStatus = !text || selected || manual ? ""
+    : text.length < 3 ? "Type at least 3 characters to search."
+    : searching ? "Searching…" : found?.error ?? "";
+
+  useEffect(() => {
+    if (!searching) return;
+    let current = true;
+    const timer = window.setTimeout(() => {
+      searchDealerAddresses(text)
+        .then((response) => { if (current) setFound({ query: text, ...response }); })
+        .catch(() => { if (current) setFound({ query: text, error: "Address search is unavailable. You can enter the address manually." }); });
+    }, 300);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [searching, text]);
 
   useEffect(() => {
     if (createdName) {
@@ -166,31 +182,10 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     if (error || showValidation) submitError.current?.focus();
   }, [error, showValidation]);
 
-  async function search() {
-    if (searching) return;
-    if (query.trim().length < 3) {
-      setSearchError("Type at least 3 characters to search.");
-      return;
-    }
-    setSearching(true);
-    setSearchError("");
-    setResults(null);
-    try {
-      const response = await searchDealerAddresses(query);
-      if (response.results) setResults(response.results);
-      else setSearchError(response.error);
-    } catch {
-      setSearchError("Address search is unavailable. You can enter the address manually.");
-    } finally {
-      setSearching(false);
-    }
-  }
-
   function chooseAddress(address: DealerAddress) {
     setLocation(address);
     setSelected(true);
     setManual(!address.town || !address.county);
-    setResults(null);
     setError("");
   }
 
@@ -299,8 +294,8 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               <SectionHeading icon={MapPin} title="Dealership location" />
               {!selected && !manual && (
                 <>
-                  <p className="text-sm text-muted-foreground">Search once to fill your address, town and county.</p>
-                  <div className="relative flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">Start typing, then pick your address to fill the town and county.</p>
+                  <div className="relative flex items-center">
                     <Search aria-hidden className="pointer-events-none absolute left-3.5 size-5 text-muted-foreground" />
                     <Input
                       aria-label="Search for a building or street"
@@ -308,23 +303,15 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       type="search"
                       value={query}
                       maxLength={160}
-                      disabled={searching}
-                      onChange={(event) => { setQuery(event.target.value); setResults(null); setSearchError(""); }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") { event.preventDefault(); void search(); }
-                      }}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                       className={cn(inputClass, "pl-11", shown.search && invalidClass)}
                       aria-invalid={Boolean(shown.search) || undefined}
                       aria-describedby={shown.search ? "dealership-search-error" : undefined}
                     />
-                    {query.trim().length >= 3 && (
-                      <Button type="button" variant="outline" className="h-11 rounded-lg" disabled={searching} onClick={() => void search()}>
-                        {searching ? "Searching…" : "Search"}
-                      </Button>
-                    )}
                   </div>
                   <FieldError id="dealership-search-error" message={shown.search} />
-                  {searchError && <p role="status" className="text-sm text-muted-foreground">{searchError}</p>}
+                  {searchStatus && <p role="status" className="text-sm text-muted-foreground">{searchStatus}</p>}
                   {results && (
                     <div className="space-y-2" aria-live="polite">
                       {results.length === 0 ? (
