@@ -28,6 +28,7 @@ import type { DealerStatus } from "@/lib/types/dealer";
 import {
   dealerRegistrationDocumentLabels,
   dealerRegistrationSchema,
+  listingPhoneSchema,
   type DealerRegistration,
   type DealerRegistrationDocumentType,
 } from "@/lib/validations/registration";
@@ -81,10 +82,6 @@ function optionalString(formData: FormData, key: string) {
 function getFile(formData: FormData, key: string) {
   const value = formData.get(key);
   return value instanceof File && value.size > 0 ? value : null;
-}
-
-function normalizePhone(value: string) {
-  return value.replace(/\s+/g, "");
 }
 
 function sanitizeFileName(fileName: string) {
@@ -148,25 +145,38 @@ const verificationFields = [
   "companyLogo", "contactPhoto", "incorporationCertificate", "contactPersonId",
 ] as const;
 
-async function requireDealerApplicant(): Promise<{ user: User } | { error: string }> {
+type DealerApplicant =
+  | { user: User; role: string }
+  | { error: string; code?: "session_expired" };
+
+async function requireDealerApplicant(): Promise<DealerApplicant> {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { error: "Unauthorized" } as const;
+  if (authError || !user) {
+    return { error: "Your session has ended. Sign in again to continue.", code: "session_expired" };
+  }
 
   const { data: profile, error } = await supabase.from("profiles")
     .select("role, deactivated_at").eq("id", user.id).maybeSingle();
   if (error || !profile || profile.deactivated_at || !["buyer", "seller", "dealer"].includes(profile.role)) {
-    return { error: "An active marketplace account is required." } as const;
+    return { error: "An active marketplace account is required." };
   }
-  return { user } as const;
+  return { user, role: profile.role };
 }
+
+const verificationPhoneFields = [
+  ["mobileNumber", "Enter a valid dealership mobile number."],
+  ["whatsappNumber", "Enter a valid dealership WhatsApp number."],
+  ["contactMobile", "Enter a valid primary contact mobile number."],
+  ["contactWhatsapp", "Enter a valid primary contact WhatsApp number."],
+] as const;
 
 export async function createDealerOnboardingUpload(
   field: OnboardingAttachment,
   file: { name: string; type: string; size: number },
 ) {
   const applicant = await requireDealerApplicant();
-  if ("error" in applicant) return { error: applicant.error };
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
   const { user } = applicant;
 
   if (!Object.hasOwn(onboardingAttachments, field)) return { error: "Invalid attachment." };
@@ -351,7 +361,7 @@ async function logAudit(
 
 export async function searchDealerAddresses(rawQuery: string) {
   const applicant = await requireDealerApplicant();
-  if ("error" in applicant) return { error: applicant.error };
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
   const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
   if (query.length < 3 || query.length > 160) return { error: "Enter a building or street name." };
   try {
@@ -363,7 +373,7 @@ export async function searchDealerAddresses(rawQuery: string) {
 
 export async function createDealerRegistration(input: DealerRegistration) {
   const applicant = await requireDealerApplicant();
-  if ("error" in applicant) return { error: applicant.error };
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
 
   const parsed = dealerRegistrationSchema.safeParse(input);
   if (!parsed.success) return { error: "Enter a dealership name, valid listing phone, address, town, and county. Select a type for any attached document." };
@@ -401,9 +411,27 @@ export async function createDealerRegistration(input: DealerRegistration) {
   }
 }
 
+export async function leaveDealerSetup() {
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
+  if (applicant.role !== "dealer") return { success: true as const };
+
+  const admin = createAdminClient();
+  const { data: dealer, error: dealerError } = await admin.from("dealers")
+    .select("id").eq("profile_id", applicant.user.id).maybeSingle();
+  if (dealerError) return { error: "Unable to switch your account. Please retry." };
+  if (dealer) return { error: "Your dealership is already saved, so this account stays a dealer account." };
+
+  const { error } = await admin.from("profiles").update({ role: "buyer" })
+    .eq("id", applicant.user.id).eq("role", "dealer");
+  if (error) return { error: "Unable to switch your account. Please retry." };
+  revalidatePath("/dashboard");
+  return { success: true as const };
+}
+
 export async function submitDealerVerification(formData: FormData) {
   const applicant = await requireDealerApplicant();
-  if ("error" in applicant) return { error: applicant.error };
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
   const { user } = applicant;
   const adminSupabase = createAdminClient();
 
@@ -446,6 +474,18 @@ export async function submitDealerVerification(formData: FormData) {
 
     const openingHours = profileUpdateSchema.shape.openingHours.safeParse(optionalString(formData, "openingHours") ?? "");
     if (!openingHours.success) return { error: openingHours.error.issues[0].message };
+
+    const phones: Record<string, string | null> = {};
+    for (const [field, message] of verificationPhoneFields) {
+      const value = optionalString(formData, field);
+      if (!value) {
+        phones[field] = null;
+        continue;
+      }
+      const parsed = listingPhoneSchema.safeParse(value);
+      if (!parsed.success) return { error: message };
+      phones[field] = parsed.data;
+    }
 
     const existing = await adminSupabase.from("dealers").select("status, doc_incorporation_key")
       .eq("profile_id", user.id).maybeSingle();
@@ -495,8 +535,8 @@ export async function submitDealerVerification(formData: FormData) {
       Object.entries(socialLinks).filter(([, value]) => Boolean(value))
     );
     const profilePayload = {
-      phone: normalizePhone(mobileNumber),
-      whatsapp: normalizePhone(whatsappNumber),
+      phone: phones.mobileNumber,
+      whatsapp: phones.whatsappNumber,
       bio: optionalString(formData, "aboutDealership"),
       city: cityTown,
       address: dealershipAddress,
@@ -513,9 +553,9 @@ export async function submitDealerVerification(formData: FormData) {
       city: cityTown,
       county: county || null,
       location: locationArea,
-      mobile: normalizePhone(mobileNumber),
+      mobile: phones.mobileNumber,
       email: officialEmail,
-      whatsapp: normalizePhone(whatsappNumber),
+      whatsapp: phones.whatsappNumber,
       website: optionalString(formData, "websiteUrl"),
       logo_url: logoUpload?.publicUrl || null,
       about_text: optionalString(formData, "aboutDealership"),
@@ -524,9 +564,9 @@ export async function submitDealerVerification(formData: FormData) {
       contact_person: {
         name: contactFullName,
         role: contactRole,
-        mobile: normalizePhone(contactMobile),
+        mobile: phones.contactMobile,
         email: contactEmail,
-        whatsapp: optionalString(formData, "contactWhatsapp"),
+        whatsapp: phones.contactWhatsapp,
         photo_url: contactPhotoUpload?.publicUrl || null,
       },
       doc_incorporation_key: incorporationUpload?.r2Key || verifiedCertificateKey,
@@ -593,7 +633,10 @@ export async function submitDealerVerification(formData: FormData) {
 
 export async function resubmitDealerVerificationDocuments(formData: FormData) {
   const applicant = await requireDealerApplicant();
-  if ("error" in applicant) return { error: applicant.error };
+  // The verification panel redirects to sign-in when it receives this exact error.
+  if ("error" in applicant) {
+    return { error: applicant.code === "session_expired" ? "Unauthorized" : applicant.error, code: applicant.code };
+  }
   const { user } = applicant;
   const adminSupabase = createAdminClient();
 
