@@ -506,7 +506,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
           {sessionEnded && (
             <p className="mt-1 text-foreground">
               <Link href="/login?next=/dashboard/verification" target="_blank" rel="noopener noreferrer" className="font-bold text-primary underline">Sign in</Link>
-              {" "}in a new tab, then come back to this tab and submit again. Your details are kept.
+              {" "}(opens in a new tab), then come back here and submit again. Your details are kept.
             </p>
           )}
         </div>
