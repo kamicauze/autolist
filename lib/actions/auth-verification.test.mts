@@ -10,7 +10,9 @@ mock.module("@/lib/supabase/server", { namedExports: { createClient: async () =>
 const { resendSignupVerification } = await import("./auth-verification");
 
 test("resend validates email before reaching auth and keeps the browser callback origin", async () => {
-  assert.match((await resendSignupVerification("bad-email", "/dashboard")).error!, /Enter your email/);
+  assert.equal((await resendSignupVerification("  ", "/dashboard")).error, "Enter your email address above first.");
+  assert.equal((await resendSignupVerification("dealer@gmail", "/dashboard")).error, "Enter a valid email address.");
+  assert.equal((await resendSignupVerification("bad-email", "/dashboard")).error, "Enter a valid email address.");
   assert.equal(calls.length, 0);
   assert.deepEqual(await resendSignupVerification(" Seller@Example.com ", "/sell/dealer?draft=1"), { success: true });
   assert.deepEqual(calls[0], {

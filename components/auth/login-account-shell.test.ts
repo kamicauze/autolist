@@ -42,3 +42,11 @@ test("password sign-in hands the saved session to the server login route", () =>
   assert.doesNotMatch(handler, /auth\.getUser|resolvePostAuthPath/);
   assert.match(handler, /finally\s*\{\s*setIsLoading\(false\)/);
 });
+
+test("unconfirmed email sign-in points to the resend control instead of raw provider text", () => {
+  const handler = form.slice(form.indexOf("const handleLogin"), form.indexOf("const handleSocialLogin"));
+  assert.match(handler, /errorCode === "email_not_confirmed"/);
+  assert.match(handler, /\/email not confirmed\/i/);
+  assert.match(handler, /Confirm your email first by opening the link we sent you\..*request a new link below\./);
+  assert.ok(form.indexOf("<ResendVerification") > form.indexOf('data-testid="login-submit"'));
+});

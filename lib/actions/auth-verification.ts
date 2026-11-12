@@ -8,8 +8,11 @@ import { sanitizeNextPath } from "@/lib/supabase/auth-routing";
 
 export async function resendSignupVerification(email: string, nextPath: string) {
   const normalizedEmail = normalizeAuthEmail(email);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+  if (!normalizedEmail) {
     return { error: "Enter your email address above first." };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return { error: "Enter a valid email address." };
   }
   // Next validates a Server Action's Origin against its host before dispatch.
   // Resend uses an implicit verification link. Return to sign-in on this origin.

@@ -34,13 +34,40 @@ test("registration uses the same account shell language and a deliberate replace
 });
 
 test("account selection is a reversible first step that retains the form component state", () => {
-  assert.match(form, /useState<RegistrationStep>\("role"\)/);
   assert.match(form, /registrationStep === "role"/);
   assert.match(form, /Step 1 of 2/);
-  assert.match(form, /data-testid="register-role-continue"/);
-  assert.match(form, /data-testid="register-change-role"/);
-  assert.match(form, /setRegistrationStep\("role"\)/);
-  assert.match(form, /setRegistrationStep\("details"\)/);
+  assert.match(form, /onClick=\{continueToDetails\}\s+data-testid="register-role-continue"/);
+  assert.match(form, /onClick=\{returnToRoleStep\}\s+data-testid="register-change-role"/);
+  assert.doesNotMatch(form, /useState<RegistrationStep>|useState<UserRole>/);
+});
+
+test("registration step and role live in the URL so Back and refresh keep the flow", () => {
+  assert.match(form, /searchParams\.get\("step"\) === "details" \? "details" : "role"/);
+  assert.match(form, /const selectedRole = requestedRole \? resolveRole\(requestedRole\)/);
+  assert.match(form, /new URLSearchParams\(searchParams\.toString\(\)\)/);
+  assert.match(form, /params\.set\("role", role\)/);
+  assert.match(form, /router\.push\(getRegistrationStepHref\(selectedRole, "details"\)\)/);
+  assert.match(form, /window\.history\.replaceState\(null, "", getRegistrationStepHref\(role, "role"\)\)/);
+  assert.doesNotMatch(form, /params\.set\("(?:email|password)/);
+  assert.doesNotMatch(form, /localStorage|sessionStorage/);
+});
+
+test("password checklist and submit validation share one requirement list", () => {
+  const handler = form.slice(form.indexOf("const handleRegister"), form.indexOf("supabase.auth.signUp"));
+  assert.match(form, /PASSWORD_REQUIREMENTS\.map\(/);
+  assert.match(handler, /getPasswordRequirementError\(password\)/);
+  assert.match(handler, /setErrorMessage\(passwordRequirementError\);\s*return;/);
+  assert.doesNotMatch(form, /\/\[A-Z\]\/|password\.length < 8/);
+});
+
+test("a created account is not signed up again until its email or password changes", () => {
+  const handler = form.slice(form.indexOf("const handleRegister"), form.indexOf("supabase.auth.signUp"));
+  assert.match(handler, /if \(accountCreated\) return;/);
+  assert.match(form, /setAccountCreated\(true\);\s*setInfoMessage\(\s*"Account created\. Check your email/);
+  assert.match(form, /setEmail\(event\.target\.value\);\s*clearCreatedAccount\(\);/);
+  assert.match(form, /setPassword\(event\.target\.value\);\s*clearCreatedAccount\(\);/);
+  assert.match(form, /disabled=\{isLoading \|\| !!socialLoading \|\| accountCreated\}\s+data-testid="register-submit"/);
+  assert.match(form, /<ResendVerification email=\{email\} nextPath=\{nextPath\} disabled=\{isLoading \|\| !!socialLoading\} \/>/);
 });
 
 test("Private seller remains presentation copy over the existing seller role value", () => {
