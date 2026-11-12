@@ -111,3 +111,7 @@ test("registration uses email credentials without requesting a username", () => 
   assert.match(form, /id="register-password"[\s\S]*?autoComplete="new-password"/);
   assert.match(form, /id="register-confirm-password"[\s\S]*?autoComplete="new-password"/);
 });
+
+test("editing credentials clears a stale registration error", () => {
+  assert.match(form, /const clearCreatedAccount = \(\) => \{\s*setErrorMessage\(null\);/);
+});
