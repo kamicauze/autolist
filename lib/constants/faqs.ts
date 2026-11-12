@@ -7,10 +7,10 @@
  * - bare email addresses
  */
 
+import { SAFETY_EMAIL, SUPPORT_EMAIL, SUPPORT_WHATSAPP_NUMBER, SUPPORT_WHATSAPP_URL } from "./support-contact";
+
 export const FAQ_LAST_UPDATED = "24 August 2026";
 
-export const SUPPORT_EMAIL = "support@autolist.co.ke";
-export const SAFETY_EMAIL = "safety@autolist.co.ke";
 export const SUPPORT_HOURS = "Monday to Friday, 9:00 AM – 6:00 PM";
 
 export type FaqBlock = { p: string } | { ul: string[] };
@@ -489,7 +489,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         question: "How do I contact customer support?",
         answer: [
           {
-            p: `Email us at ${SUPPORT_EMAIL}. For safety concerns about a buyer, seller or listing, email ${SAFETY_EMAIL}.`,
+            p: `Email us at ${SUPPORT_EMAIL} or [message us on WhatsApp at ${SUPPORT_WHATSAPP_NUMBER}](${SUPPORT_WHATSAPP_URL}). For safety concerns about a buyer, seller or listing, email ${SAFETY_EMAIL}.`,
           },
         ],
       },

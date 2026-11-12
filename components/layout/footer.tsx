@@ -25,7 +25,7 @@ const footerLinks = {
     { name: "About Autolist", href: "/about" },
     { name: "Careers", href: "/careers" },
     { name: "Advertise with us", href: "/advertise-with-us" },
-    { name: "Contact us", href: "/about" },
+    { name: "Contact us", href: "/inquiries-assistance#inquiry-form" },
     { name: "FAQs", href: "/faqs" },
     { name: "Security advice", href: "/security-advice" },
     { name: "Privacy policy", href: "/privacy" },
