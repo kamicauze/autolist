@@ -54,12 +54,14 @@ export default async function DashboardPage() {
   const activeOrPendingListings = listingItems.filter((listing) =>
     ["active", "pending", "reserved"].includes(listing.status)
   ).length;
-  const quotaValue =
-    packageAccess?.remainingListings === null
+  // Listing does not require a package during the free pilot (ADR-0002, ADR-0044),
+  // so the no-package state must not read as zero capacity.
+  const activePackage = packageAccess?.hasActivePlan ? packageAccess : null;
+  const quotaValue = !activePackage
+    ? "Free"
+    : activePackage.remainingListings === null
       ? `${activeOrPendingListings}/unlimited`
-      : packageAccess?.listingLimit
-        ? `${packageAccess.remainingListings}/${packageAccess.listingLimit} remaining`
-        : "0/0 remaining";
+      : `${activePackage.remainingListings}/${activePackage.listingLimit} remaining`;
 
   const dashboardStats: DashboardStat[] = [
     {
@@ -67,7 +69,7 @@ export default async function DashboardPage() {
       value: quotaValue,
       icon: "listings",
       asset: "listings-stack" as const,
-      note: packageAccess?.currentPlan ? packageAccess.currentPlan.name : "No active package",
+      note: activePackage?.currentPlan?.name ?? "No package needed during the pilot",
     },
     {
       label: "Pending",

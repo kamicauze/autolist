@@ -25,6 +25,7 @@ import { IconMenu, IconX, IconUser, IconSearch } from "@/components/ui/icons";
 import { useCompare } from "@/lib/hooks/use-compare";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
+import { clearAccountStorage } from "@/lib/client/clear-account-storage";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { VEHICLE_TYPE_NAVIGATION_ITEMS } from "@/lib/constants/vehicle-type-navigation";
@@ -213,6 +214,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     const supabase = createClient();
+    clearAccountStorage();
     const { error } = await supabase.auth.signOut();
     if (!error) window.location.assign("/");
   };

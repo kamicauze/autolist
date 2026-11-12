@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clearAccountStorage } from "@/lib/client/clear-account-storage";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Illustration3D } from "@/components/ui/icon-3d";
@@ -12,6 +13,7 @@ export default function AccountDeactivatedPage() {
   React.useEffect(() => {
     // Clear any lingering session so the deactivated user is fully signed out.
     const supabase = createClient();
+    clearAccountStorage();
     void supabase.auth.signOut();
   }, []);
 
