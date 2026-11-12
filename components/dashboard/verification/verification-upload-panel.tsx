@@ -136,6 +136,7 @@ export function VerificationUploadPanel({
   return (
     <form ref={formRef} className="space-y-5">
       {dealer?.documents.map((document) => {
+        if (document.document_type === "incorporation_certificate") return null;
         const label = getDealerRegistrationDocumentLabel(document.document_type);
         if (!label) return null;
         return (

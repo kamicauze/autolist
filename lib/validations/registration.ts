@@ -16,7 +16,7 @@ export const dealerRegistrationSchema = z.object({
   county: z.string().pipe(z.enum(KENYA_COUNTIES)),
   area: z.string().trim().max(120),
   document: z.object({
-    type: z.enum(["cr12", "national_id", "passport"]),
+    type: z.enum(["cr12", "incorporation_certificate", "national_id", "passport"]),
     path: z.string().min(1).max(512),
     name: z.string().trim().min(1).max(255),
   }).optional(),
@@ -24,6 +24,7 @@ export const dealerRegistrationSchema = z.object({
 
 export const dealerRegistrationDocumentLabels = {
   cr12: "CR12",
+  incorporation_certificate: "Certificate of Incorporation",
   national_id: "National ID",
   passport: "Passport",
 } as const;

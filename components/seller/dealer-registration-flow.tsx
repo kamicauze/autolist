@@ -56,6 +56,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [file, setFile] = useState<File>();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState("");
+  const [showValidation, setShowValidation] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [createdName, setCreatedName] = useState(existingName);
@@ -63,9 +64,19 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const fileInput = useRef<HTMLInputElement>(null);
   const confirmation = useRef<HTMLHeadingElement>(null);
   const submitError = useRef<HTMLParagraphElement>(null);
-  const hasAddress = Boolean(location.address.trim() && location.town.trim() && location.county);
-  const ready = Boolean(name.trim() && listingPhoneSchema.safeParse(phone).success &&
-    hasAddress && !uploadError && (!file || documentType));
+  const locationErrors = manual ? [
+    !location.address.trim() && "Enter the address.",
+    !location.town.trim() && "Enter the town or city.",
+    !location.county && "Select a county.",
+  ] : [!selected && "Choose an address from the search results or enter it manually."];
+  const validationMessage = [
+    !name.trim() && "Enter the dealership name.",
+    !listingPhoneSchema.safeParse(phone).success && "Enter a valid listing phone number.",
+    ...locationErrors,
+    uploadError,
+    file && !documentType && "Select a document type or remove the file.",
+  ].filter(Boolean).join(" ");
+  const feedback = error || (showValidation ? validationMessage : "");
   const typeLabel = documentType ? dealerRegistrationDocumentLabels[documentType] : "Select document type";
 
   useEffect(() => {
@@ -76,8 +87,8 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   }, [createdName]);
 
   useEffect(() => {
-    if (error) submitError.current?.focus();
-  }, [error]);
+    if (error || showValidation) submitError.current?.focus();
+  }, [error, showValidation]);
 
   async function search() {
     if (searching || query.trim().length < 3) return;
@@ -105,6 +116,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
 
   function removeFile() {
     setFile(undefined);
+    setDocumentType("");
     setUploadError("");
     upload.current = null;
     if (fileInput.current) fileInput.current.value = "";
@@ -112,9 +124,15 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!ready || saving) return;
-    setSaving(true);
+    if (saving) return;
     setError("");
+    if (validationMessage) {
+      setShowValidation(true);
+      submitError.current?.focus();
+      return;
+    }
+    setShowValidation(false);
+    setSaving(true);
     try {
       let document;
       if (file && documentType) {
@@ -175,7 +193,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
         <p className="text-sm leading-5 text-muted-foreground lg:text-base">Create your dealer account in one step. You can finish verification later.</p>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,760px)_minmax(280px,1fr)]">
-        <form onSubmit={save} className="min-w-0 rounded-2xl border border-border bg-white px-4 lg:px-6">
+        <form noValidate onSubmit={save} className="min-w-0 rounded-2xl border border-border bg-white px-4 lg:px-6">
           <fieldset disabled={saving} className="min-w-0 divide-y divide-border">
             <section className="space-y-2 py-4 sm:space-y-3 lg:pt-6">
               <SectionHeading icon={Store} title="Dealership details" />
@@ -283,7 +301,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
             </section>
             <section className="space-y-2 py-4">
               <SectionHeading icon={ShieldCheck} title="Verification document" optional />
-              <p className="text-sm text-muted-foreground">Upload one document now or add it later.</p>
+              <p className="text-sm text-muted-foreground">Attach one document now or leave this section empty and add it during verification.</p>
               <div className="space-y-1.5">
                 <Label htmlFor="dealership-document-type" className="hidden md:block">Document type</Label>
                 <select id="dealership-document-type" className={cn(selectClass, "hidden md:block")} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
@@ -338,15 +356,14 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 {file && <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" aria-label="Remove verification file" onClick={removeFile}><X className="size-4" /></Button>}
               </div>
               {uploadError && <p role="alert" className="text-xs text-destructive">{uploadError}</p>}
-              {file && !documentType && <p role="status" className="text-xs text-muted-foreground">Select a document type for this file.</p>}
+              {file && !documentType && <p role="status" className="text-xs text-muted-foreground">Select a document type or remove this file to continue.</p>}
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <LockKeyhole aria-hidden className="size-3.5 shrink-0" /> Only you and authorised Autolist reviewers can access this file.
               </p>
             </section>
-            {error && <p ref={submitError} tabIndex={-1} role="alert" className="py-3 text-sm font-medium text-destructive">{error}</p>}
+            {feedback && <p ref={submitError} tabIndex={-1} role="alert" className="scroll-mb-24 py-3 text-sm font-medium text-destructive lg:scroll-mb-0">{feedback}</p>}
             <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-end gap-4 border-t border-border bg-white px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3.5 lg:static lg:px-0 lg:pb-6 lg:pt-4">
-              {!hasAddress && <p className="mr-auto hidden text-xs text-muted-foreground lg:block">Choose a location or enter your address to continue.</p>}
-              <Button type="submit" disabled={!ready || saving} className="h-[46px] w-full rounded-lg px-6 font-bold disabled:bg-[#f0f1f5] disabled:text-[#626270] disabled:opacity-100 lg:w-auto">
+              <Button type="submit" disabled={saving} className="h-[46px] w-full rounded-lg px-6 font-bold disabled:bg-[#f0f1f5] disabled:text-[#626270] disabled:opacity-100 lg:w-auto">
                 {saving && <Loader2 aria-hidden className="size-4 animate-spin" />}
                 {saving ? "Creating dealer account…" : "Create dealer account"}
               </Button>

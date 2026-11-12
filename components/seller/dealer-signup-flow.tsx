@@ -133,7 +133,7 @@ function isValidUrl(value: string) {
 
 interface DealerSignupFlowProps {
   previewMode?: boolean;
-  initialDealer?: Pick<DealerVerificationRecord, "name" | "address" | "city" | "county" | "location" | "mobile" | "email" | "whatsapp" | "documents">;
+  initialDealer?: Pick<DealerVerificationRecord, "name" | "address" | "city" | "county" | "location" | "mobile" | "email" | "whatsapp" | "documents" | "doc_incorporation_key">;
 }
 
 export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerSignupFlowProps) {
@@ -158,6 +158,11 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     const label = getDealerRegistrationDocumentLabel(document.document_type);
     return label ? [{ ...document, label }] : [];
   }) || [];
+  const savedCertificateName = savedDocuments.find((document) =>
+    document.document_type === "incorporation_certificate" &&
+    document.r2_key === initialDealer?.doc_incorporation_key
+  )?.display_name;
+  const hasSavedCertificate = Boolean(savedCertificateName);
   const [companyLogoFile, setCompanyLogoFile] = React.useState<File | null>(null);
   const [contactPhotoFile, setContactPhotoFile] = React.useState<File | null>(null);
   const [incorporationCertificateFile, setIncorporationCertificateFile] = React.useState<File | null>(null);
@@ -261,7 +266,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     }
 
     if (activeStep === 3) {
-      if (!formData.incorporationCertificateName) {
+      if (!formData.incorporationCertificateName && !hasSavedCertificate) {
         errors.push("Certificate of incorporation is required.");
       }
       if (!formData.acceptDealerTerms) {
@@ -276,7 +281,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
     }
 
     return errors;
-  }, [activeStep, formData, uploadError]);
+  }, [activeStep, formData, hasSavedCertificate, uploadError]);
 
   const canContinue = stepErrors.length === 0;
 
@@ -715,7 +720,9 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
           ))}
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label htmlFor="dealer-incorporation">Certificate of Incorporation *</Label>
+              <Label htmlFor="dealer-incorporation">
+                {hasSavedCertificate ? "Replace certificate (optional)" : "Certificate of Incorporation *"}
+              </Label>
               <Input
                 id="dealer-incorporation"
                 data-testid="dealer-incorporation-certificate"
@@ -730,7 +737,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
                 }
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Required. Accepted formats: PDF, JPG, PNG.
+                {hasSavedCertificate ? "Leave blank to use your saved certificate." : "Required. Accepted formats: PDF, JPG, PNG."}
               </p>
             </div>
             <div>
@@ -830,7 +837,7 @@ export function DealerSignupFlow({ previewMode = false, initialDealer }: DealerS
             <div>
               <p className="text-muted-foreground">Incorporation Certificate</p>
               <p className="font-semibold text-foreground">
-                {formData.incorporationCertificateName || "Not attached"}
+                {formData.incorporationCertificateName || savedCertificateName || "Not attached"}
               </p>
             </div>
             <div>
