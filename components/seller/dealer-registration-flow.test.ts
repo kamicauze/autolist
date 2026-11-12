@@ -37,8 +37,12 @@ test("validation marks each field and links it to its own message", () => {
   assert.doesNotMatch(flow, /listingPhoneSchema/);
 });
 
-test("address search keeps manual entries and explains short queries", () => {
-  assert.match(flow, /setSearchError\("Type at least 3 characters to search\."\)/);
+test("address search runs as the dealer types, ignores stale replies and keeps manual entries", () => {
+  assert.match(flow, /text\.length < 3 \? "Type at least 3 characters to search\."/);
+  assert.match(flow, /window\.setTimeout\(\(\) => \{\s*searchDealerAddresses\(text\)/);
+  assert.match(flow, /if \(current\) setFound\(\{ query: text, \.\.\.response \}\)/);
+  assert.match(flow, /return \(\) => \{ current = false; window\.clearTimeout\(timer\); \};/);
+  assert.doesNotMatch(flow, /void search\(\)|disabled=\{searching\}/);
   assert.match(flow, /onClick=\{\(\) => setManual\(false\)\}>\s*<Search aria-hidden className="size-4" \/> Search for an address/);
   assert.doesNotMatch(flow, /setManual\(false\); setLocation\(emptyAddress\); \}\}>\s*<Search[^>]*\/> Search for an address/);
 });
