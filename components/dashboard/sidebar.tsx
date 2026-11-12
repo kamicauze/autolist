@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { createClient } from "@/lib/supabase/client";
+import { clearAccountStorage } from "@/lib/client/clear-account-storage";
 import type { DashboardAccountKind } from "@/lib/data/dashboard-account";
 import type { SellerPackageAccessState } from "@/lib/types/membership";
 import type { SalesAgentPermission } from "@/lib/constants/sales-agent-permissions";
@@ -121,6 +122,7 @@ export function Sidebar({
 
   const handleSignOut = async () => {
     const supabase = createClient();
+    clearAccountStorage();
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();

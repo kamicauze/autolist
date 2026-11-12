@@ -34,6 +34,7 @@ import {
   uploadFilesToPresignedTargets,
 } from "@/lib/client/listing-media-upload";
 import { submitListingReviewWithRecovery } from "@/lib/client/listing-review-submit";
+import { LISTING_DRAFT_STORAGE_PREFIX } from "@/lib/client/clear-account-storage";
 import {
   toListingMediaUploadReference,
   type ListingMediaUploadDescriptor,
@@ -291,7 +292,22 @@ export const MIN_TOTAL_IMAGES = 3;
 export const MAX_GALLERY_IMAGES = 100;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_VIDEO_FILE_SIZE_BYTES = 200 * 1024 * 1024;
-export const DRAFT_STORAGE_KEY = "autolist_listing_draft";
+// Unscoped legacy key for new-listing drafts. Its owner is unknown, so it is
+// deleted on load and never offered for resume.
+export const DRAFT_STORAGE_KEY = LISTING_DRAFT_STORAGE_PREFIX;
+
+export function getListingDraftStorageKey({
+  listingId,
+  userId,
+}: {
+  listingId?: string | null;
+  userId?: string | null;
+}): string | null {
+  if (listingId) return `${DRAFT_STORAGE_KEY}:${listingId}`;
+  if (userId) return `${DRAFT_STORAGE_KEY}:new:${userId}`;
+  return null;
+}
+
 export const WIZARD_STEP = {
   vehicle: 0,
   features: 1,
@@ -1075,9 +1091,15 @@ export function WizardProvider({
     () => (initialListing ? buildDraftFromListing(initialListing) : DEFAULT_DRAFT),
     [initialListing]
   );
-  const storageKey = initialListing ? `${DRAFT_STORAGE_KEY}:${initialListing.id}` : DRAFT_STORAGE_KEY;
   const isEditing = Boolean(initialListing);
   const editingListingId = initialListing?.id ?? null;
+  // New-listing drafts belong to the signed-in user; undefined while resolving.
+  const [draftOwnerId, setDraftOwnerId] = React.useState<string | null | undefined>(undefined);
+  const draftOwnerResolved = isEditing || draftOwnerId !== undefined;
+  const storageKey = getListingDraftStorageKey({
+    listingId: editingListingId,
+    userId: draftOwnerId,
+  });
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
   const [autoApproved, setAutoApproved] = React.useState(false);
@@ -1112,10 +1134,11 @@ export function WizardProvider({
 
   const [savedDraft, setSavedDraft] = React.useState<ListingDraft | null>(null);
   const [draftReady, setDraftReady] = React.useState(false);
-  const restoredStorageKeyRef = React.useRef<string | null>(null);
+  const restoredStorageKeyRef = React.useRef<string | null | undefined>(undefined);
 
   // Auto-save only after the seller has chosen whether to resume.
   React.useEffect(() => {
+    if (!storageKey) return;
     if (submitted) {
       localStorage.removeItem(storageKey);
       return;
@@ -1125,12 +1148,33 @@ export function WizardProvider({
     }
   }, [draft, storageKey, draftReady, savedDraft, submitted]);
 
+  React.useEffect(() => {
+    if (isEditing) return;
+    let isMounted = true;
+    // The local session is enough to scope browser storage; no network round trip.
+    createClient()
+      .auth.getSession()
+      .then(({ data: { session } }) => {
+        if (isMounted) setDraftOwnerId(session?.user.id ?? null);
+      })
+      .catch(() => {
+        if (isMounted) setDraftOwnerId(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditing]);
+
   // Restore draft
   React.useEffect(() => {
+    if (!draftOwnerResolved) return;
     // Server-action refreshes must not discard files still selected in this page.
     if (restoredStorageKeyRef.current === storageKey) return;
     restoredStorageKeyRef.current = storageKey;
-    const savedDraft = localStorage.getItem(storageKey);
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch { /* ignore */ }
+    const savedDraft = storageKey ? localStorage.getItem(storageKey) : null;
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft) as Partial<ListingDraft>;
@@ -1142,7 +1186,7 @@ export function WizardProvider({
       } catch { /* ignore */ }
     }
     setDraftReady(true);
-  }, [initialDraft, storageKey, isEditing]);
+  }, [initialDraft, storageKey, isEditing, draftOwnerResolved]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -1723,7 +1767,7 @@ export function WizardProvider({
   const resetDraft = () => {
     const nextDraft = buildFreshDraft(sellerAccountDefaults);
     setSavedDraft(null);
-    localStorage.removeItem(storageKey);
+    if (storageKey) localStorage.removeItem(storageKey);
     setDraft(nextDraft);
     setActiveStep(0);
     setSubmitted(false);
@@ -2198,7 +2242,7 @@ export function WizardProvider({
           }
         }
 
-        localStorage.removeItem(storageKey);
+        if (storageKey) localStorage.removeItem(storageKey);
         setSubmissionStatus(isEditing ? "Listing changes saved." : "Listing submitted.");
         setSubmitted(true);
       } catch (error) {

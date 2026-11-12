@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { clearAccountStorage } from "@/lib/client/clear-account-storage";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   ADMIN_NAV_SECTIONS,
@@ -92,6 +93,7 @@ export function AdminShell({ user, badgeCounts, dataAccessNotice, children }: Ad
 
   const handleSignOut = async () => {
     const supabase = createClient();
+    clearAccountStorage();
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
