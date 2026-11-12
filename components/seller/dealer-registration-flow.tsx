@@ -11,14 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { ZodType } from "zod";
 import {
-  createDealerOnboardingUpload, createDealerRegistration, searchDealerAddresses,
+  createDealerOnboardingUpload, createDealerRegistration, leaveDealerSetup, searchDealerAddresses,
 } from "@/lib/actions/dealers";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
 import type { DealerAddress } from "@/lib/location/dealer-address";
 import { createClient } from "@/lib/supabase/client";
 import {
-  dealerRegistrationDocumentLabels, listingPhoneSchema,
+  dealerRegistrationDocumentLabels, dealerRegistrationSchema,
   type DealerRegistrationDocumentType,
 } from "@/lib/validations/registration";
 import { cn } from "@/lib/utils";
@@ -27,8 +28,80 @@ import { DealerRegistrationReminder } from "./dealer-registration-reminder";
 const emptyAddress: DealerAddress = { address: "", town: "", county: "", area: "" };
 const inputClass = "h-11 rounded-lg border-border bg-white text-sm";
 const selectClass = "h-11 w-full rounded-lg border border-border bg-white px-3 text-sm focus-visible:outline-2 focus-visible:outline-primary";
+const invalidClass = "border-destructive";
 const documentTypes = Object.entries(dealerRegistrationDocumentLabels) as [DealerRegistrationDocumentType, string][];
 const acceptedFiles = "application/pdf,image/jpeg,image/png";
+const maxFileBytes = 10 * 1024 * 1024;
+
+function fieldMessage(schema: ZodType, value: string, fallback: string) {
+  const result = schema.safeParse(value, { error: () => fallback });
+  return result.success ? "" : result.error.issues[0]?.message || fallback;
+}
+
+function fileProblem(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (file.size === 0) return "This file is empty. Choose another file.";
+  if (/^image\/hei[cf]/.test(file.type) || ["heic", "heif"].includes(extension)) {
+    return "iPhone HEIC photos aren't supported. Export as JPG or take a screenshot.";
+  }
+  if (/msword|wordprocessingml/.test(file.type) || ["doc", "docx"].includes(extension)) {
+    return "Word documents aren't supported. Save it as PDF and choose it again.";
+  }
+  if (!acceptedFiles.split(",").includes(file.type)) return "Choose a PDF, JPG or PNG file up to 10 MB.";
+  if (file.size > maxFileBytes) return "This file is over 10 MB. Choose a smaller PDF, JPG or PNG file.";
+  return "";
+}
+
+function FieldError({ id, message }: { id: string; message: string }) {
+  return message ? <p id={id} className="text-xs font-medium text-destructive">{message}</p> : null;
+}
+
+export function DealerSetupAccountBar({ email, canLeave }: { email?: string; canLeave: boolean }) {
+  const [pending, setPending] = useState(false);
+  const [accountError, setAccountError] = useState("");
+
+  async function signOut() {
+    setPending(true);
+    setAccountError("");
+    const { error } = await createClient().auth.signOut();
+    if (!error) return window.location.assign("/");
+    setAccountError("Unable to sign out. Please retry.");
+    setPending(false);
+  }
+
+  async function continueAsBuyer() {
+    setPending(true);
+    setAccountError("");
+    try {
+      const result = await leaveDealerSetup();
+      if (result.success) return window.location.assign("/");
+      setAccountError(result.error || "Unable to switch your account. Please retry.");
+    } catch {
+      setAccountError("Unable to switch your account. Please retry.");
+    }
+    setPending(false);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border px-4 py-1.5 text-xs lg:px-12">
+      {email && <p className="min-w-0 max-w-full truncate text-muted-foreground">Signed in as <span className="font-semibold text-foreground">{email}</span></p>}
+      <div className="ml-auto flex flex-wrap items-center gap-x-4">
+        {canLeave && (
+          <p className="text-muted-foreground">
+            Not a dealer?{" "}
+            <button type="button" disabled={pending} onClick={() => void continueAsBuyer()} className="min-h-8 font-bold text-primary underline-offset-2 hover:underline disabled:opacity-60">
+              Continue as a buyer
+            </button>
+          </p>
+        )}
+        <button type="button" disabled={pending} onClick={() => void signOut()} className="min-h-8 font-bold text-primary underline-offset-2 hover:underline disabled:opacity-60">
+          Sign out
+        </button>
+      </div>
+      {accountError && <p role="alert" className="w-full pb-1 font-medium text-destructive">{accountError}</p>}
+    </div>
+  );
+}
 
 function SectionHeading({ icon: Icon, title, optional }: { icon: LucideIcon; title: string; optional?: boolean }) {
   return (
@@ -56,6 +129,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [file, setFile] = useState<File>();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState("");
+  const [sessionEnded, setSessionEnded] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -63,20 +137,21 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const upload = useRef<{ file: File; type: DealerRegistrationDocumentType; path: string }>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const confirmation = useRef<HTMLHeadingElement>(null);
-  const submitError = useRef<HTMLParagraphElement>(null);
-  const locationErrors = manual ? [
-    !location.address.trim() && "Enter the address.",
-    !location.town.trim() && "Enter the town or city.",
-    !location.county && "Select a county.",
-  ] : [!selected && "Choose an address from the search results or enter it manually."];
-  const validationMessage = [
-    !name.trim() && "Enter the dealership name.",
-    !listingPhoneSchema.safeParse(phone).success && "Enter a valid listing phone number.",
-    ...locationErrors,
-    uploadError,
-    file && !documentType && "Select a document type or remove the file.",
-  ].filter(Boolean).join(" ");
-  const feedback = error || (showValidation ? validationMessage : "");
+  const submitError = useRef<HTMLDivElement>(null);
+  const fieldErrors = {
+    name: fieldMessage(dealerRegistrationSchema.shape.name, name, "Enter the dealership name."),
+    phone: fieldMessage(dealerRegistrationSchema.shape.phone, phone, "Enter a valid listing phone number."),
+    search: !manual && !selected ? "Choose an address from the search results or enter it manually." : "",
+    address: manual && !location.address.trim() ? "Enter the address." : "",
+    town: manual && !location.town.trim() ? "Enter the town or city." : "",
+    county: manual && !location.county ? "Select a county." : "",
+    document: uploadError || (file && !documentType ? "Select a document type or remove the file." : ""),
+  };
+  const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
+  const shown = showValidation
+    ? fieldErrors
+    : { name: "", phone: "", search: "", address: "", town: "", county: "", document: uploadError };
+  const feedback = error || (showValidation && hasFieldErrors ? "Fix the highlighted fields." : "");
   const typeLabel = documentType ? dealerRegistrationDocumentLabels[documentType] : "Select document type";
 
   useEffect(() => {
@@ -91,7 +166,11 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   }, [error, showValidation]);
 
   async function search() {
-    if (searching || query.trim().length < 3) return;
+    if (searching) return;
+    if (query.trim().length < 3) {
+      setSearchError("Type at least 3 characters to search.");
+      return;
+    }
     setSearching(true);
     setSearchError("");
     setResults(null);
@@ -122,11 +201,17 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  function fail(result: { error?: string; code?: string }) {
+    setSessionEnded(result.code === "session_expired");
+    setError(result.error || "Unable to create your dealership. Please retry.");
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
     setError("");
-    if (validationMessage) {
+    setSessionEnded(false);
+    if (hasFieldErrors) {
       setShowValidation(true);
       submitError.current?.focus();
       return;
@@ -138,21 +223,19 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
       if (file && documentType) {
         if (upload.current?.file !== file || upload.current.type !== documentType) {
           const target = await createDealerOnboardingUpload(documentType, file);
-          if (!target.path || !target.token) throw new Error(target.error);
+          if (!target.path || !target.token) return fail(target);
           const { error: putError } = await createClient().storage.from(target.bucket)
             .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-          if (putError) throw new Error("Unable to upload the document. Please retry.");
+          if (putError) return fail({ error: "Unable to upload the document. Please retry." });
           upload.current = { file, type: documentType, path: target.path };
         }
         document = { name: file.name, type: documentType, path: upload.current.path };
       }
       const result = await createDealerRegistration({ name, phone, ...location, document });
-      if (!result.success) throw new Error(result.error);
+      if (!result.success) return fail(result);
       setCreatedName(result.dealershipName);
     } catch (failure) {
-      setError(failure instanceof Error && failure.message
-        ? failure.message
-        : "Unable to create your dealership. Please retry.");
+      fail({ error: failure instanceof Error ? failure.message : undefined });
     } finally {
       setSaving(false);
     }
@@ -200,14 +283,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="dealership-name">Dealership name</Label>
-                  <Input id="dealership-name" autoComplete="organization" value={name} onChange={(event) => setName(event.target.value)} placeholder="Acacia Lane Motors" className={inputClass} maxLength={160} required />
+                  <Input id="dealership-name" autoComplete="organization" value={name} onChange={(event) => setName(event.target.value)} placeholder="Acacia Lane Motors" className={cn(inputClass, shown.name && invalidClass)} maxLength={160} required aria-invalid={Boolean(shown.name) || undefined} aria-describedby={shown.name ? "dealership-name-error" : undefined} />
+                  <FieldError id="dealership-name-error" message={shown.name} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dealership-phone">Listing phone</Label>
                   <div className="relative">
                     <Phone aria-hidden className="pointer-events-none absolute left-3.5 top-3.5 size-4 text-muted-foreground" />
-                    <Input id="dealership-phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+254 700 000 000" className={cn(inputClass, "pl-11")} maxLength={32} required />
+                    <Input id="dealership-phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+254 700 000 000" className={cn(inputClass, "pl-11", shown.phone && invalidClass)} maxLength={32} required aria-invalid={Boolean(shown.phone) || undefined} aria-describedby={shown.phone ? "dealership-phone-error" : undefined} />
                   </div>
+                  <FieldError id="dealership-phone-error" message={shown.phone} />
                 </div>
               </div>
             </section>
@@ -229,7 +314,9 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       onKeyDown={(event) => {
                         if (event.key === "Enter") { event.preventDefault(); void search(); }
                       }}
-                      className={cn(inputClass, "pl-11")}
+                      className={cn(inputClass, "pl-11", shown.search && invalidClass)}
+                      aria-invalid={Boolean(shown.search) || undefined}
+                      aria-describedby={shown.search ? "dealership-search-error" : undefined}
                     />
                     {query.trim().length >= 3 && (
                       <Button type="button" variant="outline" className="h-11 rounded-lg" disabled={searching} onClick={() => void search()}>
@@ -237,6 +324,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       </Button>
                     )}
                   </div>
+                  <FieldError id="dealership-search-error" message={shown.search} />
                   {searchError && <p role="status" className="text-sm text-muted-foreground">{searchError}</p>}
                   {results && (
                     <div className="space-y-2" aria-live="polite">
@@ -274,18 +362,21 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="dealership-address">Address</Label>
-                    <Input id="dealership-address" autoComplete="street-address" value={location.address} onChange={(event) => setLocation({ ...location, address: event.target.value })} maxLength={250} className={inputClass} required />
+                    <Input id="dealership-address" autoComplete="street-address" value={location.address} onChange={(event) => setLocation({ ...location, address: event.target.value })} maxLength={250} className={cn(inputClass, shown.address && invalidClass)} required aria-invalid={Boolean(shown.address) || undefined} aria-describedby={shown.address ? "dealership-address-error" : undefined} />
+                    <FieldError id="dealership-address-error" message={shown.address} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="dealership-town">Town / city</Label>
-                    <Input id="dealership-town" autoComplete="address-level2" value={location.town} onChange={(event) => setLocation({ ...location, town: event.target.value, area: "" })} maxLength={120} className={inputClass} required />
+                    <Input id="dealership-town" autoComplete="address-level2" value={location.town} onChange={(event) => setLocation({ ...location, town: event.target.value, area: "" })} maxLength={120} className={cn(inputClass, shown.town && invalidClass)} required aria-invalid={Boolean(shown.town) || undefined} aria-describedby={shown.town ? "dealership-town-error" : undefined} />
+                    <FieldError id="dealership-town-error" message={shown.town} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="dealership-county">County</Label>
-                    <select id="dealership-county" autoComplete="address-level1" value={location.county} onChange={(event) => setLocation({ ...location, county: event.target.value, area: "" })} className={selectClass} required>
+                    <select id="dealership-county" autoComplete="address-level1" value={location.county} onChange={(event) => setLocation({ ...location, county: event.target.value, area: "" })} className={cn(selectClass, shown.county && invalidClass)} required aria-invalid={Boolean(shown.county) || undefined} aria-describedby={shown.county ? "dealership-county-error" : undefined}>
                       <option value="">Select county</option>
                       {KENYA_COUNTIES.map((county) => <option key={county}>{county}</option>)}
                     </select>
+                    <FieldError id="dealership-county-error" message={shown.county} />
                   </div>
                 </div>
               ) : (
@@ -294,7 +385,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                 </Button>
               )}
               {manual && !selected && (
-                <Button type="button" variant="ghost" className="h-9 justify-start px-0 font-bold text-primary" onClick={() => { setManual(false); setLocation(emptyAddress); }}>
+                <Button type="button" variant="ghost" className="h-9 justify-start px-0 font-bold text-primary" onClick={() => setManual(false)}>
                   <Search aria-hidden className="size-4" /> Search for an address
                 </Button>
               )}
@@ -351,29 +442,38 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                     const next = event.target.files?.[0];
                     upload.current = null;
                     setFile(next);
-                    setUploadError(next && (!acceptedFiles.split(",").includes(next.type) || next.size === 0 || next.size > 10 * 1024 * 1024)
-                      ? "Choose a PDF, JPG or PNG file up to 10 MB."
-                      : "");
+                    setUploadError(next ? fileProblem(next) : "");
                   }}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   disabled={!documentType}
-                  aria-describedby="dealer-verification-file-help"
-                  className="h-auto shrink-0 border border-border bg-white px-2.5 py-2 text-xs font-bold text-foreground hover:bg-muted hover:text-foreground"
+                  aria-invalid={Boolean(shown.document) || undefined}
+                  aria-describedby={shown.document ? "dealer-verification-file-help dealership-document-error" : "dealer-verification-file-help"}
+                  className={cn("h-auto shrink-0 border border-border bg-white px-2.5 py-2 text-xs font-bold text-foreground hover:bg-muted hover:text-foreground", shown.document && invalidClass)}
                   onClick={() => fileInput.current?.click()}
                 >
                   {file ? "Replace" : "Choose file"}
                 </Button>
                 {file && <Button type="button" variant="ghost" size="icon" className="size-9 shrink-0" aria-label="Remove verification file" onClick={removeFile}><X className="size-4" /></Button>}
               </div>
-              {uploadError && <p role="alert" className="text-xs text-destructive">{uploadError}</p>}
+              {shown.document && <p id="dealership-document-error" role="alert" className="text-xs font-medium text-destructive">{shown.document}</p>}
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <LockKeyhole aria-hidden className="size-3.5 shrink-0" /> Only you and authorised Autolist reviewers can access this file.
               </p>
             </section>
-            {feedback && <p ref={submitError} tabIndex={-1} role="alert" className="scroll-mb-24 py-3 text-sm font-medium text-destructive lg:scroll-mb-0">{feedback}</p>}
+            {feedback && (
+              <div ref={submitError} tabIndex={-1} role="alert" className="scroll-mb-24 space-y-1 py-3 text-sm font-medium text-destructive lg:scroll-mb-0">
+                <p>{feedback}</p>
+                {sessionEnded && (
+                  <p className="font-normal text-foreground">
+                    <Link href="/login?next=/register/dealer" target="_blank" rel="noopener noreferrer" className="font-bold text-primary underline">Sign in</Link>
+                    {" "}in a new tab, then come back to this tab and press Create dealer account again. Your details are kept.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-end gap-4 border-t border-border bg-white px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3.5 lg:static lg:px-0 lg:pb-6 lg:pt-4">
               <Button type="submit" disabled={saving} className="h-[46px] w-full rounded-lg px-6 font-bold disabled:bg-[#f0f1f5] disabled:text-[#626270] disabled:opacity-100 lg:w-auto">
                 {saving && <Loader2 aria-hidden className="size-4 animate-spin" />}

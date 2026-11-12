@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AutolistLogo } from "@/components/brand/autolist-logo";
-import { DealerRegistrationFlow } from "@/components/seller/dealer-registration-flow";
+import { DealerRegistrationFlow, DealerSetupAccountBar } from "@/components/seller/dealer-registration-flow";
 import { createClient } from "@/lib/supabase/server";
 import type { DealerStatus } from "@/lib/types/dealer";
 
@@ -21,9 +21,12 @@ export default async function RegisterDealerPage() {
 
   return (
     <div className="min-h-dvh bg-muted text-[#14213d]">
-      <header className="flex h-[62px] items-center justify-between border-b border-border bg-white px-4 lg:h-[68px] lg:px-12">
-        <Link href="/" aria-label="Autolist home"><AutolistLogo className="h-7 w-28 lg:h-[34px] lg:w-[132px]" /></Link>
-        <span className="text-[13px] font-bold">Dealer setup</span>
+      <header className="border-b border-border bg-white">
+        <div className="flex h-[62px] items-center justify-between px-4 lg:h-[68px] lg:px-12">
+          <Link href="/" aria-label="Autolist home"><AutolistLogo className="h-7 w-28 lg:h-[34px] lg:w-[132px]" /></Link>
+          <span className="text-[13px] font-bold">Dealer setup</span>
+        </div>
+        <DealerSetupAccountBar email={user.email} canLeave={!dealer && profile.role !== "seller"} />
       </header>
       <DealerRegistrationFlow existingName={dealer?.name} />
     </div>

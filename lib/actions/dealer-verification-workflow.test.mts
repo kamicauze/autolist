@@ -16,6 +16,7 @@ type Options = {
   userId?: string;
   role?: string;
   profilePresent?: boolean;
+  dealerPresent?: boolean;
   deactivated?: boolean;
   staff?: boolean;
   status?: string;
@@ -24,10 +25,11 @@ type Options = {
   auditFails?: boolean;
   auditThrows?: boolean;
 };
-type ActionResult = { success?: boolean; error?: string; warning?: string; intent?: string };
+type ActionResult = { success?: boolean; error?: string; code?: string; warning?: string; intent?: string };
 type Actions = {
   createDealerRegistration: (input: DealerRegistration) => Promise<ActionResult>;
-  createDealerOnboardingUpload: (field: string, file: { name: string; type: string; size: number }) => Promise<{ error?: string; path?: string }>;
+  createDealerOnboardingUpload: (field: string, file: { name: string; type: string; size: number }) => Promise<{ error?: string; code?: string; path?: string }>;
+  leaveDealerSetup: () => Promise<ActionResult>;
   submitDealerVerification: (form: FormData) => Promise<ActionResult>;
   resubmitDealerVerificationDocuments: (form: FormData) => Promise<ActionResult>;
   approveDealer: (dealerId: string, note?: string) => Promise<ActionResult>;
@@ -85,7 +87,7 @@ function harness(options: Options = {}) {
         const filters: Array<(row: Row) => boolean> = [];
         function execute() {
           let rows: Row[];
-          if (table === "dealers") rows = [dealer];
+          if (table === "dealers") rows = options.dealerPresent === false ? [] : [dealer];
           else if (table === "profiles") rows = options.profilePresent === false ? [] : [{ id: userId, role: options.role ?? "dealer", deactivated_at: options.deactivated ? "2026-01-01" : null }];
           else if (table === "dealer_verification_workflows") {
             assert.equal(privileged, true, "private workflow reads/writes require the service client");
@@ -418,4 +420,88 @@ test("incomplete dealer registrations cannot enter the review queue through docu
   assert.match((await actions.approveDealer("sample-dealer")).error || "", /has not submitted/);
   assert.match((await actions.rejectDealer("sample-dealer", "Needs evidence")).error || "", /has not submitted/);
   assert.equal(sample.writes.length, 0);
+});
+
+test("an ended session returns a clear, coded message from dealer setup and verification actions", async () => {
+  const sample = harness({ signedIn: false });
+  const actions = sample.actions();
+  for (const result of [
+    await actions.createDealerRegistration({ name: "Sample Motors", phone: "0700000001", address: "Sample Road", town: "Nairobi", county: "Nairobi", area: "" }),
+    await actions.createDealerOnboardingUpload("incorporationCertificate", { name: "Certificate.pdf", type: "application/pdf", size: 512 }),
+    await actions.submitDealerVerification(completedVerificationForm()),
+    await actions.leaveDealerSetup(),
+  ]) {
+    assert.equal(result.error, "Your session has ended. Sign in again to continue.");
+    assert.equal(result.code, "session_expired");
+  }
+  const resubmission = await actions.resubmitDealerVerificationDocuments(new FormData());
+  assert.equal(resubmission.error, "Unauthorized");
+  assert.equal(resubmission.code, "session_expired");
+  assert.equal(sample.adminClients, 0);
+  assert.equal(sample.writes.length, 0);
+});
+
+test("verification stores normalized phone numbers and names the field that is invalid", async () => {
+  const upload = "sample-owner/onboarding-incorporation_certificate/aaaaaaaaaaaaaaaaaaaa-certificate.pdf";
+  const sample = harness({ storedCertificateSize: 512, status: "INCOMPLETE" });
+  const form = completedVerificationForm();
+  form.set("incorporationCertificateUploadPath", upload);
+  form.set("mobileNumber", "0700 000 002");
+  form.set("whatsappNumber", "0711 000 003");
+  form.set("contactMobile", "+254 700 000 004");
+  form.set("contactWhatsapp", "0700 000 005");
+  const result = await sample.actions().submitDealerVerification(form);
+  assert.equal(result.success, true, result.error);
+  const { dealership, profile_details: profile } = sample.writes[0].values as { dealership: Row; profile_details: Row };
+  assert.equal(dealership.mobile, "+254700000002");
+  assert.equal(dealership.whatsapp, "+254711000003");
+  assert.equal((dealership.contact_person as Row).mobile, "+254700000004");
+  assert.equal((dealership.contact_person as Row).whatsapp, "+254700000005");
+  assert.equal(profile.phone, "+254700000002");
+  assert.equal(profile.whatsapp, "+254711000003");
+
+  for (const [field, message] of [
+    ["mobileNumber", /dealership mobile/],
+    ["whatsappNumber", /dealership WhatsApp/],
+    ["contactMobile", /contact mobile/],
+    ["contactWhatsapp", /contact WhatsApp/],
+  ] as const) {
+    const invalid = harness({ storedCertificateSize: 512, status: "INCOMPLETE" });
+    const next = completedVerificationForm();
+    next.set("incorporationCertificateUploadPath", upload);
+    next.set(field, "07abc");
+    assert.match((await invalid.actions().submitDealerVerification(next)).error || "", message);
+    assert.equal(invalid.writes.length, 0);
+  }
+  const withoutContactWhatsapp = harness({ storedCertificateSize: 512, status: "INCOMPLETE" });
+  const optional = completedVerificationForm();
+  optional.set("incorporationCertificateUploadPath", upload);
+  assert.equal((await withoutContactWhatsapp.actions().submitDealerVerification(optional)).success, true);
+  assert.equal(((withoutContactWhatsapp.writes[0].values.dealership as Row).contact_person as Row).whatsapp, null);
+});
+
+test("leaving dealer setup returns only a dealer account without a dealership to buyer", async () => {
+  const dealer = harness({ role: "dealer", dealerPresent: false });
+  assert.equal((await dealer.actions().leaveDealerSetup()).success, true);
+  assert.deepEqual(dealer.writes.map(({ table, operation, values, privileged }) => ({ table, operation, values, privileged })), [
+    { table: "profiles", operation: "update", values: { role: "buyer" }, privileged: true },
+  ]);
+
+  const saved = harness({ role: "dealer" });
+  assert.match((await saved.actions().leaveDealerSetup()).error || "", /already saved/);
+  assert.equal(saved.writes.length, 0);
+
+  for (const role of ["buyer", "seller"]) {
+    const other = harness({ role, dealerPresent: false });
+    assert.equal((await other.actions().leaveDealerSetup()).success, true);
+    assert.equal(other.writes.length, 0);
+    assert.equal(other.adminClients, 0);
+  }
+
+  for (const options of [{ role: "support" }, { deactivated: true }]) {
+    const blocked = harness({ ...options, dealerPresent: false });
+    assert.ok((await blocked.actions().leaveDealerSetup()).error);
+    assert.equal(blocked.writes.length, 0);
+    assert.equal(blocked.adminClients, 0);
+  }
 });

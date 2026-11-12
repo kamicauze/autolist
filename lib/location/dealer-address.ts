@@ -13,10 +13,13 @@ type PhotonAddress = {
   housenumber?: string;
   city?: string;
   district?: string;
+  locality?: string;
   county?: string;
   state?: string;
   countrycode?: string;
 };
+
+const administrativeUnit = /\b(?:division|ward|sub[-\s]?county|location|constituency)$/i;
 
 function countyKey(name: string) {
   return name.toLowerCase().replace(/\bcounty\b/g, "").replace(/[^a-z]/g, "");
@@ -27,14 +30,17 @@ export function toDealerAddress(place: PhotonAddress): DealerAddress | null {
   const street = [place.housenumber, place.street].filter(Boolean).join(" ");
   const address = [...new Set([place.name, street].filter(Boolean))].join(", ");
   if (!address) return null;
-  const county = [place.state, place.county].flatMap((name) => name
+  const county = [place.state, place.county, place.name].flatMap((name) => name
     ? KENYA_COUNTIES.filter((known) => countyKey(known) === countyKey(name))
     : [])[0];
+  const area = [place.district, place.locality]
+    .map((name) => name?.trim())
+    .find((name) => name && !administrativeUnit.test(name));
   return {
     address,
     town: place.city || "",
     county: county || "",
-    area: place.district || "",
+    area: area || "",
   };
 }
 
