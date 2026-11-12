@@ -33,3 +33,11 @@ test("login identifies email as the saved credential", () => {
   assert.match(form, /id="login-email"\s+name="email"\s+type="email"\s+autoComplete="username"/);
   assert.match(form, /id="login-password"[\s\S]*?autoComplete="current-password"/);
 });
+
+test("unconfirmed email sign-in points to the resend control instead of raw provider text", () => {
+  const handler = form.slice(form.indexOf("const handleLogin"), form.indexOf("const handleSocialLogin"));
+  assert.match(handler, /errorCode === "email_not_confirmed"/);
+  assert.match(handler, /\/email not confirmed\/i/);
+  assert.match(handler, /Confirm your email first by opening the link we sent you\..*request a new link below\./);
+  assert.ok(form.indexOf("<ResendVerification") > form.indexOf('data-testid="login-submit"'));
+});

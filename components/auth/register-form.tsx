@@ -26,8 +26,10 @@ import { getAuthCallbackUrl, getSignupVerificationUrl } from "@/lib/supabase/aut
 import { createClient } from "@/lib/supabase/client";
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
+  getPasswordRequirementError,
   getRegistrationErrorMessage,
   isExistingRegistration,
+  PASSWORD_REQUIREMENTS,
   RegistrationRequestTimeoutError,
   withRegistrationRequestTimeout,
 } from "@/lib/supabase/registration-request";
@@ -87,12 +89,14 @@ export function RegisterForm() {
   const requestedNextPath = sanitizeNextPath(searchParams.get("next"), "");
   const requestedRole = searchParams.get("role");
   const inferredRole = inferMarketplaceRoleFromNextPath(requestedNextPath);
-  const initialRole = requestedRole ? resolveRole(requestedRole) : inferredRole || "buyer";
+  const selectedRole = requestedRole ? resolveRole(requestedRole) : inferredRole || "buyer";
+  const registrationStep: RegistrationStep =
+    searchParams.get("step") === "details" ? "details" : "role";
+  const enteredDetailsFromRoleStep = React.useRef(false);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [selectedRole, setSelectedRole] = React.useState<UserRole>(initialRole);
-  const [registrationStep, setRegistrationStep] = React.useState<RegistrationStep>("role");
+  const [accountCreated, setAccountCreated] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -102,10 +106,6 @@ export function RegisterForm() {
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = React.useState(false);
 
-  React.useEffect(() => {
-    setSelectedRole(initialRole);
-  }, [initialRole]);
-
   const nextPath =
     selectedRole === "dealer"
       ? "/register/dealer"
@@ -114,27 +114,52 @@ export function RegisterForm() {
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const selectedRoleOption = USER_ROLE_OPTIONS.find((option) => option.value === selectedRole);
   const selectedRolePresentation = ROLE_PRESENTATION[selectedRole];
-  const passwordChecks = [
-    { label: "8 characters", valid: password.length >= 8 },
-    { label: "Capital letter", valid: /[A-Z]/.test(password) },
-    { label: "Number", valid: /\d/.test(password) },
-  ];
+  const passwordChecks = PASSWORD_REQUIREMENTS.map((item) => ({
+    label: item.label,
+    valid: item.isMet(password),
+  }));
   const passwordStrength = passwordChecks.filter((item) => item.valid).length;
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
+  const getRegistrationStepHref = (role: UserRole, step: RegistrationStep) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("role", role);
+    if (step === "details") params.set("step", "details");
+    else params.delete("step");
+    return `?${params.toString()}`;
+  };
+
   const selectRole = (role: UserRole) => {
-    setSelectedRole(role);
+    window.history.replaceState(null, "", getRegistrationStepHref(role, "role"));
     setErrorMessage(null);
+    setInfoMessage(null);
+  };
+
+  const continueToDetails = () => {
+    enteredDetailsFromRoleStep.current = true;
+    router.push(getRegistrationStepHref(selectedRole, "details"));
+  };
+
+  const returnToRoleStep = () => {
+    if (enteredDetailsFromRoleStep.current) router.back();
+    else router.push(getRegistrationStepHref(selectedRole, "role"));
+  };
+
+  const clearCreatedAccount = () => {
+    if (!accountCreated) return;
+    setAccountCreated(false);
     setInfoMessage(null);
   };
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (accountCreated) return;
     setErrorMessage(null);
     setInfoMessage(null);
 
-    if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters.");
+    const passwordRequirementError = getPasswordRequirementError(password);
+    if (passwordRequirementError) {
+      setErrorMessage(passwordRequirementError);
       return;
     }
 
@@ -190,6 +215,7 @@ export function RegisterForm() {
         return;
       }
 
+      setAccountCreated(true);
       setInfoMessage(
         "Account created. Check your email to verify your account, then sign in to continue."
       );
@@ -319,7 +345,7 @@ export function RegisterForm() {
           <Button
             type="button"
             className="h-12 rounded-[12px] px-6 text-base transition active:translate-y-px"
-            onClick={() => setRegistrationStep("details")}
+            onClick={continueToDetails}
             data-testid="register-role-continue"
           >
             Continue as {selectedRoleOption?.label}
@@ -373,7 +399,7 @@ export function RegisterForm() {
         <button
           type="button"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-white px-4 text-sm font-semibold text-primary transition hover:border-primary/45 hover:bg-white/80 active:translate-y-px"
-          onClick={() => setRegistrationStep("role")}
+          onClick={returnToRoleStep}
           data-testid="register-change-role"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -404,7 +430,10 @@ export function RegisterForm() {
                 autoComplete="username"
                 required
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearCreatedAccount();
+                }}
                 className="h-12 rounded-[14px] border-[#EDEDED] pl-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="name@example.com"
                 data-testid="register-email"
@@ -426,7 +455,10 @@ export function RegisterForm() {
                 autoComplete="new-password"
                 required
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  clearCreatedAccount();
+                }}
                 className="h-12 rounded-[14px] border-[#EDEDED] px-11 text-[15px] focus-visible:ring-primary/30"
                 placeholder="********"
                 data-testid="register-password"
@@ -590,10 +622,14 @@ export function RegisterForm() {
         <Button
           type="submit"
           className="h-12 w-full rounded-[14px] text-base transition active:translate-y-px"
-          disabled={isLoading || !!socialLoading}
+          disabled={isLoading || !!socialLoading || accountCreated}
           data-testid="register-submit"
         >
-          {isLoading ? "Creating account..." : `Create ${selectedRoleOption?.label ?? "account"} account`}
+          {isLoading
+            ? "Creating account..."
+            : accountCreated
+              ? "Account created. Check your email"
+              : `Create ${selectedRoleOption?.label ?? "account"} account`}
         </Button>
 
         <p className="text-center text-sm text-[#24272C] sm:text-right">

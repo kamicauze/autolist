@@ -59,13 +59,19 @@ export function LoginForm() {
     });
 
     if (error) {
+      const errorCode = (error as { code?: string }).code;
       const isDeactivated =
-        (error as { code?: string }).code === "user_banned" ||
+        errorCode === "user_banned" ||
         /banned|deactiv/i.test(error.message);
+      const isUnconfirmed =
+        errorCode === "email_not_confirmed" ||
+        /email not confirmed/i.test(error.message);
       setErrorMessage(
         isDeactivated
           ? "This account has been deactivated. Contact support to reactivate it."
-          : error.message,
+          : isUnconfirmed
+            ? "Confirm your email first by opening the link we sent you. If you cannot find it, request a new link below."
+            : error.message,
       );
       setIsLoading(false);
       return;

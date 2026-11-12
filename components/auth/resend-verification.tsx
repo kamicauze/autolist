@@ -20,7 +20,7 @@ export function ResendVerification({ email, nextPath = "", disabled = false }: {
     try {
       const result = await resendSignupVerification(email, nextPath);
       setFailed("error" in result);
-      setMessage(result.error || "If this email has an account awaiting verification, a new link has been sent. Check your inbox and spam folder.");
+      setMessage(result.error || "If this email is still awaiting verification, we've sent a new link. Check your inbox and spam folder. If you've already confirmed it, just sign in with your password.");
       if (!result.error) setCooldown(true);
     } catch {
       setFailed(true);
