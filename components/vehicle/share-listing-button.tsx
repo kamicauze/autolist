@@ -60,6 +60,8 @@ export function ShareListingButton({ listingId, title }: { listingId: string; ti
           variant="outline"
           size="icon"
           aria-label="Share listing"
+          data-track="share_listing"
+          data-track-target={listingId}
           className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
         >
           <Share2 className="h-3.5 w-3.5 text-gray-600" />

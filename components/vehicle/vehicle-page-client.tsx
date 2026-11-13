@@ -542,6 +542,8 @@ export function VehiclePageClient({
                   size="icon"
                   aria-label={inCompare ? "Remove from comparison" : "Add to comparison"}
                   aria-pressed={inCompare}
+                  data-track={inCompare ? undefined : "compare_add"}
+                  data-track-target={listing.id}
                   onClick={() => toggleCompare(listing.id)}
                   disabled={!isLoaded || compareLimitReached}
                   title={
@@ -562,6 +564,8 @@ export function VehiclePageClient({
                   variant="outline"
                   size="icon"
                   aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
+                  data-track={isLiked ? undefined : "save_listing"}
+                  data-track-target={listing.id}
                   className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
                   onClick={() => void handleWishlistToggle()}
                   disabled={isWishlistPending}
@@ -904,6 +908,8 @@ export function VehiclePageClient({
                 <Button
                   type="button"
                   className="mt-3 w-full bg-primary text-white hover:bg-primary/90"
+                  data-track="enquiry_send"
+                  data-track-target={listing.id}
                   onClick={() => void submitEnquiry()}
                   disabled={isEnquirySubmitting}
                 >
@@ -938,7 +944,7 @@ export function VehiclePageClient({
                   variant="outline"
                   className="mt-3 w-full border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  <a href={quickContactUrl} target="_blank" rel="noreferrer">
+                  <a href={quickContactUrl} target="_blank" rel="noreferrer" data-track="whatsapp_click" data-track-target={listing.id}>
                     Open contact link
                   </a>
                 </Button>

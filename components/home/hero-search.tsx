@@ -826,6 +826,8 @@ export function HeroSearch({
 
           <form
             onSubmit={handleSearch}
+            data-track="search_submit"
+            data-track-target="Home search"
             className={cn(
               "mx-auto max-w-[980px] rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
               hasSponsoredHero && "max-w-none lg:w-full",

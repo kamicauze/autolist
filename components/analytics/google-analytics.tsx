@@ -12,6 +12,7 @@ import {
   isAnalyticsPageAllowed,
   type AnalyticsConsent,
 } from "@/lib/google-analytics";
+import { isSiteClickEvent, SITE_TRACK_EVENT, type SiteTrackDetail } from "@/lib/site-analytics";
 
 declare global {
   interface Window {
@@ -147,6 +148,18 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
       previousPage.current = page.page_location;
     }
   }, [consent, enabled, measurementId, pathname, scriptReady]);
+
+  // Mirror tagged clicks from SiteTracker only after consent and once the SDK is ready.
+  useEffect(() => {
+    if (!enabled || !scriptReady) return;
+    function forwardClick(event: Event) {
+      const detail = (event as CustomEvent<SiteTrackDetail>).detail;
+      if (!detail || !isSiteClickEvent(detail.name)) return;
+      window.gtag?.("event", detail.name, detail.target ? { click_target: detail.target } : {});
+    }
+    window.addEventListener(SITE_TRACK_EVENT, forwardClick);
+    return () => window.removeEventListener(SITE_TRACK_EVENT, forwardClick);
+  }, [enabled, scriptReady]);
 
   function chooseConsent(value: Exclude<AnalyticsConsent, null>) {
     const analytics = window;

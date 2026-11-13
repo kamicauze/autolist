@@ -13,9 +13,11 @@ export function getGoogleAnalyticsMeasurementId(
 }
 
 export function isAnalyticsPageAllowed(pathname: string, hostname: string) {
-  if (hostname !== new URL(SITE_URL).hostname || !pathname.startsWith("/") || pathname.startsWith("//")) {
-    return false;
-  }
+  return hostname === new URL(SITE_URL).hostname && isPublicAnalyticsPath(pathname);
+}
+
+export function isPublicAnalyticsPath(pathname: string) {
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) return false;
   const path = new URL(pathname, SITE_URL).pathname;
   return !isPrivateSearchPath(path) && !["/join", "/sell", "/alerts", "/recently-viewed"].some(
     (privatePath) => path === privatePath || path.startsWith(`${privatePath}/`)

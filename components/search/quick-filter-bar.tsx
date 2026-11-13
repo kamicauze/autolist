@@ -248,6 +248,8 @@ export function QuickFilterBar({ makes, onOpenFilters }: QuickFilterBarProps) {
 
           <Button
             onClick={handleSearch}
+            data-track="search_submit"
+            data-track-target="Search bar"
             className="h-10 gap-2 rounded-[12px] bg-primary px-3.5 text-[14px] hover:bg-primary/90"
           >
             Search

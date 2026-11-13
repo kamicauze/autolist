@@ -180,6 +180,7 @@ export function VehicleLoanCalculator({
       <Button
         type="button"
         className="w-full bg-primary text-white hover:bg-primary/90"
+        data-track="financing_open"
         onClick={onApplyForFinancing}
       >
         Request for financing

@@ -135,6 +135,8 @@ function PublicCmsBannerCard({
         href={href}
         target="_blank"
         rel="noreferrer"
+        data-track="banner_click"
+        data-track-target={banner.title}
         onClick={() => trackCmsBannerClick(banner.id)}
       >
         {body}
@@ -143,7 +145,7 @@ function PublicCmsBannerCard({
   }
 
   return (
-    <Link href={href} onClick={() => trackCmsBannerClick(banner.id)}>
+    <Link href={href} data-track="banner_click" data-track-target={banner.title} onClick={() => trackCmsBannerClick(banner.id)}>
       {body}
     </Link>
   );
