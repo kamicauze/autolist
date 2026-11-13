@@ -39,7 +39,7 @@ export function Footer() {
   return (
     <>
       <BackToTopButton />
-      <footer className="bg-[#0F0F14] text-white">
+      <footer className="bg-[#0F0F14] text-white" data-track-links="nav_click">
         {/* Main Footer */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
