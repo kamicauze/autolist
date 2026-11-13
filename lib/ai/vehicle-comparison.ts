@@ -1,4 +1,5 @@
 import {
+  type AiWebSource,
   generateAiJson,
   generateOpenAiWebJson,
   getAiProviderConfig,
@@ -6,8 +7,11 @@ import {
 import { LISTING_FEATURE_INDEX } from "@/lib/constants/marketplace";
 import type { Listing } from "@/lib/types/listing";
 import type {
+  CachedVehicleResearch,
   VehicleComparisonResult,
   VehicleModelInsight,
+  VehicleResearchCache,
+  VehicleResearchIdentity,
 } from "@/lib/types/vehicle-comparison";
 import {
   formatListingCondition,
@@ -77,6 +81,7 @@ function buildWebResearchSchema(vehicleIds: string[]) {
                 required: ["label", "value"],
               },
             },
+            sourceUrls: { type: "array", items: { type: "string" } },
           },
           required: [
             "vehicleId",
@@ -84,6 +89,7 @@ function buildWebResearchSchema(vehicleIds: string[]) {
             "buyerFit",
             "knownConsiderations",
             "researchedSpecs",
+            "sourceUrls",
           ],
         },
       },
@@ -453,6 +459,78 @@ function sanitizeAiComparison(
   };
 }
 
+function normalizeResearchPart(value: string | number | null | undefined) {
+  return compactWhitespace(value === null || value === undefined ? "" : String(value)).toLowerCase();
+}
+
+/** Identity used to reuse sourced model-year research across listings. */
+export function buildVehicleResearchIdentity(listing: Listing): VehicleResearchIdentity {
+  const trim = getListingTrim(listing) || null;
+  const variant = getListingVariant(listing) || null;
+  return {
+    researchKey: [
+      listing.make,
+      listing.model,
+      listing.year,
+      trim,
+      variant,
+      listing.fuel_type,
+      listing.transmission,
+    ]
+      .map(normalizeResearchPart)
+      .join("|"),
+    make: compactWhitespace(listing.make),
+    model: compactWhitespace(listing.model),
+    year: listing.year,
+    trim,
+    variant,
+    fuelType: listing.fuel_type || null,
+    transmission: listing.transmission || null,
+  };
+}
+
+function normalizeSourceUrl(value: string) {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (key.toLowerCase().startsWith("utm_")) url.searchParams.delete(key);
+    }
+    return `${url.hostname.toLowerCase().replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keeps only the URLs a vehicle's insight claims that the web-search response
+ * actually returned, so cached research never carries invented citations.
+ */
+export function attributeResearchSources(claimedUrls: unknown, responseSources: AiWebSource[]) {
+  if (!Array.isArray(claimedUrls)) return [];
+  const sourceByUrl = new Map<string, AiWebSource>();
+  for (const source of responseSources) {
+    const key = normalizeSourceUrl(source.url);
+    if (key && !sourceByUrl.has(key)) sourceByUrl.set(key, source);
+  }
+  const attributed = new Map<string, AiWebSource>();
+  for (const claimed of claimedUrls) {
+    const key = typeof claimed === "string" ? normalizeSourceUrl(claimed) : null;
+    const source = key ? sourceByUrl.get(key) : undefined;
+    if (key && source && !attributed.has(key)) attributed.set(key, source);
+  }
+  return Array.from(attributed.values()).slice(0, 6);
+}
+
+function dedupeSources(sources: AiWebSource[]) {
+  const unique = new Map<string, AiWebSource>();
+  for (const source of sources) {
+    const key = normalizeSourceUrl(source.url) || source.url;
+    if (!unique.has(key)) unique.set(key, source);
+  }
+  return Array.from(unique.values()).slice(0, 10);
+}
+
 async function researchVehicleModels(listings: Listing[]) {
   const researchContext = listings.map((listing) => ({
     vehicleId: listing.id,
@@ -476,11 +554,12 @@ async function researchVehicleModels(listings: Listing[]) {
     "Keep buyerFit under 35 words and provide exactly 3 knownConsiderations under 14 words each.",
     `For researchedSpecs, use only these exact labels and include only fields supported by sources: ${RESEARCHED_SPECIFICATION_LABELS.join(", ")}.`,
     "Label market- or trim-dependent details clearly. Typical model-year information must not be presented as proof about the exact seller vehicle.",
+    "For sourceUrls, list the URLs of the web sources you actually used for that vehicle.",
     `Vehicle identities from the seller listings: ${JSON.stringify(researchContext)}`,
   ].join("\n");
 
   const response = await generateOpenAiWebJson<{
-    modelInsights: VehicleModelInsight[];
+    modelInsights: Array<VehicleModelInsight & { sourceUrls?: unknown }>;
   }>({
     prompt,
     schema: buildWebResearchSchema(listings.map((listing) => listing.id)),
@@ -496,16 +575,94 @@ async function researchVehicleModels(listings: Listing[]) {
     fallback,
     listings,
   );
+  const sourcesByVehicle = new Map(
+    (Array.isArray(response.data.modelInsights) ? response.data.modelInsights : []).map(
+      (item) => [
+        compactWhitespace(item?.vehicleId),
+        attributeResearchSources(item?.sourceUrls, response.sources),
+      ],
+    ),
+  );
 
   return {
-    insights,
+    // sanitizeModelInsights returns the rule fallback itself when nothing valid came back.
+    insights: insights === fallback ? [] : insights,
     model: response.model,
     sources: response.sources,
+    sourcesByVehicle,
   };
+}
+
+/**
+ * Serves sourced research from the cache where possible and researches only the
+ * missing identities, still in one structured request (ADR-0008).
+ */
+async function getSourcedResearch(listings: Listing[], cache?: VehicleResearchCache) {
+  const identityById = new Map(
+    listings.map((listing) => [listing.id, buildVehicleResearchIdentity(listing)]),
+  );
+  const keys = Array.from(new Set(Array.from(identityById.values(), (identity) => identity.researchKey)));
+  const researchByKey = new Map<string, CachedVehicleResearch>(
+    cache ? await cache.get(keys).catch(() => new Map<string, CachedVehicleResearch>()) : [],
+  );
+  const sources: AiWebSource[] = Array.from(researchByKey.values()).flatMap((item) => item.sources);
+  let model = Array.from(researchByKey.values())[0]?.model ?? null;
+
+  const missing = new Map<string, Listing>();
+  for (const listing of listings) {
+    const key = identityById.get(listing.id)!.researchKey;
+    if (!researchByKey.has(key) && !missing.has(key)) missing.set(key, listing);
+  }
+
+  if (missing.size > 0) {
+    const fresh = await researchVehicleModels(Array.from(missing.values())).catch(() => null);
+    if (fresh && fresh.insights.length > 0) {
+      model = fresh.model;
+      sources.push(...fresh.sources);
+      const cacheable: Parameters<VehicleResearchCache["put"]>[0] = [];
+
+      for (const insight of fresh.insights) {
+        const identity = identityById.get(insight.vehicleId);
+        if (!identity) continue;
+        const attributed = fresh.sourcesByVehicle.get(insight.vehicleId) || [];
+        const research: CachedVehicleResearch = {
+          modelSummary: insight.modelSummary,
+          buyerFit: insight.buyerFit,
+          knownConsiderations: insight.knownConsiderations,
+          researchedSpecs: insight.researchedSpecs,
+          sources: attributed,
+          model: fresh.model,
+        };
+        researchByKey.set(identity.researchKey, research);
+        if (attributed.length > 0) cacheable.push({ identity, research });
+      }
+
+      if (cache && cacheable.length > 0) await cache.put(cacheable).catch(() => undefined);
+    }
+  }
+
+  const insights: VehicleModelInsight[] = listings.flatMap((listing) => {
+    const research = researchByKey.get(identityById.get(listing.id)!.researchKey);
+    if (!research) return [];
+    return [
+      {
+        vehicleId: listing.id,
+        title: vehicleTitle(listing),
+        modelSummary: research.modelSummary,
+        buyerFit: research.buyerFit,
+        knownConsiderations: research.knownConsiderations,
+        researchedSpecs: research.researchedSpecs,
+      },
+    ];
+  });
+
+  if (insights.length === 0 || sources.length === 0) return null;
+  return { insights, model, sources: dedupeSources(sources) };
 }
 
 export async function generateVehicleComparison(
   listings: Listing[],
+  { researchCache }: { researchCache?: VehicleResearchCache } = {},
 ): Promise<VehicleComparisonResult> {
   const selected = listings.slice(0, 3);
   const base = buildRuleComparison(selected);
@@ -521,7 +678,7 @@ export async function generateVehicleComparison(
 
   if (aiConfig.provider === "openai") {
     try {
-      const research = await researchVehicleModels(selected);
+      const research = await getSourcedResearch(selected, researchCache);
 
       if (research) {
         const insightByVehicle = new Map(

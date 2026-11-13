@@ -45,6 +45,28 @@ function buildFallbackHandoff(input: CommsAgentInput): SupportHandoffDraft {
   };
 }
 
+function describeSender(sender: CommsAgentInput["messages"][number]["sender"]) {
+  if (sender === "me") return "Seller";
+  if (sender === "system") return "System";
+  return "Buyer";
+}
+
+function buildGroundingSection(input: CommsAgentInput) {
+  const facts = input.listingFacts?.length
+    ? input.listingFacts.map((fact) => `- ${fact}`).join("\n")
+    : "- Listing details are unavailable (the listing may no longer be active).";
+  const faqs = input.faqs?.length
+    ? input.faqs.map((faq) => `- Q: ${faq.question}\n  A: ${faq.answer}`).join("\n")
+    : "- none";
+
+  return `
+Listing facts (seller-provided for this exact vehicle; the only vehicle facts you may state):
+${facts}
+
+Autolist platform FAQ excerpts (use only when they answer the buyer's question):
+${faqs}`;
+}
+
 function buildPrompt(input: CommsAgentInput) {
   return `
 You are an automotive marketplace communications assistant.
@@ -60,19 +82,21 @@ Context:
 - Listing: ${input.listingTitle}
 - Conversation ID: ${input.conversationId || "n/a"}
 - Current draft reply: ${input.latestDraft || "none"}
+${buildGroundingSection(input)}
 
 Conversation transcript:
 ${input.messages
-  .map((message) => `- ${message.sender === "me" ? "Seller" : "Buyer"}${message.time ? ` (${message.time})` : ""}: ${message.text}`)
+  .map((message) => `- ${describeSender(message.sender)}${message.time ? ` (${message.time})` : ""}: ${message.text}`)
   .join("\n")}
 
 Requirements:
 - The summary must be concise and factual.
 - The buyerIntent must explain what the buyer is trying to achieve now.
-- Draft a reply to the latest buyer message. Use seller messages as context and avoid repeating answers already sent. Stay grounded in the transcript and end with a concrete next step.
+- Draft a reply to the latest buyer message. Use seller messages as context and avoid repeating answers already sent. Answer the buyer's question from the listing facts or FAQ excerpts when they cover it, and end with a concrete next step.
+- If the buyer asks about something the listing facts and transcript do not cover (service history, accident history, documents, exact availability), do not guess: say the seller will confirm, and add that item to the checklist.
 - The checklist must tell the seller what to verify before sending.
 - The support handoff must be suitable for an internal help ticket if the conversation needs escalation.
-- Do not invent facts not supported by the transcript.
+- Do not invent facts not supported by the listing facts, FAQ excerpts, or transcript. Never present typical model-year equipment as fitted to this vehicle.
   `.trim();
 }
 

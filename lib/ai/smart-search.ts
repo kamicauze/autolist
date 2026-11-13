@@ -8,6 +8,11 @@ import {
 } from "@/lib/search/quick-search";
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import {
+  canonicalizeMakeModel,
+  findCatalogCandidates,
+  type MakeModelCatalog,
+} from "@/lib/search/vehicle-catalog-match";
+import {
   SEARCH_INTENTS,
   SEARCH_ORIGINS,
   SEARCH_USE_CASES,
@@ -229,7 +234,10 @@ function pickSmartSearchModel(query: string, ruleParams: SmartSearchParams) {
   return hasAbstractSignals(query, ruleParams) ? COMPLEX_SMART_SEARCH_MODEL : undefined;
 }
 
-export async function evaluateSmartSearch(query: string): Promise<SmartSearchResult> {
+export async function evaluateSmartSearch(
+  query: string,
+  { loadCatalog }: { loadCatalog?: () => Promise<MakeModelCatalog> } = {}
+): Promise<SmartSearchResult> {
   const ruleResult = parseQuickSearchRules(query);
   const aiConfig = getAiProviderConfig();
 
@@ -238,6 +246,8 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
   }
 
   try {
+    const catalog = loadCatalog ? await loadCatalog().catch(() => [] as MakeModelCatalog) : [];
+    const catalogCandidates = findCatalogCandidates(query, catalog);
     const prompt = [
       "Extract vehicle marketplace search filters from the query.",
       "Return strict JSON only with keys: q, make, model, origin, useCase, intent, minPrice, maxPrice, minYear, maxYear, bodyType, transmission, fuelType, driveType, location, sellerType.",
@@ -255,6 +265,12 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
       "If the query says something is expensive or affordable without a precise number, prefer intent=value instead of inventing a budget.",
       "If the query is intent-heavy or vague, keep q only when there is still meaningful leftover wording after extracting structured fields.",
       "Support spelling mistakes and mixed English/Swahili phrasing when possible.",
+      ...(catalogCandidates.length > 0
+        ? [
+            `Catalog make/model spellings that may match this query: ${catalogCandidates.join("; ")}.`,
+            "When the query refers to one of these, copy its make and model spelling exactly. Do not add a model the query does not mention.",
+          ]
+        : []),
       "",
       `Query: ${query.trim()}`,
       `Rule extraction: ${JSON.stringify(ruleResult.params)}`,
@@ -272,6 +288,11 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
     }
 
     const llmParams = normalizeDirectionalBudgetParams(query, normalizeLocalResponse(response.data));
+    if (catalog.length > 0 && (llmParams.make || llmParams.model)) {
+      const canonical = canonicalizeMakeModel({ make: llmParams.make, model: llmParams.model }, catalog);
+      if (canonical.make) llmParams.make = canonical.make;
+      if (canonical.model) llmParams.model = canonical.model;
+    }
 
     // Guard: LLM sometimes hallucinates intent=value from vague phrasing
     // ("actually show me X instead"). Only keep LLM-supplied intent if the

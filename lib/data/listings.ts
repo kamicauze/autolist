@@ -291,6 +291,16 @@ function escapeLike(value: string) {
   return value.replace(/[,%]/g, "");
 }
 
+/** Enabled only after the listing_search_document migration is applied (ADR-0073). */
+function isListingFullTextSearchEnabled() {
+  return process.env.LISTING_FULL_TEXT_SEARCH_ENABLED === "true";
+}
+
+/** Double-quotes a PostgREST logic-tree value; embedded quotes/backslashes are dropped. */
+function quoteLogicValue(value: string) {
+  return `"${value.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim()}"`;
+}
+
 function getListingSelect(includeDealerLocationFilter = false) {
   const dealerJoin = includeDealerLocationFilter
     ? "dealer:public_dealers!inner(status, id, name, logo_url, city)"
@@ -577,11 +587,15 @@ export function applyListingFilters<TQuery extends ListingQuery>(
 ): TQuery {
   let nextQuery = query;
 
+  const useFullText = isListingFullTextSearchEnabled();
   const keywordFilters = parseRequestedKeywords(filters?.q)
     .filter((keyword) => !isCategoryRedundantKeyword(keyword, filters?.category))
     .map((keyword) => escapeLike(keyword))
     .filter(Boolean)
     .flatMap((keyword) => [
+      // Matches every word anywhere in the listing; the ilike terms keep
+      // partial-word matches (e.g. "harr") working alongside it.
+      ...(useFullText ? [`listing_search_document.wfts(english).${quoteLogicValue(keyword)}`] : []),
       `make.ilike.%${keyword}%`,
       `model.ilike.%${keyword}%`,
       `description.ilike.%${keyword}%`,

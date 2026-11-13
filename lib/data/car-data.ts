@@ -1,4 +1,7 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { CAR_MAKES_DATA } from "@/lib/constants/car-data";
+import type { MakeModelCatalog } from "@/lib/search/vehicle-catalog-match";
 import type { ListingCategory } from "@/lib/constants/marketplace";
 import type { CarMake } from "@/lib/types/car-data";
 import {
@@ -246,3 +249,25 @@ export async function getVehicleReferenceOptions(
     variants: shapedReferenceOptions.variants,
   };
 }
+
+/**
+ * Make → model names for matching search queries to catalog spellings.
+ * Falls back to the seed catalog when the reference tables are unavailable.
+ */
+export const getMakeModelCatalog = cache(async (): Promise<MakeModelCatalog> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("car_makes")
+    .select("name, models:car_models(name)")
+    .order("name");
+
+  if (error || !data?.length) {
+    if (error) console.error("getMakeModelCatalog error:", error.message);
+    return CAR_MAKES_DATA.map((make) => ({ make: make.name, models: make.models.map((model) => model.name) }));
+  }
+
+  return data.map((make) => ({
+    make: make.name,
+    models: ((make.models as unknown as Array<{ name: string }> | null) ?? []).map((model) => model.name),
+  }));
+});
