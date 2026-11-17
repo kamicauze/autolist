@@ -1058,9 +1058,12 @@ export function AdminCmsLive({
                   key={page.slug}
                   type="button"
                   onClick={() => setSelectedSlug(page.slug)}
+                  // A save that finishes after switching pages loads its copy into the newly open page.
+                  disabled={isSavingPage}
                   className={cn(
                     "w-full px-5 py-4 text-left transition",
-                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]"
+                    isActive ? "bg-brand-soft-surface" : "bg-white hover:bg-[#fafcff]",
+                    isSavingPage && !isActive && "cursor-not-allowed opacity-60"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
