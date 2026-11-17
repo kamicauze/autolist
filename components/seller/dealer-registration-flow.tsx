@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ZodType } from "zod";
 import {
-  createDealerOnboardingUpload, createDealerRegistration, leaveDealerSetup, searchDealerAddresses,
+  createDealerOnboardingUpload, createDealerRegistration, leaveDealerSetup, resolveDealerAddress, searchDealerAddresses,
 } from "@/lib/actions/dealers";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
-import type { DealerAddress } from "@/lib/location/dealer-address";
+import type { DealerAddress, DealerAddressSuggestion } from "@/lib/location/dealer-address";
 import { createClient } from "@/lib/supabase/client";
 import {
   dealerRegistrationDocumentLabels, dealerRegistrationSchema,
@@ -122,7 +122,9 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
   const [manual, setManual] = useState(false);
-  const [found, setFound] = useState<{ query: string; results?: DealerAddress[]; error?: string }>();
+  const [found, setFound] = useState<{ query: string; results?: DealerAddressSuggestion[]; error?: string }>();
+  const [resolving, setResolving] = useState("");
+  const [pickError, setPickError] = useState("");
   const [documentType, setDocumentType] = useState<DealerRegistrationDocumentType | "">("");
   const [file, setFile] = useState<File>();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -134,6 +136,8 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [createdName, setCreatedName] = useState(existingName);
   const upload = useRef<{ file: File; type: DealerRegistrationDocumentType; path: string }>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // One Google Places session runs from the first search to the chosen address, so they are billed together.
+  const placesSession = useRef<string>(null);
   const confirmation = useRef<HTMLHeadingElement>(null);
   const submitError = useRef<HTMLDivElement>(null);
   const fieldErrors = {
@@ -158,13 +162,14 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const results = searchable ? found?.results : undefined;
   const searchStatus = !text || selected || manual ? ""
     : text.length < 3 ? "Type at least 3 characters to search."
-    : searching ? "Searching…" : found?.error ?? "";
+    : resolving ? "Loading address…"
+    : pickError || (searching ? "Searching…" : found?.error ?? "");
 
   useEffect(() => {
     if (!searching) return;
     let current = true;
     const timer = window.setTimeout(() => {
-      searchDealerAddresses(text)
+      searchDealerAddresses(text, (placesSession.current ??= crypto.randomUUID()))
         .then((response) => { if (current) setFound({ query: text, ...response }); })
         .catch(() => { if (current) setFound({ query: text, error: "Address search is unavailable. You can enter the address manually." }); });
     }, 300);
@@ -187,6 +192,23 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     setSelected(true);
     setManual(!address.town || !address.county);
     setError("");
+  }
+
+  async function pickAddress(suggestion: DealerAddressSuggestion) {
+    if (resolving) return;
+    setResolving(suggestion.placeId);
+    setPickError("");
+    try {
+      const response = await resolveDealerAddress(suggestion.placeId, suggestion.label, (placesSession.current ??= crypto.randomUUID()));
+      if (response.address) {
+        placesSession.current = null;
+        chooseAddress(response.address);
+      } else setPickError(response.error);
+    } catch {
+      setPickError("We couldn't load that address. Try again or enter it manually.");
+    } finally {
+      setResolving("");
+    }
   }
 
   function removeFile() {
@@ -303,7 +325,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       type="search"
                       value={query}
                       maxLength={160}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => { setQuery(event.target.value); setPickError(""); }}
                       onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                       className={cn(inputClass, "pl-11", shown.search && invalidClass)}
                       aria-invalid={Boolean(shown.search) || undefined}
@@ -319,16 +341,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       ) : (
                         <ul className="divide-y divide-border rounded-lg border border-border">
                           {results.map((result) => (
-                            <li key={JSON.stringify(result)}>
-                              <button type="button" onClick={() => chooseAddress(result)} className="w-full px-3 py-2.5 text-left hover:bg-brand-tint focus-visible:bg-brand-tint">
-                                <span className="block text-sm font-semibold">{result.address}</span>
-                                <span className="block text-xs text-muted-foreground">{[result.town, result.county && result.county + " County"].filter(Boolean).join(" · ")}</span>
+                            <li key={result.placeId}>
+                              <button type="button" disabled={Boolean(resolving)} onClick={() => void pickAddress(result)} className="w-full px-3 py-2.5 text-left hover:bg-brand-tint focus-visible:bg-brand-tint disabled:opacity-60">
+                                <span className="block text-sm font-semibold">{result.label}</span>
+                                {result.detail && <span className="block text-xs text-muted-foreground">{result.detail}</span>}
                               </button>
                             </li>
                           ))}
                         </ul>
                       )}
-                      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-xs text-muted-foreground underline">© OpenStreetMap contributors</a>
+                      <p translate="no" className="text-xs text-muted-foreground">Google Maps</p>
                     </div>
                   )}
                 </>

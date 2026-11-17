@@ -23,7 +23,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getImageUrl } from "@/lib/utils/listings";
 import { emitNotificationEvent } from "@/lib/server/notifications";
-import { findDealerAddresses } from "@/lib/location/dealer-address";
+import { findDealerAddresses, getDealerAddress } from "@/lib/location/dealer-address";
 import type { DealerStatus } from "@/lib/types/dealer";
 import {
   dealerRegistrationDocumentLabels,
@@ -359,15 +359,36 @@ async function logAudit(
   }
 }
 
-export async function searchDealerAddresses(rawQuery: string) {
+const PLACES_SESSION = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const PLACE_ID = /^[A-Za-z0-9_-]{1,300}$/;
+
+export async function searchDealerAddresses(rawQuery: string, rawSession: string) {
   const applicant = await requireDealerApplicant();
   if ("error" in applicant) return { error: applicant.error, code: applicant.code };
   const query = typeof rawQuery === "string" ? rawQuery.trim() : "";
   if (query.length < 3 || query.length > 160) return { error: "Enter a building or street name." };
+  if (typeof rawSession !== "string" || !PLACES_SESSION.test(rawSession)) {
+    return { error: "Address search is unavailable. You can enter the address manually." };
+  }
   try {
-    return { results: await findDealerAddresses(query) };
+    return { results: await findDealerAddresses(query, rawSession) };
   } catch {
     return { error: "Address search is unavailable. You can enter the address manually." };
+  }
+}
+
+export async function resolveDealerAddress(rawPlaceId: string, rawLabel: string, rawSession: string) {
+  const applicant = await requireDealerApplicant();
+  if ("error" in applicant) return { error: applicant.error, code: applicant.code };
+  const label = typeof rawLabel === "string" ? rawLabel.trim().slice(0, 200) : "";
+  if (typeof rawPlaceId !== "string" || !PLACE_ID.test(rawPlaceId) || typeof rawSession !== "string" || !PLACES_SESSION.test(rawSession)) {
+    return { error: "Choose an address from the list." };
+  }
+  try {
+    const address = await getDealerAddress(rawPlaceId, label, rawSession);
+    return address ? { address } : { error: "Choose an address in Kenya, or enter it manually." };
+  } catch {
+    return { error: "We couldn't load that address. Try again or enter it manually." };
   }
 }
 

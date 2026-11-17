@@ -39,7 +39,11 @@ test("validation marks each field and links it to its own message", () => {
 
 test("address search runs as the dealer types, ignores stale replies and keeps manual entries", () => {
   assert.match(flow, /text\.length < 3 \? "Type at least 3 characters to search\."/);
-  assert.match(flow, /window\.setTimeout\(\(\) => \{\s*searchDealerAddresses\(text\)/);
+  assert.match(flow, /window\.setTimeout\(\(\) => \{\s*searchDealerAddresses\(text, \(placesSession\.current \?\?= crypto\.randomUUID\(\)\)\)/);
+  assert.match(flow, /resolveDealerAddress\(suggestion\.placeId, suggestion\.label, \(placesSession\.current \?\?= crypto\.randomUUID\(\)\)\)/);
+  assert.match(flow, /placesSession\.current = null;\s*chooseAddress\(response\.address\);/);
+  assert.match(flow, /<p translate="no" className="text-xs text-muted-foreground">Google Maps<\/p>/);
+  assert.doesNotMatch(flow, /openstreetmap/i);
   assert.match(flow, /if \(current\) setFound\(\{ query: text, \.\.\.response \}\)/);
   assert.match(flow, /return \(\) => \{ current = false; window\.clearTimeout\(timer\); \};/);
   assert.doesNotMatch(flow, /void search\(\)|disabled=\{searching\}/);
