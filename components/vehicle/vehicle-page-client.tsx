@@ -438,16 +438,16 @@ export function VehiclePageClient({
     getBrowserOrigin,
     getConfiguredBaseUrl
   );
-  const quickContactUrl = useMemo(() => {
-    const listingUrl = `${currentOrigin}/vehicle/${listing.id}`;
+  const listingUrl = `${currentOrigin}/vehicle/${listing.id}`;
 
+  const quickContactUrl = useMemo(() => {
     if (!quickContactPhone) {
       return listingUrl;
     }
 
     const message = `Hi, I'm interested in ${title} listed on Autolist: ${listingUrl}`;
     return `https://wa.me/${quickContactPhone}?text=${encodeURIComponent(message)}`;
-  }, [currentOrigin, listing.id, quickContactPhone, title]);
+  }, [listingUrl, quickContactPhone, title]);
   const quickContactCopy = quickContactPhone
     ? "Scan to start a WhatsApp message about this vehicle."
     : "Scan to open this listing on your phone.";
@@ -859,6 +859,7 @@ export function VehiclePageClient({
               <SellerCard
                 listingId={listing.id}
                 listingTitle={title}
+                listingUrl={listingUrl}
                 dealer={listing.dealer}
                 seller={listing.seller}
                 salesRep={listing.sales_rep ?? null}

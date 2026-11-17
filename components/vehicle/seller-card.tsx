@@ -26,6 +26,7 @@ import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display"
 interface SellerCardProps {
   listingId: string;
   listingTitle: string;
+  listingUrl: string;
   dealer?: {
     status?: DealerStatus;
     id: string;
@@ -163,6 +164,7 @@ export function getDealerHoursPresentation(
 export function SellerCard({
   listingId,
   listingTitle,
+  listingUrl,
   dealer,
   seller,
   salesRep,
@@ -191,7 +193,7 @@ export function SellerCard({
     isDealer ? rep?.whatsapp || dealer?.whatsapp || dealer?.mobile : privateContact?.whatsappNumber
   );
   const whatsappUrl = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist.`)}`
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist: ${listingUrl}`)}`
     : null;
   const contactLabel = rep ? `Call ${rep.name.split(" ")[0]}` : "Call Seller";
   const hasReviews = Boolean(stats && stats.totalReviews > 0);
