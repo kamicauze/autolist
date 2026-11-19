@@ -14,6 +14,7 @@ import {
   SEARCH_ORIGINS,
   SEARCH_USE_CASES,
   detectVehicleIntents,
+  stripVehiclePreferencePhrases,
 } from "@/lib/search/vehicle-ontology";
 
 const ALLOWED_BODY_TYPES = new Set([
@@ -147,7 +148,10 @@ function pruneBroadTextQuery(params: SmartSearchParams) {
       text = text.replace(new RegExp(`\\b${escaped}\\b`, "gi"), " ");
     }
   }
-  text = text.replace(/\b(?:in|with)\s*$/i, " ").replace(/\s+/g, " ").trim();
+  text = stripVehiclePreferencePhrases(text, params.useCase, params.intent)
+    .replace(/^\s*(?:find me|show me|i want|i need|looking for)\s+(?:an?\s+)?/i, " ")
+    .replace(/\b(?:in|with|for)\s*$/i, " ")
+    .replace(/\s+/g, " ").trim();
   if (!text) {
     delete params.q;
     return params;
@@ -158,7 +162,7 @@ function pruneBroadTextQuery(params: SmartSearchParams) {
   if (
     params.q &&
     ((Boolean(params.origin) && normalizedQuery?.includes("european")) ||
-      (Boolean(params.bodyType || params.useCase || params.origin) && normalizedQuery && GENERIC_INTENT_QUERIES.has(normalizedQuery)))
+      (Boolean(params.bodyType || params.useCase || params.origin || params.intent) && normalizedQuery && GENERIC_INTENT_QUERIES.has(normalizedQuery)))
   ) {
     delete params.q;
   }

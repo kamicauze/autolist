@@ -51,3 +51,21 @@ test("generic origin searches retain the existing broad catalog behavior", async
   assert.equal(result.params.q, undefined);
   assert.equal(result.params.origin, "European");
 });
+
+test("echoed abstract preferences remain ranking signals rather than text filters", async () => {
+  for (const prefix of ["", "find me a "]) {
+    const query = `${prefix}comfortable economical car for Nairobi traffic under 3 million`;
+    extracted = { q: query, useCase: "fuel_efficient", intent: "comfortable,daily_driver", maxPrice: "3000000", location: "Nairobi" };
+    const result = await evaluateSmartSearch(query);
+    assert.equal(result.params.q, undefined);
+    assert.equal(result.params.location, "Nairobi");
+    assert.equal(result.params.intent, "comfortable,daily_driver");
+  }
+});
+
+test("preference cleanup preserves a specific model keyword", async () => {
+  extracted = { q: "Corolla comfortable automatic under 2m", intent: "comfortable", transmission: "Automatic", maxPrice: "2000000" };
+  const result = await evaluateSmartSearch("Corolla comfortable automatic under 2m");
+  assert.equal(result.params.q, "Corolla");
+  assert.equal(result.params.intent, "comfortable");
+});
