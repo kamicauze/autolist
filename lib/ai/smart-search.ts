@@ -37,12 +37,17 @@ const ALLOWED_ORIGINS = new Set(SEARCH_ORIGINS);
 const ALLOWED_USE_CASES = new Set(SEARCH_USE_CASES);
 const ALLOWED_INTENTS = new Set(SEARCH_INTENTS);
 const GENERIC_INTENT_QUERIES = new Set([
+  "car",
+  "cars",
+  "vehicle",
+  "vehicles",
   "small car",
   "compact car",
   "city car",
   "town car",
   "family car",
   "family suv",
+  "family",
   "work car",
   "work vehicle",
   "daily car",
@@ -130,12 +135,30 @@ function deriveConfidence(params: SmartSearchParams): SmartSearchResult["confide
 }
 
 function pruneBroadTextQuery(params: SmartSearchParams) {
+  if (!params.q || featureOnlyQuery(params.q).length) return params;
+  let text = params.q;
+  if (params.minPrice || params.maxPrice) {
+    text = text.replace(/\b(?:under|below|above|over|up to|max(?:imum)?|min(?:imum)?|budget|less than|more than|from)\s*(?:ksh?\.?|kes)?\s*\d[\d,.]*\s*(?:million|m|k)?\b/gi, " ");
+  }
+  // Keep leftover model/equipment words; remove only values already expressed as filters.
+  for (const value of [params.make, params.model, params.bodyType, params.transmission, params.fuelType, params.driveType, params.location, params.origin]) {
+    for (const part of (value || "").split(",").filter(Boolean)) {
+      const escaped = part.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      text = text.replace(new RegExp(`\\b${escaped}\\b`, "gi"), " ");
+    }
+  }
+  text = text.replace(/\b(?:in|with)\s*$/i, " ").replace(/\s+/g, " ").trim();
+  if (!text) {
+    delete params.q;
+    return params;
+  }
+  params.q = text;
   const normalizedQuery = params.q?.trim().toLowerCase();
 
   if (
     params.q &&
     ((Boolean(params.origin) && normalizedQuery?.includes("european")) ||
-      (Boolean(params.bodyType) && normalizedQuery && GENERIC_INTENT_QUERIES.has(normalizedQuery)))
+      (Boolean(params.bodyType || params.useCase || params.origin) && normalizedQuery && GENERIC_INTENT_QUERIES.has(normalizedQuery)))
   ) {
     delete params.q;
   }
