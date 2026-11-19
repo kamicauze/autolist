@@ -229,12 +229,15 @@ function WizardContent({
             >
               {isAdminMode ? "Back to Admin Listings" : "View My Listings"}
             </Link>
-            <Link
-              href={isAdminMode && editingListingId ? `/vehicle/${editingListingId}` : "/dashboard"}
-              className={secondaryLinkClassName}
-            >
-              {isAdminMode ? "View Listing" : "Back to Dashboard"}
-            </Link>
+            {!isAdminMode && !isEditing ? (
+              <button type="button" onClick={resetDraft} className={secondaryLinkClassName}>
+                Add another listing
+              </button>
+            ) : (
+              <Link href={isAdminMode && editingListingId ? `/vehicle/${editingListingId}` : "/dashboard"} className={secondaryLinkClassName}>
+                {isAdminMode ? "View Listing" : "Back to Dashboard"}
+              </Link>
+            )}
             {!isAdminMode && !isEditing ? (
               <Link href="/" className={secondaryLinkClassName}>
                 Go to homepage

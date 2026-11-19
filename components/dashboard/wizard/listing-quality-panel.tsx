@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
 import type { ListingQualityResult } from "@/lib/types/listing-quality";
 import { useWizard } from "./wizard-context";
 
@@ -134,6 +135,11 @@ export function ListingQualityPanel() {
         </div>
       </div>
 
+      <details className="group mt-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold">
+          Suggestions
+          <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden />
+        </summary>
       <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="rounded-[12px] border border-[#ededed] bg-white p-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-[#9a9a9a]">Top improvements</p>
@@ -173,6 +179,7 @@ export function ListingQualityPanel() {
       <div className="mt-3 rounded-[12px] border border-[#d4e4ff] bg-[#f4f8ff] px-4 py-3 text-[13px] leading-5 text-[#61708a]">
         {result.sellerTip}
       </div>
+      </details>
     </div>
   );
 }

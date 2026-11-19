@@ -8,7 +8,7 @@ import {
 } from "@/lib/constants/marketplace";
 import * as React from "react";
 import Image from "next/image";
-import { FileText, PencilLine, PlayCircle } from "lucide-react";
+import { ChevronDown, FileText, PencilLine, PlayCircle } from "lucide-react";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { getImageUrl } from "@/lib/utils/listings";
 import { formatDetailSummaryValue, formatKES, useWizard, WIZARD_STEP } from "./wizard-context";
@@ -267,7 +267,12 @@ export function StepReview() {
         description="Equipment and buyer-facing copy shown on the listing page."
         onEdit={() => editSection(REVIEW_SECTION_STEPS.features)}
       >
-        <div className="py-4">
+        <details className="group py-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold">
+            Features ({selectedFeatureLabels.length})
+            <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="pt-3">
           {selectedFeatureLabels.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {selectedFeatureLabels.map((featureLabel) => (
@@ -282,7 +287,8 @@ export function StepReview() {
           ) : (
             <p className="text-[14px] text-[#767676]">No features selected.</p>
           )}
-        </div>
+          </div>
+        </details>
         <SummaryRow
           label="Description"
           value={draft.description.trim() || "No description provided."}

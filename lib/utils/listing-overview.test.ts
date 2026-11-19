@@ -110,3 +110,14 @@ test("equipment overview includes wizard specifications without presenting hours
   assert.equal(values["Fuel Type"], "Diesel");
   assert.equal(values.Mileage, undefined);
 });
+
+
+test("electric overview reads saved battery capacity and range and omits combustion displacement", () => {
+  const listing = makeListing({ fuel_type: "electric", metadata: { details: { engineCapacity: "2000", batteryCapacityKwh: "75", rangeKm: "450" } } });
+  const values = Object.fromEntries(buildListingOverviewItems(listing).map((item) => [item.label, item.value]));
+  assert.equal(values["Battery Capacity"], "75 kWh");
+  assert.equal(values.Range, "450 km");
+  assert.equal(values.CC, undefined);
+  const petrol = buildListingOverviewItems({ ...listing, fuel_type: "petrol" });
+  assert.equal(petrol.some((item) => item.key === "range" || item.key === "battery-capacity"), false);
+});

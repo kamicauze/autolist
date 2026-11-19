@@ -163,7 +163,7 @@ export const DETAIL_FIELDS_BY_CATEGORY: Record<ListingCategory, DetailField[]> =
     { key: "engineCapacity", label: "Engine Size (cc)", type: "select", required: true, options: CAR_VAN_ENGINE_CC_OPTIONS },
     { key: "transmission", label: "Transmission", type: "select", required: true, options: [{ value: "automatic", label: "Automatic" }, { value: "manual", label: "Manual" }] },
     { key: "driveType", label: "Drive Type", type: "select", required: true, options: [{ value: "2wd", label: "2WD" }, { value: "4wd", label: "4WD" }] },
-    { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "58000" },
+    { key: "mileage", label: "Mileage (km)", type: "number", required: true, placeholder: "0" },
     { key: "bodyType", label: "Body Type", type: "select", required: true, options: [{ value: "saloon", label: "Saloon" }, { value: "hatchback", label: "Hatchback" }, { value: "coupe", label: "Coupe" }, { value: "wagon", label: "Station Wagon" }, { value: "convertible", label: "Convertible" }, { value: "pickup", label: "Pick Up" }, { value: "suv", label: "SUV" }, { value: "minivan", label: "Minivan" }] },
     { key: "color", label: "Color", type: "text", required: true, placeholder: "Pearl White" },
     { key: "doors", label: "Number of Doors", type: "select", required: true, options: LISTING_DOOR_OPTIONS },
@@ -1352,7 +1352,7 @@ export function WizardProvider({
   };
 
   const toggleFeatureGroupExpansion = (groupKey: string) => {
-    setExpandedFeatureGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
+    setExpandedFeatureGroups((prev) => prev[groupKey] ? {} : { [groupKey]: true });
   };
 
   const applyFeaturePreset = (presetId: string) => {

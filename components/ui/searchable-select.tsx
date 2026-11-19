@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,8 @@ export function SearchableSelect({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [highlighted, setHighlighted] = React.useState(0);
+  const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties>({});
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLUListElement>(null);
@@ -80,7 +83,7 @@ export function SearchableSelect({
   React.useEffect(() => {
     if (!open) return;
     const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
@@ -101,6 +104,35 @@ export function SearchableSelect({
       ?.querySelector<HTMLElement>(`[data-index="${highlighted}"]`)
       ?.scrollIntoView({ block: "nearest" });
   }, [highlighted]);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    const position = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const viewport = window.visualViewport;
+      const top = viewport?.offsetTop ?? 0;
+      const bottom = top + (viewport?.height ?? window.innerHeight);
+      const below = bottom - rect.bottom - 14;
+      const above = rect.top - top - 14;
+      const opensAbove = below < 240 && above > below;
+      const height = Math.max(0, Math.min(310, opensAbove ? above : below));
+      setMenuStyle({ position: "fixed", left: Math.max(8, rect.left), width: Math.min(rect.width, window.innerWidth - 16),
+        top: opensAbove ? rect.top - 6 : rect.bottom + 6,
+        transform: opensAbove ? "translateY(-100%)" : undefined, maxHeight: height });
+    };
+    position();
+    window.addEventListener("scroll", position, true);
+    window.addEventListener("resize", position);
+    window.visualViewport?.addEventListener("resize", position);
+    window.visualViewport?.addEventListener("scroll", position);
+    return () => {
+      window.removeEventListener("scroll", position, true);
+      window.removeEventListener("resize", position);
+      window.visualViewport?.removeEventListener("resize", position);
+      window.visualViewport?.removeEventListener("scroll", position);
+    };
+  }, [open]);
 
   const commit = (option: SearchableSelectOption | undefined) => {
     if (!option) return;
@@ -170,9 +202,9 @@ export function SearchableSelect({
         />
       </button>
 
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-[14px] border border-[#e4e7ec] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center gap-2 border-b border-[#efefef] px-3">
+      {open ? createPortal(
+        <div ref={menuRef} style={menuStyle} className="z-50 flex flex-col overflow-hidden rounded-[14px] border border-[#e4e7ec] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
+          <div className="flex shrink-0 items-center gap-2 border-b border-[#efefef] px-3">
             <Search className="h-4 w-4 shrink-0 text-[#9a9a9a]" aria-hidden />
             <input
               ref={inputRef}
@@ -188,7 +220,7 @@ export function SearchableSelect({
               className="h-11 w-full bg-transparent text-[14px] text-[#202224] outline-none placeholder:text-[#9a9a9a]"
             />
           </div>
-          <ul ref={listRef} id={listboxId} role="listbox" className="max-h-64 overflow-y-auto py-1">
+          <ul ref={listRef} id={listboxId} role="listbox" className="min-h-0 overflow-y-auto overscroll-contain py-1">
             {filtered.length === 0 ? (
               <li className="px-4 py-3 text-[13px] text-[#8a8a8a]">{emptyText}</li>
             ) : (
@@ -218,7 +250,7 @@ export function SearchableSelect({
               })
             )}
           </ul>
-        </div>
+        </div>, document.body
       ) : null}
     </div>
   );

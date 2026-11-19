@@ -75,6 +75,7 @@ export function CookiePreferencesLink({ className }: { className?: string }) {
 }
 
 export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
+  const noticeRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const consent = useSyncExternalStore(subscribeConsent, readConsent, serverConsent);
   const hostname = useSyncExternalStore(subscribeConsent, browserHostname, serverConsent);
@@ -95,6 +96,10 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
     window.addEventListener(OPEN_PREFERENCES_EVENT, openPreferences);
     return () => window.removeEventListener(OPEN_PREFERENCES_EVENT, openPreferences);
   }, [eligible]);
+
+  useEffect(() => {
+    if (preferencesOpen) noticeRef.current?.focus();
+  }, [preferencesOpen]);
 
   useEffect(() => {
     const analytics = window;
@@ -186,20 +191,24 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
       )}
       {eligible && (!consent || preferencesOpen) && (
         <section
-          aria-label="Analytics cookie preferences"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-2xl rounded-xl border border-border bg-background p-5 text-foreground shadow-lg"
+          ref={noticeRef}
+          tabIndex={-1}
+          aria-label="Cookie preferences"
+          className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 text-foreground sm:px-6"
         >
-          <h2 className="text-base font-semibold">Your cookie preferences</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We use essential cookies to run Autolist. With your permission, Google Analytics helps us
-            understand visits to public pages. You can change your choice at any time.{' '}
-            <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="max-w-2xl">
+            <h2 className="text-base font-semibold">Your cookie preferences</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We use essential cookies to run Autolist. With your permission, optional cookies help us
+              understand visits to public pages. You can change your choice at any time.{' '}
+              <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" onClick={() => chooseConsent("declined")}>
-              Decline analytics
+              Essential cookies only
             </Button>
-            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow analytics</Button>
+            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow optional cookies</Button>
           </div>
         </section>
       )}
