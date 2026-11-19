@@ -38,9 +38,9 @@ export default function RootLayout({
         suppressHydrationWarning
         className="antialiased"
       >
+        {measurementId && <GoogleAnalytics measurementId={measurementId} />}
         <SiteTracker />
         <NotificationRefreshProvider>{children}</NotificationRefreshProvider>
-        {measurementId && <GoogleAnalytics measurementId={measurementId} />}
       </body>
     </html>
   );
