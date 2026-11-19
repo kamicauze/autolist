@@ -2,6 +2,7 @@ import { featureOnlyQuery } from "@/lib/search/listing-feature-query";
 import { generateAiJson, getAiProviderConfig } from "@/lib/ai/provider";
 import {
   buildSearchParams,
+  isSearchControlTurn,
   normalizeDirectionalBudgetParams,
   parseQuickSearchRules,
   sanitizeSmartSearchParams,
@@ -234,7 +235,7 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
   const ruleResult = parseQuickSearchRules(query);
   const aiConfig = getAiProviderConfig();
 
-  if (!aiConfig.enabled || !shouldUseSmartSearchFallback(query, ruleResult)) {
+  if (isSearchControlTurn(query) || !aiConfig.enabled || !shouldUseSmartSearchFallback(query, ruleResult)) {
     return ruleResult;
   }
 
