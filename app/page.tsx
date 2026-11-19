@@ -3,7 +3,7 @@ import { publicPageMetadata, SITE_DESCRIPTION, websiteJsonLd } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroSearch } from "@/components/home/hero-search";
-import { ListingsSection, ListingsSectionSkeleton } from "@/components/home/listings-section";
+import { ListingsSection, ListingsSectionSkeleton, type HomepageListingData } from "@/components/home/listings-section";
 import { BrandLogos } from "@/components/home/brand-logos";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { DiscoverMore } from "@/components/home/discover-more";
@@ -36,19 +36,24 @@ async function RecentActivitiesData({
 }: {
   content: HomepageCmsContent["featuredListings"];
 }) {
-  const [featuredListings, newestListings, favorites, authResult] = await Promise.all([
-    getHomepageFeaturedListings(content.featuredLimit),
-    getNewestListings(content.recentLimit),
-    getDashboardFavoritesData(),
+  const [data, authResult] = await Promise.all([
+    Promise.all([
+      getHomepageFeaturedListings(content.featuredLimit),
+      getNewestListings(content.recentLimit),
+      getDashboardFavoritesData(),
+    ]).then(([featuredListings, newestListings, favorites]): HomepageListingData => ({
+      featuredListings,
+      newestListings,
+      favoriteListings: favorites.map((item) => item.listing),
+    })).catch(() => null),
     getAuthUser(),
   ]);
 
   return (
     <ListingsSection
       title={content.title}
-      featuredListings={featuredListings}
-      newestListings={newestListings}
-      favoriteListings={favorites.map((item) => item.listing)}
+      data={data}
+      viewerKey={authResult.data.user?.id ?? "guest"}
       isAuthenticated={Boolean(authResult.data.user)}
       content={content}
     />
@@ -58,7 +63,7 @@ async function RecentActivitiesData({
 async function HeroSearchWithData({ content }: { content: HomepageCmsContent["hero"] }) {
   const [makes, totalCount, heroBanners] = await Promise.all([
     getAllMakeNames(),
-    countMatchingListings(),
+    countMatchingListings().catch(() => null),
     getActiveCmsBanners("home_hero", 1),
   ]);
   return (
