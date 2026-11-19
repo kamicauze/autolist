@@ -342,6 +342,20 @@ export function detectVehicleIntents(query: string) {
   return detectAliasMatches(query, INTENT_ALIASES);
 }
 
+export function stripVehiclePreferencePhrases(query: string, useCase?: string, intent?: string) {
+  const intents = new Set((intent || "").split(",").map((value) => value.trim()));
+  const phrases = [
+    ...USE_CASE_ALIASES.filter(([, value]) => value === useCase),
+    ...INTENT_ALIASES.filter(([, value]) => intents.has(value)),
+  ].map(([phrase]) => phrase).sort((a, b) => b.length - a.length);
+  let text = query;
+  for (const phrase of phrases) {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`\\b${escaped}\\b`, "gi"), " ");
+  }
+  return text;
+}
+
 export function normalizeDriveTypeValue(value?: string | null): SearchDriveType | null {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
