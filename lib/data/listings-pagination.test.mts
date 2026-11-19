@@ -5,7 +5,7 @@ const inventory = Array.from({ length: 40 }, (_, index) => ({
   id: `vehicle-${index}`, seller_id: "seller", status: "active", sale_channel: "standard",
   make: "Toyota", model: "Sample", category: "car", price: index,
   created_at: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
-  features: index % 2 === 0 ? ["Sunroof"] : [], metadata: {},
+  is_featured: index % 2 === 0, metadata: {},
   images: [{ id: `photo-${index}` }],
 }));
 const reads: Array<{ select: string; ids?: string[] }> = [];
@@ -55,7 +55,7 @@ test("ordinary searches page before card joins and preserve the requested sort",
 
 test("derived searches count without card joins and hydrate only the ranked page", async () => {
   reads.length = 0;
-  const filters = { q: "Sunroof" };
+  const filters = { featured: true };
   assert.equal(await countMatchingListings(filters), 20);
   assert.ok(reads.every((read) => !read.select.includes("images:") && !read.select.includes("seller:")));
   reads.length = 0;
