@@ -97,3 +97,16 @@ test("used-car browsing includes foreign and locally used vehicles without broad
     assert.deepEqual(calls, [["condition", expected]]);
   }
 });
+
+test("equipment searches match confirmed stored features and retain all requested requirements", () => {
+  const rows = [
+    { ...listing("both", false), features: ["Sunroof", "Bluetooth Connectivity"] },
+    { ...listing("one", false), features: ["Sunroof"] },
+    { ...listing("copy-only", false), features: [], description: "Sunroof Bluetooth Connectivity" },
+  ];
+  assert.deepEqual(filterAndRankListings(rows, { q: "Sunroof,Bluetooth Connectivity" }).map((row) => row.id), ["both"]);
+  const calls: string[] = [];
+  const query = { or(value: string) { calls.push(value); return this; } };
+  applyListingFilters(query as never, { q: "Sunroof,Bluetooth Connectivity" });
+  assert.deepEqual(calls, []);
+});

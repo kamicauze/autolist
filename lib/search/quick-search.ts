@@ -1,3 +1,4 @@
+import { requestedListingFeatures } from "@/lib/search/listing-feature-query";
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import type { ListingFilters } from "@/lib/types/listing";
 import {
@@ -387,6 +388,9 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   if (Object.values(params).every((value) => !value) && !hasNearMeIntent(normalizedQuery)) {
     params.q = normalizedQuery;
   }
+
+  const requestedFeatures = requestedListingFeatures(normalizedQuery);
+  if (requestedFeatures.length) params.q = requestedFeatures.join(",");
 
   return {
     normalizedQuery,

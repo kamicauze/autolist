@@ -1,3 +1,4 @@
+import { featureOnlyQuery, listingHasRequestedFeatures } from "@/lib/search/listing-feature-query";
 import { createClient } from "@/lib/supabase/server";
 import { locationMatchesFilter } from "@/lib/constants/filters";
 import type { ListingCategory } from "@/lib/constants/marketplace";
@@ -577,7 +578,7 @@ export function applyListingFilters<TQuery extends ListingQuery>(
 ): TQuery {
   let nextQuery = query;
 
-  const keywordFilters = parseRequestedKeywords(filters?.q)
+  const keywordFilters = (featureOnlyQuery(filters?.q).length ? [] : parseRequestedKeywords(filters?.q))
     .filter((keyword) => !isCategoryRedundantKeyword(keyword, filters?.category))
     .map((keyword) => escapeLike(keyword))
     .filter(Boolean)
@@ -867,7 +868,9 @@ function parseDerivedListingFilters(filters?: SearchListingFilters) {
   const hasHoursRange = filters?.minHours != null || filters?.maxHours != null;
   const truckFilters = getRequestedTruckSearchFilters(filters);
   const hasTruckFilters = hasTruckSearchFilters(truckFilters);
+  const requestedFeatures = featureOnlyQuery(filters?.q);
   const isRequired =
+    requestedFeatures.length > 0 ||
     Boolean(useCase) ||
     bodyTypes.length > 0 ||
     equipmentTypes.length > 0 ||
@@ -884,6 +887,7 @@ function parseDerivedListingFilters(filters?: SearchListingFilters) {
     Boolean(filters?.featured);
 
   return {
+    requestedFeatures,
     bodyTypes,
     engineCcRange,
     equipmentTypes,
@@ -912,6 +916,9 @@ export function filterAndRankListings(
   const derived = parseDerivedListingFilters(filters);
 
   let processedListings = listings;
+  if (derived.requestedFeatures.length) {
+    processedListings = processedListings.filter((listing) => listingHasRequestedFeatures(listing.features, derived.requestedFeatures));
+  }
   if (filters?.category) {
     processedListings = processedListings.filter((listing) =>
       listingMatchesRequestedCategory(listing, filters.category)

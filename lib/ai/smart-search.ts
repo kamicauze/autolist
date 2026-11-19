@@ -1,3 +1,4 @@
+import { featureOnlyQuery } from "@/lib/search/listing-feature-query";
 import { generateAiJson, getAiProviderConfig } from "@/lib/ai/provider";
 import {
   buildSearchParams,
@@ -290,6 +291,8 @@ export async function evaluateSmartSearch(query: string): Promise<SmartSearchRes
         mergeSmartSearchParams(ruleResult.params, llmParams, ruleResult.confidence)
       )
     );
+
+    if (featureOnlyQuery(ruleResult.params.q).length) mergedParams.q = ruleResult.params.q;
 
     if (Object.keys(mergedParams).length === 0) {
       return ruleResult;
