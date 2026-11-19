@@ -130,16 +130,11 @@ function deriveConfidence(params: SmartSearchParams): SmartSearchResult["confide
 }
 
 function pruneBroadTextQuery(params: SmartSearchParams) {
-  const structuredKeys = Object.entries(params).filter(
-    ([key, value]) => key !== "q" && Boolean(value)
-  );
-
   const normalizedQuery = params.q?.trim().toLowerCase();
 
   if (
     params.q &&
-    (structuredKeys.length >= 2 ||
-      (Boolean(params.origin) && normalizedQuery?.includes("european")) ||
+    ((Boolean(params.origin) && normalizedQuery?.includes("european")) ||
       (Boolean(params.bodyType) && normalizedQuery && GENERIC_INTENT_QUERIES.has(normalizedQuery)))
   ) {
     delete params.q;
@@ -194,7 +189,11 @@ function mergeSmartSearchParams(
     }
   };
 
-  assignIfMissing("q");
+  if (llmParams.q) {
+    merged.q = llmParams.q;
+  } else if (Object.entries(llmParams).some(([key, value]) => key !== "q" && Boolean(value))) {
+    delete merged.q;
+  }
   assignIfMissing("make");
   assignIfMissing("model");
   assignIfMissing("origin");

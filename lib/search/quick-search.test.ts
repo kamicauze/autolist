@@ -63,3 +63,24 @@ test("unstructured model searches survive both initial searches and follow-ups",
     make: "Toyota", maxPrice: "3000000", q: "Bluetooth Connectivity,Sunroof",
   });
 });
+
+test("unambiguous make spelling mistakes retain the requested vehicle", () => {
+  for (const query of ["Toytoa Corolla automatic under 2m", "Tayota Corolla automatic under 2m"]) {
+    assert.deepEqual(parse(query), { make: "Toyota", model: "Corolla", maxPrice: "2000000", transmission: "Automatic" });
+  }
+  assert.equal(parse("Subrau Forester under 3m").make, "Subaru");
+  assert.equal(parse("VW Golf under 2m").model, "Golf");
+  assert.equal(parse("Honda Grace under 2m").model, "Grace");
+});
+
+test("adding equipment in a follow-up retains all prior confirmed equipment constraints", () => {
+  const initial = turn({}, "cars with sunroof under 5m");
+  assert.equal(initial.q, "Sunroof");
+  assert.deepEqual(turn(initial, "also bluetooth"), { q: "Sunroof,Bluetooth Connectivity", maxPrice: "5000000" });
+});
+
+test("a conversational budget update changes the existing direction without becoming a keyword", () => {
+  const next = { q: "make it 3 million", minPrice: "3000000" };
+  assert.deepEqual(applyAssistantSearchTurn({ make: "Toyota", maxPrice: "2000000" }, "make it 3 million", next), { make: "Toyota", maxPrice: "3000000" });
+  assert.deepEqual(turn({ make: "Toyota", minPrice: "2000000" }, "make it 3 million"), { make: "Toyota", minPrice: "3000000" });
+});
