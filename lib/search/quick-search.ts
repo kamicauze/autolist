@@ -1,4 +1,4 @@
-import { requestedListingFeatures } from "@/lib/search/listing-feature-query";
+import { featureOnlyQuery, requestedListingFeatures } from "@/lib/search/listing-feature-query";
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import type { ListingFilters } from "@/lib/types/listing";
 import {
@@ -677,13 +677,13 @@ export function applyAssistantSearchTurn(
     delete merged.origin;
   }
   if (sanitizedNextParams.model && currentModel && sanitizedNextParams.model !== currentModel && !sanitizedNextParams.make) {
-    delete merged.q;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.intent) {
-    delete merged.q;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.bodyType) {
-    delete merged.q;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.location) {
     if (!excludedCurrentLocation || sanitizedNextParams.location !== currentParams?.location) {
@@ -693,7 +693,7 @@ export function applyAssistantSearchTurn(
     }
   }
   if (sanitizedNextParams.driveType) {
-    delete merged.q;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.intent) {
     sanitizedNextParams.intent = mergeCsvValues(merged.intent, sanitizedNextParams.intent);
@@ -704,7 +704,7 @@ export function applyAssistantSearchTurn(
     ...sanitizedNextParams,
   });
 
-  if (hasStructuredSearchParams(combined)) {
+  if (hasStructuredSearchParams(combined) && !featureOnlyQuery(combined.q).length) {
     delete combined.q;
   }
 
