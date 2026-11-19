@@ -189,6 +189,39 @@ function aliasText(value: string) {
   return compactWhitespace(value.toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, " "));
 }
 
+function isSingleMakeTypo(value: string, candidate: string) {
+  if (Math.abs(value.length - candidate.length) > 1) return false;
+  if (value.length === candidate.length) {
+    const different = [...value].flatMap((letter, index) => letter === candidate[index] ? [] : [index]);
+    if (different.length === 1) return true;
+    const [first, second] = different;
+    return different.length === 2 && second === first + 1 &&
+      value[first] === candidate[second] && value[second] === candidate[first];
+  }
+  const shorter = value.length < candidate.length ? value : candidate;
+  const longer = value.length < candidate.length ? candidate : value;
+  let left = 0;
+  let right = 0;
+  while (left < shorter.length && right < longer.length) {
+    if (shorter[left] === longer[right]) { left++; right++; }
+    else if (left === right) right++;
+    else return false;
+  }
+  return true;
+}
+
+function correctMakeSpellings(query: string) {
+  return query.replace(/\b[a-z]{4,}\b/gi, (word) => {
+    const lower = word.toLowerCase();
+    if (MAKE_ALIASES.some(([alias]) => alias === lower)) return word;
+    const candidates = new Map<string, string>();
+    for (const [alias, make] of MAKE_ALIASES) {
+      if (/^[a-z]{4,}$/.test(alias) && isSingleMakeTypo(lower, alias)) candidates.set(make, alias);
+    }
+    return candidates.size === 1 ? candidates.values().next().value! : word;
+  });
+}
+
 function findMakeMatches(value: string) {
   const padded = ` ${aliasText(value)} `;
   const matches: string[] = [];
@@ -230,6 +263,11 @@ function priceAmount(value: string, unit?: string) {
   else if (unit === "k") amount *= 1_000;
   else if (amount < 1000) amount *= 1_000_000;
   return String(Math.round(amount));
+}
+
+function parseBudgetUpdate(query: string) {
+  const match = query.match(/\bmake it\s*(?:ksh?|kes)?\s*(\d[\d,.]*)\s*(million|m|k)?\b/i);
+  return match ? priceAmount(match[1], match[2]?.toLowerCase()) : undefined;
 }
 
 function parsePriceRange(query: string) {
@@ -347,7 +385,8 @@ function deriveConfidence(params: SmartSearchParams) {
 
 export function parseQuickSearchRules(query: string): SmartSearchResult {
   const normalizedQuery = compactWhitespace(query);
-  const lower = normalizedQuery.toLowerCase();
+  const parsingQuery = correctMakeSpellings(normalizedQuery);
+  const lower = parsingQuery.toLowerCase();
 
   if (!normalizedQuery) {
     return {
@@ -392,14 +431,14 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   const location = joinMatches(findAliasMatches(lower, LOCATION_ALIASES));
   const { minYear, maxYear } = parseYearRange(normalizedQuery);
   const priceRange = parsePriceRange(lower);
-  const maxPrice = priceRange?.maxPrice || parsePrice(lower, "max") || undefined;
+  const maxPrice = priceRange?.maxPrice || parsePrice(lower, "max") || parseBudgetUpdate(lower) || undefined;
   const minPrice = priceRange?.minPrice || parsePrice(lower, "min") || undefined;
   const sellerType = lower.includes("dealer")
     ? "dealer"
     : lower.includes("private")
       ? "private"
       : undefined;
-  const model = extractModel(normalizedQuery, make);
+  const model = extractModel(parsingQuery, make);
 
   const params: SmartSearchParams = {
     make,
@@ -623,7 +662,7 @@ export function isSearchReset(query: string) {
 }
 
 export function isSearchControlTurn(query: string) {
-  return isSearchReset(query) || [
+  return isSearchReset(query) || Boolean(parseBudgetUpdate(query)) || [
     shouldClearBudget, shouldClearLocation, shouldClearBodyType,
     shouldClearTransmission, shouldClearFuelType, shouldClearDriveType,
     shouldClearSellerType, shouldClearYear, shouldClearMake,
@@ -640,6 +679,14 @@ export function applyAssistantSearchTurn(
   const excludedCurrentLocation = shouldExcludeCurrentLocation(query, currentParams?.location);
   const sanitizedNextParams = normalizeDirectionalBudgetParams(query, nextParams);
   const merged: SmartSearchParams = isSearchReset(query) ? {} : { ...(currentParams || {}) };
+  const budgetUpdate = parseBudgetUpdate(query);
+  if (budgetUpdate) {
+    delete sanitizedNextParams.minPrice;
+    delete sanitizedNextParams.maxPrice;
+    delete sanitizedNextParams.q;
+    const direction = merged.minPrice && !merged.maxPrice ? "minPrice" : "maxPrice";
+    sanitizedNextParams[direction] = budgetUpdate;
+  }
   // A command is not a keyword, even if the rule/AI parser returned it as q.
   const clearedKeys: (keyof SmartSearchParams)[] = [];
   const clear = (condition: boolean, ...keys: (keyof SmartSearchParams)[]) => {
@@ -703,6 +750,9 @@ export function applyAssistantSearchTurn(
   }
   if (sanitizedNextParams.intent) {
     sanitizedNextParams.intent = mergeCsvValues(merged.intent, sanitizedNextParams.intent);
+  }
+  if (featureOnlyQuery(merged.q).length && featureOnlyQuery(sanitizedNextParams.q).length) {
+    sanitizedNextParams.q = mergeCsvValues(merged.q, sanitizedNextParams.q);
   }
 
   return normalizeDirectionalBudgetParams(query, {

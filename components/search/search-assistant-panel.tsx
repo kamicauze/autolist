@@ -572,13 +572,14 @@ export function SearchAssistantPanel({
 
                 {message.role === "assistant" &&
                 message.result &&
+                !message.result.clarification &&
                 message.result.preview.listings.length > 0 ? (
                   <ChatResultStrip listings={message.result.preview.listings} />
                 ) : null}
 
                 {message.role === "assistant" && message.result ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {message.result.preview.total > 0 ? (
+                    {message.result.preview.total > 0 && !message.result.clarification ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -638,7 +639,7 @@ export function SearchAssistantPanel({
                   <Icon3D icon={Sparkles} variant="glyph" />
                   Filters
                 </p>
-                {lastResult.preview.total > 0 ? (
+                {lastResult.preview.total > 0 && !lastResult.clarification ? (
                   <span className="rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-semibold text-[#2753c7]">
                     {lastResult.preview.total} match{lastResult.preview.total === 1 ? "" : "es"}
                   </span>
@@ -707,7 +708,7 @@ export function SearchAssistantPanel({
           {lastResult ? (
             <Button
               type="button"
-              disabled={isLoading}
+              disabled={isLoading || Boolean(lastResult.clarification)}
               className="h-10 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
               onClick={() => {
                 router.push(lastResult.searchUrl);

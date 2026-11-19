@@ -57,6 +57,9 @@ test("Apply navigates to the assistant filters and closes the results overlay; R
     return Response.json({
       params: payload.currentParams, searchUrl: "/search?make=Toyota&model=Yaris",
       preview: { listings: [], total: 1 },
+      clarification: payload.query === "near me" ? {
+        question: "Which area should I use?", options: [{ label: "Nairobi", query: "in Nairobi" }],
+      } : null,
     });
   });
   try {
@@ -67,6 +70,18 @@ test("Apply navigates to the assistant filters and closes the results overlay; R
     assert.deepEqual(pushes, ["/search?make=Toyota&model=Yaris"]);
     assert.equal(closed, 1);
     click(render(), "Reset");
+    const nearbyInput = nodes(render()).find((node) => node.type === "textarea");
+    assert.ok(nearbyInput);
+    (nearbyInput.props.onChange as (event: unknown) => void)({ target: { value: "near me" } });
+    const nearbyForm = nodes(render()).find((node) => node.type === "form");
+    assert.ok(nearbyForm);
+    (nearbyForm.props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const nearbyTree = render();
+    const nearbyApply = nodes(nearbyTree).find((node) => node.props.children === "Apply To Results");
+    assert.equal(nearbyApply?.props.disabled, true);
+    assert.equal(nodes(nearbyTree).some((node) => node.props.children === "Show probable matches"), false);
+    click(nearbyTree, "Reset");
     const tree = render();
     const textarea = nodes(tree).find((node) => node.type === "textarea");
     assert.ok(textarea);

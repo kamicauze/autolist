@@ -49,3 +49,17 @@ test("assistant refinements, URL priming, filter removal and reset retain the in
   assert.equal(reset.searchUrl, "/search");
   assert.ok(Object.values(filters || {}).every((value) => value === undefined));
 });
+
+test("optional family refinements do not block viewing already-matched results", async () => {
+  const result = await search("family SUV under 3m");
+  assert.equal(result.clarification, null);
+  assert.ok(result.refinement?.options.length);
+  assert.equal(result.params.bodyType, "SUV");
+  assert.equal(result.params.maxPrice, "3000000");
+});
+
+test("near-me search still asks for a location before claiming local matches", async () => {
+  const result = await search("BMW near me under 5m");
+  assert.equal(result.clarification?.question, "Which area should I use?");
+  assert.equal(result.refinement, null);
+});
