@@ -52,7 +52,7 @@ export default async function DealerDetailPage({ params, searchParams }: DealerD
   const [dealer, inventory, newestListings] = await Promise.all([
     getPublicDealer(id),
     getDealerInventory(id, page, sortBy),
-    getNewestListings(12),
+    getNewestListings(12).catch(() => []),
   ]);
 
   if (!dealer) {
