@@ -76,6 +76,9 @@ test("Apply navigates to the assistant filters and closes the results overlay; R
     (form.props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
     await new Promise<void>((resolve) => setImmediate(resolve));
     assert.deepEqual(requests.at(-1), { query: "automatic", currentParams: {} });
+    click(render(() => closed++), "Show probable matches");
+    assert.equal(closed, 2);
+    assert.equal(pushes.at(-1), "/search?make=Toyota&model=Yaris");
   } finally {
     fetchMock.mock.restore();
   }

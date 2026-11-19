@@ -581,9 +581,10 @@ export function SearchAssistantPanel({
                     {message.result.preview.total > 0 ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(message.result?.searchUrl || "/search")
-                        }
+                        onClick={() => {
+                          router.push(message.result?.searchUrl || "/search");
+                          onClose?.();
+                        }}
                         className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-hover"
                       >
                         Show probable matches
