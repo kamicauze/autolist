@@ -1,4 +1,4 @@
-import { requestedListingFeatures } from "@/lib/search/listing-feature-query";
+import { featureOnlyQuery, requestedListingFeatures } from "@/lib/search/listing-feature-query";
 import type { SmartSearchParams, SmartSearchResult } from "@/lib/types/smart-search";
 import type { ListingFilters } from "@/lib/types/listing";
 import {
@@ -122,6 +122,15 @@ const LOCATION_ALIASES = [
 ] as const;
 
 const MODEL_STOPWORDS = new Set([
+  "only",
+  "please",
+  "instead",
+  "or",
+  "and",
+  "between",
+  "to",
+  "before",
+  "after",
   "under",
   "below",
   "above",
@@ -176,8 +185,12 @@ function compactWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function aliasText(value: string) {
+  return compactWhitespace(value.toLowerCase().replace(/[^\p{L}\p{N}-]+/gu, " "));
+}
+
 function findMakeMatches(value: string) {
-  const padded = ` ${value} `;
+  const padded = ` ${aliasText(value)} `;
   const matches: string[] = [];
 
   for (const [alias, normalized] of MAKE_ALIASES) {
@@ -194,7 +207,7 @@ export function hasNearMeIntent(query: string) {
 }
 
 function findAliasMatches(value: string, aliases: readonly (readonly [string, string])[]) {
-  const padded = ` ${value} `;
+  const padded = ` ${aliasText(value)} `;
   const matches: string[] = [];
 
   for (const [alias, normalized] of aliases) {
@@ -210,6 +223,29 @@ function joinMatches(matches: string[]) {
   return matches.length > 0 ? matches.join(",") : undefined;
 }
 
+function priceAmount(value: string, unit?: string) {
+  let amount = Number.parseFloat(value.replace(/,/g, ""));
+  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+  if (unit === "million" || unit === "m") amount *= 1_000_000;
+  else if (unit === "k") amount *= 1_000;
+  else if (amount < 1000) amount *= 1_000_000;
+  return String(Math.round(amount));
+}
+
+function parsePriceRange(query: string) {
+  const match = query.match(/\b(?:between\s+|from\s+)?(?:ksh?\.?|kes)?\s*(\d[\d,.]*)\s*(million|m|k)?\s*(?:and|to|-)\s*(?:ksh?\.?|kes)?\s*(\d[\d,.]*)\s*(million|m|k)?\b/i);
+  if (!match) return null;
+  // A bare four-digit year range belongs to the year filter.
+  if (!match[2] && !match[4] && /^(19\d{2}|20[0-3]\d)$/.test(match[1]) && /^(19\d{2}|20[0-3]\d)$/.test(match[3])) return null;
+  const first = priceAmount(match[1], match[2] || match[4]);
+  const second = priceAmount(match[3], match[4] || match[2]);
+  if (!first || !second) return null;
+  return {
+    minPrice: String(Math.min(Number(first), Number(second))),
+    maxPrice: String(Math.max(Number(first), Number(second))),
+  };
+}
+
 function parsePrice(lower: string, direction: "min" | "max") {
   const matcher =
     direction === "max"
@@ -218,19 +254,8 @@ function parsePrice(lower: string, direction: "min" | "max") {
   const match = lower.match(matcher);
   if (!match) return null;
 
-  let amount = Number.parseFloat(match[1].replace(/,/g, ""));
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-
-  const unit = match[2]?.toLowerCase();
-  if (unit === "million" || unit === "m") {
-    amount *= 1_000_000;
-  } else if (unit === "k") {
-    amount *= 1_000;
-  } else if (amount < 1000) {
-    amount *= 1_000_000;
-  }
-
-  return String(Math.round(amount));
+  if (!match[2] && /^(19\d{2}|20[0-3]\d)$/.test(match[1]) && !/\b(?:ksh?|kes)\b/i.test(match[0])) return null;
+  return priceAmount(match[1], match[2]?.toLowerCase());
 }
 
 function findIntentBodyTypes(value: string) {
@@ -257,7 +282,12 @@ function parseYearRange(query: string) {
   }
 
   if (yearMatches.length === 1) {
-    return { minYear: yearMatches[0], maxYear: undefined };
+    const year = yearMatches[0];
+    if (/\bbefore\s+\d{4}\b/i.test(query)) return { minYear: undefined, maxYear: String(Number(year) - 1) };
+    if (/\bafter\s+\d{4}\b/i.test(query)) return { minYear: String(Number(year) + 1), maxYear: undefined };
+    if (/\b(?:up to|until|through)\s+\d{4}\b|\b\d{4}\s+(?:or older|or earlier|and older)\b/i.test(query)) return { minYear: undefined, maxYear: year };
+    if (/\b(?:from|since)\s+\d{4}\b|\b\d{4}\s*(?:\+|onwards|or newer|or later|and newer)/i.test(query)) return { minYear: year, maxYear: undefined };
+    return { minYear: year, maxYear: year };
   }
 
   const sorted = yearMatches.sort();
@@ -268,33 +298,40 @@ function parseYearRange(query: string) {
 }
 
 function extractModel(query: string, make: string | undefined) {
-  if (!make) return undefined;
+  if (!make || make.includes(",")) return undefined;
 
-  const lower = query.toLowerCase();
-  const makeAlias = MAKE_ALIASES.find(([, normalized]) => normalized === make)?.[0] || make.toLowerCase();
+  const lower = aliasText(query);
+  const makeAlias = MAKE_ALIASES
+    .filter(([alias, normalized]) => normalized === make && ` ${lower} `.includes(` ${alias} `))
+    .sort((a, b) => lower.indexOf(a[0]) - lower.indexOf(b[0]) || b[0].length - a[0].length)[0]?.[0];
+  if (!makeAlias) return undefined;
   const makeIndex = lower.indexOf(makeAlias);
   if (makeIndex === -1) return undefined;
 
-  const afterMake = compactWhitespace(query.slice(makeIndex + makeAlias.length));
+  const afterMake = compactWhitespace(lower.slice(makeIndex + makeAlias.length));
   if (!afterMake) return undefined;
 
   const cleaned = afterMake
     .replace(/\b(19\d{2}|20[0-3]\d)\b/g, " ")
     .replace(NEAR_ME_INTENT_PATTERN, " ")
     .replace(
-      /(?:under|below|max(?:imum)?|budget|less than|cheaper than|up to|upto|above|over|from|min(?:imum)?|more than|starting at|in|with)\b.*$/i,
+      /\b(?:under|below|max(?:imum)?|budget|less than|cheaper than|up to|upto|above|over|from|min(?:imum)?|more than|starting at|in|with)\b.*$/i,
       " "
     )
     .replace(/[^\p{L}\p{N}\- ]/gu, " ");
 
-  const tokens = compactWhitespace(cleaned)
-    .split(" ")
-    .filter(Boolean)
-    .filter((token) => !MODEL_STOPWORDS.has(token.toLowerCase()))
-    .slice(0, 2);
+  const tokens: string[] = [];
+  for (const token of compactWhitespace(cleaned).split(" ").filter(Boolean)) {
+    if (MODEL_STOPWORDS.has(token.toLowerCase()) || /^\d[\d,.]*(?:[mk]|[mk]?-\d[\d,.]*[mk]?)$/.test(token)) break;
+    tokens.push(token);
+    if (tokens.length === 2) break;
+  }
 
   if (tokens.length === 0) return undefined;
-  return tokens.join(" ");
+  // Preserve the user's spelling/case for manually entered model names.
+  const model = tokens.join(" ");
+  const original = query.match(new RegExp(model.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+  return original?.[0] || model;
 }
 
 function deriveConfidence(params: SmartSearchParams) {
@@ -354,8 +391,9 @@ export function parseQuickSearchRules(query: string): SmartSearchResult {
   const driveType = joinMatches(findAliasMatches(lower, DRIVE_TYPE_ALIASES));
   const location = joinMatches(findAliasMatches(lower, LOCATION_ALIASES));
   const { minYear, maxYear } = parseYearRange(normalizedQuery);
-  const maxPrice = parsePrice(lower, "max") || undefined;
-  const minPrice = parsePrice(lower, "min") || undefined;
+  const priceRange = parsePriceRange(lower);
+  const maxPrice = priceRange?.maxPrice || parsePrice(lower, "max") || undefined;
+  const minPrice = priceRange?.minPrice || parsePrice(lower, "min") || undefined;
   const sellerType = lower.includes("dealer")
     ? "dealer"
     : lower.includes("private")
@@ -523,10 +561,6 @@ export function normalizeDirectionalBudgetParams(
   return params;
 }
 
-function hasStructuredSearchParams(params: SmartSearchParams) {
-  return Object.entries(params).some(([key, value]) => key !== "q" && Boolean(value));
-}
-
 function shouldClearBudget(query: string) {
   return /\b(clear|remove|reset)\s+budget\b|\bany\s+budget\b|\bno\s+budget\b/i.test(query);
 }
@@ -540,7 +574,7 @@ function shouldClearBodyType(query: string) {
 }
 
 function shouldClearTransmission(query: string) {
-  return /\b(clear|remove|reset)\s+transmission\b|\bany\s+transmission\b/i.test(query);
+  return /\b(clear|remove|reset)\s+(?:(?:automatic|manual)\s+)?transmission\b|\bany\s+transmission\b/i.test(query);
 }
 
 function shouldClearFuelType(query: string) {
@@ -584,33 +618,17 @@ function mergeCsvValues(currentValue?: string, nextValue?: string) {
   return merged.length > 0 ? Array.from(new Set(merged)).join(",") : undefined;
 }
 
-function countPopulatedParams(params: SmartSearchParams) {
-  return Object.values(params).filter(Boolean).length;
+export function isSearchReset(query: string) {
+  return /^(?:please\s+)?(?:reset(?: (?:all|search|filters))?|start over|start again|clear all(?: filters)?|new search)(?=$|[,.!:;])/i.test(query.trim());
 }
 
-function isStandaloneCatalogueTurn(query: string, nextParams: SmartSearchParams) {
-  const normalized = compactWhitespace(query).toLowerCase();
-  if (!normalized) return false;
-  if (nextParams.location && countPopulatedParams(nextParams) === 1) return false;
-  if (/\b(actually|only|also|with|in|under|below|over|from|more than|less than|remove|clear|not|exclude)\b/i.test(query)) {
-    return false;
-  }
-
-  const catalogueKeys: (keyof SmartSearchParams)[] = [
-    "make",
-    "model",
-    "origin",
-    "bodyType",
-    "transmission",
-    "fuelType",
-    "driveType",
-    "sellerType",
-  ];
-  const populatedKeys = (Object.keys(nextParams) as (keyof SmartSearchParams)[]).filter((key) =>
-    Boolean(nextParams[key])
-  );
-
-  return populatedKeys.length > 0 && populatedKeys.every((key) => catalogueKeys.includes(key));
+export function isSearchControlTurn(query: string) {
+  return isSearchReset(query) || [
+    shouldClearBudget, shouldClearLocation, shouldClearBodyType,
+    shouldClearTransmission, shouldClearFuelType, shouldClearDriveType,
+    shouldClearSellerType, shouldClearYear, shouldClearMake,
+    shouldClearModel, shouldClearIntent,
+  ].some((check) => check(query));
 }
 
 export function applyAssistantSearchTurn(
@@ -621,45 +639,39 @@ export function applyAssistantSearchTurn(
   const query = turnQuery.trim();
   const excludedCurrentLocation = shouldExcludeCurrentLocation(query, currentParams?.location);
   const sanitizedNextParams = normalizeDirectionalBudgetParams(query, nextParams);
-  const shouldReplaceContext = isStandaloneCatalogueTurn(query, sanitizedNextParams);
-  const merged: SmartSearchParams = shouldReplaceContext ? {} : { ...(currentParams || {}) };
+  const merged: SmartSearchParams = isSearchReset(query) ? {} : { ...(currentParams || {}) };
+  // A command is not a keyword, even if the rule/AI parser returned it as q.
+  const clearedKeys: (keyof SmartSearchParams)[] = [];
+  const clear = (condition: boolean, ...keys: (keyof SmartSearchParams)[]) => {
+    if (condition) clearedKeys.push(...keys);
+  };
+  clear(shouldClearBudget(query), "minPrice", "maxPrice");
+  clear(shouldClearLocation(query), "location");
+  clear(shouldClearBodyType(query), "bodyType");
+  clear(shouldClearTransmission(query), "transmission");
+  clear(shouldClearFuelType(query), "fuelType");
+  clear(shouldClearDriveType(query), "driveType");
+  clear(shouldClearSellerType(query), "sellerType");
+  clear(shouldClearYear(query), "minYear", "maxYear");
+  clear(shouldClearMake(query), "make", "model", "origin");
+  clear(shouldClearModel(query), "model");
+  clear(shouldClearIntent(query), "intent");
+  if (isSearchReset(query) || clearedKeys.length) {
+    delete sanitizedNextParams.q;
+  }
+  for (const key of clearedKeys) {
+    delete merged[key];
+    delete sanitizedNextParams[key];
+  }
+  if (excludedCurrentLocation) delete merged.location;
 
   if (shouldClearBudget(query) || sanitizedNextParams.minPrice || sanitizedNextParams.maxPrice) {
     delete merged.minPrice;
     delete merged.maxPrice;
   }
-  if (shouldClearLocation(query) || excludedCurrentLocation) {
-    delete merged.location;
-  }
-  if (shouldClearBodyType(query)) {
-    delete merged.bodyType;
-  }
-  if (shouldClearTransmission(query)) {
-    delete merged.transmission;
-  }
-  if (shouldClearFuelType(query)) {
-    delete merged.fuelType;
-  }
-  if (shouldClearDriveType(query)) {
-    delete merged.driveType;
-  }
-  if (shouldClearSellerType(query)) {
-    delete merged.sellerType;
-  }
-  if (shouldClearYear(query)) {
+  if (sanitizedNextParams.minYear || sanitizedNextParams.maxYear) {
     delete merged.minYear;
     delete merged.maxYear;
-  }
-  if (shouldClearMake(query)) {
-    delete merged.make;
-    delete merged.model;
-    delete merged.origin;
-  }
-  if (shouldClearModel(query)) {
-    delete merged.model;
-  }
-  if (shouldClearIntent(query)) {
-    delete merged.intent;
   }
 
   const currentMake = merged.make;
@@ -675,44 +687,28 @@ export function applyAssistantSearchTurn(
   }
   if (sanitizedNextParams.make) {
     delete merged.origin;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.model && currentModel && sanitizedNextParams.model !== currentModel && !sanitizedNextParams.make) {
-    delete merged.q;
-  }
-  if (sanitizedNextParams.intent) {
-    delete merged.q;
-  }
-  if (sanitizedNextParams.bodyType) {
-    delete merged.q;
+    if (!featureOnlyQuery(merged.q).length) delete merged.q;
   }
   if (sanitizedNextParams.location) {
-    if (!excludedCurrentLocation || sanitizedNextParams.location !== currentParams?.location) {
-      delete merged.location;
-    } else {
-      delete sanitizedNextParams.location;
+    if (excludedCurrentLocation) {
+      const remaining = sanitizedNextParams.location.split(",").filter(
+        (location) => location.trim().toLowerCase() !== currentParams?.location?.toLowerCase()
+      );
+      sanitizedNextParams.location = remaining.join(",") || undefined;
     }
-  }
-  if (sanitizedNextParams.driveType) {
-    delete merged.q;
+    delete merged.location;
   }
   if (sanitizedNextParams.intent) {
     sanitizedNextParams.intent = mergeCsvValues(merged.intent, sanitizedNextParams.intent);
   }
 
-  const combined = normalizeDirectionalBudgetParams(query, {
+  return normalizeDirectionalBudgetParams(query, {
     ...merged,
     ...sanitizedNextParams,
   });
-
-  if (hasStructuredSearchParams(combined)) {
-    delete combined.q;
-  }
-
-  if (!Object.values(combined).some(Boolean) && !hasNearMeIntent(query)) {
-    combined.q = compactWhitespace(query);
-  }
-
-  return combined;
 }
 
 export function buildSearchParams(params: SmartSearchParams) {
