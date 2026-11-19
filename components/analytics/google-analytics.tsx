@@ -193,22 +193,22 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
         <section
           ref={noticeRef}
           tabIndex={-1}
-          aria-label="Analytics cookie preferences"
+          aria-label="Cookie preferences"
           className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 text-foreground sm:px-6"
         >
           <div className="max-w-2xl">
             <h2 className="text-base font-semibold">Your cookie preferences</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              We use essential cookies to run Autolist. With your permission, Google Analytics helps us
+              We use essential cookies to run Autolist. With your permission, optional cookies help us
               understand visits to public pages. You can change your choice at any time.{' '}
               <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" onClick={() => chooseConsent("declined")}>
-              Decline analytics
+              Essential cookies only
             </Button>
-            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow analytics</Button>
+            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow optional cookies</Button>
           </div>
         </section>
       )}
