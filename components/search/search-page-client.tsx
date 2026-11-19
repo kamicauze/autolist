@@ -170,7 +170,10 @@ export function SearchPageClient({
 
       <Sheet open={isMobileAssistantOpen} onOpenChange={setIsMobileAssistantOpen}>
         <SheetContent side="right" className="w-full border-l-0 p-0 sm:max-w-lg">
-          <SearchAssistantPanel className="h-full min-h-0 rounded-none border-0 shadow-none" />
+          <SearchAssistantPanel
+            className="h-full min-h-0 rounded-none border-0 shadow-none"
+            onClose={() => setIsMobileAssistantOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

@@ -354,6 +354,7 @@ export function SearchAssistantPanel({
     null
   );
   const [didPrimeFromUrl, setDidPrimeFromUrl] = React.useState(false);
+  const [useUrlContext, setUseUrlContext] = React.useState(true);
   const activeFollowUp =
     lastResult?.clarification ?? lastResult?.refinement ?? null;
 
@@ -407,7 +408,7 @@ export function SearchAssistantPanel({
     options?: { currentParams?: SmartSearchResponse["params"] }
   ) => {
     const trimmed = prompt.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
     const nextUserMessage: AssistantMessage = {
       id: `user-${Date.now()}`,
@@ -423,7 +424,7 @@ export function SearchAssistantPanel({
     try {
       const result = await postSearchTurn(
         trimmed,
-        options?.currentParams || lastResult?.params || initialUrlParams
+        options?.currentParams || lastResult?.params || (useUrlContext ? initialUrlParams : {})
       );
       setLastResult(result);
       setMessages((prev) => [
@@ -705,8 +706,12 @@ export function SearchAssistantPanel({
           {lastResult ? (
             <Button
               type="button"
+              disabled={isLoading}
               className="h-10 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
-              onClick={() => router.push(lastResult.searchUrl)}
+              onClick={() => {
+                router.push(lastResult.searchUrl);
+                onClose?.();
+              }}
             >
               Apply To Results
             </Button>
@@ -714,6 +719,7 @@ export function SearchAssistantPanel({
           <Button
             type="button"
             variant="outline"
+            disabled={isLoading}
             className="h-10 rounded-[14px]"
             onClick={() => {
               setMessages([
@@ -725,6 +731,7 @@ export function SearchAssistantPanel({
                 },
               ]);
               setLastResult(null);
+              setUseUrlContext(false);
               setInput("");
             }}
           >
