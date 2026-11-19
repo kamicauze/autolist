@@ -721,8 +721,8 @@ async function fetchListingsForDerivedFiltering({
   while (true) {
     let query = supabase
       .from("listings")
-      .select(filters?.location || filters?.verifiedOnly
-        ? "*,dealer:public_dealers(status,city)"
+      .select(filters?.location || filters?.verifiedOnly || filters?.county || filters?.town
+        ? "*,dealer:public_dealers(status,city,county)"
         : "*")
       .eq("status", "active")
       .in("sale_channel", ["standard", "dealer_public"]);

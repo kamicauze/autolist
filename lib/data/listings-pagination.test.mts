@@ -6,6 +6,7 @@ const inventory = Array.from({ length: 40 }, (_, index) => ({
   make: "Toyota", model: "Sample", category: "car", price: index,
   created_at: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
   is_featured: index % 2 === 0, metadata: {},
+  dealer: { city: "Nairobi", county: "Nairobi", status: "APPROVED" },
   images: [{ id: `photo-${index}` }],
 }));
 const reads: Array<{ select: string; ids?: string[] }> = [];
@@ -30,7 +31,7 @@ function query() {
     then(resolve: (value: unknown) => unknown) {
       const cards = read.select.includes("images:");
       return Promise.resolve({
-        data: cards ? rows : rows.map((row) => ({ ...row, images: undefined })), count: total,
+        data: cards ? rows : rows.map((row) => ({ ...row, images: undefined, dealer: read.select.includes("dealer:") ? row.dealer : undefined })), count: total,
         error: cards && failCards ? { code: "57014", message: "statement timeout" } : null,
       }).then(resolve);
     },
@@ -74,4 +75,15 @@ test("a failed card read rejects the whole result so it cannot replace a good sn
     failCards = false;
     log.mock.restore();
   }
+});
+
+test("county and town searches retain the dealer location fallback for older listings", async () => {
+  reads.length = 0;
+  const filters = { county: "Nairobi", town: "Nairobi" };
+  assert.equal(await countMatchingListings(filters), 40);
+  assert.equal(reads[0].select, "*,dealer:public_dealers(status,city,county)");
+  const result = await searchListings({ filters, limit: 5 });
+  assert.equal(result.total, 40);
+  assert.equal(result.listings.length, 5);
+  assert.ok(reads.every((read) => read.ids || !read.select.includes("images:")));
 });
