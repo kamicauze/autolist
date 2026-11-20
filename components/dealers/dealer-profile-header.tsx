@@ -1,11 +1,10 @@
 "use client";
 
-import { ShareListingButton } from "@/components/vehicle/share-listing-button";
 import { useState } from "react";
 import Image from "next/image";
 import { getImageUrl } from "@/lib/utils/listings";
 
-export function DealerProfileHeader({ id, name, photoKeys = [] }: { id: string; name: string; photoKeys?: string[] }) {
+export function DealerProfileHeader({ name, photoKeys = [] }: { name: string; photoKeys?: string[] }) {
   const [selected, setSelected] = useState(0);
   const active = photoKeys[Math.min(selected, Math.max(0, photoKeys.length - 1))];
   return (
@@ -17,7 +16,6 @@ export function DealerProfileHeader({ id, name, photoKeys = [] }: { id: string; 
         </> : <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-rose-200/60" />}
         <div className={`relative min-w-0 ${active ? "space-y-1 text-white" : "space-y-3 text-gray-900"}`}>
           <p className={`font-medium ${active ? "text-xs text-white/90" : "text-sm text-gray-700"}`}>Authorized Dealer Profile</p>
-          <ShareListingButton dealerId={id} title={name} />
           <h1 className={`font-bold break-words ${active ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"}`}>{name}</h1>
           {!active && <p className="max-w-xl text-sm text-gray-600">Explore the latest inventory, reviews, and contact options for {name}.</p>}
         </div>
