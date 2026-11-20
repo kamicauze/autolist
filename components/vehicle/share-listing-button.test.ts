@@ -12,7 +12,7 @@ const compiled = ts.transpileModule(source, { compilerOptions: {
   module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
 } }).outputText;
 
-function harness(writeText?: (text: string) => Promise<void>) {
+function harness(writeText?: (text: string) => Promise<void>, target = { listingId: "sample-listing", title: "Sample vehicle" } as Record<string,string>) {
   let stateIndex = 0;
   const states: unknown[] = [];
   const selected = { focus: 0, select: 0 };
@@ -48,7 +48,7 @@ function harness(writeText?: (text: string) => Promise<void>) {
   return {
     render: () => {
       stateIndex = 0;
-      return componentModule.exports.ShareListingButton({ listingId: "sample-listing", title: "Sample vehicle" });
+      return componentModule.exports.ShareListingButton(target);
     },
     selected,
   };
@@ -118,4 +118,12 @@ test("unavailable or rejected clipboard access selects the link and offers manua
     assert.match(getElement(tree, "p").props.children as string, /copy it manually/);
     assert.doesNotMatch(getElement(tree, "p").props.children as string, /Link copied/);
   }
+});
+
+
+test("dealer sharing uses the stable public dealer URL without retaining page query or hash", () => {
+  const share = harness(undefined, { dealerId: "sample-dealer", title: "Sample Motors" });
+  const tree = share.render();
+  (tree.props.onOpenChange as (open: boolean) => void)(true);
+  assert.equal(getElement(share.render(), "input").props.value, "https://staging.example/dealers/sample-dealer");
 });
