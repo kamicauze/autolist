@@ -4,14 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { UserRound } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useWizard } from "./wizard-context";
+import { isValidPhone, useWizard } from "./wizard-context";
 import { MAX_PHONE_INPUT_LENGTH, normalizePhoneInput } from "@/lib/utils/phone";
 import { sellerInputClass, sellerLabelClass, sellerSelectClass } from "../seller-dashboard-ui";
 
 const NO_SALES_REP = "__none__";
 
 function ContactFields() {
-  const { draft, updateField } = useWizard();
+  const { draft, updateField, showValidationErrors } = useWizard();
 
   return (
     <>
@@ -20,6 +20,8 @@ function ContactFields() {
           <label className={sellerLabelClass}>Contact Name</label>
           <input
             value={draft.contactName}
+            aria-label="Contact Name"
+            aria-invalid={showValidationErrors && !draft.contactName.trim()}
             onChange={(event) => updateField("contactName", event.target.value)}
             className={sellerInputClass}
             placeholder="e.g., John Doe"
@@ -29,6 +31,8 @@ function ContactFields() {
           <label className={sellerLabelClass}>Phone Number</label>
           <input
             value={draft.phoneNumber}
+            aria-label="Phone Number"
+            aria-invalid={showValidationErrors && !isValidPhone(draft.phoneNumber)}
             maxLength={MAX_PHONE_INPUT_LENGTH}
             inputMode="tel"
             autoComplete="tel"
@@ -41,6 +45,8 @@ function ContactFields() {
           <label className={sellerLabelClass}>WhatsApp Number</label>
           <input
             value={draft.whatsappNumber}
+            aria-label="WhatsApp Number"
+            aria-invalid={showValidationErrors && draft.whatsappEnabled && !isValidPhone(draft.whatsappNumber)}
             disabled={!draft.whatsappEnabled}
             maxLength={MAX_PHONE_INPUT_LENGTH}
             inputMode="tel"

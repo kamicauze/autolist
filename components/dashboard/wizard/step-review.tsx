@@ -212,9 +212,19 @@ export function StepReview() {
         )
       : []
   );
-  const selectedFeatureLabels = draft.selectedFeatureIds.map(
-    (featureId) => featureLabelById.get(featureId) || featureId
-  );
+  const selectedFeaturesByGroup = (selectedFeatureGroupDefinition?.order ?? [])
+    .map((groupKey) => ({
+      key: groupKey,
+      label: selectedFeatureGroupDefinition!.labels[groupKey] || groupKey,
+      features: (selectedFeatureGroups?.[groupKey] ?? [])
+        .filter((feature) => draft.selectedFeatureIds.includes(feature.id))
+        .map((feature) => feature.label),
+    }))
+    .filter((group) => group.features.length > 0);
+  const otherFeatures = draft.selectedFeatureIds.filter((featureId) => !featureLabelById.has(featureId));
+  if (otherFeatures.length > 0) {
+    selectedFeaturesByGroup.push({ key: "other", label: "Other features", features: otherFeatures });
+  }
   const detailRows = selectedCategoryFields.map((field) => ({
     label: field.label,
     value:
@@ -269,24 +279,27 @@ export function StepReview() {
       >
         <details className="group py-4">
           <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold">
-            Features ({selectedFeatureLabels.length})
+            Features ({draft.selectedFeatureIds.length})
             <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden />
           </summary>
-          <div className="pt-3">
-          {selectedFeatureLabels.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {selectedFeatureLabels.map((featureLabel) => (
-                <span
-                  key={featureLabel}
-                  className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-medium text-primary"
-                >
-                  {featureLabel}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[14px] text-[#767676]">No features selected.</p>
-          )}
+          <div className="space-y-4 pt-3">
+            {selectedFeaturesByGroup.length > 0 ? selectedFeaturesByGroup.map((group) => (
+              <div key={group.key}>
+                <h4 className="mb-2 text-[13px] font-semibold text-[#202224]">{group.label}</h4>
+                <div className="flex flex-wrap gap-2">
+                  {group.features.map((featureLabel) => (
+                    <span
+                      key={featureLabel}
+                      className="rounded-full border border-[#d8e3ff] bg-white px-3 py-1.5 text-[12px] font-medium text-primary"
+                    >
+                      {featureLabel}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )) : (
+              <p className="text-[14px] text-[#767676]">No features selected.</p>
+            )}
           </div>
         </details>
         <SummaryRow

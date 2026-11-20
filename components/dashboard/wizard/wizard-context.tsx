@@ -551,6 +551,7 @@ interface WizardContextValue {
   draft: ListingDraft;
   activeStep: number;
   showValidationErrors: boolean;
+  validationAttempt: number;
   isSubmitting: boolean;
   submissionStatus: string | null;
   submitError: string | null;
@@ -1043,6 +1044,7 @@ export function WizardProvider({
   const [expandedFeatureGroups, setExpandedFeatureGroups] = React.useState<Record<string, boolean>>({});
   const [presetUndoSelection, setPresetUndoSelection] = React.useState<string[] | null>(null);
   const [showValidationErrors, setShowValidationErrors] = React.useState(false);
+  const [validationAttempt, setValidationAttempt] = React.useState(0);
   const [sellerAccountDefaults, setSellerAccountDefaults] = React.useState<SellerAccountDefaults | null>(null);
 
   const [galleryFiles, setGalleryFiles] = React.useState<File[]>([]);
@@ -1638,6 +1640,7 @@ export function WizardProvider({
 
       if (typeof options?.showValidationErrors === "boolean") {
         setShowValidationErrors(options.showValidationErrors);
+        if (options.showValidationErrors) setValidationAttempt((attempt) => attempt + 1);
       }
     },
     []
@@ -1645,7 +1648,11 @@ export function WizardProvider({
 
   const handleContinue = async () => {
     if (submissionInProgress.current) return;
-    if (!canContinue) { setShowValidationErrors(true); return; }
+    if (!canContinue) {
+      setShowValidationErrors(true);
+      setValidationAttempt((attempt) => attempt + 1);
+      return;
+    }
     setShowValidationErrors(false);
 
     if (isLastStep) {
@@ -2030,7 +2037,7 @@ export function WizardProvider({
   const value: WizardContextValue = {
     isEditing, editingListingId,
     salesReps, usesDealerLocation, isDealerSeller, savedDraft, draftReady, resumeSavedDraft,
-    draft, activeStep, showValidationErrors, isSubmitting, submissionStatus, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
+    draft, activeStep, showValidationErrors, validationAttempt, isSubmitting, submissionStatus, submitError, submitIssues, submitted, autoApproved, createdListingId, stepCompletion,
     packageAccess, isLoadingPackageAccess, packageAccessError,
     galleryFiles, documentFiles, videoFile,
     featureQuery, showFeatureIds, expandedFeatureGroups, selectedFeatureIdSet,

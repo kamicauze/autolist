@@ -64,6 +64,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
               value={draft.condition}
               onChange={(event) => updateField("condition", event.target.value as typeof draft.condition)}
               aria-label="Condition"
+              aria-invalid={showValidationErrors && !draft.condition}
               className={cn(sellerSelectClass, showValidationErrors && !draft.condition && "border-[#f04438]")}
             >
               <option value="">Select condition</option>
@@ -77,6 +78,8 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
               value={formatPriceInput(draft.priceKes)}
               onChange={(event) => updateField("priceKes", unformatPrice(event.target.value))}
               inputMode="numeric"
+              aria-label="Price (KES)"
+              aria-invalid={showValidationErrors && (!draft.priceKes || Number(draft.priceKes) <= 0)}
               placeholder="0"
               className={cn(
                 sellerInputClass,
@@ -146,6 +149,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
               placeholder="Select country"
               searchPlaceholder="Search country"
               aria-label="Country"
+              aria-invalid={showValidationErrors && !draft.country.trim()}
               className={cn(sellerSelectClass, showValidationErrors && !draft.country && "border-[#f04438]")}
             />
           </div>
@@ -160,12 +164,14 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
               }}
               className={sellerSelectClass}
               labelClassName={sellerLabelClass}
+              showValidationErrors={showValidationErrors}
             />
           ) : (
             <div>
               <label className={sellerLabelClass}>City / Town</label>
               <input
                 aria-label="City / Town"
+                aria-invalid={showValidationErrors && !draft.cityTown.trim()}
                 value={draft.cityTown}
                 onChange={(event) => updateField("cityTown", event.target.value)}
                 onBlur={(event) => updateField("cityTown", normalizeLocationText(event.target.value))}
@@ -178,6 +184,8 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
             <label className={sellerLabelClass}>Location / Area</label>
             <input
               value={draft.locationArea}
+              aria-label="Location / Area"
+              aria-invalid={showValidationErrors && !draft.locationArea.trim()}
               onChange={(event) => updateField("locationArea", event.target.value)}
               onBlur={(event) => updateField("locationArea", normalizeLocationText(event.target.value))}
               placeholder="Westlands"

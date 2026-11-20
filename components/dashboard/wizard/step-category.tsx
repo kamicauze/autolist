@@ -23,7 +23,7 @@ export function StepCategory() {
   const collapsed = selectedCategory && !expanded;
 
   return (
-    <div className="space-y-4">
+    <div data-validation-error={showValidationErrors && !draft.category || undefined} tabIndex={-1} className="space-y-4">
       {collapsed ? (
         <div className="flex items-center justify-between gap-3 rounded-[14px] border border-[#ededed] bg-[#faf9f7] p-4 lg:hidden">
           <span>Category: <strong>{getCategoryLabel(selectedCategory)}</strong></span>

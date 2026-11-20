@@ -500,7 +500,7 @@ export function StepVehicleDetails() {
             const referenceField = renderReferenceField(field, hasError);
 
             return (
-              <div key={field.key}>
+              <div key={field.key} data-validation-error={hasError || undefined} tabIndex={-1}>
                 <label className={sellerLabelClass}>
                   {field.label}
                   {field.required ? " *" : ""}
