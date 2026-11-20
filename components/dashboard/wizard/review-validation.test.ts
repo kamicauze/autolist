@@ -38,6 +38,12 @@ test("production location fields mark the missing town without marking a complet
   const fields = elements(tree);
   assert.equal(fields.find((node) => node.props["aria-label"] === "County")?.props["aria-invalid"], false);
   assert.equal(fields.find((node) => node.props["aria-label"] === "City / Town")?.props["aria-invalid"], true);
+  const town = fields.find((node) => node.props["aria-label"] === "City / Town")!;
+  const select = load("../../ui/searchable-select.tsx", {}, {
+    useState: (initial: unknown) => [initial, () => {}], useRef: () => ({ current: null }),
+    useId: () => "sample-town", useMemo: (build: () => unknown) => build(), useEffect() {}, useLayoutEffect() {},
+  }).SearchableSelect(town.props);
+  assert.equal(elements(select).find((node) => node.props.role === "combobox")?.props["aria-invalid"], true);
 });
 
 test("review groups selected features under their category labels and retains unknown saved features", () => {
