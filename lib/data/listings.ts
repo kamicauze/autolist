@@ -1,3 +1,4 @@
+import { featureOnlyQuery, listingHasRequestedFeatures } from "@/lib/search/listing-feature-query";
 import { createClient } from "@/lib/supabase/server";
 import { locationMatchesFilter } from "@/lib/constants/filters";
 import type { ListingCategory } from "@/lib/constants/marketplace";
@@ -588,7 +589,7 @@ export function applyListingFilters<TQuery extends ListingQuery>(
   let nextQuery = query;
 
   const useFullText = isListingFullTextSearchEnabled();
-  const keywordFilters = parseRequestedKeywords(filters?.q)
+  const keywordFilters = (featureOnlyQuery(filters?.q).length ? [] : parseRequestedKeywords(filters?.q))
     .filter((keyword) => !isCategoryRedundantKeyword(keyword, filters?.category))
     .map((keyword) => escapeLike(keyword))
     .filter(Boolean)
@@ -718,7 +719,9 @@ async function fetchListingsForDerivedFiltering({
   while (true) {
     let query = supabase
       .from("listings")
-      .select(getListingSelect(false))
+      .select(filters?.location || filters?.verifiedOnly
+        ? "*,dealer:public_dealers(status,city)"
+        : "*")
       .eq("status", "active")
       .in("sale_channel", ["standard", "dealer_public"]);
 
@@ -734,7 +737,7 @@ async function fetchListingsForDerivedFiltering({
 
     if (error) {
       console.error("Error searching listings with derived filtering:", error);
-      return null;
+      throw new Error("Unable to load listings", { cause: error });
     }
 
     const batch = (data || []) as unknown as Listing[];
@@ -750,6 +753,26 @@ async function fetchListingsForDerivedFiltering({
   return listings;
 }
 
+async function fetchListingCards(ids: string[]): Promise<Listing[]> {
+  if (ids.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("listings")
+    .select(getListingSelect())
+    .eq("status", "active")
+    .in("sale_channel", ["standard", "dealer_public"])
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error loading listing cards:", error);
+    throw new Error("Unable to load listing cards", { cause: error });
+  }
+
+  const byId = new Map(((data || []) as unknown as Listing[]).map((listing) => [listing.id, listing]));
+  return ids.map((id) => byId.get(id)).filter((listing): listing is Listing => Boolean(listing));
+}
+
 export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
   const supabase = await createClient();
   const requestedLimit = Math.max(0, limit);
@@ -760,12 +783,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
 
   const { data, error } = await supabase
     .from("listings")
-    .select(`
-      *,
-      images:listing_images(id, r2_key, alt_text, image_order),
-      seller:public_profiles(id, full_name, avatar_url),
-      dealer:public_dealers(status, id, name, logo_url, city)
-    `)
+    .select("*")
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"])
     .eq("is_featured", true)
@@ -774,7 +792,7 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
 
   if (error) {
     console.error("Error fetching featured listings:", error);
-    return [];
+    throw new Error("Unable to load featured listings", { cause: error });
   }
 
   const listings = (data || []) as Listing[];
@@ -782,34 +800,16 @@ export async function getFeaturedListings(limit = 8): Promise<Listing[]> {
     listings.map((listing) => listing.seller_id)
   );
 
-  return sortFeaturedListingsBySubscriptionPriority(listings, priorityBySellerId).slice(
+  const selected = sortFeaturedListingsBySubscriptionPriority(listings, priorityBySellerId).slice(
     0,
     requestedLimit
   );
+  return fetchListingCards(selected.map((listing) => listing.id));
 }
 
 export async function getNewestListings(limit = 8): Promise<Listing[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("listings")
-    .select(`
-      *,
-      images:listing_images(id, r2_key, alt_text, image_order),
-      seller:public_profiles(id, full_name, avatar_url),
-      dealer:public_dealers(status, id, name, logo_url, city)
-    `)
-    .eq("status", "active")
-    .in("sale_channel", ["standard", "dealer_public"])
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("Error fetching newest listings:", error);
-    return [];
-  }
-
-  return data as Listing[];
+  if (limit === 0) return [];
+  return (await searchListings({ limit })).listings;
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
@@ -881,7 +881,9 @@ function parseDerivedListingFilters(filters?: SearchListingFilters) {
   const hasHoursRange = filters?.minHours != null || filters?.maxHours != null;
   const truckFilters = getRequestedTruckSearchFilters(filters);
   const hasTruckFilters = hasTruckSearchFilters(truckFilters);
+  const requestedFeatures = featureOnlyQuery(filters?.q);
   const isRequired =
+    requestedFeatures.length > 0 ||
     Boolean(useCase) ||
     bodyTypes.length > 0 ||
     equipmentTypes.length > 0 ||
@@ -898,6 +900,7 @@ function parseDerivedListingFilters(filters?: SearchListingFilters) {
     Boolean(filters?.featured);
 
   return {
+    requestedFeatures,
     bodyTypes,
     engineCcRange,
     equipmentTypes,
@@ -926,6 +929,9 @@ export function filterAndRankListings(
   const derived = parseDerivedListingFilters(filters);
 
   let processedListings = listings;
+  if (derived.requestedFeatures.length) {
+    processedListings = processedListings.filter((listing) => listingHasRequestedFeatures(listing.features, derived.requestedFeatures));
+  }
   if (filters?.category) {
     processedListings = processedListings.filter((listing) =>
       listingMatchesRequestedCategory(listing, filters.category)
@@ -989,7 +995,7 @@ async function fetchDerivedFilteredListings(
   sort: ListingSort
 ): Promise<Listing[]> {
   const baseListings = await fetchListingsForDerivedFiltering({ filters, sort });
-  return baseListings ? filterAndRankListings(baseListings, filters) : [];
+  return filterAndRankListings(baseListings, filters);
 }
 
 export async function searchListings({
@@ -1008,7 +1014,7 @@ export async function searchListings({
     const from = (page - 1) * limit;
 
     return {
-      listings: ranked.slice(from, from + limit),
+      listings: await fetchListingCards(ranked.slice(from, from + limit).map((listing) => listing.id)),
       total: ranked.length,
     };
   }
@@ -1016,7 +1022,7 @@ export async function searchListings({
   const supabase = await createClient();
   let query = supabase
     .from("listings")
-    .select(getListingSelect(Boolean(filters?.location)), { count: "exact" })
+    .select("id", { count: "exact" })
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"]);
 
@@ -1034,11 +1040,11 @@ export async function searchListings({
 
   if (error) {
     console.error("Error searching listings:", error);
-    return { listings: [], total: 0 };
+    throw new Error("Unable to load listings", { cause: error });
   }
 
   return {
-    listings: (data || []) as unknown as Listing[],
+    listings: await fetchListingCards((data || []).map((listing) => listing.id)),
     total: count || 0,
   };
 }
@@ -1057,7 +1063,7 @@ export async function countMatchingListings(
   const supabase = await createClient();
   let query = supabase
     .from("listings")
-    .select(getListingSelect(Boolean(filters?.location)), { count: "exact", head: true })
+    .select(filters?.location ? "id,dealer:public_dealers!inner(city)" : "id", { count: "exact", head: true })
     .eq("status", "active")
     .in("sale_channel", ["standard", "dealer_public"]);
   query = applyListingFilters(query, filters);
@@ -1066,7 +1072,7 @@ export async function countMatchingListings(
 
   if (error) {
     console.error("Error counting listings:", error);
-    return 0;
+    throw new Error("Unable to count listings", { cause: error });
   }
 
   return count || 0;

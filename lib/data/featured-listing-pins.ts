@@ -202,7 +202,7 @@ export async function getActiveFeaturedListingPins(limit = 8): Promise<FeaturedL
 
   if (error) {
     console.error("Error fetching featured listing pins:", error);
-    return [];
+    throw new Error("Unable to load featured listing pins", { cause: error });
   }
 
   const pins = ((data || []) as unknown as FeaturedListingPinRow[])

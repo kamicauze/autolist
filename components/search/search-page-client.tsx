@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useLastSuccessfulValue } from "@/lib/hooks/use-last-successful-value";
 import { MessageSquareText, PanelRightClose, PanelRightOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Listing } from "@/lib/types/listing";
@@ -15,20 +18,25 @@ import {
 } from "@/components/ui/sheet";
 
 interface SearchPageClientProps {
-  listings: Listing[];
-  total: number;
-  totalPages: number;
-  totalCount: number;
+  result: { listings: Listing[]; total: number; totalPages: number } | null;
+  resultKey: string;
   makes: string[];
 }
 
 export function SearchPageClient({
-  listings,
-  total,
-  totalPages,
-  totalCount,
+  result: incomingResult,
+  resultKey,
   makes,
 }: SearchPageClientProps) {
+  const result = useLastSuccessfulValue(incomingResult, resultKey);
+  const router = useRouter();
+  const [isRetrying, startRetry] = useTransition();
+  const searchParams = useSearchParams();
+  const featuredOnly = searchParams.get("featured") === "true";
+  const withoutFeatured = new URLSearchParams(searchParams.toString());
+  withoutFeatured.delete("featured");
+  withoutFeatured.delete("page");
+  const remainingQuery = withoutFeatured.toString();
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
   const [isDesktopAssistantOpen, setIsDesktopAssistantOpen] = useState(false);
@@ -98,18 +106,40 @@ export function SearchPageClient({
             onOpenFilters={() => setIsFilterSheetOpen(true)}
           />
 
-          {/* Results Count */}
-          <div className="mb-5 mt-3 text-[13px] text-gray-600">
-            Showing {listings.length} of {total} results
-          </div>
+          {featuredOnly ? (
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+              <p className="font-medium text-gray-900">Featured listings only</p>
+              <Link
+                href={remainingQuery ? `/search?${remainingQuery}` : "/search"}
+                className="font-medium text-primary underline underline-offset-4"
+              >
+                Remove featured filter
+              </Link>
+            </div>
+          ) : null}
 
-          {/* Results Grid */}
-          <SearchResults
-            listings={listings}
-            total={total}
-            totalPages={totalPages}
-            compact={isDesktopAssistantOpen}
-          />
+          {incomingResult === null ? (
+            <div role="status" className="my-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+              <p>{result ? "Listings could not be refreshed. Showing the last loaded results." : "Listings could not be loaded. Please try again."}</p>
+              <Button variant="outline" disabled={isRetrying} onClick={() => startRetry(() => router.refresh())}>
+                {isRetrying ? "Retrying…" : "Try again"}
+              </Button>
+            </div>
+          ) : null}
+
+          {result ? (
+            <>
+              <div className="mb-5 mt-3 text-[13px] text-gray-600">
+                Showing {result.listings.length} of {result.total} results
+              </div>
+              <SearchResults
+                listings={result.listings}
+                total={result.total}
+                totalPages={result.totalPages}
+                compact={isDesktopAssistantOpen}
+              />
+            </>
+          ) : null}
         </div>
 
         {isDesktopAssistantOpen ? (
@@ -129,7 +159,7 @@ export function SearchPageClient({
       <FilterSheet
         open={isFilterSheetOpen}
         onOpenChange={setIsFilterSheetOpen}
-        totalCount={totalCount}
+        totalCount={result?.total ?? 0}
         makes={makes}
       />
 
@@ -140,7 +170,10 @@ export function SearchPageClient({
 
       <Sheet open={isMobileAssistantOpen} onOpenChange={setIsMobileAssistantOpen}>
         <SheetContent side="right" className="w-full border-l-0 p-0 sm:max-w-lg">
-          <SearchAssistantPanel className="h-full min-h-0 rounded-none border-0 shadow-none" />
+          <SearchAssistantPanel
+            className="h-full min-h-0 rounded-none border-0 shadow-none"
+            onClose={() => setIsMobileAssistantOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

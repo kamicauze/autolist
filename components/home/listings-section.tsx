@@ -2,6 +2,7 @@
 
 import { useFavoriteAccess } from "@/lib/hooks/use-favorite-access";
 import { useVisiblePolling } from "@/lib/hooks/use-visible-polling";
+import { useLastSuccessfulValue } from "@/lib/hooks/use-last-successful-value";
 
 import * as React from "react";
 import Link from "next/link";
@@ -22,11 +23,16 @@ import {
 import { EmptyState, ListingsGrid } from "./listings-grid";
 import { RecentlyViewedListings } from "./recently-viewed-listings";
 
-interface ListingsSectionProps {
-  title: string;
+export interface HomepageListingData {
   featuredListings: Listing[];
   newestListings: Listing[];
-  favoriteListings?: Listing[];
+  favoriteListings: Listing[];
+}
+
+interface ListingsSectionProps {
+  title: string;
+  data: HomepageListingData | null;
+  viewerKey: string;
   isAuthenticated?: boolean;
   showTabs?: boolean;
   content?: HomepageFeaturedListingsCmsContent;
@@ -34,13 +40,14 @@ interface ListingsSectionProps {
 
 export function ListingsSection({
   title,
-  featuredListings,
-  newestListings,
-  favoriteListings = [],
+  data,
+  viewerKey,
   isAuthenticated = false,
   showTabs = true,
   content,
 }: ListingsSectionProps) {
+  const snapshot = useLastSuccessfulValue(data, viewerKey);
+  const { featuredListings = [], newestListings = [], favoriteListings = [] } = snapshot ?? {};
   const canFavorite = useFavoriteAccess();
   const router = useRouter();
   const [isRefreshing, startRefresh] = React.useTransition();
@@ -73,7 +80,16 @@ export function ListingsSection({
           </Link>
         </div>
 
-        {tabsEnabled ? (
+        {data === null ? (
+          <div role="status" className="mb-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+            <p>{snapshot ? "Listings could not be refreshed. Showing the last loaded results." : "Listings could not be loaded. Please try again."}</p>
+            <Button variant="outline" disabled={isRefreshing} onClick={() => startRefresh(() => router.refresh())}>
+              {isRefreshing ? "Retrying…" : "Try again"}
+            </Button>
+          </div>
+        ) : null}
+
+        {!snapshot ? null : tabsEnabled ? (
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as HomepageListingRailTab)}

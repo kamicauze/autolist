@@ -29,16 +29,19 @@ test("every overview illustration is ready, mapped, and a transparent square PNG
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as AssetManifest;
   const mappedAssets = Object.entries(LISTING_OVERVIEW_ASSET_PATHS);
 
-  assert.equal(mappedAssets.length, 20);
+  assert.equal(mappedAssets.length, 22);
   assert.equal(manifest.assets.length, 17);
   assert.deepEqual(
     manifest.assets.map((asset) => asset.key).sort(),
-    mappedAssets.map(([key]) => key).filter((key) => !["operating-weight", "power-output", "operational-status"].includes(key)).sort()
+    mappedAssets.map(([key]) => key).filter((key) => !["operating-weight", "power-output", "operational-status", "battery-capacity", "range"].includes(key)).sort()
   );
 
   assert.equal(LISTING_OVERVIEW_ASSET_PATHS["operating-weight"], LISTING_OVERVIEW_ASSET_PATHS["body-type"]);
   assert.equal(LISTING_OVERVIEW_ASSET_PATHS["power-output"], LISTING_OVERVIEW_ASSET_PATHS["engine-size"]);
   assert.equal(LISTING_OVERVIEW_ASSET_PATHS["operational-status"], LISTING_OVERVIEW_ASSET_PATHS.condition);
+
+  assert.equal(LISTING_OVERVIEW_ASSET_PATHS["battery-capacity"], LISTING_OVERVIEW_ASSET_PATHS.fuel);
+  assert.equal(LISTING_OVERVIEW_ASSET_PATHS.range, LISTING_OVERVIEW_ASSET_PATHS.mileage);
 
   for (const asset of manifest.assets) {
     const expectedPath = LISTING_OVERVIEW_ASSET_PATHS[

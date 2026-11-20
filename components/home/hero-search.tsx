@@ -129,7 +129,7 @@ const PANEL_CHEVRON_CLASS =
 
 interface HeroSearchProps {
   makes: string[];
-  totalCount: number;
+  totalCount: number | null;
   content?: HomepageHeroCmsContent;
   heroBanner?: CmsBanner | null;
 }
@@ -192,7 +192,7 @@ export function HeroSearch({
   const [priceTo, setPriceTo] = React.useState("any");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = React.useState(false);
-  const [matchingCount, setMatchingCount] = React.useState(totalCount);
+  const [matchingCount, setMatchingCount] = React.useState(totalCount ?? 0);
   const [countQuery, setCountQuery] = React.useState<string | null>(null);
   const [countStatus, setCountStatus] =
     React.useState<LandingSearchCountStatus>("loading");
@@ -826,6 +826,8 @@ export function HeroSearch({
 
           <form
             onSubmit={handleSearch}
+            data-track="search_submit"
+            data-track-target="Home search"
             className={cn(
               "mx-auto max-w-[980px] rounded-[18px] border-[0.5px] border-[#e7ebf1] bg-white shadow-[0_18px_48px_rgba(17,24,39,0.12)]",
               hasSponsoredHero && "max-w-none lg:w-full",

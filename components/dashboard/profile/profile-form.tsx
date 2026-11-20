@@ -223,6 +223,7 @@ export function ProfileForm({
 }: ProfileFormProps) {
   const isSalesRep = Boolean(salesRepDealerName);
   const isBuyer = profile?.role === "buyer";
+  const isPrivateSeller = profile?.role === "seller";
   const router = useRouter();
   const approvedDealer =
     user.id &&
@@ -391,7 +392,9 @@ export function ProfileForm({
               ? "Update your account name and contact details."
             : isApprovedDealerOwner
               ? "Update the dealership details buyers see on your public dealer page."
-              : "Update your public seller profile, contact details, location, and social links."
+              : isPrivateSeller
+                ? "Update your contact details and location."
+                : "Update your public seller profile, contact details, location, and social links."
         }
         action={
           approvedDealer ? (
@@ -529,7 +532,7 @@ export function ProfileForm({
 
               {isSalesRep || isBuyer ? null : (
               <>
-              <div>
+              {isPrivateSeller ? null : (<div>
                 <label htmlFor="profile-bio" className={sellerLabelClass}>
                   {isApprovedDealerOwner ? "About Dealership" : "About Seller"}
                 </label>
@@ -540,7 +543,7 @@ export function ProfileForm({
                   className={sellerTextareaClass}
                   placeholder="Describe the kind of vehicles you sell and what buyers should know."
                 />
-              </div>
+              </div>)}
 
               {isApprovedDealerOwner ? (
                 <div>
@@ -752,6 +755,7 @@ export function ProfileForm({
                 </div>
               </div>
 
+              {isPrivateSeller ? null : (
               <div className="rounded-[24px] border border-[#ededed] bg-[#faf9f7] p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <Illustration3D
@@ -863,6 +867,7 @@ export function ProfileForm({
                   ) : null}
                 </div>
               </div>
+              )}
               </>
               )}
 

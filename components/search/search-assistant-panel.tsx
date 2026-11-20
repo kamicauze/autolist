@@ -354,6 +354,7 @@ export function SearchAssistantPanel({
     null
   );
   const [didPrimeFromUrl, setDidPrimeFromUrl] = React.useState(false);
+  const [useUrlContext, setUseUrlContext] = React.useState(true);
   const activeFollowUp =
     lastResult?.clarification ?? lastResult?.refinement ?? null;
 
@@ -407,7 +408,7 @@ export function SearchAssistantPanel({
     options?: { currentParams?: SmartSearchResponse["params"] }
   ) => {
     const trimmed = prompt.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
     const nextUserMessage: AssistantMessage = {
       id: `user-${Date.now()}`,
@@ -423,7 +424,7 @@ export function SearchAssistantPanel({
     try {
       const result = await postSearchTurn(
         trimmed,
-        options?.currentParams || lastResult?.params || initialUrlParams
+        options?.currentParams || lastResult?.params || (useUrlContext ? initialUrlParams : {})
       );
       setLastResult(result);
       setMessages((prev) => [
@@ -571,18 +572,20 @@ export function SearchAssistantPanel({
 
                 {message.role === "assistant" &&
                 message.result &&
+                !message.result.clarification &&
                 message.result.preview.listings.length > 0 ? (
                   <ChatResultStrip listings={message.result.preview.listings} />
                 ) : null}
 
                 {message.role === "assistant" && message.result ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {message.result.preview.total > 0 ? (
+                    {message.result.preview.total > 0 && !message.result.clarification ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(message.result?.searchUrl || "/search")
-                        }
+                        onClick={() => {
+                          router.push(message.result?.searchUrl || "/search");
+                          onClose?.();
+                        }}
                         className="rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-hover"
                       >
                         Show probable matches
@@ -636,7 +639,7 @@ export function SearchAssistantPanel({
                   <Icon3D icon={Sparkles} variant="glyph" />
                   Filters
                 </p>
-                {lastResult.preview.total > 0 ? (
+                {lastResult.preview.total > 0 && !lastResult.clarification ? (
                   <span className="rounded-full bg-[#edf3ff] px-2.5 py-1 text-[11px] font-semibold text-[#2753c7]">
                     {lastResult.preview.total} match{lastResult.preview.total === 1 ? "" : "es"}
                   </span>
@@ -705,8 +708,12 @@ export function SearchAssistantPanel({
           {lastResult ? (
             <Button
               type="button"
+              disabled={isLoading || Boolean(lastResult.clarification)}
               className="h-10 rounded-[14px] bg-primary px-4 text-white hover:bg-brand-hover"
-              onClick={() => router.push(lastResult.searchUrl)}
+              onClick={() => {
+                router.push(lastResult.searchUrl);
+                onClose?.();
+              }}
             >
               Apply To Results
             </Button>
@@ -714,6 +721,7 @@ export function SearchAssistantPanel({
           <Button
             type="button"
             variant="outline"
+            disabled={isLoading}
             className="h-10 rounded-[14px]"
             onClick={() => {
               setMessages([
@@ -725,6 +733,7 @@ export function SearchAssistantPanel({
                 },
               ]);
               setLastResult(null);
+              setUseUrlContext(false);
               setInput("");
             }}
           >

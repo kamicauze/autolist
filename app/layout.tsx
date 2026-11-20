@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { NotificationRefreshProvider } from "@/components/notifications/notification-refresh-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { SiteTracker } from "@/components/analytics/site-tracker";
 import { getGoogleAnalyticsMeasurementId } from "@/lib/google-analytics";
 import { resolveThemeId } from "@/lib/theme/themes";
 import { isProductionIndexing, SITE_DESCRIPTION, SITE_URL } from "@/lib/seo";
@@ -38,6 +39,7 @@ export default function RootLayout({
         className="antialiased"
       >
         {measurementId && <GoogleAnalytics measurementId={measurementId} />}
+        <SiteTracker />
         <NotificationRefreshProvider>{children}</NotificationRefreshProvider>
       </body>
     </html>

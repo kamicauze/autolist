@@ -27,6 +27,8 @@ export type ListingOverviewAssetKey =
   | "condition"
   | "registration"
   | "fuel"
+  | "battery-capacity"
+  | "range"
   | "engine-size"
   | "transmission"
   | "drive-type"
@@ -86,6 +88,11 @@ export function buildListingOverviewItems(
   const equipmentTaxonomy = usesEquipmentTaxonomy(listing);
   const operatingHours = getListingMetadataString(listing, "hours_used") ?? getListingMetadataString(listing, "operatingHours");
 
+  const isElectric = getListingFuelTypeLabel(listing).toLowerCase() === "electric";
+  const electricValue = (key: string, unit: string) => {
+    const value = Number(getListingMetadataString(listing, key));
+    return isElectric && Number.isFinite(value) && value > 0 ? `${value.toLocaleString("en-KE")} ${unit}` : "";
+  };
   const items: ListingOverviewItem[] = [
     {
       key: "mileage",
@@ -117,8 +124,10 @@ export function buildListingOverviewItems(
     {
       key: "engine-size",
       label: "CC",
-      value: getListingEngineDisplacement(listing) || "",
+      value: isElectric ? "" : getListingEngineDisplacement(listing) || "",
     },
+    { key: "battery-capacity", label: "Battery Capacity", value: electricValue("batteryCapacityKwh", "kWh") },
+    { key: "range", label: "Range", value: electricValue("rangeKm", "km") },
     {
       key: "transmission",
       label: "Transmission",

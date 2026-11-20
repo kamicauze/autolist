@@ -309,7 +309,7 @@ export function DealerPageClient({
     <>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
         <main className="space-y-8">
-          <DealerProfileHeader name={dealer.name} photoKeys={dealer.showroom_photo_keys} />
+          <DealerProfileHeader id={dealer.id} name={dealer.name} photoKeys={dealer.showroom_photo_keys} />
 
           <section id="about" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>

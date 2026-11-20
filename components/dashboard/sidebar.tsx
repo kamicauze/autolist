@@ -8,6 +8,7 @@ import {
   Bell,
   CalendarDays,
   Gavel,
+  Home,
   KeyRound,
   LayoutDashboard,
   ListOrdered,
@@ -32,6 +33,7 @@ import type { SalesAgentPermission } from "@/lib/constants/sales-agent-permissio
 import { getInitials, sellerSidebarLinkClass } from "./seller-dashboard-ui";
 
 const sellerNav = [
+  { name: "Homepage", href: "/", icon: Home },
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My listings", href: "/dashboard/listings", icon: ListOrdered },
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
@@ -129,6 +131,7 @@ export function Sidebar({
   };
 
   const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href.includes("?view=")) {
       return pathname === "/dashboard/listings" && searchParams.get("view") === "available-bids";

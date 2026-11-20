@@ -54,7 +54,7 @@ export default async function DealersPage() {
                   </p>
                   <div className="mt-4">
                     <Button asChild size="sm">
-                      <Link href={`/dealers/${dealer.id}`}>View dealer page</Link>
+                      <Link href={`/dealers/${dealer.id}`} data-track="dealer_profile_click" data-track-target={dealer.id}>View dealer page</Link>
                     </Button>
                   </div>
                 </article>

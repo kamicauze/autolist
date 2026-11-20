@@ -9,7 +9,6 @@ import {
 import { SearchPageClient } from "@/components/search/search-page-client";
 import {
   searchListings,
-  countMatchingListings,
   type SearchListingFilters,
 } from "@/lib/data/listings";
 import { getAllMakeNames } from "@/lib/data/car-data";
@@ -22,6 +21,7 @@ import type { ListingCategory } from "@/lib/constants/marketplace";
 import { MAKES_BY_CATEGORY } from "@/lib/constants/vehicle-taxonomy";
 import { getCmsBannerCategoryTargetForListingCategory } from "@/lib/types/cms-banners";
 import { parseSearchListingFilters } from "@/lib/search/search-listing-filters";
+import { getAuthUser } from "@/lib/supabase/server";
 
 interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -83,13 +83,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // Non-car categories use the stakeholder taxonomy makes list; cars/vans use car_makes.
   const categoryMakes = normalizedCategory ? MAKES_BY_CATEGORY[normalizedCategory] : undefined;
 
-  const [{ listings, total }, totalCount, makes] = await Promise.all([
-    searchListings({ filters, page, limit, sort }),
-    countMatchingListings(filters),
+  const [result, makes, authResult] = await Promise.all([
+    searchListings({ filters, page, limit, sort }).catch(() => null),
     categoryMakes ? Promise.resolve([...categoryMakes]) : getAllMakeNames(),
+    getAuthUser(),
   ]);
-
-  const totalPages = Math.ceil(total / limit);
+  const resultKey = JSON.stringify([authResult.data.user?.id ?? null, filters, page, sort]);
   const bannerCategoryTarget =
     getCmsBannerCategoryTargetForListingCategory(normalizedCategory);
 
@@ -130,10 +129,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               className="mb-5 max-w-none px-0 py-0"
             />
             <SearchPageClient
-              listings={listings}
-              total={total}
-              totalPages={totalPages}
-              totalCount={totalCount}
+              result={result ? { ...result, totalPages: Math.ceil(result.total / limit) } : null}
+              resultKey={resultKey}
               makes={makes}
             />
           </Suspense>

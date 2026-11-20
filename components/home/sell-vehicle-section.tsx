@@ -77,7 +77,7 @@ export function SellVehicleSection() {
                 variant={option.variant}
                 className="w-full rounded-full border-primary text-primary hover:bg-primary hover:text-white"
               >
-                <Link href={option.href}>{option.buttonText}</Link>
+                <Link href={option.href} data-track="sell_cta_click" data-track-target={option.buttonText}>{option.buttonText}</Link>
               </Button>
             </div>
           ))}

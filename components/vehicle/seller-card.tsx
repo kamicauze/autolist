@@ -26,6 +26,7 @@ import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display"
 interface SellerCardProps {
   listingId: string;
   listingTitle: string;
+  listingUrl: string;
   dealer?: {
     status?: DealerStatus;
     id: string;
@@ -163,6 +164,7 @@ export function getDealerHoursPresentation(
 export function SellerCard({
   listingId,
   listingTitle,
+  listingUrl,
   dealer,
   seller,
   salesRep,
@@ -191,7 +193,7 @@ export function SellerCard({
     isDealer ? rep?.whatsapp || dealer?.whatsapp || dealer?.mobile : privateContact?.whatsappNumber
   );
   const whatsappUrl = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist.`)}`
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hi, I'm interested in ${listingTitle} listed on Autolist: ${listingUrl}`)}`
     : null;
   const contactLabel = rep ? `Call ${rep.name.split(" ")[0]}` : "Call Seller";
   const hasReviews = Boolean(stats && stats.totalReviews > 0);
@@ -214,7 +216,7 @@ export function SellerCard({
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-gray-900">
               {isVerifiedDealer && dealer?.id ? (
-                <Link href={`/dealers/${dealer.id}#about`} className="hover:text-primary">
+                <Link href={`/dealers/${dealer.id}#about`} className="hover:text-primary" data-track="dealer_profile_click" data-track-target={dealer.id}>
                   {name}
                 </Link>
               ) : (
@@ -297,7 +299,7 @@ export function SellerCard({
 
         {isVerifiedDealer && dealer ? (
           <Button asChild variant="outline" className="mt-4 w-full">
-            <Link href={`/dealers/${dealer.id}`}>View Dealer&apos;s Profile</Link>
+            <Link href={`/dealers/${dealer.id}`} data-track="dealer_profile_click" data-track-target={dealer.id}>View Dealer&apos;s Profile</Link>
           </Button>
         ) : null}
 
@@ -336,7 +338,7 @@ export function SellerCard({
             {callNumber ? (
               isPhoneRevealed ? (
                 <Button asChild variant="default" size="sm" className="h-auto min-h-9 min-w-0 gap-2 whitespace-normal py-2">
-                  <a onClick={() => { void recordListingInteraction({ listingId, interaction: "call" }).catch(() => {}); }} ref={phoneLinkRef} href={`tel:${callNumber.replace(/\s+/g, "")}`} aria-label={`Call ${callNumber}`}>
+                  <a data-track="call_click" data-track-target={listingId} onClick={() => { void recordListingInteraction({ listingId, interaction: "call" }).catch(() => {}); }} ref={phoneLinkRef} href={`tel:${callNumber.replace(/\s+/g, "")}`} aria-label={`Call ${callNumber}`}>
                     <Phone className="h-4 w-4" />
                     <span className="break-all">{callNumber}</span>
                   </a>
@@ -360,7 +362,7 @@ export function SellerCard({
                 size="sm"
                 className="gap-2 bg-[#25D366] text-white hover:bg-[#1FAF57]"
               >
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" data-track="whatsapp_click" data-track-target={listingId}>
                   <IconWhatsapp className="h-4 w-4" />
                   WhatsApp
                 </a>
@@ -382,6 +384,8 @@ export function SellerCard({
               type="button"
               variant="outline"
               className="mt-3 w-full gap-2"
+              data-track="viewing_open"
+              data-track-target={listingId}
               onClick={() => setDialogOpen(true)}
             >
               <CalendarDays className="h-4 w-4" />

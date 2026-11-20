@@ -244,7 +244,7 @@ export function Header() {
             <AutolistLogo className="h-10 w-auto xl:h-10" />
           </Link>
 
-          <nav ref={desktopNavRef} className="order-3 hidden w-full items-center justify-between gap-0.5 md:flex xl:order-none xl:w-auto">
+          <nav ref={desktopNavRef} data-track-links="nav_click" className="order-3 hidden w-full items-center justify-between gap-0.5 md:flex xl:order-none xl:w-auto">
             {desktopLinks.map((item) => {
               if ("menu" in item) {
                 const isOpen = openMenu === item.key;
@@ -310,6 +310,7 @@ export function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  data-track={item.href === "/sell" ? "sell_cta_click" : undefined}
                   onClick={(event) => {
                     if (pathname === item.href) {
                       event.preventDefault();
@@ -446,14 +447,14 @@ export function Header() {
                 </div>
               </div>
             ) : (
-              <Link href="/login" className="hidden sm:block">
+              <Link href="/login" className="hidden sm:block" data-track="signup_cta_click">
                 <Button size="sm" className="rounded-[10px] px-4">
                   Login / Register
                 </Button>
               </Link>
             )}
 
-            <Link href="/dashboard/listings/new" className="hidden sm:block">
+            <Link href="/dashboard/listings/new" className="hidden sm:block" data-track="sell_cta_click" data-track-target="Add listing">
               <Button size="sm" className="gap-1.5 rounded-[10px] bg-primary px-4 hover:bg-primary/90">
                 <Plus className="h-4 w-4" />
                 Add listing
@@ -511,12 +512,12 @@ export function Header() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
-                  <Link href="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/login" className="block" data-track="signup_cta_click" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="min-h-11 w-full border-primary text-primary hover:bg-brand-tint">
                       Login / Register
                     </Button>
                   </Link>
-                  <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/dashboard/listings/new" className="block" data-track="sell_cta_click" data-track-target="Add listing" onClick={() => setMobileMenuOpen(false)}>
                     <Button className="min-h-11 w-full bg-primary text-primary-foreground hover:bg-brand-hover">
                       <Plus className="h-4 w-4" />
                       Add listing
@@ -525,7 +526,7 @@ export function Header() {
                 </div>
               )}
               {user ? (
-                <Link href="/dashboard/listings/new" className="block" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/dashboard/listings/new" className="block" data-track="sell_cta_click" data-track-target="Add listing" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="min-h-11 w-full bg-primary text-primary-foreground hover:bg-brand-hover">
                     <Plus className="h-4 w-4" />
                     Add listing
@@ -554,7 +555,7 @@ export function Header() {
 
             <ThemeSwitcher layout="mobile" />
 
-            <nav className="space-y-2" aria-label="Mobile menu">
+            <nav className="space-y-2" aria-label="Mobile menu" data-track-links="nav_click">
               {desktopLinks.map((item) => {
                 if ("menu" in item) {
                   const isMobileSectionOpen = mobileOpenMenu === item.key;
@@ -591,6 +592,7 @@ export function Header() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    data-track={item.href === "/sell" ? "sell_cta_click" : undefined}
                     className={cn(
                       "block rounded-xl px-4 py-3 text-sm font-semibold transition",
                       pathname === item.href

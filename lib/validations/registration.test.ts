@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { KENYA_COUNTIES } from "@/lib/constants/filters";
 import { toDealerAddress } from "@/lib/location/dealer-address";
 import { LISTING_PHONE_ERROR } from "@/lib/utils/phone";
 import {
@@ -10,22 +11,22 @@ import {
 } from "./registration";
 
 test("dealer search fills one address, town and county from a Kenyan result", () => {
-  assert.deepEqual(toDealerAddress({
-    countrycode: "KE",
-    name: "Sample Centre",
-    street: "Sample Road",
-    housenumber: "15",
-    city: "Nairobi",
-    state: "Nairobi County",
-    district: "Westlands",
-  }), {
+  const kenya = { longText: "Kenya", shortText: "KE", types: ["country"] };
+  assert.deepEqual(toDealerAddress("Sample Centre", [
+    { longText: "15", types: ["street_number"] },
+    { longText: "Sample Road", types: ["route"] },
+    { longText: "Westlands", types: ["sublocality_level_1"] },
+    { longText: "Nairobi", types: ["locality"] },
+    { longText: "Nairobi County", types: ["administrative_area_level_1"] },
+    kenya,
+  ]), {
     address: "Sample Centre, 15 Sample Road",
     town: "Nairobi",
     county: "Nairobi",
     area: "Westlands",
   });
-  assert.equal(toDealerAddress({ countrycode: "UG", name: "Sample Centre" }), null);
-  assert.equal(toDealerAddress({ countrycode: "KE", name: "Sample Road", state: "Unknown" })?.county, "");
+  assert.equal(toDealerAddress("Sample Centre", [{ longText: "Uganda", shortText: "UG", types: ["country"] }]), null);
+  assert.equal(toDealerAddress("Sample Road", [{ longText: "Unknown", types: ["administrative_area_level_1"] }, kenya])?.county, "");
 });
 
 test("seller identity requires a passport or both sides of a national ID", () => {
@@ -65,4 +66,13 @@ test("dealership names reject markup, control characters and emoji but keep busi
   assert.equal(name.parse("Société Générale Motors 2024"), "Société Générale Motors 2024");
   assert.equal(name.parse("Sample Motors® Kenya™"), "Sample Motors® Kenya™");
   assert.deepEqual(name.safeParse("   ").error?.issues.map((issue) => issue.message), ["Dealership name is required."]);
+});
+
+test("dealer registration requires one verification document of any listed type", () => {
+  const base = { name: "Sample Motors", phone: "0712345678", address: "Moi Avenue", town: "Nairobi", county: KENYA_COUNTIES[0], area: "" };
+  assert.equal(dealerRegistrationSchema.safeParse(base).success, false);
+  assert.equal(dealerRegistrationSchema.safeParse({ ...base, document: { path: "u/doc.pdf", name: "doc.pdf" } }).success, false);
+  for (const type of ["cr12", "incorporation_certificate", "national_id", "passport"]) {
+    assert.equal(dealerRegistrationSchema.safeParse({ ...base, document: { type, path: "u/doc.pdf", name: "doc.pdf" } }).success, true, type);
+  }
 });

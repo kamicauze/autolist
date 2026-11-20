@@ -28,14 +28,25 @@ test("validation marks each field and links it to its own message", () => {
   assert.match(flow, /aria-invalid=\{Boolean\(shown\.document\) \|\| undefined\}/);
   assert.match(flow, /"dealer-verification-file-help dealership-document-error"/);
   assert.match(flow, /<p id="dealership-document-error" role="alert"/);
+  assert.match(flow, /title="Verification document" required \/>/);
+  assert.match(flow, /!documentType \? "Select a document type, then choose the file\." : !file \? "Choose the file to upload\."/);
+  assert.equal((flow.match(/aria-invalid=\{typeMissing \|\| undefined\}/g) ?? []).length, 2);
   assert.match(flow, /"Fix the highlighted fields\."/);
   assert.match(flow, /fieldMessage\(dealerRegistrationSchema\.shape\.name, name, "Enter the dealership name\."\)/);
   assert.match(flow, /fieldMessage\(dealerRegistrationSchema\.shape\.phone, phone, "Enter a valid listing phone number\."\)/);
   assert.doesNotMatch(flow, /listingPhoneSchema/);
 });
 
-test("address search keeps manual entries and explains short queries", () => {
-  assert.match(flow, /setSearchError\("Type at least 3 characters to search\."\)/);
+test("address search runs as the dealer types, ignores stale replies and keeps manual entries", () => {
+  assert.match(flow, /text\.length < 3 \? "Type at least 3 characters to search\."/);
+  assert.match(flow, /window\.setTimeout\(\(\) => \{\s*searchDealerAddresses\(text, \(placesSession\.current \?\?= crypto\.randomUUID\(\)\)\)/);
+  assert.match(flow, /resolveDealerAddress\(suggestion\.placeId, suggestion\.label, \(placesSession\.current \?\?= crypto\.randomUUID\(\)\)\)/);
+  assert.match(flow, /placesSession\.current = null;\s*chooseAddress\(response\.address\);/);
+  assert.match(flow, /<p translate="no" className="text-xs text-muted-foreground">Google Maps<\/p>/);
+  assert.doesNotMatch(flow, /openstreetmap/i);
+  assert.match(flow, /if \(current\) setFound\(\{ query: text, \.\.\.response \}\)/);
+  assert.match(flow, /return \(\) => \{ current = false; window\.clearTimeout\(timer\); \};/);
+  assert.doesNotMatch(flow, /void search\(\)|disabled=\{searching\}/);
   assert.match(flow, /onClick=\{\(\) => setManual\(false\)\}>\s*<Search aria-hidden className="size-4" \/> Search for an address/);
   assert.doesNotMatch(flow, /setManual\(false\); setLocation\(emptyAddress\); \}\}>\s*<Search[^>]*\/> Search for an address/);
 });

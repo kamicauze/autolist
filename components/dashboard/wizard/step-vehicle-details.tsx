@@ -486,13 +486,7 @@ export function StepVehicleDetails() {
         </div>
       ) : null}
 
-      {isCarCategory ? (
-        <div className="rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-4 py-3 text-[12px] leading-5 text-primary">
-          Details use a structured vehicle catalog: make leads to model, then trim and
-          engine-specific variants. Every trim is loaded against the selected model, with inherited
-          shared trims clearly labeled.
-        </div>
-      ) : hasStructuredMakeSuggestions ? (
+      {!isCarCategory && hasStructuredMakeSuggestions ? (
         <div className="rounded-[12px] border border-[#dcefe0] bg-[#f4fbf6] px-4 py-3 text-[12px] leading-5 text-[#25653b]">
           Suggested make options are now loaded for this category. Models still stay manual where
           the catalog does not define a reliable model list.
@@ -514,17 +508,29 @@ export function StepVehicleDetails() {
                 {referenceField ? (
                   referenceField
                 ) : field.type === "select" ? (
-                  <SearchableSelect
-                    value={draft.details[field.key]}
-                    onChange={(value) => updateDetailField(field.key, value)}
-                    options={field.key === "doors" && draft.details.doors && !field.options?.some((option) => option.value === draft.details.doors)
-                      ? [...(field.options ?? []), { value: draft.details.doors, label: `${draft.details.doors} (current)` }]
-                      : field.options ?? []}
-                    placeholder="Select"
-                    searchPlaceholder={`Search ${field.label.toLowerCase()}`}
-                    aria-label={field.label}
-                    className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
-                  />
+                  ["registrationStatus", "transmission", "driveType", "doors"].includes(field.key) ? (
+                    <select
+                      value={draft.details[field.key]}
+                      onChange={(event) => updateDetailField(field.key, event.target.value)}
+                      aria-label={field.label}
+                      className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
+                    >
+                      <option value="">Select</option>
+                      {field.key === "doors" && draft.details.doors && !field.options?.some((option) => option.value === draft.details.doors)
+                        ? <option value={draft.details.doors}>{draft.details.doors} (current)</option> : null}
+                      {(field.options ?? []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  ) : (
+                    <SearchableSelect
+                      value={draft.details[field.key]}
+                      onChange={(value) => updateDetailField(field.key, value)}
+                      options={field.options ?? []}
+                      placeholder="Select"
+                      searchPlaceholder={`Search ${field.label.toLowerCase()}`}
+                      aria-label={field.label}
+                      className={cn(sellerSelectClass, hasError && "border-[#f04438]")}
+                    />
+                  )
                 ) : (
                   <input
                     type={field.key === "mileage" ? "text" : field.type}

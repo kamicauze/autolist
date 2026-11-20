@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-export function ShareListingButton({ listingId, title }: { listingId: string; title: string }) {
+type ShareTarget = { listingId: string; dealerId?: never; title: string } | { dealerId: string; listingId?: never; title: string };
+
+export function ShareListingButton({ listingId, dealerId, title }: ShareTarget) {
+  const isDealer = Boolean(dealerId);
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [copying, setCopying] = useState(false);
@@ -23,7 +26,7 @@ export function ShareListingButton({ listingId, title }: { listingId: string; ti
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
-      setUrl(new URL(`/vehicle/${encodeURIComponent(listingId)}`, window.location.origin).href);
+      setUrl(new URL(dealerId ? `/dealers/${encodeURIComponent(dealerId)}` : `/vehicle/${encodeURIComponent(listingId!)}`, window.location.origin).href);
     }
     setStatus("");
     setOpen(nextOpen);
@@ -58,22 +61,25 @@ export function ShareListingButton({ listingId, title }: { listingId: string; ti
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          aria-label="Share listing"
-          className="h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"
+          size={isDealer ? "default" : "icon"}
+          aria-label={isDealer ? "Share dealer profile" : "Share listing"}
+          data-track={isDealer ? undefined : "share_listing"}
+          data-track-target={listingId}
+          className={isDealer ? "mt-3 gap-2 bg-white text-gray-900" : "h-8 w-8 rounded-full border-white/40 bg-white/70 shadow-sm backdrop-blur-sm hover:bg-white/90"}
         >
           <Share2 className="h-3.5 w-3.5 text-gray-600" />
+          {isDealer ? "Share dealer profile" : null}
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[calc(100%-2rem)] rounded-xl">
         <DialogHeader>
-          <DialogTitle>Share this listing</DialogTitle>
+          <DialogTitle>{isDealer ? "Share this dealer" : "Share this listing"}</DialogTitle>
           <DialogDescription className="break-words">
             Send someone the link to {title}.
           </DialogDescription>
         </DialogHeader>
         <div className="min-w-0 space-y-2">
-          <label htmlFor={inputId} className="text-sm font-medium">Listing link</label>
+          <label htmlFor={inputId} className="text-sm font-medium">{isDealer ? "Dealer profile link" : "Listing link"}</label>
           <Input
             ref={inputRef}
             id={inputId}

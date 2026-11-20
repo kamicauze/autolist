@@ -354,6 +354,8 @@ export function CarCard({
         <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-2">
           <button
             type="button"
+            data-track={inCompare ? undefined : "compare_add"}
+            data-track-target={id}
             onClick={onCompareClick}
             disabled={!isLoaded || compareLimitReached}
             aria-label={inCompare ? "Remove from compare" : "Add to compare"}
@@ -374,6 +376,8 @@ export function CarCard({
 
           {canFavorite && <button
             type="button"
+            data-track={isLiked ? undefined : "save_listing"}
+            data-track-target={id}
             onClick={onLikeClick}
             disabled={isWishlistPending}
             aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
@@ -467,7 +471,7 @@ export function CarCard({
   return (
     <div className="group flex flex-col self-start overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
       {href ? (
-        <Link href={href} scroll className="flex flex-1 flex-col">
+        <Link href={href} scroll className="flex flex-1 flex-col" data-track="listing_card_click" data-track-target={id}>
           {cardBody}
         </Link>
       ) : (
@@ -555,6 +559,7 @@ export function CarCard({
               {dealer.href ? (
                 <Link
                   href={dealer.href}
+                  data-track="dealer_profile_click"
                   className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
                 >
                   View dealer

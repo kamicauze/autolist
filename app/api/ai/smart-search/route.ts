@@ -289,12 +289,13 @@ export async function POST(request: NextRequest) {
     page: 1,
     limit: 6,
   });
-  const clarification = buildClarification(payload.query || "", result, preview.total);
+  const followUp = buildClarification(turnQuery, result, preview.total);
+  const clarification = hasNearMeIntent(turnQuery) && !result.params.location ? followUp : null;
 
   return NextResponse.json({
     ...result,
     clarification,
-    refinement: clarification ? null : buildRefinement(result, preview.listings, preview.total),
+    refinement: clarification ? null : followUp ?? buildRefinement(result, preview.listings, preview.total),
     searchUrl: buildSmartSearchUrl(result),
     preview,
   });

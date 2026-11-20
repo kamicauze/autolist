@@ -399,11 +399,15 @@ test("registration saves typed evidence without submitting the dealership for re
     assert.equal(document.r2_key, "supabase://dealer-kyc/" + path);
   }
 
+  const evidence = { type: "cr12" as const, name: "Sample.pdf", path: "sample-owner/onboarding-cr12/aaaaaaaaaaaaaaaaaaaa-sample.pdf" };
   for (const options of [{ role: "support" }, { deactivated: true }, { signedIn: false }]) {
     const sample = harness(options);
-    assert.ok((await sample.actions().createDealerRegistration(details)).error);
+    assert.ok((await sample.actions().createDealerRegistration({ ...details, document: evidence })).error);
     assert.equal(sample.adminClients, 0);
   }
+  const withoutDocument = harness({ role: "buyer", status: "INCOMPLETE" });
+  assert.match((await withoutDocument.actions().createDealerRegistration(details as DealerRegistration)).error || "", /attach one verification document/);
+  assert.equal(withoutDocument.writes.length, 0);
   const sample = harness({ storedCertificateSize: 512 });
   const invalid = await sample.actions().createDealerRegistration({
     ...details,
@@ -426,7 +430,7 @@ test("an ended session returns a clear, coded message from dealer setup and veri
   const sample = harness({ signedIn: false });
   const actions = sample.actions();
   for (const result of [
-    await actions.createDealerRegistration({ name: "Sample Motors", phone: "0700000001", address: "Sample Road", town: "Nairobi", county: "Nairobi", area: "" }),
+    await actions.createDealerRegistration({ name: "Sample Motors", phone: "0700000001", address: "Sample Road", town: "Nairobi", county: "Nairobi", area: "", document: { type: "cr12", name: "Sample.pdf", path: "sample-owner/onboarding-cr12/sample.pdf" } }),
     await actions.createDealerOnboardingUpload("incorporationCertificate", { name: "Certificate.pdf", type: "application/pdf", size: 512 }),
     await actions.submitDealerVerification(completedVerificationForm()),
     await actions.leaveDealerSetup(),

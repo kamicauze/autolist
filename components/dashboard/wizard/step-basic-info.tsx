@@ -57,18 +57,15 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
 
           <div>
             <label className={sellerLabelClass}>Condition *</label>
-            <SearchableSelect
+            <select
               value={draft.condition}
-              onChange={(value) => updateField("condition", value as typeof draft.condition)}
-              options={CONDITION_OPTIONS}
-              placeholder="Select condition"
-              searchPlaceholder="Search condition"
+              onChange={(event) => updateField("condition", event.target.value as typeof draft.condition)}
               aria-label="Condition"
-              className={cn(
-                sellerSelectClass,
-                showValidationErrors && !draft.condition && "border-[#f04438]"
-              )}
-            />
+              className={cn(sellerSelectClass, showValidationErrors && !draft.condition && "border-[#f04438]")}
+            >
+              <option value="">Select condition</option>
+              {CONDITION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
           </div>
 
           <div>
@@ -77,7 +74,7 @@ export function StepBasicInfo({ googleMapsApiKey = "" }: { googleMapsApiKey?: st
               value={formatPriceInput(draft.priceKes)}
               onChange={(event) => updateField("priceKes", unformatPrice(event.target.value))}
               inputMode="numeric"
-              placeholder="2,450,000"
+              placeholder="0"
               className={cn(
                 sellerInputClass,
                 showValidationErrors && (!draft.priceKes || Number(draft.priceKes) <= 0) && "border-[#f04438]"

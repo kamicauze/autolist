@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ZodType } from "zod";
 import {
-  createDealerOnboardingUpload, createDealerRegistration, leaveDealerSetup, searchDealerAddresses,
+  createDealerOnboardingUpload, createDealerRegistration, leaveDealerSetup, resolveDealerAddress, searchDealerAddresses,
 } from "@/lib/actions/dealers";
 import { KENYA_COUNTIES } from "@/lib/constants/filters";
-import type { DealerAddress } from "@/lib/location/dealer-address";
+import type { DealerAddress, DealerAddressSuggestion } from "@/lib/location/dealer-address";
 import { createClient } from "@/lib/supabase/client";
 import {
   dealerRegistrationDocumentLabels, dealerRegistrationSchema,
@@ -103,14 +103,14 @@ export function DealerSetupAccountBar({ email, canLeave }: { email?: string; can
   );
 }
 
-function SectionHeading({ icon: Icon, title, optional }: { icon: LucideIcon; title: string; optional?: boolean }) {
+function SectionHeading({ icon: Icon, title, required }: { icon: LucideIcon; title: string; required?: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-tint text-primary">
         <Icon aria-hidden className="size-5" />
       </span>
       <h2 className="text-lg font-bold leading-tight">{title}</h2>
-      {optional && <span className="ml-auto shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">Optional</span>}
+      {required && <span className="ml-auto shrink-0 rounded-full bg-brand-tint px-2.5 py-1 text-xs font-semibold text-primary">Required</span>}
     </div>
   );
 }
@@ -122,9 +122,9 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(false);
   const [manual, setManual] = useState(false);
-  const [results, setResults] = useState<DealerAddress[] | null>(null);
-  const [searchError, setSearchError] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState<{ query: string; results?: DealerAddressSuggestion[]; error?: string }>();
+  const [resolving, setResolving] = useState("");
+  const [pickError, setPickError] = useState("");
   const [documentType, setDocumentType] = useState<DealerRegistrationDocumentType | "">("");
   const [file, setFile] = useState<File>();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -136,6 +136,8 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
   const [createdName, setCreatedName] = useState(existingName);
   const upload = useRef<{ file: File; type: DealerRegistrationDocumentType; path: string }>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // One Google Places session runs from the first search to the chosen address, so they are billed together.
+  const placesSession = useRef<string>(null);
   const confirmation = useRef<HTMLHeadingElement>(null);
   const submitError = useRef<HTMLDivElement>(null);
   const fieldErrors = {
@@ -145,7 +147,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     address: manual && !location.address.trim() ? "Enter the address." : "",
     town: manual && !location.town.trim() ? "Enter the town or city." : "",
     county: manual && !location.county ? "Select a county." : "",
-    document: uploadError || (file && !documentType ? "Select a document type or remove the file." : ""),
+    document: uploadError || (!documentType ? "Select a document type, then choose the file." : !file ? "Choose the file to upload." : ""),
   };
   const hasFieldErrors = Object.values(fieldErrors).some(Boolean);
   const shown = showValidation
@@ -153,6 +155,26 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     : { name: "", phone: "", search: "", address: "", town: "", county: "", document: uploadError };
   const feedback = error || (showValidation && hasFieldErrors ? "Fix the highlighted fields." : "");
   const typeLabel = documentType ? dealerRegistrationDocumentLabels[documentType] : "Select document type";
+  const typeMissing = Boolean(shown.document) && !documentType;
+  const text = query.trim();
+  const searchable = !manual && !selected && text.length >= 3;
+  const searching = searchable && found?.query !== text;
+  const results = searchable ? found?.results : undefined;
+  const searchStatus = !text || selected || manual ? ""
+    : text.length < 3 ? "Type at least 3 characters to search."
+    : resolving ? "Loading address…"
+    : pickError || (searching ? "Searching…" : found?.error ?? "");
+
+  useEffect(() => {
+    if (!searching) return;
+    let current = true;
+    const timer = window.setTimeout(() => {
+      searchDealerAddresses(text, (placesSession.current ??= crypto.randomUUID()))
+        .then((response) => { if (current) setFound({ query: text, ...response }); })
+        .catch(() => { if (current) setFound({ query: text, error: "Address search is unavailable. You can enter the address manually." }); });
+    }, 300);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [searching, text]);
 
   useEffect(() => {
     if (createdName) {
@@ -165,32 +187,28 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     if (error || showValidation) submitError.current?.focus();
   }, [error, showValidation]);
 
-  async function search() {
-    if (searching) return;
-    if (query.trim().length < 3) {
-      setSearchError("Type at least 3 characters to search.");
-      return;
-    }
-    setSearching(true);
-    setSearchError("");
-    setResults(null);
-    try {
-      const response = await searchDealerAddresses(query);
-      if (response.results) setResults(response.results);
-      else setSearchError(response.error);
-    } catch {
-      setSearchError("Address search is unavailable. You can enter the address manually.");
-    } finally {
-      setSearching(false);
-    }
-  }
-
   function chooseAddress(address: DealerAddress) {
     setLocation(address);
     setSelected(true);
     setManual(!address.town || !address.county);
-    setResults(null);
     setError("");
+  }
+
+  async function pickAddress(suggestion: DealerAddressSuggestion) {
+    if (resolving) return;
+    setResolving(suggestion.placeId);
+    setPickError("");
+    try {
+      const response = await resolveDealerAddress(suggestion.placeId, suggestion.label, (placesSession.current ??= crypto.randomUUID()));
+      if (response.address) {
+        placesSession.current = null;
+        chooseAddress(response.address);
+      } else setPickError(response.error);
+    } catch {
+      setPickError("We couldn't load that address. Try again or enter it manually.");
+    } finally {
+      setResolving("");
+    }
   }
 
   function removeFile() {
@@ -219,18 +237,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
     setShowValidation(false);
     setSaving(true);
     try {
-      let document;
-      if (file && documentType) {
-        if (upload.current?.file !== file || upload.current.type !== documentType) {
-          const target = await createDealerOnboardingUpload(documentType, file);
-          if (!target.path || !target.token) return fail(target);
-          const { error: putError } = await createClient().storage.from(target.bucket)
-            .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-          if (putError) return fail({ error: "Unable to upload the document. Please retry." });
-          upload.current = { file, type: documentType, path: target.path };
-        }
-        document = { name: file.name, type: documentType, path: upload.current.path };
+      if (!file || !documentType) return;
+      if (upload.current?.file !== file || upload.current.type !== documentType) {
+        const target = await createDealerOnboardingUpload(documentType, file);
+        if (!target.path || !target.token) return fail(target);
+        const { error: putError } = await createClient().storage.from(target.bucket)
+          .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+        if (putError) return fail({ error: "Unable to upload the document. Please retry." });
+        upload.current = { file, type: documentType, path: target.path };
       }
+      const document = { name: file.name, type: documentType, path: upload.current.path };
       const result = await createDealerRegistration({ name, phone, ...location, document });
       if (!result.success) return fail(result);
       setCreatedName(result.dealershipName);
@@ -300,8 +316,8 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               <SectionHeading icon={MapPin} title="Dealership location" />
               {!selected && !manual && (
                 <>
-                  <p className="text-sm text-muted-foreground">Search once to fill your address, town and county.</p>
-                  <div className="relative flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">Start typing, then pick your address to fill the town and county.</p>
+                  <div className="relative flex items-center">
                     <Search aria-hidden className="pointer-events-none absolute left-3.5 size-5 text-muted-foreground" />
                     <Input
                       aria-label="Search for a building or street"
@@ -309,23 +325,15 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       type="search"
                       value={query}
                       maxLength={160}
-                      disabled={searching}
-                      onChange={(event) => { setQuery(event.target.value); setResults(null); setSearchError(""); }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") { event.preventDefault(); void search(); }
-                      }}
+                      onChange={(event) => { setQuery(event.target.value); setPickError(""); }}
+                      onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
                       className={cn(inputClass, "pl-11", shown.search && invalidClass)}
                       aria-invalid={Boolean(shown.search) || undefined}
                       aria-describedby={shown.search ? "dealership-search-error" : undefined}
                     />
-                    {query.trim().length >= 3 && (
-                      <Button type="button" variant="outline" className="h-11 rounded-lg" disabled={searching} onClick={() => void search()}>
-                        {searching ? "Searching…" : "Search"}
-                      </Button>
-                    )}
                   </div>
                   <FieldError id="dealership-search-error" message={shown.search} />
-                  {searchError && <p role="status" className="text-sm text-muted-foreground">{searchError}</p>}
+                  {searchStatus && <p role="status" className="text-sm text-muted-foreground">{searchStatus}</p>}
                   {results && (
                     <div className="space-y-2" aria-live="polite">
                       {results.length === 0 ? (
@@ -333,16 +341,16 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                       ) : (
                         <ul className="divide-y divide-border rounded-lg border border-border">
                           {results.map((result) => (
-                            <li key={JSON.stringify(result)}>
-                              <button type="button" onClick={() => chooseAddress(result)} className="w-full px-3 py-2.5 text-left hover:bg-brand-tint focus-visible:bg-brand-tint">
-                                <span className="block text-sm font-semibold">{result.address}</span>
-                                <span className="block text-xs text-muted-foreground">{[result.town, result.county && result.county + " County"].filter(Boolean).join(" · ")}</span>
+                            <li key={result.placeId}>
+                              <button type="button" disabled={Boolean(resolving)} onClick={() => void pickAddress(result)} className="w-full px-3 py-2.5 text-left hover:bg-brand-tint focus-visible:bg-brand-tint disabled:opacity-60">
+                                <span className="block text-sm font-semibold">{result.label}</span>
+                                {result.detail && <span className="block text-xs text-muted-foreground">{result.detail}</span>}
                               </button>
                             </li>
                           ))}
                         </ul>
                       )}
-                      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-xs text-muted-foreground underline">© OpenStreetMap contributors</a>
+                      <p translate="no" className="text-xs text-muted-foreground">Google Maps</p>
                     </div>
                   )}
                 </>
@@ -391,11 +399,11 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
               )}
             </section>
             <section className="space-y-2 py-4">
-              <SectionHeading icon={ShieldCheck} title="Verification document" optional />
-              <p className="text-sm text-muted-foreground">Attach one document now or leave this section empty and add it during verification.</p>
+              <SectionHeading icon={ShieldCheck} title="Verification document" required />
+              <p className="text-sm text-muted-foreground">Upload one document to confirm your dealership. Choose its type first: Certificate of Incorporation, CR12, National ID or Passport.</p>
               <div className="space-y-1.5">
                 <Label htmlFor="dealership-document-type" className="hidden md:block">Document type</Label>
-                <select id="dealership-document-type" className={cn(selectClass, "hidden md:block")} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
+                <select id="dealership-document-type" className={cn(selectClass, "hidden md:block", typeMissing && invalidClass)} aria-invalid={typeMissing || undefined} aria-describedby={typeMissing ? "dealership-document-error" : undefined} value={documentType} onChange={(event) => setDocumentType(event.target.value as DealerRegistrationDocumentType | "")}>
                   <option value="" disabled={Boolean(file)}>Select document type</option>
                   {documentTypes.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
                 </select>
@@ -403,7 +411,7 @@ export function DealerRegistrationFlow({ existingName }: { existingName?: string
                   <div className="md:hidden">
                     <p id="dealer-document-type-label" className="mb-1.5 text-sm font-medium">Document type</p>
                     <DialogTrigger asChild>
-                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" className="h-11 w-full justify-between rounded-lg border border-border px-3 text-sm font-normal text-[#14213d] hover:border-primary">
+                      <Button type="button" variant="outline" aria-labelledby="dealer-document-type-label dealer-document-type-value" aria-invalid={typeMissing || undefined} aria-describedby={typeMissing ? "dealership-document-error" : undefined} className={cn("h-11 w-full justify-between rounded-lg border border-border px-3 text-sm font-normal text-[#14213d] hover:border-primary", typeMissing && invalidClass)}>
                         <span id="dealer-document-type-value">{typeLabel}</span>
                         <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
                       </Button>

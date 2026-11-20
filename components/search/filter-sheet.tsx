@@ -1293,7 +1293,7 @@ function FilterSheetPanel({
         <Button variant="ghost" onClick={resetFilters} className="text-gray-500">
           Reset all
         </Button>
-        <Button onClick={applyFilters} disabled={isPending} className="flex-1">
+        <Button onClick={applyFilters} disabled={isPending} className="flex-1" data-track="filter_apply">
           {countReady ? `Search ${countResult.count.toLocaleString()} listings` : countFailed ? "Search listings" : "Checking listings…"}
         </Button>
       </SheetFooter>

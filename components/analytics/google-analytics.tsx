@@ -12,6 +12,7 @@ import {
   isAnalyticsPageAllowed,
   type AnalyticsConsent,
 } from "@/lib/google-analytics";
+import { isSiteClickEvent, SITE_TRACK_EVENT, type SiteTrackDetail } from "@/lib/site-analytics";
 
 declare global {
   interface Window {
@@ -148,6 +149,18 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
     }
   }, [consent, enabled, measurementId, pathname, scriptReady]);
 
+  // Mirror tagged clicks from SiteTracker only after consent and once the SDK is ready.
+  useEffect(() => {
+    if (!enabled || !scriptReady) return;
+    function forwardClick(event: Event) {
+      const detail = (event as CustomEvent<SiteTrackDetail>).detail;
+      if (!detail || !isSiteClickEvent(detail.name)) return;
+      window.gtag?.("event", detail.name, detail.target ? { click_target: detail.target } : {});
+    }
+    window.addEventListener(SITE_TRACK_EVENT, forwardClick);
+    return () => window.removeEventListener(SITE_TRACK_EVENT, forwardClick);
+  }, [enabled, scriptReady]);
+
   function chooseConsent(value: Exclude<AnalyticsConsent, null>) {
     const analytics = window;
     analytics[`ga-disable-${measurementId}`] = value !== "accepted";
@@ -180,22 +193,22 @@ export function GoogleAnalytics({ measurementId }: { measurementId: string }) {
         <section
           ref={noticeRef}
           tabIndex={-1}
-          aria-label="Analytics cookie preferences"
+          aria-label="Cookie preferences"
           className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 text-foreground sm:px-6"
         >
           <div className="max-w-2xl">
             <h2 className="text-base font-semibold">Your cookie preferences</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              We use essential cookies to run Autolist. With your permission, Google Analytics helps us
+              We use essential cookies to run Autolist. With your permission, optional cookies help us
               understand visits to public pages. You can change your choice at any time.{' '}
               <Link href="/cookies" className="underline underline-offset-2">Read our Cookie Policy</Link>.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline" onClick={() => chooseConsent("declined")}>
-              Decline analytics
+              Essential cookies only
             </Button>
-            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow analytics</Button>
+            <Button type="button" onClick={() => chooseConsent("accepted")}>Allow optional cookies</Button>
           </div>
         </section>
       )}
