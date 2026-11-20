@@ -392,7 +392,9 @@ export function ProfileForm({
               ? "Update your account name and contact details."
             : isApprovedDealerOwner
               ? "Update the dealership details buyers see on your public dealer page."
-              : "Update your public seller profile, contact details, location, and social links."
+              : isPrivateSeller
+                ? "Update your contact details and location."
+                : "Update your public seller profile, contact details, location, and social links."
         }
         action={
           approvedDealer ? (

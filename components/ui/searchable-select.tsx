@@ -94,15 +94,19 @@ export function SearchableSelect({
     setQuery("");
     const selectedIndex = options.findIndex((option) => option.value === value);
     setHighlighted(selectedIndex >= 0 ? selectedIndex : 0);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     // Only reset when the menu opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   React.useEffect(() => {
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-index="${highlighted}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const option = list?.querySelector<HTMLElement>(`[data-index="${highlighted}"]`);
+    if (!list || !option) return;
+    const listRect = list.getBoundingClientRect();
+    const optionRect = option.getBoundingClientRect();
+    if (optionRect.top < listRect.top) list.scrollTop -= listRect.top - optionRect.top;
+    else if (optionRect.bottom > listRect.bottom) list.scrollTop += optionRect.bottom - listRect.bottom;
   }, [highlighted]);
 
   React.useLayoutEffect(() => {
