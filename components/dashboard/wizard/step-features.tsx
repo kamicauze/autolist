@@ -18,6 +18,7 @@ export function StepFeatures() {
     setFeatureSelection,
     expandedFeatureGroups,
     toggleFeatureGroupExpansion,
+    showValidationErrors,
   } = useWizard();
   const isSearching = featureQuery.trim().length > 0;
 
@@ -91,7 +92,10 @@ export function StepFeatures() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div data-validation-error={showValidationErrors && draft.selectedFeatureIds.length === 0 || undefined} tabIndex={-1} className="space-y-3">
+        {showValidationErrors && draft.selectedFeatureIds.length === 0 ? (
+          <p className="text-[13px] text-[#f04438]">Select at least one confirmed feature.</p>
+        ) : null}
         {visibleGroups.map((group) => (
           <section
             key={group.key}

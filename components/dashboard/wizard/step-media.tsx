@@ -162,6 +162,7 @@ export function StepMedia() {
     handleVideoSelection,
     removeVideoFile,
     mediaValidationError,
+    showValidationErrors,
   } = useWizard();
   const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
   const hasReplacementMedia = galleryFiles.length > 0;
@@ -207,7 +208,7 @@ export function StepMedia() {
             </div>
           ) : null}
 
-          <div className="flex h-full flex-col">
+          <div data-validation-error={showValidationErrors && Boolean(mediaValidationError) || undefined} tabIndex={-1} className="flex h-full flex-col">
             <label className={sellerLabelClass}>Upload Photos</label>
             <p className="mb-3 min-h-[40px] text-[13px] leading-5 text-[#7b7b7b]">
               PNG or JPG files up to 10MB each. Upload at least {MIN_TOTAL_IMAGES} photos, then choose one below as the cover.

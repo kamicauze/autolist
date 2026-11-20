@@ -37,6 +37,7 @@ export function StepDescription() {
           <label htmlFor="listing-description" className={sellerLabelClass}>Description</label>
           <textarea
             id="listing-description"
+            aria-invalid={showValidationErrors && (!draft.description.trim() || draft.description.trim().length > MAX_DESCRIPTION_LENGTH)}
             value={draft.description}
             maxLength={MAX_DESCRIPTION_LENGTH}
             onChange={(event) => updateField("description", event.target.value)}

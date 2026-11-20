@@ -75,12 +75,14 @@ function WizardContent({
     handleContinue,
     handleBack,
     goToStep,
+    validationAttempt,
   } = useWizard();
 
   const isLastStep = activeStep === LISTING_WIZARD_STEPS.length - 1;
   const isAdminMode = mode === "admin";
 
   const errorRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const previousStepRef = useRef(activeStep);
   useEffect(() => {
     if (previousStepRef.current !== activeStep) {
@@ -94,6 +96,24 @@ function WizardContent({
       errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [submitError]);
+
+  useEffect(() => {
+    if (!validationAttempt) return;
+    const frame = window.requestAnimationFrame(() => {
+      const invalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-validation-error="true"]');
+      if (!invalid) return;
+      const control = invalid.matches("input, select, textarea, button") ? invalid :
+        Array.from(invalid.querySelectorAll<HTMLElement>("input, select, textarea, button"))
+          .find((element) => !element.matches(":disabled") && element.getClientRects().length > 0);
+      const target = control ?? invalid;
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [validationAttempt, activeStep]);
 
   const footerMeta =
       activeStep === WIZARD_STEP.features
@@ -242,7 +262,7 @@ function WizardContent({
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={formRef} className="space-y-4">
       {packageBanner ? (
         <div className={`rounded-[14px] p-4 ${packageBanner.wrapperClass}`}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
