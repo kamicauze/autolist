@@ -129,7 +129,10 @@ export function ListingCopyAssistant({ features = [] }: ListingCopyAssistantProp
               </div>
               <button
                 type="button"
-                onClick={() => updateField("description", result.description)}
+                onClick={() => {
+                  updateField("description", result.description);
+                  setResult(null);
+                }}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] border border-brand-muted-border bg-brand-soft-surface px-3 py-2 text-[13px] font-semibold text-primary hover:bg-brand-tint sm:w-auto lg:shrink-0"
               >
                 <Wand2 className="h-4 w-4" />
