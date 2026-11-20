@@ -40,6 +40,7 @@ import { getListingDisplayLocation, getListingDisplayTitle } from "@/lib/utils/v
 import { GoogleMapEmbed } from "@/components/maps/google-map-embed";
 import { buildGoogleMapsQuery, getGoogleMapsSearchUrl } from "@/lib/google-maps";
 import { ReportAdDialog } from "@/components/vehicle/report-ad-dialog";
+import { ShareListingButton } from "@/components/vehicle/share-listing-button";
 import { DealerProfileHeader } from "./dealer-profile-header";
 import { getDealerHoursPresentation } from "@/components/vehicle/seller-card";
 import { OpeningHoursDisplay } from "@/components/dealers/opening-hours-display";
@@ -309,7 +310,7 @@ export function DealerPageClient({
     <>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,830px)_minmax(0,410px)]">
         <main className="space-y-8">
-          <DealerProfileHeader id={dealer.id} name={dealer.name} photoKeys={dealer.showroom_photo_keys} />
+          <DealerProfileHeader name={dealer.name} photoKeys={dealer.showroom_photo_keys} />
 
           <section id="about" className="scroll-mt-24">
             <h2 className="text-2xl font-bold text-gray-900">About {dealer.name}</h2>
@@ -317,6 +318,7 @@ export function DealerPageClient({
               {dealer.about_text ||
                 `${dealer.name} is a verified Autolist dealer offering quality inspected vehicles and trusted support through the buying process.`}
             </p>
+            <ShareListingButton dealerId={dealer.id} title={dealer.name} />
           </section>
 
           <section id="inventory" className="scroll-mt-24">
