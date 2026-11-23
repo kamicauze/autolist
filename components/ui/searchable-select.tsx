@@ -227,7 +227,7 @@ export function SearchableSelect({
               placeholder={searchPlaceholder}
               aria-controls={listboxId}
               aria-activedescendant={filtered[highlighted] ? `${listboxId}-${highlighted}` : undefined}
-              className="h-11 w-full bg-transparent text-[14px] text-[#202224] outline-none placeholder:text-[#9a9a9a]"
+              className="h-11 w-full bg-transparent text-[16px] md:text-[14px] text-[#202224] outline-none placeholder:text-[#9a9a9a]"
             />
           </div>
           <ul ref={listRef} id={listboxId} role="listbox" className="min-h-0 overflow-y-auto overscroll-contain py-1">
