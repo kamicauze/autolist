@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { evaluateCommsAgent } from "@/lib/ai/comms-agent";
-import type { CommsAgentInput } from "@/lib/types/comms-agent";
+import { getCommsAgentContext } from "@/lib/data/comms-agent-context";
+import type { CommsAgentRequest } from "@/lib/types/comms-agent";
 
 export async function POST(request: NextRequest) {
-  const payload = (await request.json()) as Partial<CommsAgentInput>;
+  const payload = (await request.json().catch(() => ({}))) as Partial<CommsAgentRequest>;
+  const conversationId = typeof payload.conversationId === "string" ? payload.conversationId.trim() : "";
 
-  if (!payload.buyerName || !payload.listingTitle || !Array.isArray(payload.messages)) {
-    return NextResponse.json(
-      { error: "buyerName, listingTitle, and messages are required." },
-      { status: 400 }
-    );
+  if (!conversationId) {
+    return NextResponse.json({ error: "conversationId is required." }, { status: 400 });
   }
 
-  const result = await evaluateCommsAgent({
-    buyerName: payload.buyerName,
-    listingTitle: payload.listingTitle,
-    conversationId: payload.conversationId,
-    latestDraft: payload.latestDraft,
-    messages: payload.messages,
-  });
+  const context = await getCommsAgentContext(
+    conversationId,
+    typeof payload.latestDraft === "string" ? payload.latestDraft : undefined
+  );
 
-  return NextResponse.json(result);
+  if (context.status !== "ok") {
+    return context.status === "unauthenticated"
+      ? NextResponse.json({ error: "Sign in to use the reply assistant." }, { status: 401 })
+      : NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+  }
+
+  const result = await evaluateCommsAgent(context.input);
+  return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
 }
