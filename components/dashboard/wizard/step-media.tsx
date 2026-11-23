@@ -12,6 +12,7 @@ import {
 } from "./wizard-context";
 import { sellerGhostButtonClass, sellerInputClass, sellerLabelClass } from "../seller-dashboard-ui";
 import { getImageUrl } from "@/lib/utils/listings";
+import { useListingPhotoPreview } from "@/lib/hooks/use-listing-photo-preview";
 
 function ExistingImageCard({
   image,
@@ -78,16 +79,7 @@ function GalleryPreview({
   onDragStart: () => void;
   onDrop: () => void;
 }) {
-  const [previewUrl, setPreviewUrl] = React.useState("");
-
-  React.useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file]);
+  const previewUrl = useListingPhotoPreview(file);
 
   return (
     <div
