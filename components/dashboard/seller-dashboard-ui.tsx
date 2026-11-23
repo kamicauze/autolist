@@ -15,13 +15,13 @@ export const sellerMutedSurfaceClass =
   "rounded-[20px] border border-[#ededed] bg-[#f8f8f8]";
 
 export const sellerInputClass =
-  "h-12 w-full rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
+  "h-12 w-full rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[16px] md:text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerTextareaClass =
-  "min-h-[132px] w-full rounded-[18px] border border-[#e7e7e7] bg-white px-4 py-3 text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
+  "min-h-[132px] w-full rounded-[18px] border border-[#e7e7e7] bg-white px-4 py-3 text-[16px] md:text-[14px] text-[#212121] placeholder:text-[#9a9a9a] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerSelectClass =
-  "h-12 w-full appearance-none rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[14px] text-[#212121] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
+  "h-12 w-full appearance-none rounded-[14px] border border-[#e7e7e7] bg-white px-4 text-[16px] md:text-[14px] text-[#212121] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const sellerLabelClass =
   "mb-2 block text-[13px] font-medium text-[#24272c]";
