@@ -11,6 +11,7 @@ import Image from "next/image";
 import { ChevronDown, FileText, PencilLine, PlayCircle } from "lucide-react";
 import { Icon3D } from "@/components/ui/icon-3d";
 import { getImageUrl } from "@/lib/utils/listings";
+import { useListingPhotoPreview } from "@/lib/hooks/use-listing-photo-preview";
 import { formatDetailSummaryValue, formatKES, useWizard, WIZARD_STEP } from "./wizard-context";
 import { ListingQualityPanel } from "./listing-quality-panel";
 import { StepSeller } from "./step-seller";
@@ -51,7 +52,7 @@ function MediaThumb({ src, alt, badge }: { src: string | null; alt: string; badg
 }
 
 function NewFileThumb({ file, badge }: { file: File; badge?: string }) {
-  const url = useObjectUrl(file);
+  const url = useListingPhotoPreview(file);
   return <MediaThumb src={url} alt={file.name} badge={badge} />;
 }
 

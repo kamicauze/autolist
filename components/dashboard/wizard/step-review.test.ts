@@ -184,6 +184,7 @@ function renderMedia(draft: ListingDraft): MediaElement[] {
     },
     "next/image": "img",
     "@/components/ui/dropzone": { Dropzone: "dropzone" },
+    "@/lib/hooks/use-listing-photo-preview": { useListingPhotoPreview: () => null },
     "../seller-dashboard-ui": {},
     "@/lib/utils/listings": { getImageUrl: (key: string) => key },
     "./wizard-context": { MIN_TOTAL_IMAGES: 3, useWizard: () => ({
