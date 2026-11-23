@@ -130,7 +130,7 @@ export function WizardShell({
         </div>
 
         <div className="rounded-[16px] border border-[#ededed] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-          <div className="p-4 lg:p-5 [&_input]:!min-h-0 [&_input]:!text-[13px] [&_input:not([type='checkbox'])]:!h-10 [&_select]:!h-10 [&_select]:!text-[13px] [&_textarea]:!min-h-[96px] [&_textarea]:!text-[13px]">
+          <div className="p-4 lg:p-5 [&_input]:!min-h-0 [&_input]:!text-[16px] md:[&_input]:!text-[13px] [&_input:not([type='checkbox'])]:!h-10 [&_select]:!h-10 [&_select]:!text-[16px] md:[&_select]:!text-[13px] [&_textarea]:!min-h-[96px] [&_textarea]:!text-[16px] md:[&_textarea]:!text-[13px]">
             {children}
           </div>
 
