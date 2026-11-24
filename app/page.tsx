@@ -3,6 +3,7 @@ import { publicPageMetadata, SITE_DESCRIPTION, websiteJsonLd } from "@/lib/seo";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { HeroSearch } from "@/components/home/hero-search";
+import { AdvertisingBanner } from "@/components/home/advertising-banner";
 import { ListingsSection, ListingsSectionSkeleton, type HomepageListingData } from "@/components/home/listings-section";
 import { BrandLogos } from "@/components/home/brand-logos";
 import { HowItWorks } from "@/components/home/how-it-works";
@@ -139,6 +140,8 @@ export default async function Home() {
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
           <HeroSearchWithData content={cmsContent.hero} />
         </Suspense>
+
+        <AdvertisingBanner />
 
         <PublicCmsBannerPlacement placement="home_top" variant="full" />
 
