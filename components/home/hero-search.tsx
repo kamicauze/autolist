@@ -801,9 +801,7 @@ export function HeroSearch({
         <div
           className={cn(
             "relative z-10",
-            heroArtwork
-              ? "mt-4"
-              : hasSponsoredHero
+            hasSponsoredHero
               ? "order-2 mt-3 lg:order-1 lg:mt-0 lg:flex lg:h-full lg:items-center"
               : "-mt-14 sm:-mt-16 md:-mt-30",
           )}
