@@ -521,8 +521,8 @@ export function AdminCmsLive({
         >
           <div className="flex h-full min-h-[156px] flex-col justify-between gap-8">
             <div>
-              <p className="max-w-xl text-[30px] font-semibold leading-[1.08]">{editor.headline}</p>
-              <p className="mt-3 max-w-xl text-[14px] leading-6 text-white/86">{editor.subheading}</p>
+              {editor.headline ? <p className="max-w-xl text-[30px] font-semibold leading-[1.08]">{editor.headline}</p> : null}
+              {editor.subheading ? <p className="mt-3 max-w-xl text-[14px] leading-6 text-white/86">{editor.subheading}</p> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-white/30 bg-black/20 px-3 py-1 text-[12px] font-semibold backdrop-blur">
@@ -536,7 +536,7 @@ export function AdminCmsLive({
 
         <div className="grid gap-4 xl:grid-cols-2">
           <label className="space-y-2">
-            <span className="text-[13px] font-medium text-[#111827]">Hero headline</span>
+            <span className="text-[13px] font-medium text-[#111827]">Hero headline (optional)</span>
             <input
               value={editor.headline}
               onChange={(event) =>
@@ -571,7 +571,7 @@ export function AdminCmsLive({
         </div>
 
         <label className="space-y-2">
-          <span className="text-[13px] font-medium text-[#111827]">Hero subheading</span>
+          <span className="text-[13px] font-medium text-[#111827]">Hero subheading (optional)</span>
           <textarea
             value={editor.subheading}
             onChange={(event) =>

@@ -92,8 +92,12 @@ function normalizeHeroSlide(
 
 function normalizeHeroContent(value: unknown): HomepageHeroCmsContent {
   const input = isRecord(value) ? value : {};
-  const headline = readString(input.headline, DEFAULT_HOME_HERO_CMS_CONTENT.headline, 90);
-  const subheading = readString(input.subheading, DEFAULT_HOME_HERO_CMS_CONTENT.subheading, 220);
+  const headline = typeof input.headline === "string"
+    ? input.headline.trim().slice(0, 90)
+    : DEFAULT_HOME_HERO_CMS_CONTENT.headline;
+  const subheading = typeof input.subheading === "string"
+    ? input.subheading.trim().slice(0, 220)
+    : DEFAULT_HOME_HERO_CMS_CONTENT.subheading;
   const backgroundImageUrl = readString(
     input.backgroundImageUrl,
     DEFAULT_HOME_HERO_CMS_CONTENT.backgroundImageUrl,

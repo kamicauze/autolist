@@ -81,8 +81,8 @@ const heroSlideSchema = z.object({
 });
 
 const heroBlockSchema = z.object({
-  headline: z.string().trim().min(1, "Hero headline is required.").max(90),
-  subheading: z.string().trim().min(1, "Hero subheading is required.").max(220),
+  headline: z.string().trim().max(90),
+  subheading: z.string().trim().max(220),
   backgroundImageUrl: imageUrlSchema,
   carouselEnabled: z.boolean(),
   carouselIntervalSeconds: z.number().int().min(3).max(15),

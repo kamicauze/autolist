@@ -78,6 +78,14 @@ test("an unpublished hero keeps the advertising fallback", async () => {
   assert.ok((await loadHero()).heroArtwork);
 });
 
+test("published blank hero text reaches the homepage without default copy", async () => {
+  const content = { ...DEFAULT_HOME_HERO_CMS_CONTENT, headline: "", subheading: "" };
+  blocks = [{ block_key: "home_hero", status: "published", published_content: content }];
+  const hero = await loadHero();
+  assert.equal(hero.heroArtwork, undefined);
+  assert.deepEqual(hero.content, content);
+});
+
 test("an active sponsored hero is not hidden by the advertising fallback", async () => {
   blocks = [];
   banners = [{ id: "homepage-sponsor" }];

@@ -94,6 +94,20 @@ test("homepage price presets display full amounts under one KES heading", () => 
   }
 });
 
+test("hero renders headline and subheading independently and omits empty copy", () => {
+  for (const [headline, subheading] of [["", ""], ["", "Optional support copy"], ["Optional headline", ""]]) {
+    const html = renderToStaticMarkup(createElement(HeroSearch, {
+      makes: [], totalCount: 0, content: { ...DEFAULT_HOME_HERO_CMS_CONTENT, headline, subheading },
+    }));
+    assert.equal(/<h1(?:\s|>)/.test(html), Boolean(headline));
+    if (headline) assert.ok(html.includes(headline));
+    if (subheading) assert.ok(html.includes(subheading));
+    assert.ok(!html.includes(DEFAULT_HOME_HERO_CMS_CONTENT.headline));
+    assert.ok(!html.includes(DEFAULT_HOME_HERO_CMS_CONTENT.subheading));
+    assert.doesNotMatch(html, /<p[^>]*><\/p>/);
+  }
+});
+
 test("ad detail renders its mobile creative with desktop fallback when configured", async () => {
   detailCampaign = campaign;
   const html = renderToStaticMarkup(await AdDetailPage({ params: Promise.resolve({ slug: campaign.slug! }) }));

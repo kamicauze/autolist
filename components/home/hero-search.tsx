@@ -741,7 +741,7 @@ export function HeroSearch({
                 hasSponsoredHero && "items-start justify-end text-left",
               )}
             >
-              <h1
+              {heroContent.headline ? <h1
                 className={cn(
                   "max-w-4xl text-3xl font-bold text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.34)] sm:text-4xl md:text-5xl lg:text-6xl",
                   hasSponsoredHero &&
@@ -749,15 +749,15 @@ export function HeroSearch({
                 )}
               >
                 {heroContent.headline}
-              </h1>
-              <p
+              </h1> : null}
+              {heroContent.subheading ? <p
                 className={cn(
                   "mt-3 max-w-2xl text-base text-white/88 drop-shadow-[0_1px_12px_rgba(0,0,0,0.34)] sm:text-lg",
                   hasSponsoredHero && "max-w-xl text-sm leading-6 sm:text-base",
                 )}
               >
                 {heroContent.subheading}
-              </p>
+              </p> : null}
               {heroBanner ? (
                 heroBannerHref ? (
                   heroBannerIsExternal ? (
