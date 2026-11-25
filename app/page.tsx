@@ -73,6 +73,7 @@ async function HeroSearchWithData({ content }: { content: HomepageCmsContent["he
       totalCount={totalCount}
       content={content}
       heroBanner={heroBanners[0] ?? null}
+      heroArtwork={<AdvertisingBanner />}
     />
   );
 }
@@ -141,8 +142,6 @@ export default async function Home() {
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
           <HeroSearchWithData content={cmsContent.hero} />
         </Suspense>
-
-        <AdvertisingBanner />
 
         <PublicCmsBannerPlacement placement="home_top" variant="full" />
 
