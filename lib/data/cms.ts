@@ -329,6 +329,7 @@ export const getHomepageCmsContent = cache(async (): Promise<HomepageCmsContent>
     }
     return {
       hero: DEFAULT_HOME_HERO_CMS_CONTENT,
+      hasPublishedHero: false,
       featuredListings: DEFAULT_HOME_FEATURED_LISTINGS_CMS_CONTENT,
       sections: DEFAULT_HOME_SECTIONS_CMS_CONTENT,
     };
@@ -343,6 +344,7 @@ export const getHomepageCmsContent = cache(async (): Promise<HomepageCmsContent>
 
   return {
     hero: normalizeHeroContent(contentByKey.get("home_hero")),
+    hasPublishedHero: isRecord(contentByKey.get("home_hero")),
     featuredListings: normalizeFeaturedListingsContent(
       contentByKey.get("home_featured_listings")
     ),

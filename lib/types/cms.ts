@@ -73,6 +73,7 @@ export type AdminHomepageCmsData = {
 
 export type HomepageCmsContent = {
   hero: HomepageHeroCmsContent;
+  hasPublishedHero: boolean;
   featuredListings: HomepageFeaturedListingsCmsContent;
   sections: HomepageSectionsCmsContent;
 };

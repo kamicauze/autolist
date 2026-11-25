@@ -60,7 +60,10 @@ async function RecentActivitiesData({
   );
 }
 
-async function HeroSearchWithData({ content }: { content: HomepageCmsContent["hero"] }) {
+async function HeroSearchWithData({ content, hasPublishedHero }: {
+  content: HomepageCmsContent["hero"];
+  hasPublishedHero: boolean;
+}) {
   const [makes, totalCount, heroBanners] = await Promise.all([
     getAllMakeNames(),
     countMatchingListings().catch(() => null),
@@ -72,7 +75,7 @@ async function HeroSearchWithData({ content }: { content: HomepageCmsContent["he
       totalCount={totalCount}
       content={content}
       heroBanner={heroBanners[0] ?? null}
-      heroArtwork={<AdvertisingBanner />}
+      heroArtwork={hasPublishedHero || heroBanners.length > 0 ? undefined : <AdvertisingBanner />}
     />
   );
 }
@@ -139,7 +142,7 @@ export default async function Home() {
       <main className="flex-1">
         {/* Hero Section with Search */}
         <Suspense fallback={<div className="h-[320px] sm:h-[400px] md:h-[460px]" aria-hidden />}>
-          <HeroSearchWithData content={cmsContent.hero} />
+          <HeroSearchWithData content={cmsContent.hero} hasPublishedHero={cmsContent.hasPublishedHero} />
         </Suspense>
 
         <PublicCmsBannerPlacement placement="home_top" variant="full" />
