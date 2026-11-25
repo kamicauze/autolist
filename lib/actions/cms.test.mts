@@ -39,7 +39,6 @@ test("hero drafts and publications accept either or both text fields blank and p
         content: { ...DEFAULT_HOME_HERO_CMS_CONTENT, headline, subheading },
       });
       assert.equal(result.success, true);
-      if (!result.success) throw new Error(result.error);
       assert.equal((result.block.draftContent as { headline: string }).headline, headline.trim());
       assert.equal((result.block.draftContent as { subheading: string }).subheading, subheading.trim());
       if (publish) assert.deepEqual(result.block.publishedContent, result.block.draftContent);
