@@ -13,7 +13,7 @@ export function AdvertisingBanner() {
         className="block overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
       >
         <Image
-          src="/images/marketing/start-advertising-banner.webp"
+          src="/images/marketing/start-advertising-banner-no-logo.webp"
           alt="Advertise with us. Put your vehicles in front of buyers across Kenya. Start advertising."
           priority
           width={1600}
