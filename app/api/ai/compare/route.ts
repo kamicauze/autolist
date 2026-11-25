@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVehicleComparison } from "@/lib/ai/vehicle-comparison";
 import { getListingsByIds } from "@/lib/data/listings";
+import { createVehicleResearchCache } from "@/lib/server/vehicle-research-cache";
 import { normalizeCompareIds } from "@/lib/utils/compare";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +27,9 @@ export async function POST(request: NextRequest) {
   }
 
   const listings = await getListingsByIds(ids);
-  const comparison = await generateVehicleComparison(listings);
+  const comparison = await generateVehicleComparison(listings, {
+    researchCache: createVehicleResearchCache(),
+  });
 
   return NextResponse.json(comparison, {
     headers: {
