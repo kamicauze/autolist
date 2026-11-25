@@ -3,7 +3,8 @@ import Link from "next/link";
 
 export function AdvertisingBanner() {
   return (
-    <section aria-label="Advertise your vehicle" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <section aria-label="Advertise your vehicle" className="w-full">
+      <h1 className="sr-only">Advertise your vehicle on Autolist</h1>
       <Link
         href="/dashboard/listings/new"
         aria-label="Start advertising — create a vehicle listing"
@@ -14,6 +15,7 @@ export function AdvertisingBanner() {
         <Image
           src="/images/marketing/start-advertising-banner.webp"
           alt="Advertise with us. Put your vehicles in front of buyers across Kenya. Start advertising."
+          priority
           width={1600}
           height={900}
           sizes="(min-width: 1280px) 1216px, 100vw"

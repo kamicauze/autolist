@@ -132,6 +132,7 @@ interface HeroSearchProps {
   totalCount: number | null;
   content?: HomepageHeroCmsContent;
   heroBanner?: CmsBanner | null;
+  heroArtwork?: React.ReactNode;
 }
 
 function getHeroSlides(content: HomepageHeroCmsContent): HomepageHeroSlide[] {
@@ -166,6 +167,7 @@ export function HeroSearch({
   totalCount,
   content,
   heroBanner,
+  heroArtwork,
 }: HeroSearchProps) {
   const router = useRouter();
   const heroContent = content ?? DEFAULT_HOME_HERO_CMS_CONTENT;
@@ -197,7 +199,7 @@ export function HeroSearch({
   const [countStatus, setCountStatus] =
     React.useState<LandingSearchCountStatus>("loading");
   const carouselEnabled =
-    !heroBanner && heroContent.carouselEnabled && heroSlides.length > 1;
+    !heroArtwork && !heroBanner && heroContent.carouselEnabled && heroSlides.length > 1;
   const activeHeroSlide = heroSlides[activeHeroSlideIndex] ?? heroSlides[0];
   const carouselIntervalMs = heroContent.carouselIntervalSeconds * 1000;
   const heroBannerHref = getBannerHref(heroBanner);
@@ -207,9 +209,9 @@ export function HeroSearch({
   const heroImageUrl = heroBanner?.desktopImageUrl || activeHeroSlide.imageUrl;
   const heroImageAlt =
     heroBanner?.altText || activeHeroSlide.altText || heroContent.headline;
-  const hasSponsoredHero = Boolean(heroBanner);
+  const hasSponsoredHero = !heroArtwork && Boolean(heroBanner);
 
-  const heroImpressionRef = useCmsBannerImpressions(heroBanner ? [heroBanner.id] : []);
+  const heroImpressionRef = useCmsBannerImpressions(!heroArtwork && heroBanner ? [heroBanner.id] : []);
 
   const activeConfig = CATEGORY_CONFIG[activeCategory];
   const isEquipmentCategory = activeCategory === "farm_agricultural" || activeCategory === "plant_construction";
@@ -662,7 +664,7 @@ export function HeroSearch({
             "lg:grid lg:grid-cols-[minmax(390px,430px)_minmax(0,1fr)] lg:items-stretch lg:gap-5",
         )}
       >
-        <div
+        {heroArtwork ?? (<div
           ref={heroImpressionRef}
           className={cn(
             "relative h-[340px] overflow-hidden rounded-[32px] sm:h-[410px] md:h-[470px] lg:h-[500px]",
@@ -794,12 +796,14 @@ export function HeroSearch({
               ) : null}
             </div>
           </div>
-        </div>
+        </div>)}
 
         <div
           className={cn(
             "relative z-10",
-            hasSponsoredHero
+            heroArtwork
+              ? "mt-4"
+              : hasSponsoredHero
               ? "order-2 mt-3 lg:order-1 lg:mt-0 lg:flex lg:h-full lg:items-center"
               : "-mt-14 sm:-mt-16 md:-mt-30",
           )}
