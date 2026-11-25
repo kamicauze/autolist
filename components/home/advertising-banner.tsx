@@ -26,7 +26,7 @@ export function AdvertisingBanner() {
             width={1600}
             height={900}
             sizes="(min-width: 1280px) 1216px, 100vw"
-            className="h-auto w-full object-cover object-left md:h-[470px] lg:h-[500px]"
+            className="h-auto w-full object-cover object-left md:h-[400px] lg:h-[420px]"
           />
         </picture>
       </Link>
