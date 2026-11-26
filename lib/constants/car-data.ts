@@ -83,6 +83,7 @@ const audi: CarMakeData = {
     { name: "S6" },
     { name: "S7" },
     { name: "S8" },
+    { name: "TT" },
     { name: "Q3" },
     { name: "Q4 E-Tron" },
     { name: "Q5" },
@@ -786,6 +787,7 @@ const mercedesBenz: CarMakeData = {
     { name: "AMG GT", variants: ["GT43", "GT55", "GT63", "GT63S"] },
     { name: "CLK" },
     { name: "CLS", variants: ["CLS220d", "CLS250d", "CLS300", "CLS350", "CLS400", "CLS450", "CLS500", "CLS53", "CLS63"] },
+    { name: "GL" },
     { name: "GLA", variants: ["GLA 180", "GLA 200", "GLA 250", "AMG GLA 35", "AMG GLA 45"] },
     { name: "GLB", variants: ["GLB 180", "GLB 200", "GLB 250", "AMG GLB 35"] },
     { name: "GLC", variants: ["GLC 200", "GLC 250", "GLC 300", "GLC 43", "GLC 63"] },
@@ -1056,6 +1058,7 @@ const smart: CarMakeData = {
   models: [
     { name: "ForFour" },
     { name: "ForTwo" },
+    { name: "Roadster" },
     { name: "#1" },
     { name: "#3" },
     { name: "#5" },
