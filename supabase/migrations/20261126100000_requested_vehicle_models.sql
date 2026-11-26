@@ -1,0 +1,9 @@
+-- Requested vehicle models and their existing shared make trims.
+BEGIN;
+INSERT INTO public.car_models (make_id,name,slug) SELECT id,'GL','gl' FROM public.car_makes WHERE name='Mercedes-Benz' ON CONFLICT (make_id,slug) DO NOTHING;
+INSERT INTO public.car_trims (model_id,name,is_shared,sort_order) SELECT mo.id,t.name,true,t.ord::int-1 FROM public.car_models mo JOIN public.car_makes ma ON ma.id=mo.make_id CROSS JOIN unnest(ARRAY['Ambiente','Avantgarde','Avantgarde S','AMG Line','AMG','AMG S','BiTurbo','Classic','Elegance','Exclusive Line','Limited','Luxury','Sports Edition','Laureus Edition','Sportline','Blue Efficiency','CGI','Designo Edition','Manufaktur Edition','Night Edition','Carbon Edition','Edition 1','Kompressor','4Matic']) WITH ORDINALITY AS t(name,ord) WHERE ma.name='Mercedes-Benz' AND mo.slug='gl' ON CONFLICT (model_id,name) DO NOTHING;
+INSERT INTO public.car_models (make_id,name,slug) SELECT id,'TT','tt' FROM public.car_makes WHERE name='Audi' ON CONFLICT (make_id,slug) DO NOTHING;
+INSERT INTO public.car_trims (model_id,name,is_shared,sort_order) SELECT mo.id,t.name,true,t.ord::int-1 FROM public.car_models mo JOIN public.car_makes ma ON ma.id=mo.make_id CROSS JOIN unnest(ARRAY['Comfort','Premium','Premium Plus','Prestige','Sport','S-Line','S','RS','Black Edition','TFSI','TDI']) WITH ORDINALITY AS t(name,ord) WHERE ma.name='Audi' AND mo.slug='tt' ON CONFLICT (model_id,name) DO NOTHING;
+INSERT INTO public.car_models (make_id,name,slug) SELECT id,'Roadster','roadster' FROM public.car_makes WHERE name='Smart' ON CONFLICT (make_id,slug) DO NOTHING;
+INSERT INTO public.car_trims (model_id,name,is_shared,sort_order) SELECT mo.id,t.name,true,t.ord::int-1 FROM public.car_models mo JOIN public.car_makes ma ON ma.id=mo.make_id CROSS JOIN unnest(ARRAY['Brabus','Pure','Passion','Prime','Premium','Pro','Pro+']) WITH ORDINALITY AS t(name,ord) WHERE ma.name='Smart' AND mo.slug='roadster' ON CONFLICT (model_id,name) DO NOTHING;
+COMMIT;
