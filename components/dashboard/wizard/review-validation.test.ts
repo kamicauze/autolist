@@ -62,7 +62,7 @@ test("validation focuses the missing field after each attempt, skips hidden inpu
   let effects: Array<() => void> = [];
   const previousDeps: unknown[][] = [];
   let effectIndex = 0;
-  const context = { draft: DEFAULT_DRAFT, draftReady: true, isEditing: true, activeStep: WIZARD_STEP.vehicle, stepCompletion: [], validationAttempt: 0 };
+  const context = { draft: DEFAULT_DRAFT, draftReady: true, isEditing: true, activeStep: WIZARD_STEP.vehicle as number, stepCompletion: [], validationAttempt: 0 };
   const component = load("./listing-wizard-v2.tsx", context, {
     useRef(initial: unknown) { return refs[refIndex++] ??= { current: initial }; },
     useEffect(callback: () => void, deps: unknown[]) {
