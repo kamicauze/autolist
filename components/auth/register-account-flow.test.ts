@@ -67,7 +67,8 @@ test("a created account is not signed up again until its email or password chang
   assert.match(form, /setEmail\(event\.target\.value\);\s*clearCreatedAccount\(\);/);
   assert.match(form, /setPassword\(event\.target\.value\);\s*clearCreatedAccount\(\);/);
   assert.match(form, /disabled=\{isLoading \|\| !!socialLoading \|\| accountCreated\}\s+data-testid="register-submit"/);
-  assert.match(form, /<ResendVerification email=\{email\} nextPath=\{nextPath\} disabled=\{isLoading \|\| !!socialLoading\} \/>/);
+  assert.match(form, /accountCreated \? \(\s*<ResendVerification email=\{email\} nextPath=\{nextPath\}/);
+  assert.match(form, /Create your account first\. We’ll email you a verification link after you submit\./);
 });
 
 test("Private seller remains presentation copy over the existing seller role value", () => {

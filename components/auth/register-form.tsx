@@ -617,7 +617,13 @@ export function RegisterForm() {
         </div>
       )}
 
-      <ResendVerification email={email} nextPath={nextPath} disabled={isLoading || !!socialLoading} />
+      {accountCreated ? (
+        <ResendVerification email={email} nextPath={nextPath} disabled={isLoading || !!socialLoading} />
+      ) : (
+        <p className="text-sm text-[#696f78]">
+          Create your account first. We’ll email you a verification link after you submit.
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <Button

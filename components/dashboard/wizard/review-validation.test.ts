@@ -74,14 +74,21 @@ test("validation focuses the missing field after each attempt, skips hidden inpu
   const refs: Array<{ current: unknown }> = [];
   let refIndex = 0;
   let effects: Array<() => void> = [];
-  const context = { draft: DEFAULT_DRAFT, draftReady: true, isEditing: true, activeStep: WIZARD_STEP.vehicle, stepCompletion: [], validationAttempt: 0 };
+  const previousDeps: unknown[][] = [];
+  let effectIndex = 0;
+  const context = { draft: DEFAULT_DRAFT, draftReady: true, isEditing: true, activeStep: WIZARD_STEP.vehicle as number, stepCompletion: [], validationAttempt: 0 };
   const component = load("./listing-wizard-v2.tsx", context, {
     useRef(initial: unknown) { return refs[refIndex++] ??= { current: initial }; },
-    useEffect(callback: () => void) { effects.push(callback); },
+    useEffect(callback: () => void, deps: unknown[]) {
+      const index = effectIndex++;
+      if (!previousDeps[index] || deps.some((value, i) => !Object.is(value, previousDeps[index][i]))) effects.push(callback);
+      previousDeps[index] = [...deps];
+    },
   }, { scrollTo() {}, requestAnimationFrame: (callback: () => void) => { callback(); return 1; }, cancelAnimationFrame() {}, matchMedia: () => ({ matches: reducedMotion }) });
   function render() {
     refIndex = 0;
     effects = [];
+    effectIndex = 0;
     const wrapper = component.ListingWizardV2({});
     const content = wrapper.props.children as Element;
     (content.type as (props: object) => Element)(content.props);
@@ -97,8 +104,26 @@ test("validation focuses the missing field after each attempt, skips hidden inpu
   context.validationAttempt = 3;
   render();
   assert.equal((scrolled[2] as { behavior: string }).behavior, "auto");
+  context.activeStep = WIZARD_STEP.features;
+  render();
+  assert.equal(focused.length, 3, "ordinary step changes must not focus missing fields after an earlier validation failure");
   currentInvalid = null;
   context.validationAttempt = 4;
   render();
   assert.equal(focused.length, 3);
+});
+
+test("submission progress follows the current step content", () => {
+  const context = { draft: DEFAULT_DRAFT, draftReady: true, isEditing: true, activeStep: WIZARD_STEP.review, stepCompletion: [], validationAttempt: 0, isSubmitting: true, submissionStatus: "Uploading media (1 of 3)..." };
+  const component = load("./listing-wizard-v2.tsx", context, {
+    useRef: () => ({ current: null }),
+    useEffect() {},
+  });
+  const content = component.ListingWizardV2({}).props.children as Element;
+  const tree = (content.type as (props: object) => Element)(content.props);
+  const nodes = elements(tree);
+  const statusIndex = nodes.findIndex((node) => node.props.role === "status");
+  const stepIndex = nodes.findIndex((node) => typeof node.type === "function" && (node.type as { name: string }).name === "StepReview");
+  assert.ok(stepIndex >= 0 && statusIndex > stepIndex);
+  assert.equal(nodes[statusIndex].props["aria-live"], "polite");
 });
